@@ -18,7 +18,7 @@ def get_proble_set(url):
         return None
 
 def parse_proble_set(problemSet):
-    print(len(problemSet)) # 2573
+    # print(len(problemSet)) # 2573
     for i in range(len(problemSet)):
         title = problemSet[i]["stat"]["question__title_slug"]
         if os.path.exists("originData/[no content]{}.json".format(title)) or os.path.exists("originData/{}.json".format(title)):
@@ -30,10 +30,7 @@ def parse_proble_set(problemSet):
         time.sleep(1)
         t =threading.Thread(target=construct_url,args=(title,))
         t.start()
-
         print(i, "is done.")
-        if i > 15:
-            break # 临时
         continue
 
 def construct_url(problemTitle):
