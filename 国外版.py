@@ -29,7 +29,6 @@ def parse_proble_set(problemSet):
         #construct_url(title)
         # time.sleep(0.5)
         time.sleep(1)
-        # time.sleep(random.randint(0,9) / 10)
         t =threading.Thread(target=construct_url,args=(title,))
         t.start()
 
@@ -107,13 +106,6 @@ def main():
     # problemset = html["stat_status_pairs"]
     # saveJSON(html, "[en]json1-origin-data.json")
     # saveJSON(problemset, "[en]json2-problemset.json")
-
-    # url = "https://leetcode-cn.com/api/problems/all/"
-    # html = json.loads(get_proble_set(url))
-    # problemset = html["stat_status_pairs"]
-    # saveJSON(html, "[cn]json1-origin-data.json")
-    # saveJSON(problemset, "[cn]json2-problemset.json")
-    # exit()
 
     problemset = json.load(open("[en]json2-problemset.json", 'r', encoding='utf-8'))
     parse_proble_set(problemset)
