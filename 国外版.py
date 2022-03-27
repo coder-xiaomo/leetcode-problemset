@@ -120,9 +120,8 @@ def main():
 
 
 if __name__=='__main__':
-    if os.path.exists("算法题"):
-        os.chdir("算法题")
-    else:
-        os.mkdir("算法题")
-        os.chdir("算法题")
+    folderName = "算法题（国外版）"
+    if not os.path.exists(folderName):
+        os.mkdir(folderName)
+    os.chdir(folderName)
     main()
