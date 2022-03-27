@@ -8,8 +8,6 @@ import requests
 from requests.exceptions import RequestException
 from bs4 import BeautifulSoup
 
-import random
-
 def get_proble_set(url):
     try:
         response = requests.get(url)
@@ -21,8 +19,8 @@ def get_proble_set(url):
 
 def parse_proble_set(problemSet):
     # print(len(problemSet)) # 2218
-    # for i in range(len(problemSet)):
-    for i in range(930, len(problemSet)):
+    for i in range(len(problemSet)):
+    # for i in range(930, len(problemSet)):
         title = problemSet[i]["stat"]["question__title_slug"]
         if os.path.exists("[no content]{}.json".format(title)) or os.path.exists("{}.json".format(title)):
             print(i, "has been parsed.")
