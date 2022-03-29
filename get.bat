@@ -1,7 +1,11 @@
 git checkout master
 git pull
-python å›½å¤–ç‰ˆ.py
-python å›½å†…ç‰ˆ.py
+
+python leetcode.py
+python leetcode-cn.py
+
+echo "½«ÒªÍÆËÍµ½ Git ²Ö¿â"
+pause
 git add .
 git commit -m "update"
 git push
