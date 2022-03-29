@@ -101,13 +101,13 @@ def saveJSON(data, filename):
         json.dump(data, f, ensure_ascii=False, indent=4)
 
 def main():
-    # url = "https://leetcode.com/api/problems/all/"
-    # html = json.loads(get_proble_set(url))
-    # problemset = html["stat_status_pairs"]
-    # saveJSON(html, "[en]json1-origin-data.json")
-    # saveJSON(problemset, "[en]json2-problemset.json")
+    url = "https://leetcode.com/api/problems/all/"
+    html = json.loads(get_proble_set(url))
+    problemset = html["stat_status_pairs"]
+    saveJSON(html, "[en]json1-origin-data.json")
+    saveJSON(problemset, "[en]json2-problemset.json")
 
-    problemset = json.load(open("[en]json2-problemset.json", 'r', encoding='utf-8'))
+    # problemset = json.load(open("[en]json2-problemset.json", 'r', encoding='utf-8'))
     parse_proble_set(problemset)
 
 
