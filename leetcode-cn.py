@@ -34,7 +34,6 @@ def parse_proble_set(problemSet):
         continue
 
 def construct_url(problemTitle):
-    # url = "https://leetcode-cn.com/problems/"+ problemTitle + "/description/"
     url = "https://leetcode-cn.com/problems/"+ problemTitle + "/"
     # print(url)
     get_proble_content(url,problemTitle)
@@ -120,11 +119,11 @@ def saveJSON(data, filename):
 def main():
     url = "https://leetcode-cn.com/api/problems/all/"
     html = json.loads(get_proble_set(url))
-    problemset = html["stat_status_pairs"]
-    saveJSON(html, "[cn]json1-origin-data.json")
-    saveJSON(problemset, "[cn]json2-problemset.json")
+    saveJSON(html, "origin-data.json")
 
-    # problemset = json.load(open("[cn]json2-problemset.json", 'r', encoding='utf-8'))
+    # html = json.load(open("origin-data.json", 'r', encoding='utf-8'))
+
+    problemset = html["stat_status_pairs"]
     parse_proble_set(problemset)
 
 

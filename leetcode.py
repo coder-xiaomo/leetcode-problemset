@@ -22,7 +22,7 @@ def parse_proble_set(problemSet):
     for i in range(len(problemSet)):
     # for i in range(930, len(problemSet)):
         title = problemSet[i]["stat"]["question__title_slug"]
-        if os.path.exists("[no content]{}.json".format(title)) or os.path.exists("{}.json".format(title)):
+        if os.path.exists("originData/[no content]{}.json".format(title)) or os.path.exists("originData/{}.json".format(title)):
             print(i, "has been parsed.")
             # print("The question has been parsed: {}".format(title))
             continue
@@ -31,7 +31,6 @@ def parse_proble_set(problemSet):
         time.sleep(1)
         t =threading.Thread(target=construct_url,args=(title,))
         t.start()
-
         print(i, "is done.")
         continue
 
@@ -85,13 +84,13 @@ def get_proble_content(problemUrl,title):
         response = requests.post(url,data = dumpJsonData, headers = headers,cookies = cookies)
         dictInfo = json.loads(response.text)
         if dictInfo["data"]["question"].get("content") is not None:
-            saveJSON(dictInfo, title + ".json")
+            saveJSON(dictInfo, "originData/" + title + ".json")
             content = dictInfo["data"]["question"]["content"]
-            save_problem(title,content)
+            save_problem("problem/" + title, content)
             # soup = BeautifulSoup(content, 'lxml')
             # save_problem(title,soup.prettify())
         else:
-            saveJSON(dictInfo, "[no content]" + title + ".json")
+            saveJSON(dictInfo, "originData/[no content]" + title + ".json")
             # print("no content")
     except Exception as e:
         print("[error] ", e, problemUrl)
@@ -103,11 +102,11 @@ def saveJSON(data, filename):
 def main():
     url = "https://leetcode.com/api/problems/all/"
     html = json.loads(get_proble_set(url))
-    problemset = html["stat_status_pairs"]
-    saveJSON(html, "[en]json1-origin-data.json")
-    saveJSON(problemset, "[en]json2-problemset.json")
+    saveJSON(html, "origin-data.json")
 
-    # problemset = json.load(open("[en]json2-problemset.json", 'r', encoding='utf-8'))
+    # html = json.load(open("origin-data.json", 'r', encoding='utf-8'))
+
+    problemset = html["stat_status_pairs"]
     parse_proble_set(problemset)
 
 
@@ -115,5 +114,9 @@ if __name__=='__main__':
     folderName = "leetcode"
     if not os.path.exists(folderName):
         os.mkdir(folderName)
+    if not os.path.exists(folderName + "/originData"):
+        os.mkdir(folderName + "/originData")
+    if not os.path.exists(folderName + "/problem"):
+        os.mkdir(folderName + "/problem")
     os.chdir(folderName)
     main()
