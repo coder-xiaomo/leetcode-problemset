@@ -34,7 +34,7 @@ def parse_proble_set(problemSet):
         continue
 
 def construct_url(problemTitle):
-    url = "https://leetcode-cn.com/problems/"+ problemTitle + "/"
+    url = "https://leetcode.cn/problems/"+ problemTitle + "/"
     # print(url)
     get_proble_content(url,problemTitle)
 
@@ -49,7 +49,7 @@ def save_problem(title,content, editorType = ""):
 
 def get_proble_content(problemUrl,title):
     # 随便请求一个页面，获取csrf_token
-    response = requests.get('https://leetcode-cn.com/graphql/', data = '''{"operationName":"userPremiumInfo","variables":{},"query":"query userPremiumInfo {\n  userStatus {\n    isPremium\n    subscriptionPlanType\n    __typename\n  }\n}\n"}''')
+    response = requests.get('https://leetcode.cn/graphql/', data = '''{"operationName":"userPremiumInfo","variables":{},"query":"query userPremiumInfo {\n  userStatus {\n    isPremium\n    subscriptionPlanType\n    __typename\n  }\n}\n"}''')
     setCookie = response.headers["set-cookie"]
     # print(setCookie)
     '''
@@ -61,7 +61,7 @@ def get_proble_content(problemUrl,title):
         pattern = re.compile(".*?csrftoken=(.*?);.*?",re.S)
         csrftoken = re.search(pattern, setCookie)
         # print(csrftoken.group(1))
-        url = "https://leetcode-cn.com/graphql"
+        url = "https://leetcode.cn/graphql"
         data = {
             "operationName":"questionData",
             "variables":{"titleSlug":title},
@@ -71,7 +71,7 @@ def get_proble_content(problemUrl,title):
             'x-csrftoken': csrftoken.group(1),
             'referer':problemUrl,
             'content-type':'application/json',
-            'origin':'https://leetcode-cn.com',
+            'origin':'https://leetcode.cn',
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.139 Safari/537.36'
         }
         cookies = {
@@ -117,7 +117,7 @@ def saveJSON(data, filename):
         json.dump(data, f, ensure_ascii=False, indent=4)
 
 def main():
-    url = "https://leetcode-cn.com/api/problems/all/"
+    url = "https://leetcode.cn/api/problems/all/"
     html = json.loads(get_proble_set(url))
     saveJSON(html, "origin-data.json")
 
