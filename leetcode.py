@@ -48,7 +48,9 @@ def save_problem(title,content):
         f.write(content)
 
 def get_proble_content(problemUrl,title):
-    response = requests.get(problemUrl)
+    response = requests.get(problemUrl, headers = {
+        'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.67 Safari/537.36"
+    })
     setCookie = response.headers["Set-Cookie"]
     '''
     print(setCookie)
