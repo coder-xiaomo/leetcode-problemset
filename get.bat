@@ -11,7 +11,7 @@ git add .
 git commit -m "update"
 git gc
 
-git remote add origin https://github.com/coder-xiaomo/leetcode-problemset
+git remote add origin https://gitee.com/coder-xiaomo/leetcode-problemset
 git push origin
 
 git remote add github https://github.com/coder-xiaomo/leetcode-problemset
