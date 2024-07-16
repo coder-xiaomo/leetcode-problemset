@@ -8,10 +8,13 @@ import requests
 from requests.exceptions import RequestException
 from bs4 import BeautifulSoup
 
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 def get_proble_set(url):
     try:
         response = requests.get(url, headers = {
-            'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.41 Safari/537.36 Edg/101.0.1210.32"
+            'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
         }, verify=False)
         if response.status_code == 200:
             return response.text
@@ -28,18 +31,23 @@ def parse_proble_set(problemSet):
             print(i, "has been parsed.")
             # print("The question has been parsed: {}".format(title))
             continue
+        elif "paid_only" in problemSet[i]:
+            paid_only = problemSet[i]["paid_only"]
+            if paid_only:
+                print(i, '付费题目，跳过')
+                continue
         #construct_url(title)
         # time.sleep(0.5)
         time.sleep(1)
-        t =threading.Thread(target=construct_url,args=(title,))
+        t = threading.Thread(target=construct_url, args=(title,))
         t.start()
         print(i, "is done.")
         continue
 
 def construct_url(problemTitle):
-    url = "https://leetcode.com/problems/"+ problemTitle + "/description/"
+    url = "https://leetcode.com/problems/" + problemTitle + "/description/"
     # print(url)
-    get_proble_content(url,problemTitle)
+    get_proble_content(url, problemTitle)
 
 def save_problem(title,content):
     #content = bytes(content,encoding = 'utf8')
@@ -49,8 +57,8 @@ def save_problem(title,content):
 
 def get_proble_content(problemUrl,title):
     response = requests.get(problemUrl, headers = {
-        'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.67 Safari/537.36"
-    })
+        'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+    }, verify=False)
     setCookie = response.headers["Set-Cookie"]
     '''
     print(setCookie)
@@ -58,7 +66,7 @@ def get_proble_content(problemUrl,title):
     print(type(setCookie))
     '''
     try:
-        pattern = re.compile("csrftoken=(.*?);.*?",re.S)
+        pattern = re.compile("__cf_bm=(.*?);.*?",re.S)
         csrftoken = re.search(pattern, setCookie)
         url = "https://leetcode.com/graphql"
         data = {
@@ -105,7 +113,11 @@ def saveJSON(data, filename):
 
 def main():
     url = "https://leetcode.com/api/problems/all/"
-    html = json.loads(get_proble_set(url))
+    jsonContent = get_proble_set(url)
+    if jsonContent == None:
+        print('列表请求失败！')
+        return
+    html = json.loads(jsonContent)
     saveJSON(html, "origin-data.json")
 
     # html = json.load(open("origin-data.json", 'r', encoding='utf-8'))

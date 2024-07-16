@@ -8,9 +8,15 @@ import requests
 from requests.exceptions import RequestException
 from bs4 import BeautifulSoup
 
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 def get_proble_set(url):
     try:
-        response = requests.get(url)
+        # response = requests.get(url)
+        response = requests.get(url, headers = {
+            'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+        }, verify=False)
         if response.status_code == 200:
             return response.text
         return None
@@ -34,9 +40,9 @@ def parse_proble_set(problemSet):
         continue
 
 def construct_url(problemTitle):
-    url = "https://leetcode.cn/problems/"+ problemTitle + "/"
+    url = "https://leetcode.cn/problems/" + problemTitle + "/"
     # print(url)
-    get_proble_content(url,problemTitle)
+    get_proble_content(url, problemTitle)
 
 def save_problem(title,content, editorType = ""):
     #content = bytes(content,encoding = 'utf8')
@@ -118,7 +124,11 @@ def saveJSON(data, filename):
 
 def main():
     url = "https://leetcode.cn/api/problems/all/"
-    html = json.loads(get_proble_set(url))
+    jsonContent = get_proble_set(url)
+    if jsonContent == None:
+        print('列表请求失败！')
+        return
+    html = json.loads(jsonContent)
     saveJSON(html, "origin-data.json")
 
     # html = json.load(open("origin-data.json", 'r', encoding='utf-8'))
