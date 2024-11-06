@@ -1,6 +1,6 @@
 # 力扣题库（完整版）
 
-> 最后更新日期： **2024.10.10**
+> 最后更新日期： **2024.11.07**
 >
 > 使用脚本前请务必仔细完整阅读本 `README.md` 文件
 
@@ -13,6 +13,14 @@
 ### 仓库目录结构
 
 国外版力扣题库，在仓库 `leetcode/problem` 文件夹下；国内版力扣题库，在仓库  `leetcode-cn/problem (Chinese)` 和 `leetcode-cn/problem (English)` 文件夹下。（部分题目只有中文版，无对应英文版）。
+
+
+
+### 安装依赖
+
+```bash
+pip install -r requirements.txt
+```
 
 
 
