@@ -2,7 +2,7 @@ git checkout master
 git pull
 git count-objects -vH
 
-python leetcode.py
+:: python leetcode.py
 python leetcode-cn.py
 
 git status
