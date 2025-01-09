@@ -35,3 +35,6 @@
 	<li><code>1 &lt;= text.length &lt;= 10<sup>4</sup></code></li>
 	<li><code>text</code> consists of lower case English letters only.</li>
 </ul>
+
+<p>&nbsp;</p>
+<p><strong>Note:</strong> This question is the same as <a href="https://leetcode.com/problems/rearrange-characters-to-make-target-string/description/" target="_blank"> 2287: Rearrange Characters to Make Target String.</a></p>

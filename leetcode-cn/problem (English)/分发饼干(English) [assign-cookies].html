@@ -31,3 +31,6 @@ You need to output 2.
 	<li><code>0 &lt;= s.length &lt;= 3 * 10<sup>4</sup></code></li>
 	<li><code>1 &lt;= g[i], s[j] &lt;= 2<sup>31</sup> - 1</code></li>
 </ul>
+
+<p>&nbsp;</p>
+<p><strong>Note:</strong> This question is the same as <a href="https://leetcode.com/problems/maximum-matching-of-players-with-trainers/description/" target="_blank"> 2410: Maximum Matching of Players With Trainers.</a></p>

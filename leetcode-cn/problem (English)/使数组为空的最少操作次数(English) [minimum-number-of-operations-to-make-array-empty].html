@@ -38,3 +38,6 @@ It can be shown that we cannot make the array empty in less than 4 operations.
 	<li><code>2 &lt;= nums.length &lt;= 10<sup>5</sup></code></li>
 	<li><code>1 &lt;= nums[i] &lt;= 10<sup>6</sup></code></li>
 </ul>
+
+<p>&nbsp;</p>
+<p><strong>Note:</strong> This question is the same as <a href="https://leetcode.com/problems/minimum-rounds-to-complete-all-tasks/description/" target="_blank">2244: Minimum Rounds to Complete All Tasks.</a></p>

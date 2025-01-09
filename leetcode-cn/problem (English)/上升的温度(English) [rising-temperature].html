@@ -9,12 +9,13 @@
 | temperature   | int     |
 +---------------+---------+
 id is the column with unique values for this table.
+There are no different rows with the same recordDate.
 This table contains information about the temperature on a certain day.
 </pre>
 
 <p>&nbsp;</p>
 
-<p>Write a solution to find all dates&#39; <code>Id</code> with higher temperatures compared to its previous dates (yesterday).</p>
+<p>Write a solution to find all dates&#39; <code>id</code> with higher temperatures compared to its previous dates (yesterday).</p>
 
 <p>Return the result table in <strong>any order</strong>.</p>
 

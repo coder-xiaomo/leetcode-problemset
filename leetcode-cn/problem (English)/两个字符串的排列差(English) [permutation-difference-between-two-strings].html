@@ -22,7 +22,7 @@
 	<li>The absolute difference between the index of the occurrence of <code>&quot;c&quot;</code> in <code>s</code> and the index of the occurrence of <code>&quot;c&quot;</code> in <code>t</code>.</li>
 </ul>
 
-<p>That is, the permutation difference between <code>s</code> and <code>t</code> is equal to <code>|0 - 1| + |2 - 2| + |1 - 0| = 2</code>.</p>
+<p>That is, the permutation difference between <code>s</code> and <code>t</code> is equal to <code>|0 - 1| + |1 - 0| + |2 - 2| = 2</code>.</p>
 </div>
 
 <p><strong class="example">Example 2:</strong></p>
