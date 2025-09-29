@@ -24,5 +24,5 @@
 <ul>
 	<li><code>1 &lt;= strs.length &lt;= 200</code></li>
 	<li><code>0 &lt;= strs[i].length &lt;= 200</code></li>
-	<li><code>strs[i]</code> consists of only lowercase English letters.</li>
+	<li><code>strs[i]</code> consists of only lowercase English letters if it is non-empty.</li>
 </ul>

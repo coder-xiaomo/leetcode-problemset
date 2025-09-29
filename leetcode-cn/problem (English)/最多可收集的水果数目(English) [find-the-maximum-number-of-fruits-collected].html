@@ -24,7 +24,7 @@
 
 <p><strong>Explanation:</strong></p>
 
-<p><img alt="" src="https://assets.leetcode.com/uploads/2024/10/15/example_1.gif" style="width: 250px; height: 214px;" /></p>
+<p><img alt="" src="https://assets.leetcode.com/uploads/2025/08/07/clideo_editor_d0b446db9ba448e1a3fcdd0eecdb58d0-ezgifcom-crop.gif" style="width: 250px; height: 210px;" /></p>
 
 <p>In this example:</p>
 

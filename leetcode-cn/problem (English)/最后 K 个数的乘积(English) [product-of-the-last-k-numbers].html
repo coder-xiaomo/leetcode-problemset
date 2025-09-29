@@ -44,3 +44,6 @@ productOfNumbers.getProduct(2); // return 32. The product of the last 2 numbers 
 	<li>At most <code>4 * 10<sup>4</sup></code> calls will be made to <code>add</code> and <code>getProduct</code>.</li>
 	<li>The product of the stream at any point in time will fit in a <strong>32-bit</strong> integer.</li>
 </ul>
+
+<p>&nbsp;</p>
+<strong>Follow-up: </strong>Can you implement <strong>both</strong> <code>GetProduct</code> and <code>Add</code> to work in <code>O(1)</code> time complexity instead of <code>O(k)</code> time complexity?

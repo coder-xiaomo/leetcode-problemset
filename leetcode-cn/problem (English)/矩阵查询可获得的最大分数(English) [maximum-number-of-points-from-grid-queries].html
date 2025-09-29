@@ -13,7 +13,7 @@
 
 <p>&nbsp;</p>
 <p><strong class="example">Example 1:</strong></p>
-<img alt="" src="https://assets.leetcode.com/uploads/2022/10/19/yetgriddrawio.png" style="width: 571px; height: 151px;" />
+<img alt="" src="https://assets.leetcode.com/uploads/2025/03/15/image1.png" style="width: 571px; height: 152px;" />
 <pre>
 <strong>Input:</strong> grid = [[1,2,3],[2,5,7],[3,5,1]], queries = [5,6,2]
 <strong>Output:</strong> [5,8,1]

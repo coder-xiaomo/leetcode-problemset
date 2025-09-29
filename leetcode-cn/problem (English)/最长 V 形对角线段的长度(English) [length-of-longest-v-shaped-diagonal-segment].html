@@ -14,8 +14,6 @@
 	</li>
 </ul>
 
-<p><img alt="" src="https://assets.leetcode.com/uploads/2025/01/11/length_of_longest3.jpg" style="width: 481px; height: 202px;" /></p>
-
 <p>Return the <strong>length</strong> of the <strong>longest</strong> <strong>V-shaped diagonal segment</strong>. If no valid segment <em>exists</em>, return 0.</p>
 
 <p>&nbsp;</p>

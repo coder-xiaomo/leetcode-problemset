@@ -22,7 +22,7 @@
 <pre>
 <strong>Input:</strong> nums = [2,1,5,0,4,6]
 <strong>Output:</strong> true
-<strong>Explanation:</strong> The triplet (3, 4, 5) is valid because nums[3] == 0 &lt; nums[4] == 4 &lt; nums[5] == 6.
+<strong>Explanation:</strong> One of the valid triplet is (3, 4, 5), because nums[3] == 0 &lt; nums[4] == 4 &lt; nums[5] == 6.
 </pre>
 
 <p>&nbsp;</p>
