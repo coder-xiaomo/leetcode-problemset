@@ -1,0 +1,146 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "Rcl3e7",
+            "title": "组合总和 II",
+            "content": "#### 方法一：回溯\n\n**思路与算法**\n\n由于我们需要求出所有和为 $\\textit{target}$ 的组合，并且每个数只能使用一次，因此我们可以使用递归 + 回溯的方法来解决这个问题：\n\n- 我们用 $\\textit{dfs}(\\textit{pos}, \\textit{rest})$ 表示递归的函数，其中 $\\textit{pos}$ 表示我们当前递归到了数组 $\\textit{candidates}$ 中的第 $\\textit{pos}$ 个数，而 $\\textit{rest}$ 表示我们还需要选择和为 $\\textit{rest}$ 的数放入列表作为一个组合；\n\n- 对于当前的第 $\\textit{pos}$ 个数，我们有两种方法：选或者不选。如果我们选了这个数，那么我们调用 $\\textit{dfs}(\\textit{pos} + 1, \\textit{rest} - \\textit{candidates}[\\textit{pos}])$ 进行递归，注意这里必须满足 $\\textit{rest} \\geq \\textit{candidates}[\\textit{pos}]$。如果我们不选这个数，那么我们调用 $\\textit{dfs}(\\textit{pos} + 1, \\textit{rest})$ 进行递归；\n\n- 在某次递归开始前，如果 $\\textit{rest}$ 的值为 $0$，说明我们找到了一个和为 $\\textit{target}$ 的组合，将其放入答案中。每次调用递归函数前，如果我们选了那个数，就需要将其放入列表的末尾，该列表中存储了我们选的所有数。在回溯时，如果我们选了那个数，就要将其从列表的末尾删除。\n\n上述算法就是一个标准的递归 + 回溯算法，但是它并不适用于本题。这是因为题目描述中规定了**解集不能包含重复的组合**，而上述的算法中并没有去除重复的组合。\n\n> 例如当 $\\textit{candidates} = [2, 2]$，$\\textit{target} = 2$ 时，上述算法会将列表 $[2]$ 放入答案两次。\n\n因此，我们需要改进上述算法，在求出组合的过程中就进行去重的操作。我们可以考虑**将相同的数放在一起进行处理**，也就是说，如果数 $\\textit{x}$ 出现了 $y$ 次，那么在递归时一次性地处理它们，即分别调用选择 $0, 1, \\cdots, y$ 次 $x$ 的递归函数。这样我们就不会得到重复的组合。具体地：\n\n- 我们使用一个哈希映射（HashMap）统计数组 $\\textit{candidates}$ 中每个数出现的次数。在统计完成之后，我们将结果放入一个列表 $\\textit{freq}$ 中，方便后续的递归使用。\n\n    - 列表 $\\textit{freq}$ 的长度即为数组 $\\textit{candidates}$ 中不同数的个数。其中的每一项对应着哈希映射中的一个键值对，即某个数以及它出现的次数。\n\n- 在递归时，对于当前的第 $\\textit{pos}$ 个数，它的值为 $\\textit{freq}[\\textit{pos}][0]$，出现的次数为 $\\textit{freq}[\\textit{pos}][1]$，那么我们可以调用\n\n    $$\n    \\textit{dfs}(\\textit{pos} + 1, \\textit{rest} - i \\times \\textit{freq}[\\textit{pos}][0])\n    $$\n\n    即我们选择了这个数 $i$ 次。这里 $i$ 不能大于这个数出现的次数，并且 $i \\times \\textit{freq}[\\textit{pos}][0]$ 也不能大于 $\\textit{rest}$。同时，我们需要将 $i$ 个 $\\textit{freq}[\\textit{pos}][0]$ 放入列表中。\n\n这样一来，我们就可以不重复地枚举所有的组合了。\n\n我们还可以进行什么优化（剪枝）呢？一种比较常用的优化方法是，我们将 $\\textit{freq}$ 根据数从小到大排序，这样我们在递归时会先选择小的数，再选择大的数。这样做的好处是，当我们递归到 $\\textit{dfs}(\\textit{pos}, \\textit{rest})$ 时，如果 $\\textit{freq}[\\textit{pos}][0]$ 已经大于 $\\textit{rest}$，那么后面还没有递归到的数也都大于 $\\textit{rest}$，这就说明不可能再选择若干个和为 $\\textit{rest}$ 的数放入列表了。此时，我们就可以直接回溯。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\nprivate:\n    vector<pair<int, int>> freq;\n    vector<vector<int>> ans;\n    vector<int> sequence;\n\npublic:\n    void dfs(int pos, int rest) {\n        if (rest == 0) {\n            ans.push_back(sequence);\n            return;\n        }\n        if (pos == freq.size() || rest < freq[pos].first) {\n            return;\n        }\n\n        dfs(pos + 1, rest);\n\n        int most = min(rest / freq[pos].first, freq[pos].second);\n        for (int i = 1; i <= most; ++i) {\n            sequence.push_back(freq[pos].first);\n            dfs(pos + 1, rest - i * freq[pos].first);\n        }\n        for (int i = 1; i <= most; ++i) {\n            sequence.pop_back();\n        }\n    }\n\n    vector<vector<int>> combinationSum2(vector<int>& candidates, int target) {\n        sort(candidates.begin(), candidates.end());\n        for (int num: candidates) {\n            if (freq.empty() || num != freq.back().first) {\n                freq.emplace_back(num, 1);\n            } else {\n                ++freq.back().second;\n            }\n        }\n        dfs(0, target);\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    List<int[]> freq = new ArrayList<int[]>();\n    List<List<Integer>> ans = new ArrayList<List<Integer>>();\n    List<Integer> sequence = new ArrayList<Integer>();\n\n    public List<List<Integer>> combinationSum2(int[] candidates, int target) {\n        Arrays.sort(candidates);\n        for (int num : candidates) {\n            int size = freq.size();\n            if (freq.isEmpty() || num != freq.get(size - 1)[0]) {\n                freq.add(new int[]{num, 1});\n            } else {\n                ++freq.get(size - 1)[1];\n            }\n        }\n        dfs(0, target);\n        return ans;\n    }\n\n    public void dfs(int pos, int rest) {\n        if (rest == 0) {\n            ans.add(new ArrayList<Integer>(sequence));\n            return;\n        }\n        if (pos == freq.size() || rest < freq.get(pos)[0]) {\n            return;\n        }\n\n        dfs(pos + 1, rest);\n\n        int most = Math.min(rest / freq.get(pos)[0], freq.get(pos)[1]);\n        for (int i = 1; i <= most; ++i) {\n            sequence.add(freq.get(pos)[0]);\n            dfs(pos + 1, rest - i * freq.get(pos)[0]);\n        }\n        for (int i = 1; i <= most; ++i) {\n            sequence.remove(sequence.size() - 1);\n        }\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def combinationSum2(self, candidates: List[int], target: int) -> List[List[int]]:\n        def dfs(pos: int, rest: int):\n            nonlocal sequence\n            if rest == 0:\n                ans.append(sequence[:])\n                return\n            if pos == len(freq) or rest < freq[pos][0]:\n                return\n            \n            dfs(pos + 1, rest)\n\n            most = min(rest // freq[pos][0], freq[pos][1])\n            for i in range(1, most + 1):\n                sequence.append(freq[pos][0])\n                dfs(pos + 1, rest - i * freq[pos][0])\n            sequence = sequence[:-most]\n        \n        freq = sorted(collections.Counter(candidates).items())\n        ans = list()\n        sequence = list()\n        dfs(0, target)\n        return ans\n```\n\n```Golang [sol1-Golang]\nfunc combinationSum2(candidates []int, target int) (ans [][]int) {\n    sort.Ints(candidates)\n    var freq [][2]int\n    for _, num := range candidates {\n        if freq == nil || num != freq[len(freq)-1][0] {\n            freq = append(freq, [2]int{num, 1})\n        } else {\n            freq[len(freq)-1][1]++\n        }\n    }\n\n    var sequence []int\n    var dfs func(pos, rest int)\n    dfs = func(pos, rest int) {\n        if rest == 0 {\n            ans = append(ans, append([]int(nil), sequence...))\n            return\n        }\n        if pos == len(freq) || rest < freq[pos][0] {\n            return\n        }\n\n        dfs(pos+1, rest)\n\n        most := min(rest/freq[pos][0], freq[pos][1])\n        for i := 1; i <= most; i++ {\n            sequence = append(sequence, freq[pos][0])\n            dfs(pos+1, rest-i*freq[pos][0])\n        }\n        sequence = sequence[:len(sequence)-most]\n    }\n    dfs(0, target)\n    return\n}\n\nfunc min(a, b int) int {\n    if a < b {\n        return a\n    }\n    return b\n}\n```\n\n```C [sol1-C]\nint** ans;\nint* ansColumnSizes;\nint ansSize;\n\nint* sequence;\nint sequenceSize;\n\nint** freq;\nint freqSize;\n\nvoid dfs(int pos, int rest) {\n    if (rest == 0) {\n        int* tmp = malloc(sizeof(int) * sequenceSize);\n        memcpy(tmp, sequence, sizeof(int) * sequenceSize);\n        ans[ansSize] = tmp;\n        ansColumnSizes[ansSize++] = sequenceSize;\n        return;\n    }\n    if (pos == freqSize || rest < freq[pos][0]) {\n        return;\n    }\n\n    dfs(pos + 1, rest);\n\n    int most = fmin(rest / freq[pos][0], freq[pos][1]);\n    for (int i = 1; i <= most; ++i) {\n        sequence[sequenceSize++] = freq[pos][0];\n        dfs(pos + 1, rest - i * freq[pos][0]);\n    }\n    sequenceSize -= most;\n}\n\nint comp(const void* a, const void* b) {\n    return *(int*)a - *(int*)b;\n}\n\nint** combinationSum2(int* candidates, int candidatesSize, int target, int* returnSize, int** returnColumnSizes) {\n    ans = malloc(sizeof(int*) * 2001);\n    ansColumnSizes = malloc(sizeof(int) * 2001);\n    sequence = malloc(sizeof(int) * 2001);\n    freq = malloc(sizeof(int*) * 2001);\n    ansSize = sequenceSize = freqSize = 0;\n\n    qsort(candidates, candidatesSize, sizeof(int), comp);\n    for (int i = 0; i < candidatesSize; ++i) {\n        if (freqSize == 0 || candidates[i] != freq[freqSize - 1][0]) {\n            freq[freqSize] = malloc(sizeof(int) * 2);\n            freq[freqSize][0] = candidates[i];\n            freq[freqSize++][1] = 1;\n        } else {\n            ++freq[freqSize - 1][1];\n        }\n    }\n    dfs(0, target);\n    *returnSize = ansSize;\n    *returnColumnSizes = ansColumnSizes;\n    return ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nfunction combinationSum2(candidates, target) {\n    candidates.sort((a, b) => a - b);\n    const ans = [];\n    const sequence = [];\n    const freq = [];\n    \n    for (const num of candidates) {\n        if (freq.length === 0 || num !== freq[freq.length - 1][0]) {\n            freq.push([num, 1]);\n        } else {\n            freq[freq.length - 1][1]++;\n        }\n    }\n    \n    function dfs(pos, rest) {\n        if (rest === 0) {\n            ans.push([...sequence]);\n            return;\n        }\n        if (pos === freq.length || rest < freq[pos][0]) {\n            return;\n        }\n        \n        dfs(pos + 1, rest);\n        \n        const most = Math.min(Math.floor(rest / freq[pos][0]), freq[pos][1]);\n        for (let i = 1; i <= most; ++i) {\n            sequence.push(freq[pos][0]);\n            dfs(pos + 1, rest - i * freq[pos][0]);\n        }\n        for (let i = 1; i <= most; ++i) {\n            sequence.pop();\n        }\n    }\n    \n    dfs(0, target);\n    return ans;\n}\n```\n\n```TypeScript [sol1-TypeScript]\nfunction combinationSum2(candidates: number[], target: number): number[][] {\n    candidates.sort((a, b) => a - b);\n    const ans: number[][] = [];\n    const sequence: number[] = [];\n    const freq: [number, number][] = [];\n\n    for (const num of candidates) {\n        if (freq.length === 0 || num !== freq[freq.length - 1][0]) {\n            freq.push([num, 1]);\n        } else {\n            freq[freq.length - 1][1]++;\n        }\n    }\n\n    function dfs(pos: number, rest: number) {\n        if (rest === 0) {\n            ans.push([...sequence]);\n            return;\n        }\n        if (pos === freq.length || rest < freq[pos][0]) {\n            return;\n        }\n\n        dfs(pos + 1, rest);\n\n        const most = Math.min(Math.floor(rest / freq[pos][0]), freq[pos][1]);\n        for (let i = 1; i <= most; ++i) {\n            sequence.push(freq[pos][0]);\n            dfs(pos + 1, rest - i * freq[pos][0]);\n        }\n        for (let i = 1; i <= most; ++i) {\n            sequence.pop();\n        }\n    }\n\n    dfs(0, target);\n    return ans;\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    private List<KeyValuePair<int, int>> freq = new List<KeyValuePair<int, int>>();\n    private List<IList<int>> ans = new List<IList<int>>();\n    private List<int> sequence = new List<int>();\n\n    private void Dfs(int pos, int rest) {\n        if (rest == 0) {\n            ans.Add(new List<int>(sequence));\n            return;\n        }\n        if (pos == freq.Count || rest < freq[pos].Key) {\n            return;\n        }\n\n        Dfs(pos + 1, rest);\n\n        int most = Math.Min(rest / freq[pos].Key, freq[pos].Value);\n        for (int i = 1; i <= most; ++i) {\n            sequence.Add(freq[pos].Key);\n            Dfs(pos + 1, rest - i * freq[pos].Key);\n        }\n        for (int i = 1; i <= most; ++i) {\n            sequence.RemoveAt(sequence.Count - 1);\n        }\n    }\n\n    public IList<IList<int>> CombinationSum2(int[] candidates, int target) {\n        Array.Sort(candidates);\n        foreach (int num in candidates) {\n            if (freq.Count == 0 || num != freq[freq.Count - 1].Key) {\n                freq.Add(new KeyValuePair<int, int>(num, 1));\n            } else {\n                freq[freq.Count - 1] = new KeyValuePair<int, int>(num, freq[freq.Count - 1].Value + 1);\n            }\n        }\n        Dfs(0, target);\n        return ans;\n    }\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn combination_sum2(candidates: Vec<i32>, target: i32) -> Vec<Vec<i32>> {\n        let mut freq: Vec<(i32, i32)> = Vec::new();\n        let mut ans: Vec<Vec<i32>> = Vec::new();\n        let mut sequence: Vec<i32> = Vec::new();\n\n        let mut candidates = candidates;\n        candidates.sort();\n        for &num in &candidates {\n            if freq.is_empty() || num != freq.last().unwrap().0 {\n                freq.push((num, 1));\n            } else {\n                freq.last_mut().unwrap().1 += 1;\n            }\n        }\n\n        fn dfs(pos: usize, rest: i32, freq: &Vec<(i32, i32)>, sequence: &mut Vec<i32>, ans: &mut Vec<Vec<i32>>) {\n            if rest == 0 {\n                ans.push(sequence.clone());\n                return;\n            }\n            if pos == freq.len() || rest < freq[pos].0 {\n                return;\n            }\n\n            dfs(pos + 1, rest, freq, sequence, ans);\n\n            let most = (rest / freq[pos].0).min(freq[pos].1);\n            for i in 1..=most {\n                sequence.push(freq[pos].0);\n                dfs(pos + 1, rest - i * freq[pos].0, freq, sequence, ans);\n            }\n            for _ in 1..=most {\n                sequence.pop();\n            }\n        }\n\n        dfs(0, target, &freq, &mut sequence, &mut ans);\n        ans\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(2^n \\times n)$，其中 $n$ 是数组 $\\textit{candidates}$ 的长度。在大部分递归 + 回溯的题目中，我们无法给出一个严格的渐进紧界，故这里只分析一个较为宽松的渐进上界。在最坏的情况下，数组中的每个数都不相同，那么列表 $\\textit{freq}$ 的长度同样为 $n$。在递归时，每个位置可以选或不选，如果数组中所有数的和不超过 $\\textit{target}$，那么 $2^n$ 种组合都会被枚举到；在 $\\textit{target}$ 小于数组中所有数的和时，我们并不能解析地算出满足题目要求的组合的数量，但我们知道每得到一个满足要求的组合，需要 $O(n)$ 的时间将其放入答案中，因此我们将 $O(2^n)$ 与 $O(n)$ 相乘，即可估算出一个宽松的时间复杂度上界。\n\n    - 由于 $O(2^n \\times n)$ 在渐进意义下大于排序的时间复杂度 $O(n \\log n)$，因此后者可以忽略不计。\n\n- 空间复杂度：$O(n)$。除了存储答案的数组外，我们需要 $O(n)$ 的空间存储列表 $\\textit{freq}$、递归中存储当前选择的数的列表、以及递归需要的栈。",
+            "slateValue": "",
+            "slug": "zu-he-zong-he-ii-by-leetcode-solution",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "Rcl3e7",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 145,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 7,
+                    "reactionType": "CONFUSED"
+                },
+                {
+                    "count": 5,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Backtracking",
+                    "nameTranslated": "回溯",
+                    "slug": "backtracking",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-09-09T15:31:13.954307+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：回溯 思路与算法 由于我们需要求出所有和为 [latex] 的组合，并且每个数只能使用一次，因此我们可以使用递归 + 回溯的方法来解决这个问题： 我们用 [latex] 表示递归的函数，其中 [latex] 表示我们当前递归到了数组 [latex] 中的第 [latex] 个数，而 [latex] 表示我们还需",
+            "topic": {
+                "id": 407850,
+                "subscribed": false,
+                "commentCount": 471,
+                "viewCount": 128950,
+                "post": {
+                    "id": 992546,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 454,
+            "isEditorsPick": false,
+            "hitCount": 268710,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "combination-sum-ii",
+                "questionFrontendId": "40"
+            },
+            "next": {
+                "slug": "hui-su-suan-fa-jian-zhi-python-dai-ma-java-dai-m-3",
+                "title": "回溯算法 + 剪枝（Java、Python）"
+            },
+            "prev": null
+        }
+    }
+}

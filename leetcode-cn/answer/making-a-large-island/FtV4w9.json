@@ -1,0 +1,132 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "FtV4w9",
+            "title": "最大人工岛",
+            "content": "#### 方法一：标记岛屿 + 合并\n\n我们给每个岛屿进行标记，标记值与岛屿的某个 $\\textit{grid}[i][j]$ 有关，即 $t = i \\times n + j + 1$，$t$ 唯一。使用 $\\textit{tag}$ 记录每个点所属的岛屿的标记，并且使用哈希表 $\\textit{area}$ 保存每个岛屿的面积。岛屿的面积可以使用深度优先搜索或广度优先搜索计算。\n\n对于每个 $\\textit{grid}[i][j] = 0$，我们计算将它变为 $1$ 后，新合并的岛屿的面积 $\\textit{z}$（$z$ 的初始值为 $1$，对应该点的面积）：使用集合 $\\textit{connected}$ 保存与 $\\textit{grid}[i][j]$ 相连的岛屿，遍历与 $\\textit{grid}[i][j]$ 相邻的四个点，如果该点的值为 $1$，且它所在的岛屿并不在集合中，我们将 $z$ 加上该点所在的岛屿面积，并且将该岛屿加入集合中。所有这些新合并岛屿以及原来的岛屿的面积的最大值就是最大的岛屿面积。\n\n```Python [sol1-Python3]\nclass Solution:\n    def largestIsland(self, grid: List[List[int]]) -> int:\n        n = len(grid)\n        tag = [[0] * n for _ in range(n)]\n        area = Counter()\n        def dfs(i: int, j: int) -> None:\n            tag[i][j] = t\n            area[t] += 1\n            for x, y in (i - 1, j), (i + 1, j), (i, j - 1), (i, j + 1):  # 四个方向\n                if 0 <= x < n and 0 <= y < n and grid[x][y] and tag[x][y] == 0:\n                    dfs(x, y)\n        for i, row in enumerate(grid):\n            for j, x in enumerate(row):\n                if x and tag[i][j] == 0:  # 枚举没有访问过的陆地\n                    t = i * n + j + 1\n                    dfs(i, j)\n        ans = max(area.values(), default=0)\n\n        for i, row in enumerate(grid):\n            for j, x in enumerate(row):\n                if x == 0:  # 枚举可以添加陆地的位置\n                    new_area = 1\n                    connected = {0}\n                    for x, y in (i - 1, j), (i + 1, j), (i, j - 1), (i, j + 1):  # 四个方向\n                        if 0 <= x < n and 0 <= y < n and tag[x][y] not in connected:\n                            new_area += area[tag[x][y]]\n                            connected.add(tag[x][y])\n                    ans = max(ans, new_area)\n        return ans\n```\n\n```C++ [sol1-C++]\nconst vector<int> d = {0, -1, 0, 1, 0};\n\nclass Solution {\npublic:\n    bool valid(int n, int x, int y) {\n        return x >= 0 && x < n && y >= 0 && y < n;\n    }\n\n    int dfs(const vector<vector<int>> &grid, int x, int y, vector<vector<int>> &tag, int t) {\n        int n = grid.size(), res = 1;\n        tag[x][y] = t;\n        for (int i = 0; i < 4; i++) {\n            int x1 = x + d[i], y1 = y + d[i + 1];\n            if (valid(n, x1, y1) && grid[x1][y1] == 1 && tag[x1][y1] == 0) {\n                res += dfs(grid, x1, y1, tag, t);\n            }\n        }\n        return res;\n    }\n\n    int largestIsland(vector<vector<int>>& grid) {\n        int n = grid.size(), res = 0;\n        vector<vector<int>> tag(n, vector<int>(n));\n        unordered_map<int, int> area;\n        for (int i = 0; i < n; i++) {\n            for (int j = 0; j < n; j++) {\n                if (grid[i][j] == 1 && tag[i][j] == 0) {\n                    int t = i * n + j + 1;\n                    area[t] = dfs(grid, i, j, tag, t);\n                    res = max(res, area[t]);\n                }\n            }\n        }\n        for (int i = 0; i < n; i++) {\n            for (int j = 0; j < n; j++) {\n                if (grid[i][j] == 0) {\n                    int z = 1;\n                    unordered_set<int> connected;\n                    for (int k = 0; k < 4; k++) {\n                        int x = i + d[k], y = j + d[k + 1];\n                        if (!valid(n, x, y) || tag[x][y] == 0 || connected.count(tag[x][y]) > 0) {\n                            continue;\n                        }\n                        z += area[tag[x][y]];\n                        connected.insert(tag[x][y]);\n                    }\n                    res = max(res, z);\n                }\n            }\n        }\n        return res;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    static int[] d = {0, -1, 0, 1, 0};\n\n    public int largestIsland(int[][] grid) {\n        int n = grid.length, res = 0;\n        int[][] tag = new int[n][n];\n        Map<Integer, Integer> area = new HashMap<Integer, Integer>();\n        for (int i = 0; i < n; i++) {\n            for (int j = 0; j < n; j++) {\n                if (grid[i][j] == 1 && tag[i][j] == 0) {\n                    int t = i * n + j + 1;\n                    area.put(t, dfs(grid, i, j, tag, t));\n                    res = Math.max(res, area.get(t));\n                }\n            }\n        }\n        for (int i = 0; i < n; i++) {\n            for (int j = 0; j < n; j++) {\n                if (grid[i][j] == 0) {\n                    int z = 1;\n                    Set<Integer> connected = new HashSet<Integer>();\n                    for (int k = 0; k < 4; k++) {\n                        int x = i + d[k], y = j + d[k + 1];\n                        if (!valid(n, x, y) || tag[x][y] == 0 || connected.contains(tag[x][y])) {\n                            continue;\n                        }\n                        z += area.get(tag[x][y]);\n                        connected.add(tag[x][y]);\n                    }\n                    res = Math.max(res, z);\n                }\n            }\n        }\n        return res;\n    }\n\n    public int dfs(int[][] grid, int x, int y, int[][] tag, int t) {\n        int n = grid.length, res = 1;\n        tag[x][y] = t;\n        for (int i = 0; i < 4; i++) {\n            int x1 = x + d[i], y1 = y + d[i + 1];\n            if (valid(n, x1, y1) && grid[x1][y1] == 1 && tag[x1][y1] == 0) {\n                res += dfs(grid, x1, y1, tag, t);\n            }\n        }\n        return res;\n    }\n\n    public boolean valid(int n, int x, int y) {\n        return x >= 0 && x < n && y >= 0 && y < n;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    static int[] d = {0, -1, 0, 1, 0};\n\n    public int LargestIsland(int[][] grid) {\n        int n = grid.Length, res = 0;\n        int[][] tag = new int[n][];\n        for (int i = 0; i < n; i++) {\n            tag[i] = new int[n];\n        }\n        Dictionary<int, int> area = new Dictionary<int, int>();\n        for (int i = 0; i < n; i++) {\n            for (int j = 0; j < n; j++) {\n                if (grid[i][j] == 1 && tag[i][j] == 0) {\n                    int t = i * n + j + 1;\n                    area.Add(t, DFS(grid, i, j, tag, t));\n                    res = Math.Max(res, area[t]);\n                }\n            }\n        }\n        for (int i = 0; i < n; i++) {\n            for (int j = 0; j < n; j++) {\n                if (grid[i][j] == 0) {\n                    int z = 1;\n                    ISet<int> connected = new HashSet<int>();\n                    for (int k = 0; k < 4; k++) {\n                        int x = i + d[k], y = j + d[k + 1];\n                        if (!Valid(n, x, y) || tag[x][y] == 0 || connected.Contains(tag[x][y])) {\n                            continue;\n                        }\n                        z += area[tag[x][y]];\n                        connected.Add(tag[x][y]);\n                    }\n                    res = Math.Max(res, z);\n                }\n            }\n        }\n        return res;\n    }\n\n    public int DFS(int[][] grid, int x, int y, int[][] tag, int t) {\n        int n = grid.Length, res = 1;\n        tag[x][y] = t;\n        for (int i = 0; i < 4; i++) {\n            int x1 = x + d[i], y1 = y + d[i + 1];\n            if (Valid(n, x1, y1) && grid[x1][y1] == 1 && tag[x1][y1] == 0) {\n                res += DFS(grid, x1, y1, tag, t);\n            }\n        }\n        return res;\n    }\n\n    public bool Valid(int n, int x, int y) {\n        return x >= 0 && x < n && y >= 0 && y < n;\n    }\n}\n```\n\n```C [sol1-C]\n#define MAX(a, b) ((a) > (b) ? (a) : (b))\n\ntypedef struct {\n    int key;\n    UT_hash_handle hh;\n} HashItem; \n\nHashItem *hashFindItem(HashItem **obj, int key) {\n    HashItem *pEntry = NULL;\n    HASH_FIND_INT(*obj, &key, pEntry);\n    return pEntry;\n}\n\nbool hashAddItem(HashItem **obj, int key) {\n    if (hashFindItem(obj, key)) {\n        return false;\n    }\n    HashItem *pEntry = (HashItem *)malloc(sizeof(HashItem));\n    pEntry->key = key;\n    HASH_ADD_INT(*obj, key, pEntry);\n    return true;\n}\n\nvoid hashFree(HashItem **obj) {\n    HashItem *curr = NULL, *tmp = NULL;\n    HASH_ITER(hh, *obj, curr, tmp) {\n        HASH_DEL(*obj, curr);  \n        free(curr);             \n    }\n}\n\nstatic inline bool valid(int n, int x, int y) {\n    return x >= 0 && x < n && y >= 0 && y < n;\n}\n\nconst int d[5] = {0, -1, 0, 1, 0};\n\nstatic int dfs(const int** grid, int n, int x, int y, int** tag, int t) {\n    int res = 1;\n    tag[x][y] = t;\n    for (int i = 0; i < 4; i++) {\n        int x1 = x + d[i], y1 = y + d[i + 1];\n        if (valid(n, x1, y1) && grid[x1][y1] == 1 && tag[x1][y1] == 0) {\n            res += dfs(grid, n, x1, y1, tag, t);\n        }\n    }\n    return res;\n}\n\nint largestIsland(int** grid, int gridSize, int* gridColSize){\n    int n = gridSize, res = 0;\n    int **tag = (int **)malloc(sizeof(int *) * n);\n    for (int i = 0; i < n; i++) {\n        tag[i] = (int *)malloc(sizeof(int) * n);\n        memset(tag[i], 0, sizeof(int) * n);\n    }\n    int *area = (int *)malloc(sizeof(int) * (n * n + 1));\n    memset(area, 0, sizeof(int) * (n * n + 1));\n    for (int i = 0; i < n; i++) {\n        for (int j = 0; j < n; j++) {\n            if (grid[i][j] == 1 && tag[i][j] == 0) {\n                int t = i * n + j + 1;\n                area[t] = dfs(grid, n, i, j, tag, t);\n                res = MAX(res, area[t]);\n            }\n        }\n    }\n    for (int i = 0; i < n; i++) {\n        for (int j = 0; j < n; j++) {\n            if (grid[i][j] == 0) {\n                int z = 1;\n                HashItem *connected = NULL;\n                for (int k = 0; k < 4; k++) {\n                    int x = i + d[k], y = j + d[k + 1];\n                    if (!valid(n, x, y) || tag[x][y] == 0 || hashFindItem(&connected, tag[x][y])) {\n                        continue;\n                    }\n                    z += area[tag[x][y]];\n                    hashAddItem(&connected, tag[x][y]);\n                }\n                res = MAX(res, z);\n                hashFree(&connected);\n            }\n        }\n    }\n    free(area);\n    for (int i = 0; i < n; i++) {\n        free(tag[i]);\n    }\n    free(tag);\n    return res;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nconst d = [0, -1, 0, 1, 0];\nvar largestIsland = function(grid) {\n    let n = grid.length, res = 0;\n    const tag = new Array(n).fill(0).map(() => new Array(n).fill(0));\n    const area = new Map();\n    for (let i = 0; i < n; i++) {\n        for (let j = 0; j < n; j++) {\n            if (grid[i][j] === 1 && tag[i][j] === 0) {\n                const t = i * n + j + 1;\n                area.set(t, dfs(grid, i, j, tag, t));\n                res = Math.max(res, area.get(t));\n            }\n        }\n    }\n    for (let i = 0; i < n; i++) {\n        for (let j = 0; j < n; j++) {\n            if (grid[i][j] === 0) {\n                let z = 1;\n                const connected = new Set();\n                for (let k = 0; k < 4; k++) {\n                    let x = i + d[k], y = j + d[k + 1];\n                    if (!valid(n, x, y) || tag[x][y] == 0 || connected.has(tag[x][y])) {\n                        continue;\n                    }\n                    z += area.get(tag[x][y]);\n                    connected.add(tag[x][y]);\n                }\n                res = Math.max(res, z);\n            }\n        }\n    }\n    return res;\n}\n\nconst dfs = (grid, x, y, tag, t) => {\n    let n = grid.length, res = 1;\n    tag[x][y] = t;\n    for (let i = 0; i < 4; i++) {\n        let x1 = x + d[i], y1 = y + d[i + 1];\n        if (valid(n, x1, y1) && grid[x1][y1] === 1 && tag[x1][y1] === 0) {\n            res += dfs(grid, x1, y1, tag, t);\n        }\n    }\n    return res;\n}\n\nconst valid = (n, x, y) => {\n    return x >= 0 && x < n && y >= 0 && y < n;\n};\n```\n\n```go [sol1-Golang]\nfunc largestIsland(grid [][]int) (ans int) {\n    dir4 := []struct{ x, y int }{{-1, 0}, {1, 0}, {0, -1}, {0, 1}}\n    n, t := len(grid), 0\n    tag := make([][]int, n)\n    for i := range tag {\n        tag[i] = make([]int, n)\n    }\n    area := map[int]int{}\n    var dfs func(int, int)\n    dfs = func(i, j int) {\n        tag[i][j] = t\n        area[t]++\n        for _, d := range dir4 {\n            x, y := i+d.x, j+d.y\n            if 0 <= x && x < n && 0 <= y && y < n && grid[x][y] > 0 && tag[x][y] == 0 {\n                dfs(x, y)\n            }\n        }\n    }\n    for i, row := range grid {\n        for j, x := range row {\n            if x > 0 && tag[i][j] == 0 { // 枚举没有访问过的陆地\n                t = i*n + j + 1\n                dfs(i, j)\n                ans = max(ans, area[t])\n            }\n        }\n    }\n\n    for i, row := range grid {\n        for j, x := range row {\n            if x == 0 { // 枚举可以添加陆地的位置\n                newArea := 1\n                conn := map[int]bool{0: true}\n                for _, d := range dir4 {\n                    x, y := i+d.x, j+d.y\n                    if 0 <= x && x < n && 0 <= y && y < n && !conn[tag[x][y]] {\n                        newArea += area[tag[x][y]]\n                        conn[tag[x][y]] = true\n                    }\n                }\n                ans = max(ans, newArea)\n            }\n        }\n    }\n    return\n}\n\nfunc max(a, b int) int {\n    if b > a {\n        return b\n    }\n    return a\n}\n```\n\n**复杂度分析**\n\n+ 时间复杂度：$O(n^2)$，其中 $n$ 是 $\\textit{grid}$ 的长与宽。使用深度优先搜索获取岛屿面积时，总共访问不超过 $n^2$ 个点。\n\n+ 空间复杂度：$O(n^2)$。保存 $\\textit{tag}$ 与 $\\textit{area}$ 需要 $O(n^2)$ 的空间。",
+            "slateValue": "",
+            "slug": "zui-da-ren-gong-dao-by-leetcode-solution-lehy",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "FtV4w9",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 47,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Depth-First Search",
+                    "nameTranslated": "深度优先搜索",
+                    "slug": "depth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Matrix",
+                    "nameTranslated": "矩阵",
+                    "slug": "matrix",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-09-17T02:12:04.854856+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：标记岛屿 + 合并 我们给每个岛屿进行标记，标记值与岛屿的某个 $\\textit{grid}[i][j]$ 有关，即 $t = i \\times n + j + 1$，$t$ 唯一。使用 $\\textit{tag}$ 记录每个点所属的岛屿的标记，并且使用哈希表 $\\textit{area}$ 保存每个岛屿的面积",
+            "topic": {
+                "id": 1828969,
+                "subscribed": false,
+                "commentCount": 97,
+                "viewCount": 17001,
+                "post": {
+                    "id": 3586500,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 82,
+            "isEditorsPick": false,
+            "hitCount": 46352,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "making-a-large-island",
+                "questionFrontendId": "827"
+            },
+            "next": {
+                "slug": "jian-ji-gao-xiao-ji-suan-dao-yu-de-mian-ab4h7",
+                "title": "计算岛屿的面积+每个格子属于哪个岛，附变形题（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

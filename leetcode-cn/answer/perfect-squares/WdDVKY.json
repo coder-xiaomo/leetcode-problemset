@@ -1,0 +1,128 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "WdDVKY",
+            "title": "完全平方数",
+            "content": "#### 方法一：动态规划\n\n**思路及算法**\n\n我们可以依据题目的要求写出状态表达式：$f[i]$ 表示最少需要多少个数的平方来表示整数 $i$。\n\n这些数必然落在区间 $[1,\\sqrt{i}]$。我们可以枚举这些数，假设当前枚举到 $j$，那么我们还需要取若干数的平方，构成 $i-j^2$。此时我们发现该子问题和原问题类似，只是规模变小了。这符合了动态规划的要求，于是我们可以写出状态转移方程。\n\n$$\nf[i]=1+\\min_{j=1}^{\\lfloor\\sqrt{i}\\rfloor}{f[i-j^2]}\n$$\n\n其中 $f[0]=0$ 为边界条件，实际上我们无法表示数字 $0$，只是为了保证状态转移过程中遇到 $j$ 恰为 $\\sqrt{i}$ 的情况合法。\n\n同时因为计算 $f[i]$ 时所需要用到的状态仅有 $f[i-j^2]$，必然小于 $i$，因此我们只需要从小到大地枚举 $i$ 来计算 $f[i]$ 即可。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int numSquares(int n) {\n        vector<int> f(n + 1);\n        for (int i = 1; i <= n; i++) {\n            int minn = INT_MAX;\n            for (int j = 1; j * j <= i; j++) {\n                minn = min(minn, f[i - j * j]);\n            }\n            f[i] = minn + 1;\n        }\n        return f[n];\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int numSquares(int n) {\n        int[] f = new int[n + 1];\n        for (int i = 1; i <= n; i++) {\n            int minn = Integer.MAX_VALUE;\n            for (int j = 1; j * j <= i; j++) {\n                minn = Math.min(minn, f[i - j * j]);\n            }\n            f[i] = minn + 1;\n        }\n        return f[n];\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int NumSquares(int n) {\n        int[] f = new int[n + 1];\n        for (int i = 1; i <= n; i++) {\n            int minn = int.MaxValue;\n            for (int j = 1; j * j <= i; j++) {\n                minn = Math.Min(minn, f[i - j * j]);\n            }\n            f[i] = minn + 1;\n        }\n        return f[n];\n    }\n}\n```\n\n```go [sol1-Golang]\nfunc numSquares(n int) int {\n    f := make([]int, n+1)\n    for i := 1; i <= n; i++ {\n        minn := math.MaxInt32\n        for j := 1; j*j <= i; j++ {\n            minn = min(minn, f[i-j*j])\n        }\n        f[i] = minn + 1\n    }\n    return f[n]\n}\n\nfunc min(a, b int) int {\n    if a < b {\n        return a\n    }\n    return b\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar numSquares = function(n) {\n    const f = new Array(n + 1).fill(0);\n    for (let i = 1; i <= n; i++) {\n        let minn = Number.MAX_VALUE;\n        for (let j = 1; j * j <= i; j++) {\n            minn = Math.min(minn, f[i - j * j]);\n        }\n        f[i] = minn + 1;\n    }\n    return f[n];\n};\n```\n\n```C [sol1-C]\nint numSquares(int n) {\n    int f[n + 1];\n    f[0] = 0;\n    for (int i = 1; i <= n; i++) {\n        int minn = INT_MAX;\n        for (int j = 1; j * j <= i; j++) {\n            minn = fmin(minn, f[i - j * j]);\n        }\n        f[i] = minn + 1;\n    }\n    return f[n];\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n\\sqrt{n})$，其中 $n$ 为给定的正整数。状态转移方程的时间复杂度为 $O(\\sqrt{n})$，共需要计算 $n$ 个状态，因此总时间复杂度为 $O(n \\sqrt{n})$。\n\n- 空间复杂度：$O(n)$。我们需要 $O(n)$ 的空间保存状态。\n\n#### 方法二：数学\n\n**思路及算法**\n\n一个数学定理可以帮助解决本题：「[四平方和定理](https://baike.baidu.com/item/%E5%9B%9B%E5%B9%B3%E6%96%B9%E5%92%8C%E5%AE%9A%E7%90%86)」。\n\n四平方和定理证明了任意一个正整数都可以被表示为至多四个正整数的平方和。这给出了本题的答案的上界。\n\n同时四平方和定理包含了一个更强的结论：当且仅当 $n \\neq 4^k \\times (8m+7)$ 时，$n$ 可以被表示为至多三个正整数的平方和。因此，当 $n = 4^k \\times (8m+7)$ 时，$n$ 只能被表示为四个正整数的平方和。此时我们可以直接返回 $4$。\n\n当 $n \\neq 4^k \\times (8m+7)$ 时，我们需要判断到底多少个完全平方数能够表示 $n$，我们知道答案只会是 $1,2,3$ 中的一个：\n\n- 答案为 $1$ 时，则必有 $n$ 为完全平方数，这很好判断；\n\n- 答案为 $2$ 时，则有 $n=a^2+b^2$，我们只需要枚举所有的 $a(1 \\leq a \\leq \\sqrt{n})$，判断 $n-a^2$ 是否为完全平方数即可；\n\n- 答案为 $3$ 时，我们很难在一个优秀的时间复杂度内解决它，但我们只需要检查答案为 $1$ 或 $2$ 的两种情况，即可利用排除法确定答案。\n\n**代码**\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    // 判断是否为完全平方数\n    bool isPerfectSquare(int x) {\n        int y = sqrt(x);\n        return y * y == x;\n    }\n\n    // 判断是否能表示为 4^k*(8m+7)\n    bool checkAnswer4(int x) {\n        while (x % 4 == 0) {\n            x /= 4;\n        }\n        return x % 8 == 7;\n    }\n\n    int numSquares(int n) {\n        if (isPerfectSquare(n)) {\n            return 1;\n        }\n        if (checkAnswer4(n)) {\n            return 4;\n        }\n        for (int i = 1; i * i <= n; i++) {\n            int j = n - i * i;\n            if (isPerfectSquare(j)) {\n                return 2;\n            }\n        }\n        return 3;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public int numSquares(int n) {\n        if (isPerfectSquare(n)) {\n            return 1;\n        }\n        if (checkAnswer4(n)) {\n            return 4;\n        }\n        for (int i = 1; i * i <= n; i++) {\n            int j = n - i * i;\n            if (isPerfectSquare(j)) {\n                return 2;\n            }\n        }\n        return 3;\n    }\n\n    // 判断是否为完全平方数\n    public boolean isPerfectSquare(int x) {\n        int y = (int) Math.sqrt(x);\n        return y * y == x;\n    }\n\n    // 判断是否能表示为 4^k*(8m+7)\n    public boolean checkAnswer4(int x) {\n        while (x % 4 == 0) {\n            x /= 4;\n        }\n        return x % 8 == 7;\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    public int NumSquares(int n) {\n        if (IsPerfectSquare(n)) {\n            return 1;\n        }\n        if (CheckAnswer4(n)) {\n            return 4;\n        }\n        for (int i = 1; i * i <= n; i++) {\n            int j = n - i * i;\n            if (IsPerfectSquare(j)) {\n                return 2;\n            }\n        }\n        return 3;\n    }\n\n    // 判断是否为完全平方数\n    public bool IsPerfectSquare(int x) {\n        int y = (int) Math.Sqrt(x);\n        return y * y == x;\n    }\n\n    // 判断是否能表示为 4^k*(8m+7)\n    public bool CheckAnswer4(int x) {\n        while (x % 4 == 0) {\n            x /= 4;\n        }\n        return x % 8 == 7;\n    }\n}\n```\n\n```go [sol2-Golang]\n// 判断是否为完全平方数\nfunc isPerfectSquare(x int) bool {\n    y := int(math.Sqrt(float64(x)))\n    return y*y == x\n}\n\n// 判断是否能表示为 4^k*(8m+7)\nfunc checkAnswer4(x int) bool {\n    for x%4 == 0 {\n        x /= 4\n    }\n    return x%8 == 7\n}\n\nfunc numSquares(n int) int {\n    if isPerfectSquare(n) {\n        return 1\n    }\n    if checkAnswer4(n) {\n        return 4\n    }\n    for i := 1; i*i <= n; i++ {\n        j := n - i*i\n        if isPerfectSquare(j) {\n            return 2\n        }\n    }\n    return 3\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar numSquares = function(n) {\n    if (isPerfectSquare(n)) {\n        return 1;\n    }\n    if (checkAnswer4(n)) {\n        return 4;\n    }\n    for (let i = 1; i * i <= n; i++) {\n        let j = n - i * i;\n        if (isPerfectSquare(j)) {\n            return 2;\n        }\n    }\n    return 3;\n}\n\n// 判断是否为完全平方数\nconst isPerfectSquare = (x) => {\n    const y = Math.floor(Math.sqrt(x));\n    return y * y == x;\n}\n\n// 判断是否能表示为 4^k*(8m+7)\nconst checkAnswer4 = (x) => {\n    while (x % 4 == 0) {\n        x /= 4;\n    }\n    return x % 8 == 7;\n}\n```\n\n```C [sol2-C]\n// 判断是否为完全平方数\nbool isPerfectSquare(int x) {\n    int y = sqrt(x);\n    return y * y == x;\n}\n\n// 判断是否能表示为 4^k*(8m+7)\nbool checkAnswer4(int x) {\n    while (x % 4 == 0) {\n        x /= 4;\n    }\n    return x % 8 == 7;\n}\n\nint numSquares(int n) {\n    if (isPerfectSquare(n)) {\n        return 1;\n    }\n    if (checkAnswer4(n)) {\n        return 4;\n    }\n    for (int i = 1; i * i <= n; i++) {\n        int j = n - i * i;\n        if (isPerfectSquare(j)) {\n            return 2;\n        }\n    }\n    return 3;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(\\sqrt{n})$，其中 $n$ 为给定的正整数。最坏情况下答案为 $3$，我们需要运行所有的判断，而判断答案是否为 $1$ 的时间复杂度为 $O(1)$，判断答案是否为 $4$ 的时间复杂度为 $O(\\log n)$，剩余判断为 $O(\\sqrt n)$，因此总时间复杂度为 $O(\\log n + \\sqrt n) = O(\\sqrt n)$。\n\n- 空间复杂度：$O(1)$。我们只需要常数的空间保存若干变量。",
+            "slateValue": "",
+            "slug": "wan-quan-ping-fang-shu-by-leetcode-solut-t99c",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "WdDVKY",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 331,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 8,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 8,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-06-10T15:27:18.264162+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 思路及算法 我们可以依据题目的要求写出状态表达式：[latex] 表示最少需要多少个数的平方来表示整数 [latex]。 这些数必然落在区间 [latex]。我们可以枚举这些数，假设当前枚举到 [latex]，那么我们还需要取若干数的平方，构成 [latex]。此时我们发现该子问题和原问题类似，只是规",
+            "topic": {
+                "id": 822940,
+                "subscribed": false,
+                "commentCount": 573,
+                "viewCount": 116904,
+                "post": {
+                    "id": 1803800,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 1146,
+            "isEditorsPick": false,
+            "hitCount": 446738,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "perfect-squares",
+                "questionFrontendId": "279"
+            },
+            "next": {
+                "slug": "hua-jie-suan-fa-279-wan-quan-ping-fang-shu-by-guan",
+                "title": "画解算法：279. 完全平方数"
+            },
+            "prev": null
+        }
+    }
+}

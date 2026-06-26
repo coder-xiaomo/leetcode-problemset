@@ -1,0 +1,133 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "wyn04f",
+            "title": "移除最多的同行或同列石头",
+            "content": "#### 方法一：深度优先搜索\n\n**思路及解法**\n\n我们将这个二维平面抽象成图，把石子看作「点」，石子间的同行或同列关系看作「边」。如果两个石子同属某一行或某一列，我们就认为这两个石子之间有一条边。由题意可知，对于任意一个点，只要有点和它相连，我们就可以将其删除。\n\n显然，对于任意一个连通图，我们总可以通过调整节点的删除顺序，把这个连通图中删到只剩下一个节点。本题中我们不需要关注如何安排删除顺序，只需要了解这个性质即可。\n\n**拓展**：对于希望进一步拓展的同学，这里给出一个方法：从连通块中处理出任意一个生成树，该生成树的以任意一点为根节点的后序遍历均为可行解。\n\n这样我们只需要统计整张图中有多少个极大连通子图（也叫做连通块或连通分量）即可。最终能够留下来的点的数量，即为连通块的数量。我们用总点数减去连通块的数量，即可知道我们可以删去的点的最大数量。\n\n在实际代码实现中，我们首先枚举计算任意两点间的连通性，然后使用深度优先搜索的方式计算连通块的数量即可。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    void dfs(int x, vector<vector<int>> &edge, vector<int> &vis) {\n        vis[x] = true;\n        for (auto &y : edge[x]) {\n            if (!vis[y]) {\n                dfs(y, edge, vis);\n            }\n        }\n    }\n\n    int removeStones(vector<vector<int>> &stones) {\n        int n = stones.size();\n        vector<vector<int>> edge(n);\n        for (int i = 0; i < n; i++) {\n            for (int j = 0; j < n; j++) {\n                if (stones[i][0] == stones[j][0] || stones[i][1] == stones[j][1]) {\n                    edge[i].push_back(j);\n                }\n            }\n        }\n        vector<int> vis(n);\n        int num = 0;\n        for (int i = 0; i < n; i++) {\n            if (!vis[i]) {\n                num++;\n                dfs(i, edge, vis);\n            }\n        }\n        return n - num;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int removeStones(int[][] stones) {\n        int n = stones.length;\n        List<List<Integer>> edge = new ArrayList<List<Integer>>();\n        for (int i = 0; i < n; i++) {\n            edge.add(new ArrayList<Integer>());\n            for (int j = 0; j < n; j++) {\n                if (stones[i][0] == stones[j][0] || stones[i][1] == stones[j][1]) {\n                    edge.get(i).add(j);\n                }\n            }\n        }\n        boolean[] vis = new boolean[n];\n        int num = 0;\n        for (int i = 0; i < n; i++) {\n            if (!vis[i]) {\n                num++;\n                dfs(i, edge, vis);\n            }\n        }\n        return n - num;\n    }\n\n    public void dfs(int x, List<List<Integer>> edge, boolean[] vis) {\n        vis[x] = true;\n        for (int y : edge.get(x)) {\n            if (!vis[y]) {\n                dfs(y, edge, vis);\n            }\n        }\n    }\n}\n```\n\n```go [sol1-Golang]\nfunc removeStones(stones [][]int) int {\n    n := len(stones)\n    graph := make([][]int, n)\n    for i, p := range stones {\n        for j, q := range stones {\n            if p[0] == q[0] || p[1] == q[1] {\n                graph[i] = append(graph[i], j)\n            }\n        }\n    }\n    vis := make([]bool, n)\n    var dfs func(int)\n    dfs = func(v int) {\n        vis[v] = true\n        for _, w := range graph[v] {\n            if !vis[w] {\n                dfs(w)\n            }\n        }\n    }\n    cnt := 0\n    for i, v := range vis {\n        if !v {\n            cnt++\n            dfs(i)\n        }\n    }\n    return n - cnt\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def removeStones(self, stones: List[List[int]]) -> int:\n        n = len(stones)\n        edge = collections.defaultdict(list)\n        for i, (x1, y1) in enumerate(stones):\n            for j, (x2, y2) in enumerate(stones):\n                if x1 == x2 or y1 == y2:\n                    edge[i].append(j)\n        \n        def dfs(x: int):\n            vis.add(x)\n            for y in edge[x]:\n                if y not in vis:\n                    dfs(y)\n        \n        vis = set()\n        num = 0\n        for i in range(n):\n            if i not in vis:\n                num += 1\n                dfs(i)\n        \n        return n - num\n```\n\n```C [sol1-C]\nvoid dfs(int x, int **edge, int *edgeSize, int *vis) {\n    vis[x] = true;\n    for (int i = 0; i < edgeSize[x]; i++) {\n        int y = edge[x][i];\n        if (!vis[y]) {\n            dfs(y, edge, edgeSize, vis);\n        }\n    }\n}\n\nint removeStones(int **stones, int stonesSize, int *stonesColSize) {\n    int *edge[stonesSize];\n    for (int i = 0; i < stonesSize; i++) {\n        edge[i] = malloc(sizeof(int) * stonesSize);\n    }\n    int edgeSize[stonesSize];\n    memset(edgeSize, 0, sizeof(edgeSize));\n    for (int i = 0; i < stonesSize; i++) {\n        for (int j = 0; j < stonesSize; j++) {\n            if (stones[i][0] == stones[j][0] || stones[i][1] == stones[j][1]) {\n                edge[i][edgeSize[i]++] = j;\n            }\n        }\n    }\n    int vis[stonesSize];\n    memset(vis, 0, sizeof(vis));\n    int num = 0;\n    for (int i = 0; i < stonesSize; i++) {\n        if (!vis[i]) {\n            num++;\n            dfs(i, edge, edgeSize, vis);\n        }\n    }\n    return stonesSize - num;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar removeStones = function(stones) {\n    const n = stones.length;\n    const edge = {};\n    for (const [i, [x1, y1]] of stones.entries()) {\n        for (const [j, [x2, y2]] of stones.entries()) {\n            if (x1 === x2 || y1 === y2) {\n                edge[i] ? edge[i].push(j) : edge[i] = [j];\n            }\n        }\n    }\n\n    vis = new Set();\n    let num = 0;\n    for (let i = 0; i < n; i++) {\n        if (!vis.has(i)) {\n            num++;\n            dfs(i, vis, edge);\n        }\n    }\n    return n - num;\n};\n\nconst dfs = (x, vis, edge) => {\n    vis.add(x);\n    for (let y of edge[x]) {\n        if (!vis.has(y)) {\n            dfs(y, vis, edge);\n        }\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n^2)$，其中 $n$ 为石子的数量。我们需要枚举计算任意两个石子是否在同行或同列，建图时间复杂度 $O(n^2)$，同时我们需要通过深度优先搜索计算连通块数量，每一个点和每一条边都被枚举一次，时间复杂度 $O(n+m)$。其中 $m$ 是边数，可以保证 $m < n^2$。因此总时间复杂度为 $O(n^2)$。\n\n- 空间复杂度：$O(n^2)$。最坏情况下任意两点都相连，用来保存连通属性的边集数组将会达到 $O(n^2)$ 的大小。\n\n#### 方法二：优化建图 + 深度优先搜索\n\n**思路及解法**\n\n注意到方法一中，建图的效率太过低下，我们考虑对其优化。\n\n注意到任意两点间之间直接相连与间接相连并无影响，即我们只关注两点间的连通性，而不关注具体如何联通。因此考虑对于拥有 $k$ 个石子的任意一行或一列，我们都恰使用 $k-1$ 条边进行连接。这样我们就可以将边数从 $O(n^2)$ 的数量级降低到 $O(n)$。\n\n这样，我们首先利用哈希表存储每一行或每一列所拥有的石子，然后分别处理每一行或每一列的连通属性即可。\n\n注意到每一个石子的横坐标与纵坐标的范围均在 $[1,10^4]$，因此在实际代码中，我们可以使用同一张哈希表，只需要令纵坐标加 $10^4$，以区别横坐标与纵坐标即可。\n\n**代码**\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    void dfs(int x, vector<vector<int>> &edge, vector<int> &vis) {\n        vis[x] = true;\n        for (auto &y : edge[x]) {\n            if (!vis[y]) {\n                dfs(y, edge, vis);\n            }\n        }\n    }\n\n    int removeStones(vector<vector<int>> &stones) {\n        int n = stones.size();\n        vector<vector<int>> edge(n);\n        unordered_map<int, vector<int>> rec;\n        for (int i = 0; i < n; i++) {\n            rec[stones[i][0]].push_back(i);\n            rec[stones[i][1] + 10001].push_back(i);\n        }\n        for (auto &[_, vec] : rec) {\n            int k = vec.size();\n            for (int i = 1; i < k; i++) {\n                edge[vec[i - 1]].push_back(vec[i]);\n                edge[vec[i]].push_back(vec[i - 1]);\n            }\n        }\n\n        vector<int> vis(n);\n        int num = 0;\n        for (int i = 0; i < n; i++) {\n            if (!vis[i]) {\n                num++;\n                dfs(i, edge, vis);\n            }\n        }\n        return n - num;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public int removeStones(int[][] stones) {\n        int n = stones.length;\n        List<List<Integer>> edge = new ArrayList<List<Integer>>();\n        for (int i = 0; i < n; i++) {\n            edge.add(new ArrayList<Integer>());\n        }\n\n        Map<Integer, List<Integer>> rec = new HashMap<Integer, List<Integer>>();\n        for (int i = 0; i < n; i++) {\n            if (!rec.containsKey(stones[i][0])) {\n                rec.put(stones[i][0], new ArrayList<Integer>());\n            }\n            rec.get(stones[i][0]).add(i);\n            if (!rec.containsKey(stones[i][1] + 10001)) {\n                rec.put(stones[i][1] + 10001, new ArrayList<Integer>());\n            }\n            rec.get(stones[i][1] + 10001).add(i);\n        }\n        for (Map.Entry<Integer, List<Integer>> entry : rec.entrySet()) {\n            List<Integer> list = entry.getValue();\n            int k = list.size();\n            for (int i = 1; i < k; i++) {\n                edge.get(list.get(i - 1)).add(list.get(i));\n                edge.get(list.get(i)).add(list.get(i - 1));\n            }\n        }\n\n        boolean[] vis = new boolean[n];\n        int num = 0;\n        for (int i = 0; i < n; i++) {\n            if (!vis[i]) {\n                num++;\n                dfs(i, edge, vis);\n            }\n        }\n        return n - num;\n    }\n\n    public void dfs(int x, List<List<Integer>> edge, boolean[] vis) {\n        vis[x] = true;\n        for (int y : edge.get(x)) {\n            if (!vis[y]) {\n                dfs(y, edge, vis);\n            }\n        }\n    }\n}\n```\n\n```go [sol2-Golang]\nfunc removeStones(stones [][]int) int {\n    n := len(stones)\n    rowCol := map[int][]int{}\n    for i, p := range stones {\n        x, y := p[0], p[1]+10001\n        rowCol[x] = append(rowCol[x], i)\n        rowCol[y] = append(rowCol[y], i)\n    }\n\n    graph := make([][]int, n)\n    for _, id := range rowCol {\n        for i := 1; i < len(id); i++ {\n            v, w := id[i-1], id[i]\n            graph[v] = append(graph[v], w)\n            graph[w] = append(graph[w], v)\n        }\n    }\n\n    vis := make([]bool, n)\n    var dfs func(int)\n    dfs = func(v int) {\n        vis[v] = true\n        for _, w := range graph[v] {\n            if !vis[w] {\n                dfs(w)\n            }\n        }\n    }\n    cnt := 0\n    for i, v := range vis {\n        if !v {\n            cnt++\n            dfs(i)\n        }\n    }\n    return n - cnt\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def removeStones(self, stones: List[List[int]]) -> int:\n        n = len(stones)\n        edge = collections.defaultdict(list)\n        rec = collections.defaultdict(list)\n        for i, (x, y) in enumerate(stones):\n            rec[x].append(i)\n            rec[y + 10001].append(i)\n        \n        for vec in rec.values():\n            k = len(vec)\n            for i in range(1, k):\n                edge[vec[i - 1]].append(vec[i])\n                edge[vec[i]].append(vec[i - 1])\n        \n        def dfs(x: int):\n            vis.add(x)\n            for y in edge[x]:\n                if y not in vis:\n                    dfs(y)\n        \n        vis = set()\n        num = 0\n        for i in range(n):\n            if i not in vis:\n                num += 1\n                dfs(i)\n        \n        return n - num\n```\n\n```JavaScript [sol2-JavaScript]\nvar removeStones = function(stones) {\n    const n = stones.length;\n    const edge = {};\n    const rec = {};\n    for (const [i, [x, y]] of stones.entries()) {\n        rec[x] ? rec[x].push(i) : rec[x] = [i];\n        rec[y + 10001] ? rec[y + 10001].push(i) : rec[y + 10001] = [i];\n    }\n\n    for (const vec of Object.values(rec)) {\n        const k = vec.length;\n        for (let i = 1; i < k; i++) {\n            edge[vec[i - 1]] ? edge[vec[i - 1]].push(vec[i]) : edge[vec[i - 1]] = [vec[i]];\n            edge[vec[i]] ? edge[vec[i]].push(vec[i - 1]) : edge[vec[i]] = [vec[i - 1]];\n        }\n    }\n\n    const vis = new Set();\n    let num = 0;\n    for (let i = 0; i < n; i++) {\n        if (!vis.has(i)) {\n            num++;\n            dfs(i, vis, edge);\n        }\n    }\n    return n - num;\n};\n\nconst dfs = (x, vis, edge) => {\n    vis.add(x);\n    if (edge[x]){\n        for (const y of edge[x]) {\n            if (!vis.has(y)) {\n                dfs(y, vis, edge);\n            }\n        }\n    }\n    \n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 为石子的数量。任意一个石子至多只有四条边与其相连，且至多被遍历一次。\n\n- 空间复杂度：$O(n)$。任意一个石子至多只有四条边与其相连，用来保存连通属性的边集数组至多只会达到 $O(n)$ 的大小。\n\n#### 方法三：优化建图 + 并查集\n\n**思路及解法**\n\n我们也可以变换思路，在方法一与方法二中，我们维护的是石子，实际上我们也可以直接维护石子所在的行与列。\n\n实际操作时，我们直接将每一个石子的行与列进行合并即可，可以理解为，每一个点不是与其他所有点进行连接，而是连接到自己所在的行与列上，由行与列进行合并。\n\n同时，既然我们只关注连通性本身，我们就可以利用并查集维护连通性。在实际代码中，我们以哈希表为底层数据结构实现父亲数组 $f$，最后哈希表中所有的键均为出现过的行与列，我们计算有多少行与列的父亲恰为自己，即可知道连通块的数量。\n\n**代码**\n\n```C++ [sol3-C++]\nclass DisjointSetUnion {\nprivate:\n    unordered_map<int, int> f, rank;\n\npublic:\n    int find(int x) {\n        if (!f.count(x)) {\n            f[x] = x;\n            rank[x] = 1;\n        }\n        return f[x] == x ? x : f[x] = find(f[x]);\n    }\n\n    void unionSet(int x, int y) {\n        int fx = find(x), fy = find(y);\n        if (fx == fy) {\n            return;\n        }\n        if (rank[fx] < rank[fy]) {\n            swap(fx, fy);\n        }\n        rank[fx] += rank[fy];\n        f[fy] = fx;\n    }\n\n    int numberOfConnectedComponent() {\n        int num = 0;\n        for (auto &[x, fa] : f) {\n            if (x == fa) {\n                num++;\n            }\n        }\n        return num;\n    }\n};\n\nclass Solution {\npublic:\n    int removeStones(vector<vector<int>> &stones) {\n        int n = stones.size();\n        DisjointSetUnion dsu;\n        for (int i = 0; i < n; i++) {\n            dsu.unionSet(stones[i][0], stones[i][1] + 10001);\n        }\n\n        return n - dsu.numberOfConnectedComponent();\n    }\n};\n```\n\n```Java [sol3-Java]\nclass Solution {\n    public int removeStones(int[][] stones) {\n        int n = stones.length;\n        DisjointSetUnion dsu = new DisjointSetUnion();\n        for (int i = 0; i < n; i++) {\n            dsu.unionSet(stones[i][0], stones[i][1] + 10001);\n        }\n\n        return n - dsu.numberOfConnectedComponent();\n    }\n}\n\nclass DisjointSetUnion {\n    int[] f;\n    int[] rank;\n\n    public DisjointSetUnion() {\n        f = new int[20001];\n        rank = new int[20001];\n        Arrays.fill(f, -1);\n        Arrays.fill(rank, -1);\n    }\n\n    public int find(int x) {\n        if (f[x] < 0) {\n            f[x] = x;\n            rank[x] = 1;\n        }\n        return f[x] == x ? x : (f[x] = find(f[x]));\n    }\n\n    public void unionSet(int x, int y) {\n        int fx = find(x), fy = find(y);\n        if (fx == fy) {\n            return;\n        }\n        if (rank[fx] < rank[fy]) {\n            int temp = fx;\n            fx = fy;\n            fy = temp;\n        }\n        rank[fx] += rank[fy];\n        f[fy] = fx;\n    }\n\n    public int numberOfConnectedComponent() {\n        int num = 0;\n        for (int i = 0; i < 20000; i++) {\n            if (f[i] == i) {\n                num++;\n            }\n        }\n        return num;\n    }\n}\n```\n\n```go [sol3-Golang]\nfunc removeStones(stones [][]int) int {\n    fa, rank := map[int]int{}, map[int]int{}\n    var find func(int) int\n    find = func(x int) int {\n        if _, has := fa[x]; !has {\n            fa[x], rank[x] = x, 1\n        }\n        if fa[x] != x {\n            fa[x] = find(fa[x])\n        }\n        return fa[x]\n    }\n    union := func(x, y int) {\n        fx, fy := find(x), find(y)\n        if fx == fy {\n            return\n        }\n        if rank[fx] < rank[fy] {\n            fx, fy = fy, fx\n        }\n        rank[fx] += rank[fy]\n        fa[fy] = fx\n    }\n\n    for _, p := range stones {\n        union(p[0], p[1]+10001)\n    }\n    ans := len(stones)\n    for x, fx := range fa {\n        if x == fx {\n            ans--\n        }\n    }\n    return ans\n}\n```\n\n```Python [sol3-Python3]\nclass DisjointSetUnion:\n    def __init__(self):\n        self.f = dict()\n        self.rank = dict()\n    \n    def find(self, x: int) -> int:\n        if x not in self.f:\n            self.f[x] = x\n            self.rank[x] = 1\n            return x\n        if self.f[x] == x:\n            return x\n        self.f[x] = self.find(self.f[x])\n        return self.f[x]\n    \n    def unionSet(self, x: int, y: int):\n        fx, fy = self.find(x), self.find(y)\n        if fx == fy:\n            return\n        if self.rank[fx] < self.rank[fy]:\n            fx, fy = fy, fx\n        self.rank[fx] += self.rank[fy]\n        self.f[fy] = fx\n\n    def numberOfConnectedComponent(self) -> int:\n        return sum(1 for x, fa in self.f.items() if x == fa)\n\n\nclass Solution:\n    def removeStones(self, stones: List[List[int]]) -> int:\n        dsu = DisjointSetUnion()\n        for x, y in stones:\n            dsu.unionSet(x, y + 10001)\n        return len(stones) - dsu.numberOfConnectedComponent()\n```\n\n```C [sol3-C]\nstruct DisjointSetUnion {\n    int key, f, rank;\n    UT_hash_handle hh;\n};\n\nstruct DisjointSetUnion *find(struct DisjointSetUnion **obj, int x) {\n    struct DisjointSetUnion *tmp;\n    HASH_FIND_INT(*obj, &x, tmp);\n    if (tmp == NULL) {\n        tmp = malloc(sizeof(struct DisjointSetUnion));\n        tmp->key = x, tmp->f = x, tmp->rank = 1;\n        HASH_ADD_INT(*obj, key, tmp);\n    }\n    if (tmp->key == tmp->f) {\n        return tmp;\n    }\n    struct DisjointSetUnion *ret = find(obj, tmp->f);\n    tmp->f = ret->f;\n    return ret;\n}\n\nvoid unionSet(struct DisjointSetUnion **obj, int x, int y) {\n    struct DisjointSetUnion *fx = find(obj, x), *fy = find(obj, y);\n    if (fx->f == fy->f) {\n        return;\n    }\n    if (fx->rank < fy->rank) {\n        struct DisjointSetUnion *tmp = fx;\n        fx = fy, fy = tmp;\n    }\n    fx->rank += fy->rank;\n    fy->f = fx->key;\n}\n\nint numberOfConnectedComponent(struct DisjointSetUnion *obj) {\n    int num = 0;\n    struct DisjointSetUnion *iter, *tmp;\n    HASH_ITER(hh, obj, iter, tmp) {\n        if (iter->key == iter->f) {\n            num++;\n        }\n    }\n    return num;\n}\n\nint removeStones(int **stones, int stonesSize, int *stonesColSize) {\n    struct DisjointSetUnion *dsu = NULL;\n    for (int i = 0; i < stonesSize; i++) {\n        unionSet(&dsu, stones[i][0], stones[i][1] + 10001);\n    }\n    return stonesSize - numberOfConnectedComponent(dsu);\n}\n```\n\n```JavaScript [sol3-JavaScript]\nvar removeStones = function(stones) {\n    const dsu = new DisjointSetUnion();\n    for (const [x, y] of stones) {\n        dsu.unionSet(x, y + 10001);\n    }\n    return stones.length - dsu.numberOfConnectedComponent();\n};\n\nclass DisjointSetUnion {\n    constructor() {\n        this.f = new Map();\n        this.rank = new Map();\n    }\n\n    find (x) {\n        if (!this.f.has(x)) {\n            this.f.set(x, x);\n            this.rank.set(x, 1);\n            return x;\n        }\n        if (this.f.get(x) === x) {\n            return x;\n        }\n        this.f.set(x, this.find(this.f.get(x)));\n        return this.f.get(x);\n    }\n\n    unionSet (x, y) {\n        let fx = this.find(x), fy = this.find(y);\n        if (fx  && fy) {\n\n        }\n        if (fx === fy) {\n            return;\n        }\n        if (this.rank.get(fx) < this.rank.get(fy)) {\n            [fx, fy] = [fy, fx];\n        }\n        this.rank.set(fx, this.rank.get(fy) + this.rank.get(fx));\n        this.f.set(fy, fx);\n    }\n\n    numberOfConnectedComponent () {\n        let sum = 0;\n        for (const [x, fa] of this.f.entries()) {\n            if (x === fa) {\n                sum++;\n            }\n        }\n        return sum;\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n\\alpha(n))$，其中 $n$ 为石子的数量。$\\alpha$ 是反 $\\text{Ackerman}$ 函数。\n\n- 空间复杂度：$O(n)$。空间为并查集和哈希表的开销。",
+            "slateValue": "",
+            "slug": "yi-chu-zui-duo-de-tong-xing-huo-tong-lie-m50r",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "wyn04f",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 33,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 3,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Depth-First Search",
+                    "nameTranslated": "深度优先搜索",
+                    "slug": "depth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Union Find",
+                    "nameTranslated": "并查集",
+                    "slug": "union-find",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Graph",
+                    "nameTranslated": "图",
+                    "slug": "graph",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-01-14T14:28:50.403483+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：深度优先搜索 思路及解法 我们将这个二维平面抽象成图，把石子看作「点」，石子间的同行或同列关系看作「边」。如果两个石子同属某一行或某一列，我们就认为这两个石子之间有一条边。由题意可知，对于任意一个点，只要有点和它相连，我们就可以将其删除。 显然，对于任意一个连通图，我们总可以通过调整节点的删除顺序，把这个连通图",
+            "topic": {
+                "id": 560363,
+                "subscribed": false,
+                "commentCount": 67,
+                "viewCount": 15286,
+                "post": {
+                    "id": 1305900,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 67,
+            "isEditorsPick": false,
+            "hitCount": 27726,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "most-stones-removed-with-same-row-or-column",
+                "questionFrontendId": "947"
+            },
+            "next": {
+                "slug": "zhong-jie-bing-cha-ji-pythonjavacgo-by-e-ulrj",
+                "title": "中介并查集（Python/Java/C++/Go）"
+            },
+            "prev": {
+                "slug": "947-yi-chu-zui-duo-de-tong-xing-huo-tong-ezha",
+                "title": "🎦 947. 移除最多的同行或同列石头"
+            }
+        }
+    }
+}

@@ -1,0 +1,134 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "Kky4iu",
+            "title": "完全二叉树的节点个数",
+            "content": "#### 方法一：二分查找 + 位运算\n\n对于任意二叉树，都可以通过广度优先搜索或深度优先搜索计算节点个数，时间复杂度和空间复杂度都是 $O(n)$，其中 $n$ 是二叉树的节点个数。这道题规定了给出的是完全二叉树，因此可以利用完全二叉树的特性计算节点个数。\n\n规定根节点位于第 $0$ 层，完全二叉树的最大层数为 $h$。根据完全二叉树的特性可知，完全二叉树的最左边的节点一定位于最底层，因此从根节点出发，每次访问左子节点，直到遇到叶子节点，该叶子节点即为完全二叉树的最左边的节点，经过的路径长度即为最大层数 $h$。\n\n当 $0 \\le i < h$ 时，第 $i$ 层包含 $2^i$ 个节点，最底层包含的节点数最少为 $1$，最多为 $2^h$。\n\n当最底层包含 $1$ 个节点时，完全二叉树的节点个数是\n\n$$\n\\sum_{i=0}^{h-1}2^i+1=2^h\n$$\n\n当最底层包含 $2^h$ 个节点时，完全二叉树的节点个数是\n\n$$\n\\sum_{i=0}^{h}2^i=2^{h+1}-1\n$$\n\n因此对于最大层数为 $h$ 的完全二叉树，节点个数一定在 $[2^h,2^{h+1}-1]$ 的范围内，可以在该范围内通过二分查找的方式得到完全二叉树的节点个数。\n\n具体做法是，根据节点个数范围的上下界得到当前需要判断的节点个数 $k$，如果第 $k$ 个节点存在，则节点个数一定**大于或等于** $k$，如果第 $k$ 个节点不存在，则节点个数一定**小于** $k$，由此可以将查找的范围缩小一半，直到得到节点个数。\n\n如何判断第 $k$ 个节点是否存在呢？如果第 $k$ 个节点位于第 $h$ 层，则 $k$ 的二进制表示包含 $h+1$ 位，其中最高位是 $1$，其余各位从高到低表示从根节点到第 $k$ 个节点的路径，$0$ 表示移动到左子节点，$1$ 表示移动到右子节点。通过位运算得到第 $k$ 个节点对应的路径，判断该路径对应的节点是否存在，即可判断第 $k$ 个节点是否存在。\n\n![fig1](https://assets.leetcode.cn/solution-static/222/1.png)\n\n```Java [sol1-Java]\nclass Solution {\n    public int countNodes(TreeNode root) {\n        if (root == null) {\n            return 0;\n        }\n        int level = 0;\n        TreeNode node = root;\n        while (node.left != null) {\n            level++;\n            node = node.left;\n        }\n        int low = 1 << level, high = (1 << (level + 1)) - 1;\n        while (low < high) {\n            int mid = (high - low + 1) / 2 + low;\n            if (exists(root, level, mid)) {\n                low = mid;\n            } else {\n                high = mid - 1;\n            }\n        }\n        return low;\n    }\n\n    public boolean exists(TreeNode root, int level, int k) {\n        int bits = 1 << (level - 1);\n        TreeNode node = root;\n        while (node != null && bits > 0) {\n            if ((bits & k) == 0) {\n                node = node.left;\n            } else {\n                node = node.right;\n            }\n            bits >>= 1;\n        }\n        return node != null;\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int countNodes(TreeNode* root) {\n        if (root == nullptr) {\n            return 0;\n        }\n        int level = 0;\n        TreeNode* node = root;\n        while (node->left != nullptr) {\n            level++;\n            node = node->left;\n        }\n        int low = 1 << level, high = (1 << (level + 1)) - 1;\n        while (low < high) {\n            int mid = (high - low + 1) / 2 + low;\n            if (exists(root, level, mid)) {\n                low = mid;\n            } else {\n                high = mid - 1;\n            }\n        }\n        return low;\n    }\n\n    bool exists(TreeNode* root, int level, int k) {\n        int bits = 1 << (level - 1);\n        TreeNode* node = root;\n        while (node != nullptr && bits > 0) {\n            if (!(bits & k)) {\n                node = node->left;\n            } else {\n                node = node->right;\n            }\n            bits >>= 1;\n        }\n        return node != nullptr;\n    }\n};\n```\n\n```JavaScript [sol1-JavaScript]\nconst exists = (root, level, k) => {\n    let bits = 1 << (level - 1);\n    let node = root;\n    while (node !== null && bits > 0) {\n        if (!(bits & k)) {\n            node = node.left;\n        } else {\n            node = node.right;\n        }\n        bits >>= 1;\n    }\n    return node !== null;\n}\n\nvar countNodes = function(root) {\n    if (root === null) {\n        return 0;\n    }\n    let level = 0;\n    let node = root;\n    while (node.left !== null) {\n        level++;\n        node = node.left;\n    }\n    let low = 1 << level, high = (1 << (level + 1)) - 1;\n    while (low < high) {\n        const mid = Math.floor((high - low + 1) / 2) + low;\n        if (exists(root, level, mid)) {\n            low = mid;\n        } else {\n            high = mid - 1;\n        }\n    }\n    return low;\n};\n```\n\n```Golang [sol1-Golang]\nfunc countNodes(root *TreeNode) int {\n    if root == nil {\n        return 0\n    }\n    level := 0\n    for node := root; node.Left != nil; node = node.Left {\n        level++\n    }\n    return sort.Search(1<<(level+1), func(k int) bool {\n        if k <= 1<<level {\n            return false\n        }\n        bits := 1 << (level - 1)\n        node := root\n        for node != nil && bits > 0 {\n            if bits&k == 0 {\n                node = node.Left\n            } else {\n                node = node.Right\n            }\n            bits >>= 1\n        }\n        return node == nil\n    }) - 1\n}\n```\n\n```C [sol1-C]\nbool exists(struct TreeNode* root, int level, int k) {\n    int bits = 1 << (level - 1);\n    struct TreeNode* node = root;\n    while (node != NULL && bits > 0) {\n        if (!(bits & k)) {\n            node = node->left;\n        } else {\n            node = node->right;\n        }\n        bits >>= 1;\n    }\n    return node != NULL;\n}\n\nint countNodes(struct TreeNode* root) {\n    if (root == NULL) {\n        return 0;\n    }\n    int level = 0;\n    struct TreeNode* node = root;\n    while (node->left != NULL) {\n        level++;\n        node = node->left;\n    }\n    int low = 1 << level, high = (1 << (level + 1)) - 1;\n    while (low < high) {\n        int mid = (high - low + 1) / 2 + low;\n        if (exists(root, level, mid)) {\n            low = mid;\n        } else {\n            high = mid - 1;\n        }\n    }\n    return low;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(\\log^2 n)$，其中 $n$ 是完全二叉树的节点数。\n  首先需要 $O(h)$ 的时间得到完全二叉树的最大层数，其中 $h$ 是完全二叉树的最大层数。\n  使用二分查找确定节点个数时，需要查找的次数为 $O(\\log 2^h)=O(h)$，每次查找需要遍历从根节点开始的一条长度为 $h$ 的路径，需要 $O(h)$ 的时间，因此二分查找的总时间复杂度是 $O(h^2)$。\n  因此总时间复杂度是 $O(h^2)$。由于完全二叉树满足 $2^h \\le n < 2^{h+1}$，因此有 $O(h)=O(\\log n)$，$O(h^2)=O(\\log^2 n)$。\n\n- 空间复杂度：$O(1)$。只需要维护有限的额外空间。",
+            "slateValue": "",
+            "slug": "wan-quan-er-cha-shu-de-jie-dian-ge-shu-by-leetco-2",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "Kky4iu",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 231,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 11,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 5,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Bit Manipulation",
+                    "nameTranslated": "位运算",
+                    "slug": "bit-manipulation",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Tree",
+                    "nameTranslated": "树",
+                    "slug": "tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Binary Tree",
+                    "nameTranslated": "二叉树",
+                    "slug": "binary-tree",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2020-11-23T14:13:24.941251+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：二分查找 + 位运算 对于任意二叉树，都可以通过广度优先搜索或深度优先搜索计算节点个数，时间复杂度和空间复杂度都是 $O(n)$，其中 $n$ 是二叉树的节点个数。这道题规定了给出的是完全二叉树，因此可以利用完全二叉树的特性计算节点个数。 规定根节点位于第 $0$ 层，完全二叉树的最大层数为 $h$。根据完全二",
+            "topic": {
+                "id": 495655,
+                "subscribed": false,
+                "commentCount": 679,
+                "viewCount": 77529,
+                "post": {
+                    "id": 1174327,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 890,
+            "isEditorsPick": false,
+            "hitCount": 222974,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "count-complete-tree-nodes",
+                "questionFrontendId": "222"
+            },
+            "next": {
+                "slug": "chang-gui-jie-fa-he-ji-bai-100de-javajie-fa-by-xia",
+                "title": "常规解法和击败100%的Java解法"
+            },
+            "prev": null
+        }
+    }
+}

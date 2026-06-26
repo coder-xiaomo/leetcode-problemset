@@ -1,0 +1,130 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "B11Dfa",
+            "title": "给表达式添加运算符",
+            "content": "#### 方法一：回溯\n\n设字符串 $\\textit{num}$ 的长度为 $n$，为构建表达式，我们可以往 $\\textit{num}$ 中间的 $n-1$ 个空隙添加 $\\texttt{+}$ 号、$\\texttt{-}$ 号或 $\\texttt{*}$ 号，或者不添加符号。\n\n我们可以用「回溯法」来模拟这个过程。从左向右构建表达式，并实时计算表达式的结果。由于乘法运算优先级高于加法和减法运算，我们还需要保存最后一个连乘串（如 $\\texttt{2*3*4}$）的运算结果。\n\n定义递归函数 $\\textit{backtrack}(\\textit{expr}, i, \\textit{res}, \\textit{mul})$，其中：\n\n- $\\textit{expr}$ 为当前构建出的表达式；\n- $i$ 表示当前的枚举到了 $\\textit{num}$ 的第 $i$ 个数字；\n- $\\textit{res}$ 为当前表达式的计算结果；\n- $\\textit{mul}$ 为表达式最后一个连乘串的计算结果。\n\n该递归函数分为两种情况：\n\n- 如果 $i=n$，说明表达式已经构造完成，若此时有 $\\textit{res}=\\textit{target}$，则找到了一个可行解，我们将 $\\textit{expr}$ 放入答案数组中，递归结束；\n- 如果 $i<n$，需要枚举当前表达式末尾要添加的符号（$\\texttt{+}$ 号、$\\texttt{-}$ 号或 $\\texttt{*}$ 号），以及该符号之后需要截取多少位数字。设该符号之后的数字为 $\\textit{val}$，按符号分类讨论：\n   - 若添加 $\\texttt{+}$ 号，则 $\\textit{res}$ 增加 $\\textit{val}$，且 $\\textit{val}$ 单独组成表达式最后一个连乘串；\n   - 若添加 $\\texttt{-}$ 号，则 $\\textit{res}$ 减少 $\\textit{val}$，且 $-\\textit{val}$ 单独组成表达式最后一个连乘串；\n   - 若添加 $\\texttt{*}$ 号，由于乘法运算优先级高于加法和减法运算，我们需要对 $\\textit{res}$ 撤销之前 $\\textit{mul}$ 的计算结果，并添加新的连乘结果 $\\textit{mul}*\\textit{val}$，也就是将 $\\textit{res}$ 减少 $\\textit{mul}$ 并增加 $\\textit{mul}*\\textit{val}$。\n\n代码实现时，为避免字符串拼接所带来的额外时间开销，我们采用字符数组的形式来构建表达式。此外，运算过程中可能会产生超过 $32$ 位整数的结果，我们要用 $64$ 位整数存储中间运算结果。\n\n```Python [sol1-Python3]\nclass Solution:\n    def addOperators(self, num: str, target: int) -> List[str]:\n        n = len(num)\n        ans = []\n\n        def backtrack(expr: List[str], i: int, res: int, mul: int):\n            if i == n:\n                if res == target:\n                    ans.append(''.join(expr))\n                return\n            signIndex = len(expr)\n            if i > 0:\n                expr.append('')  # 占位，下面填充符号\n            val = 0\n            for j in range(i, n):  # 枚举截取的数字长度（取多少位）\n                if j > i and num[i] == '0':  # 数字可以是单个 0 但不能有前导零\n                    break\n                val = val * 10 + int(num[j])\n                expr.append(num[j])\n                if i == 0:  # 表达式开头不能添加符号\n                    backtrack(expr, j + 1, val, val)\n                else:  # 枚举符号\n                    expr[signIndex] = '+'; backtrack(expr, j + 1, res + val, val)\n                    expr[signIndex] = '-'; backtrack(expr, j + 1, res - val, -val)\n                    expr[signIndex] = '*'; backtrack(expr, j + 1, res - mul + mul * val, mul * val)\n            del expr[signIndex:]\n\n        backtrack([], 0, 0, 0)\n        return ans\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<string> addOperators(string num, int target) {\n        int n = num.length();\n        vector<string> ans;\n\n        function<void(string&, int, long, long)> backtrack = [&](string &expr, int i, long res, long mul) {\n            if (i == n) {\n                if (res == target) {\n                    ans.emplace_back(expr);\n                }\n                return;\n            }\n            int signIndex = expr.size();\n            if (i > 0) {\n                expr.push_back(0); // 占位，下面填充符号\n            }\n            long val = 0;\n            // 枚举截取的数字长度（取多少位），注意数字可以是单个 0 但不能有前导零\n            for (int j = i; j < n && (j == i || num[i] != '0'); ++j) {\n                val = val * 10 + num[j] - '0';\n                expr.push_back(num[j]);\n                if (i == 0) { // 表达式开头不能添加符号\n                    backtrack(expr, j + 1, val, val);\n                } else { // 枚举符号\n                    expr[signIndex] = '+'; backtrack(expr, j + 1, res + val, val);\n                    expr[signIndex] = '-'; backtrack(expr, j + 1, res - val, -val);\n                    expr[signIndex] = '*'; backtrack(expr, j + 1, res - mul + mul * val, mul * val);\n                }\n            }\n            expr.resize(signIndex);\n        };\n\n        string expr;\n        backtrack(expr, 0, 0, 0);\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    int n;\n    String num;\n    int target;\n    List<String> ans;\n\n    public List<String> addOperators(String num, int target) {\n        this.n = num.length();\n        this.num = num;\n        this.target = target;\n        this.ans = new ArrayList<String>();\n        StringBuffer expr = new StringBuffer();\n        backtrack(expr, 0, 0, 0);\n        return ans;\n    }\n\n    public void backtrack(StringBuffer expr, int i, long res, long mul) {\n        if (i == n) {\n            if (res == target) {\n                ans.add(expr.toString());\n            }\n            return;\n        }\n        int signIndex = expr.length();\n        if (i > 0) {\n            expr.append(0); // 占位，下面填充符号\n        }\n        long val = 0;\n        // 枚举截取的数字长度（取多少位），注意数字可以是单个 0 但不能有前导零\n        for (int j = i; j < n && (j == i || num.charAt(i) != '0'); ++j) {\n            val = val * 10 + num.charAt(j) - '0';\n            expr.append(num.charAt(j));\n            if (i == 0) { // 表达式开头不能添加符号\n                backtrack(expr, j + 1, val, val);\n            } else { // 枚举符号\n                expr.setCharAt(signIndex, '+');\n                backtrack(expr, j + 1, res + val, val);\n                expr.setCharAt(signIndex, '-');\n                backtrack(expr, j + 1, res - val, -val);\n                expr.setCharAt(signIndex, '*');\n                backtrack(expr, j + 1, res - mul + mul * val, mul * val);\n            }\n        }\n        expr.setLength(signIndex);\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    int n;\n    string num;\n    int target;\n    IList<string> ans;\n    \n    public IList<string> AddOperators(string num, int target) {\n        this.n = num.Length;\n        this.num = num;\n        this.target = target;\n        this.ans = new List<string>();\n        StringBuilder expr = new StringBuilder();\n        Backtrack(expr, 0, 0, 0);\n        return ans;\n    }\n\n    public void Backtrack(StringBuilder expr, int i, long res, long mul) {\n        if (i == n) {\n            if (res == target) {\n                ans.Add(expr.ToString());\n            }\n            return;\n        }\n        int signIndex = expr.Length;\n        if (i > 0) {\n            expr.Append(0); // 占位，下面填充符号\n        }\n        long val = 0;\n        // 枚举截取的数字长度（取多少位），注意数字可以是单个 0 但不能有前导零\n        for (int j = i; j < n && (j == i || num[i] != '0'); ++j) {\n            val = val * 10 + num[j] - '0';\n            expr.Append(num[j]);\n            if (i == 0) { // 表达式开头不能添加符号\n                Backtrack(expr, j + 1, val, val);\n            } else { // 枚举符号\n                expr.Replace(expr[signIndex], '+', signIndex, 1);\n                Backtrack(expr, j + 1, res + val, val);\n                expr.Replace(expr[signIndex], '-', signIndex, 1);\n                Backtrack(expr, j + 1, res - val, -val);\n                expr.Replace(expr[signIndex], '*', signIndex, 1);\n                Backtrack(expr, j + 1, res - mul + mul * val, mul * val);\n            }\n        }\n        expr.Length = signIndex;\n    }\n}\n```\n\n```go [sol1-Golang]\nfunc addOperators(num string, target int) (ans []string) {\n    n := len(num)\n    var backtrack func(expr []byte, i, res, mul int)\n    backtrack = func(expr []byte, i, res, mul int) {\n        if i == n {\n            if res == target {\n                ans = append(ans, string(expr))\n            }\n            return\n        }\n        signIndex := len(expr)\n        if i > 0 {\n            expr = append(expr, 0) // 占位，下面填充符号\n        }\n        // 枚举截取的数字长度（取多少位），注意数字可以是单个 0 但不能有前导零\n        for j, val := i, 0; j < n && (j == i || num[i] != '0'); j++ {\n            val = val*10 + int(num[j]-'0')\n            expr = append(expr, num[j])\n            if i == 0 { // 表达式开头不能添加符号\n                backtrack(expr, j+1, val, val)\n            } else { // 枚举符号\n                expr[signIndex] = '+'; backtrack(expr, j+1, res+val, val)\n                expr[signIndex] = '-'; backtrack(expr, j+1, res-val, -val)\n                expr[signIndex] = '*'; backtrack(expr, j+1, res-mul+mul*val, mul*val)\n            }\n        }\n    }\n    backtrack(make([]byte, 0, n*2-1), 0, 0, 0)\n    return\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar addOperators = function(num, target) {\n    const n = num.length;\n    const ans = [];\n    let expr = [];\n\n    const backtrack = (expr, i, res, mul) => {\n        if (i === n) {\n            if (res === target) {\n                ans.push(expr.join(''));\n            }\n            return;\n        }\n        const signIndex = expr.length;\n        if (i > 0) {\n            expr.push(''); // 占位，下面填充符号\n        }\n        let val = 0;\n        // 枚举截取的数字长度（取多少位），注意数字可以是单个 0 但不能有前导零\n        for (let j = i; j < n && (j === i || num[i] !== '0'); ++j) {\n            val = val * 10 + num[j].charCodeAt() - '0'.charCodeAt();\n            expr.push(num[j]);\n            if (i === 0) { // 表达式开头不能添加符号\n                backtrack(expr, j + 1, val, val);\n            } else { // 枚举符号\n                expr[signIndex] = '+';\n                backtrack(expr, j + 1, res + val, val);\n                expr[signIndex] = '-';\n                backtrack(expr, j + 1, res - val, -val);\n                expr[signIndex] = '*';\n                backtrack(expr, j + 1, res - mul + mul * val, mul * val);\n            }\n        }\n        expr = expr.splice(signIndex, expr.length - signIndex)\n    }\n\n    backtrack(expr, 0, 0, 0);\n    return ans;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(4^n)$，其中 $n$ 是字符串 $\\textit{num}$ 的长度。由于在数字之间可以选择不添加符号、添加 $\\texttt{+}$ 号、$\\texttt{-}$ 号或 $\\texttt{*}$ 号，一共有 $4$ 种选择，因此时间复杂度为 $O(4^n)$。\n                                                \n   注：考虑到将 $\\textit{expr}$ 的拷贝存入答案需要花费 $O(n)$ 的时间，最终的时间复杂度似乎是 $O(n \\times 4^n)$。果真如此吗？考虑合法表达式最多的情况，即 $\\textit{num}$ 全为 $\\texttt{0}$，且 $\\textit{target}=0$ 的情况，由于不能有前导零，我们必须在数字之间添加 $\\texttt{+ - *}$ 三者之一，所以合法表达式有 $3^{n-1}$ 个，因此「将 $\\textit{expr}$ 的拷贝存入答案」这一部分的时间开销至多为 $O(n \\times 3^n)$。\n\n- 空间复杂度：$O(n)$。不考虑返回值的空间占用，空间复杂度取决于递归时的栈空间。",
+            "slateValue": "",
+            "slug": "gei-biao-da-shi-tian-jia-yun-suan-fu-by-2o1s7",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "B11Dfa",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 77,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Backtracking",
+                    "nameTranslated": "回溯",
+                    "slug": "backtracking",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-10-15T03:06:38.734841+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：回溯 设字符串 $\\textit{num}$ 的长度为 $n$，为构建表达式，我们可以往 $\\textit{num}$ 中间的 $n-1$ 个空隙添加 $\\texttt{+}$ 号、$\\texttt{-}$ 号或 $\\texttt{*}$ 号，或者不添加符号。 我们可以用「回溯法」来模拟这个过程。从左向右构建表",
+            "topic": {
+                "id": 1048321,
+                "subscribed": false,
+                "commentCount": 106,
+                "viewCount": 19938,
+                "post": {
+                    "id": 2230247,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 104,
+            "isEditorsPick": false,
+            "hitCount": 43046,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "expression-add-operators",
+                "questionFrontendId": "282"
+            },
+            "next": {
+                "slug": "gong-shui-san-xie-hui-su-suan-fa-yun-yon-nl9z",
+                "title": "【宫水三叶】一道利用「代数系统」的回溯题"
+            },
+            "prev": null
+        }
+    }
+}

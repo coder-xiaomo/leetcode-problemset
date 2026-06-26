@@ -1,0 +1,106 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "aoXryF",
+            "title": "Basic Calculator IV",
+            "content": "#### 方法一： 多项式类 【通过】\n\n**思路**\n\n构建一个 `Poly` 多项式类，实现这个多项式类的一些数学操作。 \n\n**算法**\n\n单独实现每个方法都很直接，这里先列一下要实现的方法：\n\n* `Poly:add(this, that)` 返回 `this + that` 的结果。\n* `Poly:sub(this, that)` 返回 `this - that` 的结果。\n* `Poly:mul(this, that)` 返回 `this * that` 的结果。\n* `Poly:evaluate(this, evalmap)` 返回将所有的自由变量替换成 `evalmap` 指定常数之后的结果。\n* `Poly:toList(this)` 返回正确的多项式输出格式。\n\n* `Solution::combine(left, right, symbol)` 返回对 `左边（left)` 和 `右边(left)` 进行 `symobl` 操作之后的结果。\n* `Solution::make(expr)` 创造一个新的 `Poly` 实例来表示常数或 `expr` 指定的变量。 \n* `Solution::parse(expr)` 将 `expr` 解析成一个 `Poly` 实例。\n\n```python [solution1-Python]\nclass Poly(collections.Counter):\n    def __add__(self, other):\n        self.update(other)\n        return self\n\n    def __sub__(self, other):\n        self.update({k: -v for k, v in other.items()})\n        return self\n\n    def __mul__(self, other):\n        ans = Poly()\n        for k1, v1 in self.items():\n            for k2, v2 in other.items():\n                ans.update({tuple(sorted(k1 + k2)): v1 * v2})\n        return ans\n\n    def evaluate(self, evalmap):\n        ans = Poly()\n        for k, c in self.items():\n            free = []\n            for token in k:\n                if token in evalmap:\n                    c *= evalmap[token]\n                else:\n                    free.append(token)\n            ans[tuple(free)] += c\n        return ans\n\n    def to_list(self):\n        return [\"*\".join((str(v),) + k)\n                for k, v in sorted(self.items(),\n                    key = lambda (k, v): (-len(k), k, v))\n                if v]\n\nclass Solution(object):\n    def basicCalculatorIV(self, expression, evalvars, evalints):\n        evalmap = dict(zip(evalvars, evalints))\n\n        def combine(left, right, symbol):\n            if symbol == '+': return left + right\n            if symbol == '-': return left - right\n            if symbol == '*': return left * right\n            raise\n\n        def make(expr):\n            ans = Poly()\n            if expr.isdigit():\n                ans.update({(): int(expr)})\n            else:\n                ans[(expr,)] += 1\n            return ans\n\n        def parse(expr):\n            bucket = []\n            symbols = []\n            i = 0\n            while i < len(expr):\n                if expr[i] == '(':\n                    bal = 0\n                    for j in xrange(i, len(expr)):\n                        if expr[j] == '(': bal += 1\n                        if expr[j] == ')': bal -= 1\n                        if bal == 0: break\n                    bucket.append(parse(expr[i+1:j]))\n                    i = j\n                elif expr[i].isalnum():\n                    for j in xrange(i, len(expr)):\n                        if expr[j] == ' ':\n                            bucket.append(make(expr[i:j]))\n                            break\n                    else:\n                        bucket.append(make(expr[i:]))\n                    i = j\n                elif expr[i] in '+-*':\n                    symbols.append(expr[i])\n                i += 1\n\n            for i in xrange(len(symbols) - 1, -1, -1):\n                if symbols[i] == '*':\n                    bucket[i] = combine(bucket[i], bucket.pop(i+1),\n                                        symbols.pop(i))\n\n            if not bucket: return Poly()\n            ans = bucket[0]\n            for i, symbol in enumerate(symbols, 1):\n                ans = combine(ans, bucket[i], symbol)\n\n            return ans\n\n        P = parse(expression).evaluate(evalmap)\n        return P.to_list()\n```\n\n```java [solution1-Java]\nclass Solution {\n    public List<String> basicCalculatorIV(String expression, String[] evalVars, int[] evalInts) {\n        Map<String, Integer> evalMap = new HashMap();\n        for (int i = 0; i < evalVars.length; ++i)\n            evalMap.put(evalVars[i], evalInts[i]);\n\n        return parse(expression).evaluate(evalMap).toList();\n    }\n\n    public Poly make(String expr) {\n        Poly ans = new Poly();\n        List<String> list = new ArrayList();\n        if (Character.isDigit(expr.charAt(0))) {\n            ans.update(list, Integer.valueOf(expr));\n        } else {\n            list.add(expr);\n            ans.update(list, 1);\n        }\n        return ans;\n    }\n\n    public Poly combine(Poly left, Poly right, char symbol) {\n        if (symbol == '+') return left.add(right);\n        if (symbol == '-') return left.sub(right);\n        if (symbol == '*') return left.mul(right);\n        throw null;\n    }\n\n    public Poly parse(String expr) {\n        List<Poly> bucket = new ArrayList();\n        List<Character> symbols = new ArrayList();\n        int i = 0;\n        while (i < expr.length()) {\n            if (expr.charAt(i) == '(') {\n                int bal = 0, j = i;\n                for (; j < expr.length(); ++j) {\n                    if (expr.charAt(j) == '(') bal++;\n                    if (expr.charAt(j) == ')') bal--;\n                    if (bal == 0) break;\n                }\n                bucket.add(parse(expr.substring(i+1, j)));\n                i = j;\n            } else if (Character.isLetterOrDigit(expr.charAt(i))) {\n                int j = i;\n                search : {\n                    for (; j < expr.length(); ++j)\n                        if (expr.charAt(j) == ' ') {\n                            bucket.add(make(expr.substring(i, j)));\n                            break search;\n                        }\n                    bucket.add(make(expr.substring(i)));\n                }\n                i = j;\n            } else if (expr.charAt(i) != ' ') {\n                symbols.add(expr.charAt(i));\n            }\n            i++;\n        }\n\n        for (int j = symbols.size() - 1; j >= 0; --j)\n            if (symbols.get(j) == '*')\n                bucket.set(j, combine(bucket.get(j), bucket.remove(j+1), symbols.remove(j)));\n\n        if (bucket.isEmpty()) return new Poly();\n        Poly ans = bucket.get(0);\n        for (int j = 0; j < symbols.size(); ++j)\n            ans = combine(ans, bucket.get(j+1), symbols.get(j));\n\n        return ans;\n    }\n}\n\nclass Poly {\n    HashMap<List<String>, Integer> count;\n    Poly() {count = new HashMap();}\n\n    void update(List<String> key, int val) {\n        this.count.put(key, this.count.getOrDefault(key, 0) + val);\n    }\n\n    Poly add(Poly that) {\n        Poly ans = new Poly();\n        for (List<String> k: this.count.keySet())\n            ans.update(k, this.count.get(k));\n        for (List<String> k: that.count.keySet())\n            ans.update(k, that.count.get(k));\n        return ans;\n    }\n\n    Poly sub(Poly that) {\n        Poly ans = new Poly();\n        for (List<String> k: this.count.keySet())\n            ans.update(k, this.count.get(k));\n        for (List<String> k: that.count.keySet())\n            ans.update(k, -that.count.get(k));\n        return ans;\n    }\n\n    Poly mul(Poly that) {\n        Poly ans = new Poly();\n        for (List<String> k1: this.count.keySet())\n            for (List<String> k2: that.count.keySet()) {\n                List<String> kNew = new ArrayList();\n                for (String x: k1) kNew.add(x);\n                for (String x: k2) kNew.add(x);\n                Collections.sort(kNew);\n                ans.update(kNew, this.count.get(k1) * that.count.get(k2));\n            }\n        return ans;\n    }\n\n    Poly evaluate(Map<String, Integer> evalMap) {\n        Poly ans = new Poly();\n        for (List<String> k: this.count.keySet()) {\n            int c = this.count.get(k);\n            List<String> free = new ArrayList();\n            for (String token: k) {\n                if (evalMap.containsKey(token))\n                    c *= evalMap.get(token);\n                else\n                    free.add(token);\n            }\n            ans.update(free, c);\n        }\n        return ans;\n    }\n\n    int compareList(List<String> A, List<String> B) {\n        int i = 0;\n        for (String x: A) {\n            String y = B.get(i++);\n            if (x.compareTo(y) != 0) return x.compareTo(y);\n        }\n        return 0;\n    }\n    List<String> toList() {\n        List<String> ans = new ArrayList();\n        List<List<String>> keys = new ArrayList(this.count.keySet());\n        Collections.sort(keys, (a, b) ->\n            a.size() != b.size() ? b.size() - a.size() : compareList(a, b));\n\n        for (List<String> key: keys) {\n            int v = this.count.get(key);\n            if (v == 0) continue;\n            StringBuilder word = new StringBuilder();\n            word.append(\"\" + v);\n            for (String token: key) {\n                word.append('*');\n                word.append(token);\n            }\n            ans.add(word.toString());\n        }\n        return ans;\n    }\n}\n```\n\n\n**复杂度分析**\n\n* 时间复杂度: 时间复杂度即为 $O(2^N + M)$，其中 $N$ 为 `expression` 的长度， $M$ 为 `evalvars` 和 `evalints` 的长度。\n\n* 空间复杂度: $O(N + M)$。",
+            "slateValue": "",
+            "slug": "basic-calculator-iv-by-leetcode",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "aoXryF",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 10,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Stack",
+                    "nameTranslated": "栈",
+                    "slug": "stack",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2019-11-04T09:19:31.077090+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/uploaded_files/2021/03/73c9f099-abbe-4d94-853f-f8abffd459cd/leetcode.png",
+                    "userSlug": "leetcode",
+                    "realName": "LeetCode",
+                    "reputation": 2117
+                }
+            },
+            "summary": "方法一： 多项式类 【通过】 思路 构建一个 Poly 多项式类，实现这个多项式类的一些数学操作。  算法 单独实现每个方法都很直接，这里先列一下要实现的方法： Poly:add(this, that) 返回 this + that 的结果。 Poly:sub(this, that) 返回 this - that 的结",
+            "topic": {
+                "id": 40596,
+                "subscribed": false,
+                "commentCount": 19,
+                "viewCount": 5980,
+                "post": {
+                    "id": 216751,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 18,
+            "isEditorsPick": false,
+            "hitCount": 10752,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "basic-calculator-iv",
+                "questionFrontendId": "770"
+            },
+            "next": {
+                "slug": "by-stormsunshine-uvs4",
+                "title": "770. 基本计算器 IV"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,130 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "PKU8OQ",
+            "title": "替换子串得到平衡字符串",
+            "content": "#### 方法一：滑动窗口\n\n**思路与算法**\n\n设 $\\textit{partial} = \\dfrac{n}{4}$，我们选择 $s$ 的一个子串作为「待替换子串」，只有当 $s$ 剩余的部分中 $\\text{`Q'}$，$\\text{`W'}$，$\\text{`E'}$，$\\text{`R'}$ 的出现次数都小于等于 $\\textit{partial}$ 时，我们才有可能使 $s$ 变为「平衡字符串」。\n\n如果原始的 $s$ 就是 「平衡字符串」，我们直接返回 $0$，否则我们按照以下思路求解。\n\n从小到大枚举「待替换子串」的左端点 $l$，为了使得替换的长度最小，我们要找到最近的右端点 $r$，使得去除 $[l,r)$ 之后的剩余部分满足上述条件。不难发现，随着 $l$ 的递增，$r$ 也是递增的。\n\n具体的，我们使用滑动窗口来维护区间 $[l, r)$ 之外的剩余部分中 $\\text{`Q'}$，$\\text{`W'}$，$\\text{`E'}$，$\\text{`R'}$ 的出现次数，当其中一种字符的出现次数大于 $\\textit{partial}$ 时，令 $s[r]$ 的出现次数减 $1$，并使得 $r$ 向右移动一个单位。该操作一直被执行，直到条件被满足或者 $r$ 到达 $s$ 的末尾。\n\n如果找到了使得条件被满足的 $r$，我们用 $r - l$ 来更新答案，然后令 $s[l]$ 的出现次数加 $1$，并使得 $l$ 向右移动一个单位进行下一次枚举。否则，后序的 $l$ 也将不会有合法的 $r$，此时我们可以直接跳出循环。对于所有合法的 $[l, r)$，取 $r - l$ 的最小值做为答案。\n\n**代码**\n\n```Python [sol1-Python3]\nclass Solution:\n    def balancedString(self, s: str) -> int:\n        cnt = Counter(s)\n        partial = len(s) // 4\n\n        def check():\n            if cnt['Q'] > partial or \\\n                    cnt['W'] > partial or \\\n                    cnt['E'] > partial or \\\n                    cnt['R'] > partial:\n                return False\n            return True\n\n        if check():\n            return 0\n\n        res = len(s)\n        r = 0\n        for l, c in enumerate(s):\n            while r < len(s) and not check():\n                cnt[s[r]] -= 1\n                r += 1\n            if not check():\n                break\n            res = min(res, r - l)\n            cnt[c] += 1\n        return res\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int idx(const char& c) {\n        return c - 'A';\n    }\n\n    int balancedString(string s) {\n        vector<int> cnt(26);\n        for (auto c : s) {\n            cnt[idx(c)]++;\n        }\n\n        int partial = s.size() / 4;\n        int res = s.size();\n        auto check = [&]() {\n            if (cnt[idx('Q')] > partial || cnt[idx('W')] > partial \\\n                || cnt[idx('E')] > partial || cnt[idx('R')] > partial) {\n                return false;\n            }\n            return true;\n        };\n\n        if (check()) {\n            return 0;\n        }\n        for (int l = 0, r = 0; l < s.size(); l++) {\n            while (r < s.size() && !check()) {\n                cnt[idx(s[r])]--;\n                r++;\n            }\n            if (!check()) {\n                break;\n            }\n            res = min(res, r - l);\n            cnt[idx(s[l])]++;\n        }\n        return res;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int balancedString(String s) {\n        int[] cnt = new int[26];\n        for (int i = 0; i < s.length(); i++) {\n            char c = s.charAt(i);\n            cnt[idx(c)]++;\n        }\n\n        int partial = s.length() / 4;\n        int res = s.length();\n\n        if (check(cnt, partial)) {\n            return 0;\n        }\n        for (int l = 0, r = 0; l < s.length(); l++) {\n            while (r < s.length() && !check(cnt, partial)) {\n                cnt[idx(s.charAt(r))]--;\n                r++;\n            }\n            if (!check(cnt, partial)) {\n                break;\n            }\n            res = Math.min(res, r - l);\n            cnt[idx(s.charAt(l))]++;\n        }\n        return res;\n    }\n\n    public int idx(char c) {\n        return c - 'A';\n    }\n\n    public boolean check(int[] cnt, int partial) {\n        if (cnt[idx('Q')] > partial || cnt[idx('W')] > partial || cnt[idx('E')] > partial || cnt[idx('R')] > partial) {\n            return false;\n        }\n        return true;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int BalancedString(string s) {\n        int[] cnt = new int[26];\n        foreach (char c in s) {\n            cnt[Idx(c)]++;\n        }\n\n        int partial = s.Length / 4;\n        int res = s.Length;\n\n        if (Check(cnt, partial)) {\n            return 0;\n        }\n        for (int l = 0, r = 0; l < s.Length; l++) {\n            while (r < s.Length && !Check(cnt, partial)) {\n                cnt[Idx(s[r])]--;\n                r++;\n            }\n            if (!Check(cnt, partial)) {\n                break;\n            }\n            res = Math.Min(res, r - l);\n            cnt[Idx(s[l])]++;\n        }\n        return res;\n    }\n\n    public int Idx(char c) {\n        return c - 'A';\n    }\n\n    public bool Check(int[] cnt, int partial) {\n        if (cnt[Idx('Q')] > partial || cnt[Idx('W')] > partial || cnt[Idx('E')] > partial || cnt[Idx('R')] > partial) {\n            return false;\n        }\n        return true;\n    }\n}\n```\n\n```C [sol1-C]\n#define MIN(a, b) ((a) < (b) ? (a) : (b))\n\nstatic inline int idx(const char c) {\n    return c - 'A';\n}\n\nbool check(const int *cnt, int partial) {\n    if (cnt[idx('Q')] > partial || cnt[idx('W')] > partial || \\\n        cnt[idx('E')] > partial || cnt[idx('R')] > partial) {\n        return false;\n    }\n    return true;\n};\n\nint balancedString(char * s) {\n    int cnt[26];\n    memset(cnt, 0, sizeof(cnt));\n    for (int i = 0; s[i] != '\\0'; i++) {\n        cnt[idx(s[i])]++;\n    }\n\n    int len = strlen(s);\n    int partial = len / 4;\n    int res = len;\n    if (check(cnt, partial)) {\n        return 0;\n    }\n    \n    for (int l = 0, r = 0; l < len; l++) {\n        while (r < len && !check(cnt, partial)) {\n            cnt[idx(s[r])]--;\n            r++;\n        }\n        if (!check(cnt, partial)) {\n            break;\n        }\n        res = MIN(res, r - l);\n        cnt[idx(s[l])]++;\n    }\n    return res;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar balancedString = function(s) {\n    const cnt = new Array(26).fill(0);\n    for (let i = 0; i < s.length; i++) {\n        const c = s[i];\n        cnt[idx(c)]++;\n    }\n\n    const partial = s.length / 4;\n    let res = s.length;\n\n    if (check(cnt, partial)) {\n        return 0;\n    }\n    for (let l = 0, r = 0; l < s.length; l++) {\n        while (r < s.length && !check(cnt, partial)) {\n            cnt[idx(s[r])]--;\n            r++;\n        }\n        if (!check(cnt, partial)) {\n            break;\n        }\n        res = Math.min(res, r - l);\n        cnt[idx(s[l])]++;\n    }\n    return res;\n}\n\nconst idx = (c) => {\n    return c.charCodeAt() - 'A'.charCodeAt();\n}\n\nconst check = (cnt, partial) => {\n    if (cnt[idx('Q')] > partial || cnt[idx('W')] > partial || cnt[idx('E')] > partial || cnt[idx('R')] > partial) {\n        return false;\n    }\n    return true;\n};\n```\n\n```go [sol1-Golang]\nfunc balancedString(s string) int {\n    cnt := map[byte]int{}\n    for _, c := range s {\n        cnt[byte(c)]++\n    }\n    partial := len(s) / 4\n    check := func() bool {\n        if cnt['Q'] > partial ||\n            cnt['W'] > partial ||\n            cnt['E'] > partial ||\n            cnt['R'] > partial {\n            return false\n        }\n        return true\n    }\n\n    if check() {\n        return 0\n    }\n\n    res := len(s)\n    r := 0\n    for l, c := range s {\n        for r < len(s) && !check() {\n            cnt[s[r]]--\n            r += 1\n        }\n        if !check() {\n            break\n        }\n        res = min(res, r-l)\n        cnt[byte(c)]++\n    }\n    return res\n}\n\nfunc min(a, b int) int {\n    if a > b {\n        return b\n    }\n    return a\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 为 $s$ 的长度。\n\n- 空间复杂度：$O(|\\Sigma|)$，其中 $|\\Sigma|$ 表示字符集大小，在本题中 $|\\Sigma|=26$。",
+            "slateValue": "",
+            "slug": "ti-huan-zi-chuan-de-dao-ping-heng-zi-fu-f8fk8",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "PKU8OQ",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 39,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 3,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Sliding Window",
+                    "nameTranslated": "滑动窗口",
+                    "slug": "sliding-window",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-02-12T07:34:14.852187+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：滑动窗口 思路与算法 设 $\\textit{partial} = \\dfrac{n}{4}$，我们选择 $s$ 的一个子串作为「待替换子串」，只有当 $s$ 剩余的部分中 $\\text{Q'}$，$\\text{W'}$，$\\text{E'}$，$\\text{R'}$ 的出现次数都小于等于 $\\textit{pa",
+            "topic": {
+                "id": 2107520,
+                "subscribed": false,
+                "commentCount": 136,
+                "viewCount": 1603,
+                "post": {
+                    "id": 4026012,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 66,
+            "isEditorsPick": false,
+            "hitCount": 30403,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "replace-the-substring-for-balanced-string",
+                "questionFrontendId": "1234"
+            },
+            "next": {
+                "slug": "javahua-dong-chuang-kou-de-fan-xiang-si-2dz8w",
+                "title": "[java]滑动窗口的反向思维"
+            },
+            "prev": null
+        }
+    }
+}

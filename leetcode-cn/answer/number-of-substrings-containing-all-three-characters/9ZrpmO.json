@@ -1,0 +1,148 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "9ZrpmO",
+            "title": "包含所有三种字符的子字符串数目",
+            "content": "#### 方法一：枚举 + 二分\n\n我们定义 a，b，c 都至少出现过一次的字符串为合法的字符串，否则为非法的字符串。\n\n可以观察到一个性质：**从下标 i 开始的所有子串，我们按顺序从前到后考虑，一定是前部分均非法，后部分均合法** ，简单来说，假设 $[i,j]$ 的子串已经合法，那么 $[i,j+1]$ 必然合法，如果 $[i,j]$ 非法，那么 $[i,j-1]$ 必然非法，这是很显然的。\n\n通过这个性质我们知道对于下标 $i$ 开始的所有子串，它的合法性是随下标具有单调性的（如果我们把非法字符串设为 0 ，合法字符串设为 1 ，那么从下标 $i$ 开始的所有子串一定是 000011 这样的形式），所以我们就可以进行二分查找，找到第一个合法的子串的下标 $j$ ，那么下标 $i$ 开始的合法子串数就是 $len(s)-j+1$ 了，最后的答案就是 \n\n$$\\sum_{i=1}^{len(s)}len(s)-j+1$$\n\n二分查找的时候需要判断子串是否合法，为了 $O(1)$ 判断，我们需要预处理三个字符出现次数的前缀和数组，判断的时候直接 $O(1)$ 差分查一下子串里 a，b，c 的个数即可判断。\n\n```C++ [sol1-C++]\nclass Solution { \npublic:\n    int numberOfSubstrings(string s) {\n        int len = s.length();\n        int ans = 0;\n        vector<vector<int>> pre(3, vector<int>(len + 1));\n        pre[0][0] = pre[1][0] = pre[2][0] = 0;\n\n        for (int i = 0; i < len; ++i) {\n            for (int j = 0; j < 3; ++j) {\n                pre[j][i + 1] = pre[j][i];\n            }\n            pre[s[i] - 'a'][i + 1]++;\n        }\n        \n        for (int i = 0; i < len; ++i) {\n            int left = i + 1, right = len, pos = -1;\n            while (left <= right) {\n                int mid = left + ((right - left) >> 1);\n                if (pre[0][mid] - pre[0][i] > 0 && \n                    pre[1][mid] - pre[1][i] > 0 && \n                    pre[2][mid] - pre[2][i] > 0) {\n                    right = mid - 1;\n                    pos = mid;\n                } else {\n                    left = mid + 1;\n                }\n            }\n            \n            if (pos != -1) {\n                ans += len - pos + 1;\n            }\n        }\n        \n        return ans;\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def numberOfSubstrings(self, s: str) -> int:\n        n = len(s)\n        ans = 0\n        pre = [[0] * (n + 1) for _ in range(3)]\n\n        for i in range(n):\n            for j in range(3):\n                pre[j][i + 1] = pre[j][i]\n            pre[ord(s[i]) - ord('a')][i + 1] += 1\n        \n        for i in range(n):\n            left, right = i + 1, n\n            pos = -1\n            \n            while left <= right:\n                mid = left + ((right - left) >> 1)\n                if (pre[0][mid] - pre[0][i] > 0 and \n                    pre[1][mid] - pre[1][i] > 0 and \n                    pre[2][mid] - pre[2][i] > 0):\n                    right = mid - 1\n                    pos = mid\n                else:\n                    left = mid + 1\n            \n            if pos != -1:\n                ans += n - pos + 1\n        \n        return ans\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int numberOfSubstrings(String s) {\n        int len = s.length();\n        int ans = 0;\n        int[][] pre = new int[3][len + 1];\n        \n        pre[0][0] = pre[1][0] = pre[2][0] = 0;\n        for (int i = 0; i < len; i++) {\n            for (int j = 0; j < 3; j++) {\n                pre[j][i + 1] = pre[j][i];\n            }\n            pre[s.charAt(i) - 'a'][i + 1]++;\n        }\n        \n        for (int i = 0; i < len; i++) {\n            int left = i + 1, right = len, pos = -1;\n            while (left <= right) {\n                int mid = left + ((right - left) >> 1);\n                if (pre[0][mid] - pre[0][i] > 0 && \n                    pre[1][mid] - pre[1][i] > 0 && \n                    pre[2][mid] - pre[2][i] > 0) {\n                    right = mid - 1;\n                    pos = mid;\n                } else {\n                    left = mid + 1;\n                }\n            }\n            \n            if (pos != -1) {\n                ans += len - pos + 1;\n            }\n        }\n        \n        return ans;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int NumberOfSubstrings(string s) {\n        int len = s.Length;\n        int ans = 0;\n        int[,] pre = new int[3, len + 1];\n        \n        pre[0, 0] = pre[1, 0] = pre[2, 0] = 0;\n        for (int i = 0; i < len; i++) {\n            for (int j = 0; j < 3; j++) {\n                pre[j, i + 1] = pre[j, i];\n            }\n            pre[s[i] - 'a', i + 1]++;\n        }\n        \n        for (int i = 0; i < len; i++) {\n            int left = i + 1, right = len, pos = -1;\n            \n            while (left <= right) {\n                int mid = left + ((right - left) >> 1);\n                \n                if (pre[0, mid] - pre[0, i] > 0 && \n                    pre[1, mid] - pre[1, i] > 0 && \n                    pre[2, mid] - pre[2, i] > 0) {\n                    right = mid - 1;\n                    pos = mid;\n                } else {\n                    left = mid + 1;\n                }\n            }\n            \n            if (pos != -1) {\n                ans += len - pos + 1;\n            }\n        }\n        \n        return ans;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc numberOfSubstrings(s string) int {\n    n := len(s)\n    ans := 0\n    \n    pre := make([][]int, 3)\n    for i := 0; i < 3; i++ {\n        pre[i] = make([]int, n+1)\n    }\n    for i := 0; i < n; i++ {\n        for j := 0; j < 3; j++ {\n            pre[j][i+1] = pre[j][i]\n        }\n        pre[s[i]-'a'][i+1]++\n    }\n    \n    for i := 0; i < n; i++ {\n        left, right := i+1, n\n        pos := -1\n        \n        for left <= right {\n            mid := left + (right-left)>>1\n            \n            if pre[0][mid]-pre[0][i] > 0 && \n               pre[1][mid]-pre[1][i] > 0 && \n               pre[2][mid]-pre[2][i] > 0 {\n                right = mid - 1\n                pos = mid\n            } else {\n                left = mid + 1\n            }\n        }\n        \n        if pos != -1 {\n            ans += n - pos + 1\n        }\n    }\n    \n    return ans\n}\n```\n\n```C [sol1-C]\nint numberOfSubstrings(char* s) {\n    int len = strlen(s);\n    int ans = 0;\n    \n    int** pre = (int**)malloc(3 * sizeof(int*));\n    for (int i = 0; i < 3; i++) {\n        pre[i] = (int*)malloc((len + 1) * sizeof(int));\n    }\n    pre[0][0] = pre[1][0] = pre[2][0] = 0;\n    \n    for (int i = 0; i < len; i++) {\n        for (int j = 0; j < 3; j++) {\n            pre[j][i + 1] = pre[j][i];\n        }\n        pre[s[i] - 'a'][i + 1]++;\n    }\n    \n    for (int i = 0; i < len; i++) {\n        int left = i + 1, right = len, pos = -1;\n        while (left <= right) {\n            int mid = left + ((right - left) >> 1);\n            if (pre[0][mid] - pre[0][i] > 0 && \n                pre[1][mid] - pre[1][i] > 0 && \n                pre[2][mid] - pre[2][i] > 0) {\n                right = mid - 1;\n                pos = mid;\n            } else {\n                left = mid + 1;\n            }\n        }\n        \n        if (pos != -1) {\n            ans += len - pos + 1;\n        }\n    }\n    \n    for (int i = 0; i < 3; i++) {\n        free(pre[i]);\n    }\n    free(pre);\n    \n    return ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar numberOfSubstrings = function(s) {\n    const n = s.length;\n    let ans = 0;\n    \n    const pre = Array.from({ length: 3 }, () => new Array(n + 1).fill(0));\n    for (let i = 0; i < n; i++) {\n        for (let j = 0; j < 3; j++) {\n            pre[j][i + 1] = pre[j][i];\n        }\n        pre[s.charCodeAt(i) - 97][i + 1]++;\n    }\n    \n    for (let i = 0; i < n; i++) {\n        let left = i + 1, right = n, pos = -1;\n        while (left <= right) {\n            const mid = left + ((right - left) >> 1);\n            \n            if (pre[0][mid] - pre[0][i] > 0 && \n                pre[1][mid] - pre[1][i] > 0 && \n                pre[2][mid] - pre[2][i] > 0) {\n                right = mid - 1;\n                pos = mid;\n            } else {\n                left = mid + 1;\n            }\n        }\n        \n        if (pos !== -1) {\n            ans += n - pos + 1;\n        }\n    }\n    \n    return ans;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction numberOfSubstrings(s: string): number {\n    const n = s.length;\n    let ans = 0;\n    const pre: number[][] = Array.from({ length: 3 }, () => new Array(n + 1).fill(0));\n    \n    for (let i = 0; i < n; i++) {\n        for (let j = 0; j < 3; j++) {\n            pre[j][i + 1] = pre[j][i];\n        }\n        pre[s.charCodeAt(i) - 97][i + 1]++;\n    }\n    \n    for (let i = 0; i < n; i++) {\n        let left = i + 1, right = n, pos = -1;\n        while (left <= right) {\n            const mid = left + ((right - left) >> 1);\n            if (pre[0][mid] - pre[0][i] > 0 && \n                pre[1][mid] - pre[1][i] > 0 && \n                pre[2][mid] - pre[2][i] > 0) {\n                right = mid - 1;\n                pos = mid;\n            } else {\n                left = mid + 1;\n            }\n        }\n        \n        if (pos !== -1) {\n            ans += n - pos + 1;\n        }\n    }\n    \n    return ans;\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn number_of_substrings(s: String) -> i32 {\n        let s = s.as_bytes();\n        let n = s.len();\n        let mut ans = 0;\n        let mut pre = vec![vec![0; n + 1]; 3];\n        \n        for i in 0..n {\n            for j in 0..3 {\n                pre[j][i + 1] = pre[j][i];\n            }\n            pre[(s[i] - b'a') as usize][i + 1] += 1;\n        }\n        \n        for i in 0..n {\n            let mut left = i + 1;\n            let mut right = n;\n            let mut pos = -1;\n            \n            while left <= right {\n                let mid = left + ((right - left) >> 1);\n                if pre[0][mid] - pre[0][i] > 0 && \n                   pre[1][mid] - pre[1][i] > 0 && \n                   pre[2][mid] - pre[2][i] > 0 {\n                    right = mid - 1;\n                    pos = mid as i32;\n                } else {\n                    left = mid + 1;\n                }\n            }\n            \n            if pos != -1 {\n                ans += (n - pos as usize + 1) as i32;\n            }\n        }\n        \n        ans\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：枚举每个下标需要 $O(n)$ 的时间，$n=s.length$ ，统计每个下标为起点里面套了一个二分需要 $O(logn)$   的时间，所以总时间复杂度为 $O(nlogn)$ 。\n- 空间复杂度：为了二分里面判断是不是合法子串，需要额外提供一个前缀和数组，所以空间复杂度为 $O(n)$ 。\n\n#### 方法二：双指针\n\n针对上面发现的性质还可以继续深挖， 我们假设下标 $i$ 开始第一个合法的字符串的末尾下标为 $pos_i$ ，则可以知道：\n\n$$pos_1\\leq pos_2 \\leq \\cdots \\leq pos_{len(s)}$$\n\n这说明了 $pos_i$ 是单调不降的，如果我们已经得出了下标 $i$ 开始的第一个合法字符串末尾的下标 $pos_i$ ，则计算下标 $i+1$ 的 $pos_{i+1}$ 的时候，我们就可以复用 $[i+1,pos_i]$ 里的信息，即当前字符串里a，b，c出现的次数，再从 $pos_i+1$ 开始往后延伸找到第一个符合条件的下标， 这就是我们常说的双指针算法。\n\n维护两个指针 $l$ 和 $r$ ，以及 $[l,r]$ 区间内 a，b，c 出现的次数。针对 $l$ 找到第一个符合条件的 $r$ 以后把答案加上 $len(s)-r$ ，然后把 $l$ 加一，减去 $s[l]$ 字符的贡献，得出 $[l+1,r]$ 里 a，b，c 出现的次数，然后再不断延伸 $r$ 找第一个符合条件的合法字符串即可，这样我们就可以针对每一个下标找到对应的 $pos_i$ ，最后的答案就是\n\n$$\\sum_{i=0}^{len(s)-1}len(s)-pos_i$$\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    int numberOfSubstrings(string s) {\n        int len = s.length();\n        int ans = 0;\n        vector<int> cnt(3);\n        \n        for (int l = 0, r = -1; l < len; ) {\n            while (r < len && !(cnt[0] >= 1 && cnt[1] >= 1 && cnt[2] >= 1)) {\n                r++;\n                if (r == len) {\n                    break;\n                }\n                cnt[s[r] - 'a']++;\n            }\n            if (r < len) {\n                ans += len - r;\n            }\n            cnt[s[l] - 'a']--;\n            l++;\n        }\n        \n        return ans;\n    }\n};\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def numberOfSubstrings(self, s: str) -> int:\n        n = len(s)\n        ans = 0\n        cnt = [0, 0, 0]\n        \n        l, r = 0, -1\n        while l < n:\n            while r < n and not (cnt[0] >= 1 and cnt[1] >= 1 and cnt[2] >= 1):\n                r += 1\n                if r == n:\n                    break\n                cnt[ord(s[r]) - ord('a')] += 1\n            \n            if r < n:\n                ans += n - r\n            \n            cnt[ord(s[l]) - ord('a')] -= 1\n            l += 1\n        \n        return ans\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public int numberOfSubstrings(String s) {\n        int len = s.length();\n        int ans = 0;\n        int[] cnt = new int[3];\n        \n        for (int l = 0, r = -1; l < len; ) {\n            while (r < len && !(cnt[0] >= 1 && cnt[1] >= 1 && cnt[2] >= 1)) {\n                r++;\n                if (r == len) {\n                    break;\n                }\n                cnt[s.charAt(r) - 'a']++;\n            }\n            if (r < len) {\n                ans += len - r;\n            }\n            cnt[s.charAt(l) - 'a']--;\n            l++;\n        }\n        \n        return ans;\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    public int NumberOfSubstrings(string s) {\n        int len = s.Length;\n        int ans = 0;\n        int[] cnt = new int[3];\n        \n        for (int l = 0, r = -1; l < len; ) {\n            while (r < len && !(cnt[0] >= 1 && cnt[1] >= 1 && cnt[2] >= 1)) {\n                r++;\n                if (r == len) {\n                    break;\n                }\n                cnt[s[r] - 'a']++;\n            }\n            if (r < len) {\n                ans += len - r;\n            }\n            cnt[s[l] - 'a']--;\n            l++;\n        }\n        \n        return ans;\n    }\n}\n```\n\n```Go [sol2-Go]\nfunc numberOfSubstrings(s string) int {\n    n := len(s)\n    ans := 0\n    cnt := make([]int, 3)\n    \n    l, r := 0, -1\n    for l < n {\n        for r < n && !(cnt[0] >= 1 && cnt[1] >= 1 && cnt[2] >= 1) {\n            r++\n            if r == n {\n                break\n            }\n            cnt[s[r]-'a']++\n        }\n        if r < n {\n            ans += n - r\n        }\n        cnt[s[l]-'a']--\n        l++\n    }\n    \n    return ans\n}\n```\n\n```C [sol2-C]\nint numberOfSubstrings(char* s) {\n    int len = strlen(s);\n    int ans = 0;\n    int cnt[3] = {0};\n    \n    int l = 0, r = -1;\n    while (l < len) {\n        while (r < len && !(cnt[0] >= 1 && cnt[1] >= 1 && cnt[2] >= 1)) {\n            r++;\n            if (r == len) {\n                break;\n            }\n            cnt[s[r] - 'a']++;\n        }\n        if (r < len) {\n            ans += len - r;\n        }\n        cnt[s[l] - 'a']--;\n        l++;\n    }\n    \n    return ans;\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar numberOfSubstrings = function(s) {\n    const n = s.length;\n    let ans = 0;\n    const cnt = [0, 0, 0];\n    \n    for (let l = 0, r = -1; l < n; ) {\n        while (r < n && !(cnt[0] >= 1 && cnt[1] >= 1 && cnt[2] >= 1)) {\n            r++;\n            if (r === n) {\n                break;\n            }\n            cnt[s.charCodeAt(r) - 97]++; \n        }\n        if (r < n) {\n            ans += n - r;\n        }\n        cnt[s.charCodeAt(l) - 97]--;\n        l++;\n    }\n    \n    return ans;\n};\n```\n\n```TypeScript [sol2-TypeScript]\nfunction numberOfSubstrings(s: string): number {\n    const n = s.length;\n    let ans = 0;\n    const cnt: number[] = [0, 0, 0];\n    \n    for (let l = 0, r = -1; l < n; ) {\n        while (r < n && !(cnt[0] >= 1 && cnt[1] >= 1 && cnt[2] >= 1)) {\n            r++;\n            if (r === n) {\n                break;\n            }\n            cnt[s.charCodeAt(r) - 97]++;\n        }\n        if (r < n) {\n            ans += n - r;\n        }\n        cnt[s.charCodeAt(l) - 97]--;\n        l++;\n    }\n    \n    return ans;\n}\n```\n\n```Rust [sol2-Rust]\nimpl Solution {\n    pub fn number_of_substrings(s: String) -> i32 {\n        let s = s.as_bytes();\n        let n = s.len();\n        let mut ans = 0;\n        let mut cnt = [0; 3];\n        \n        let mut l = 0;\n        let mut r = 0;\n        \n        while l < n {\n            while r < n && (cnt[0] == 0 || cnt[1] == 0 || cnt[2] == 0) {\n                cnt[(s[r] - b'a') as usize] += 1;\n                r += 1;\n            }\n            \n            if cnt[0] > 0 && cnt[1] > 0 && cnt[2] > 0 {\n                ans += (n - r + 1) as i32;\n            }\n            \n            cnt[(s[l] - b'a') as usize] -= 1;\n            l += 1;\n        }\n        \n        ans\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：两个指针各移动了 $n$ 次，所以时间复杂度为 $O(n)$ ，$n=s.length$ 。\n- 空间复杂度：只需要常数的空间记录当前三个字符的出现次数，所以空间复杂度为 $O(1)$ 。",
+            "slateValue": "",
+            "slug": "bao-han-suo-you-san-chong-zi-fu-de-zi-zi-fu-chuan",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "9ZrpmO",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 20,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Two Pointers",
+                    "nameTranslated": "双指针",
+                    "slug": "two-pointers",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-02-25T05:07:37.507953+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：枚举 + 二分 我们定义 a，b，c 都至少出现过一次的字符串为合法的字符串，否则为非法的字符串。 可以观察到一个性质：从下标 i 开始的所有子串，我们按顺序从前到后考虑，一定是前部分均非法，后部分均合法 ，简单来说，假设 [latex] 的子串已经合法，那么 [latex] 必然合法，如果 [latex] 非",
+            "topic": {
+                "id": 109170,
+                "subscribed": false,
+                "commentCount": 30,
+                "viewCount": 6603,
+                "post": {
+                    "id": 365081,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 44,
+            "isEditorsPick": false,
+            "hitCount": 15926,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "number-of-substrings-containing-all-three-characters",
+                "questionFrontendId": "1358"
+            },
+            "next": {
+                "slug": "mo-ban-yue-chang-yue-he-fa-xing-hua-dong-2g7a",
+                "title": "【模板】越长越合法型滑动窗口（Python/Java/C++/C/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

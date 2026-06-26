@@ -1,0 +1,148 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "Z0Ov9l",
+            "title": "连接词",
+            "content": "#### 前言\n\n本文的解法需要使用字典树。如果读者对字典树不了解，建议首先阅读「[208. 实现 Trie (前缀树) 的官方题解](https://leetcode.cn/problems/implement-trie-prefix-tree/solution/shi-xian-trie-qian-zhui-shu-by-leetcode-ti500/)」，在理解字典树的实现之后继续阅读本文。\n\n#### 方法一：字典树 + 记忆化搜索\n\n判断一个单词是不是连接词，需要判断这个单词是否完全由至少两个给定数组中的更短的非空单词（可以重复）组成。判断更短的单词是否在给定数组中，可以使用字典树实现。\n\n为了方便处理，首先将数组 $\\textit{words}$ 按照字符串的长度递增的顺序排序，排序后可以确保当遍历到任意单词时，比该单词短的单词一定都已经遍历过，因此可以根据已经遍历过的全部单词判断当前单词是不是连接词。\n\n在将数组 $\\textit{words}$ 排序之后，遍历数组，跳过空字符串，对于每个非空单词，判断该单词是不是连接词，如果是连接词则将该单词加入结果数组，如果不是连接词则将该单词加入字典树。\n\n判断一个单词是不是连接词的做法是在字典树中搜索。从该单词的第一个字符（即下标 $0$ 处的字符）开始，在字典树中依次搜索每个字符对应的结点，可能有以下几种情况：\n\n- 如果一个字符对应的结点是单词的结尾，则找到了一个更短的单词，从该字符的后一个字符开始搜索下一个更短的单词；\n\n- 如果一个字符对应的结点在字典树中不存在，则当前的搜索结果失败，回到上一个单词的结尾继续搜索。\n\n如果找到一个更短的单词且这个更短的单词的最后一个字符是当前单词的最后一个字符，则当前单词是连接词。由于数组 $\\textit{words}$ 中没有重复的单词，因此在判断一个单词是不是连接词时，该单词一定没有加入字典树，由此可以确保判断连接词的条件成立。\n\n**由于一个连接词由多个更短的非空单词组成，如果存在一个较长的连接词的组成部分之一是一个较短的连接词，则一定可以将这个较短的连接词换成多个更短的非空单词，因此不需要将连接词加入字典树。**\n\n为了降低时间复杂度，需要使用记忆化搜索。对于每个单词，创建与单词相同长度的数组记录该单词的每一个下标是否被访问过，然后进行记忆化搜索。搜索过程中，如果一个下标已经被访问过，则从该下标到末尾的部分一定不是由给定数组中的一个或多个非空单词组成（否则上次访问时已经可以知道当前单词是连接词），只有尚未访问过的下标才需要进行搜索。\n\n```Java [sol1-Java]\nclass Solution {\n    Trie trie = new Trie();\n\n    public List<String> findAllConcatenatedWordsInADict(String[] words) {\n        List<String> ans = new ArrayList<String>();\n        Arrays.sort(words, (a, b) -> a.length() - b.length());\n        for (int i = 0; i < words.length; i++) {\n            String word = words[i];\n            if (word.length() == 0) {\n                continue;\n            }\n            boolean[] visited = new boolean[word.length()];\n            if (dfs(word, 0, visited)) {\n                ans.add(word);\n            } else {\n                insert(word);\n            }\n        }\n        return ans;\n    }\n\n    public boolean dfs(String word, int start, boolean[] visited) {\n        if (word.length() == start) {\n            return true;\n        }\n        if (visited[start]) {\n            return false;\n        }\n        visited[start] = true;\n        Trie node = trie;\n        for (int i = start; i < word.length(); i++) {\n            char ch = word.charAt(i);\n            int index = ch - 'a';\n            node = node.children[index];\n            if (node == null) {\n                return false;\n            }\n            if (node.isEnd) {\n                if (dfs(word, i + 1, visited)) {\n                    return true;\n                }\n            }\n        }\n        return false;\n    }\n    \n    public void insert(String word) {\n        Trie node = trie;\n        for (int i = 0; i < word.length(); i++) {\n            char ch = word.charAt(i);\n            int index = ch - 'a';\n            if (node.children[index] == null) {\n                node.children[index] = new Trie();\n            }\n            node = node.children[index];\n        }\n        node.isEnd = true;\n    }\n}\n\nclass Trie {\n    Trie[] children;\n    boolean isEnd;\n\n    public Trie() {\n        children = new Trie[26];\n        isEnd = false;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    Trie trie = new Trie();\n\n    public IList<string> FindAllConcatenatedWordsInADict(string[] words) {\n        IList<string> ans = new List<string>();\n        Array.Sort(words, (a, b) => a.Length - b.Length);\n        for (int i = 0; i < words.Length; i++) {\n            string word = words[i];\n            if (word.Length == 0) {\n                continue;\n            }\n            bool[] visited = new bool[word.Length];\n            if (DFS(word, 0, visited)) {\n                ans.Add(word);\n            } else {\n                Insert(word);\n            }\n        }\n        return ans;\n    }\n\n    public bool DFS(string word, int start, bool[] visited) {\n        if (word.Length == start) {\n            return true;\n        }\n        if (visited[start]) {\n            return false;\n        }\n        visited[start] = true;\n        Trie node = trie;\n        for (int i = start; i < word.Length; i++) {\n            char ch = word[i];\n            int index = ch - 'a';\n            node = node.children[index];\n            if (node == null) {\n                return false;\n            }\n            if (node.isEnd) {\n                if (DFS(word, i + 1, visited)) {\n                    return true;\n                }\n            }\n        }\n        return false;\n    }\n    \n    public void Insert(string word) {\n        Trie node = trie;\n        for (int i = 0; i < word.Length; i++) {\n            char ch = word[i];\n            int index = ch - 'a';\n            if (node.children[index] == null) {\n                node.children[index] = new Trie();\n            }\n            node = node.children[index];\n        }\n        node.isEnd = true;\n    }\n}\n\nclass Trie {\n    public Trie[] children;\n    public bool isEnd;\n\n    public Trie() {\n        children = new Trie[26];\n        isEnd = false;\n    }\n}\n```\n\n```C++ [sol1-C++]\nstruct Trie {\n    bool isEnd;\n    vector<Trie *> children;\n    Trie() {\n        this->children = vector<Trie *>(26, nullptr);\n        this->isEnd = false;\n    }\n};\n\nclass Solution {\npublic:\n    Trie * trie = new Trie();\n\n    vector<string> findAllConcatenatedWordsInADict(vector<string>& words) {\n        vector<string> ans;\n        sort(words.begin(), words.end(), [&](const string & a, const string & b){\n            return a.size() < b.size(); \n        });\n        for (int i = 0; i < words.size(); i++) {\n            string word = words[i];\n            if (word.size() == 0) {\n                continue;\n            }\n            vector<int> visited(word.size(), 0);\n            if (dfs(word, 0, visited)) {\n                ans.emplace_back(word);\n            } else {\n                insert(word);\n            }\n        }\n        return ans;\n    }\n\n    bool dfs(const string & word, int start, vector<int> & visited) {\n        if (word.size() == start) {\n            return true;\n        }\n        if (visited[start]) {\n            return false;\n        }\n        visited[start] = true;\n        Trie * node = trie;\n        for (int i = start; i < word.size(); i++) {\n            char ch = word[i];\n            int index = ch - 'a';\n            node = node->children[index];\n            if (node == nullptr) {\n                return false;\n            }\n            if (node->isEnd) {\n                if (dfs(word, i + 1, visited)) {\n                    return true;\n                }\n            }\n        }\n        return false;\n    }\n\n    void insert(const string & word) {\n        Trie * node = trie;\n        for (int i = 0; i < word.size(); i++) {\n            char ch = word[i];\n            int index = ch - 'a';\n            if (node->children[index] == nullptr) {\n                node->children[index] = new Trie();\n            }\n            node = node->children[index];\n        }\n        node->isEnd = true;\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Trie:\n    def __init__(self):\n        self.children = [None] * 26\n        self.isEnd = False\n\n    def insert(self, word: str):\n        node = self\n        for ch in word:\n            ch = ord(ch) - ord('a')\n            if not node.children[ch]:\n                node.children[ch] = Trie()\n            node = node.children[ch]\n        node.isEnd = True\n\n    def dfs(self, word: str, start: int, vis: List[bool]) -> bool:\n        if start == len(word):\n            return True\n        if vis[start]:\n            return False\n        vis[start] = True\n        node = self\n        for i in range(start, len(word)):\n            node = node.children[ord(word[i]) - ord('a')]\n            if node is None:\n                return False\n            if node.isEnd and self.dfs(word, i + 1, vis):\n                return True\n        return False\n\n\nclass Solution:\n    def findAllConcatenatedWordsInADict(self, words: List[str]) -> List[str]:\n        words.sort(key=len)\n\n        ans = []\n        root = Trie()\n        for word in words:\n            if word == \"\":\n                continue\n            if root.dfs(word, 0, [False] * len(word)):\n                ans.append(word)\n            else:\n                root.insert(word)\n        return ans\n```\n\n```go [sol1-Golang]\ntype trie struct {\n    children [26]*trie\n    isEnd    bool\n}\n\nfunc (root *trie) insert(word string) {\n    node := root\n    for _, ch := range word {\n        ch -= 'a'\n        if node.children[ch] == nil {\n            node.children[ch] = &trie{}\n        }\n        node = node.children[ch]\n    }\n    node.isEnd = true\n}\n\nfunc (root *trie) dfs(vis []bool, word string) bool {\n    if word == \"\" {\n        return true\n    }\n    if vis[len(word)-1] {\n        return false\n    }\n    vis[len(word)-1] = true\n    node := root\n    for i, ch := range word {\n        node = node.children[ch-'a']\n        if node == nil {\n            return false\n        }\n        if node.isEnd && root.dfs(vis, word[i+1:]) {\n            return true\n        }\n    }\n    return false\n}\n\nfunc findAllConcatenatedWordsInADict(words []string) (ans []string) {\n    sort.Slice(words, func(i, j int) bool { return len(words[i]) < len(words[j]) })\n\n    root := &trie{}\n    for _, word := range words {\n        if word == \"\" {\n            continue\n        }\n        vis := make([]bool, len(word))\n        if root.dfs(vis, word) {\n            ans = append(ans, word)\n        } else {\n            root.insert(word)\n        }\n    }\n    return\n}\n```\n\n```C [sol1-C]\ntypedef struct Trie {\n    struct Trie * children[26];\n    bool isEnd;\n}Trie;\n\n#define TRIE_INITIAL(node) do { \\\n    for (int i = 0; i < 26; ++i) { \\\n        (node)->children[i] = NULL; \\\n    } \\\n    (node)->isEnd = false; \\\n}while(0);\n\nstatic void freeTrie(Trie * node) {\n    if (NULL == node) {\n        return;\n    }\n    for (int i = 0; i < 26; ++i) {\n        if (node->children[i] != NULL) {\n            freeTrie(node->children[i]);\n        }\n    }\n    free(node);\n}\n\nstatic int cmp(const void * pa, const void * pb){\n    int la = strlen(*(char **)pa);\n    int lb = strlen(*(char **)pb);\n    return la - lb;\n}\n\nbool dfs(Trie * trie, const char * word, int wordSize, int start, int* visited) {\n    if (wordSize == start) {\n        return true;\n    }\n    if (visited[start]) {\n        return false;\n    }\n    visited[start] = 1;\n    Trie * node = trie;\n    for (int i = start; i < wordSize; i++) {\n        char ch = word[i];\n        int index = ch - 'a';\n        node = node->children[index];\n        if (node == NULL) {\n            return false;\n        }\n        if (node->isEnd) {\n            if (dfs(trie, word, wordSize, i + 1, visited)) {\n                return true;\n            }\n        }\n    }\n    return false;\n}\n\nvoid insert(Trie * trie, const char * word, int wordSize) {\n    Trie * node = trie;\n    for (int i = 0; i < wordSize; i++) {\n        char ch = word[i];\n        int index = ch - 'a';\n        if (node->children[index] == NULL) {\n            node->children[index] = (Trie *)malloc(sizeof(Trie));\n            TRIE_INITIAL(node->children[index]);\n        }\n        node = node->children[index];\n    }\n    node->isEnd = true;\n}\n\nchar ** findAllConcatenatedWordsInADict(char ** words, int wordsSize, int* returnSize){    \n    int pos = 0;\n    char ** ans = (char **)malloc(sizeof(char *) * wordsSize);\n    Trie * trie = (Trie *)malloc(sizeof(Trie));\n\n    TRIE_INITIAL(trie);\n    qsort(words, wordsSize, sizeof(char *), cmp);\n    for (int i = 0; i < wordsSize; i++) {\n        int len = strlen(words[i]);\n        if (len == 0) {\n            continue;\n        }\n        int * visited = (int *)malloc(sizeof(int) * len);\n        memset(visited, 0, sizeof(int) * len);\n        if (dfs(trie, words[i], len, 0, visited)) {\n            ans[pos] = (char *)malloc(sizeof(char) * (len + 1));\n            strncpy(ans[pos], words[i], len);\n            ans[pos][len] = '\\0';\n            pos++;\n        } else {\n            insert(trie, words[i], len);\n        }\n        free(visited);\n    }\n    freeTrie(trie);\n    *returnSize = pos;\n    return ans;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log n + \\sum_{0 \\le i < n} l_i)$，其中 $n$ 是数组 $\\textit{words}$ 的长度，$l_i$ 是单词 $\\textit{words}[i]$ 的长度。对数组 $\\textit{words}$ 按照字符串的长度递增的顺序排序需要 $O(n \\log n)$ 的时间，判断单词 $\\textit{words}[i]$ 是不是连接词的时间复杂度是 $O(l_i)$。\n\n- 空间复杂度：$O(\\sum_{0 \\le i < n} l_i \\times |S|)$，其中 $n$ 是数组 $\\textit{words}$ 的长度，$l_i$ 是单词 $\\textit{words}[i]$ 的长度，$S$ 是字符集，这道题中 $S$ 为全部小写英语字母，$|S| = 26$。空间复杂度主要取决于字典树，最坏情况下需要将所有的单词加入字典树。",
+            "slateValue": "",
+            "slug": "lian-jie-ci-by-leetcode-solution-mj4d",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "Z0Ov9l",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 67,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 5,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Trie",
+                    "nameTranslated": "字典树",
+                    "slug": "trie",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Memoization",
+                    "nameTranslated": "记忆化",
+                    "slug": "memoization",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Sorting",
+                    "nameTranslated": "排序",
+                    "slug": "sorting",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-12-27T03:43:36.536583+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "前言 本文的解法需要使用字典树。如果读者对字典树不了解，建议首先阅读「208. 实现 Trie (前缀树) 的官方题解」，在理解字典树的实现之后继续阅读本文。 方法一：字典树 + 记忆化搜索 判断一个单词是不是连接词，需要判断这个单词是否完全由至少两个给定数组中的更短的非空单词（可以重复）组成。判断更短的单词是否在给定",
+            "topic": {
+                "id": 1179021,
+                "subscribed": false,
+                "commentCount": 145,
+                "viewCount": 19489,
+                "post": {
+                    "id": 2481530,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 98,
+            "isEditorsPick": false,
+            "hitCount": 39692,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "concatenated-words",
+                "questionFrontendId": "472"
+            },
+            "next": {
+                "slug": "gong-shui-san-xie-xu-lie-dpzi-fu-chuan-h-p7no",
+                "title": "【宫水三叶】序列 DP（字符串哈希优化）应用题"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,130 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "QOtPv9",
+            "title": "多边形三角剖分的最低得分",
+            "content": "#### 方法一：动态规划\n\n**思路**\n\n设 $\\textit{dp}[i][j](j\\geq i+2)$ 的值为顶点 $i, i+1, \\dots, j-1, j$ 构成的凸 $j-i+1$ 边形进行三角形剖分后可以得到的最低分。当 $i+2=j$ 时，凸多边形退化为三角形。其他情况下，需要进行剖分，假设剖分得到的三角形中，顶点 $i, j$ 和另一个顶点 $k(i<k<j)$ 构成了一个三角形，那么三角形 $ikj$ 就将这个凸多边形分成了三部分：\n1. 顶点 $i, i+1, \\dots, k-1, k$ 构成的凸 $k-i+1$ 边形。当 $k=i+1$ 时，这部分不存在。\n2. 顶点 $i, k, j$ 构成的三角形。\n3. 顶点 $k, k+1, \\dots, j-1, j$ 构成的凸 $j-k+1$ 边形。当 $j=k+1$ 时，这部分不存在。\n\n凸多边形的值就是这三部分的值之和。可以通过遍历 $k$ 的值，来求出多边形的值的最小值。而第一部分和第三部分的值，也可以通过相同的方法求得最小值。\n\n代码实现上，可以通过记忆化搜索来完成。最后返回 $\\textit{dp}[0][n-1]$ 即可。\n\n**代码**\n\n```Python [sol1-Python3]\nclass Solution:\n    def minScoreTriangulation(self, values: List[int]) -> int:\n        @lru_cache(None)\n        def dp(i, j):\n            if i + 2 > j:\n                return 0\n            if i + 2 == j:\n                return values[i] * values[i + 1] * values[j]\n            return min((values[i] * values[k] * values[j] + dp(i, k) + dp(k, j)) for k in range(i + 1, j))\n        return dp(0, len(values) - 1)\n```\n\n```Java [sol1-Java]\nclass Solution {\n    int n;\n    int[] values;\n    Map<Integer, Integer> memo = new HashMap<Integer, Integer>();\n\n    public int minScoreTriangulation(int[] values) {\n        this.n = values.length;\n        this.values = values;\n        return dp(0, n - 1);\n    }\n\n    public int dp(int i, int j) {\n        if (i + 2 > j) {\n            return 0;\n        }\n        if (i + 2 == j) {\n            return values[i] * values[i + 1] * values[j];\n        }\n        int key = i * n + j;\n        if (!memo.containsKey(key)) {\n            int minScore = Integer.MAX_VALUE;\n            for (int k = i + 1; k < j; k++) {\n                minScore = Math.min(minScore, values[i] * values[k] * values[j] + dp(i, k) + dp(k, j));\n            }\n            memo.put(key, minScore);\n        }\n        return memo.get(key);\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    int n;\n    int[] values;\n    IDictionary<int, int> memo = new Dictionary<int, int>();\n\n    public int MinScoreTriangulation(int[] values) {\n        this.n = values.Length;\n        this.values = values;\n        return DP(0, n - 1);\n    }\n\n    public int DP(int i, int j) {\n        if (i + 2 > j) {\n            return 0;\n        }\n        if (i + 2 == j) {\n            return values[i] * values[i + 1] * values[j];\n        }\n        int key = i * n + j;\n        if (!memo.ContainsKey(key)) {\n            int minScore = int.MaxValue;\n            for (int k = i + 1; k < j; k++) {\n                minScore = Math.Min(minScore, values[i] * values[k] * values[j] + DP(i, k) + DP(k, j));\n            }\n            memo.Add(key, minScore);\n        }\n        return memo[key];\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int minScoreTriangulation(vector<int>& values) {\n        unordered_map<int, int> memo;\n        int n = values.size();\n        function<int(int, int)> dp = [&](int i, int j) -> int {\n             if (i + 2 > j) {\n                return 0;\n            }\n            if (i + 2 == j) {\n                return values[i] * values[i + 1] * values[j];\n            }\n            int key = i * n + j;\n            if (!memo.count(key)) {\n                int minScore = INT_MAX;\n                for (int k = i + 1; k < j; k++) {\n                    minScore = min(minScore, values[i] * values[k] * values[j] + dp(i, k) + dp(k, j));\n                }\n                memo[key] = minScore;\n            }\n            return memo[key];\n        };\n        return dp(0, n - 1);\n    }\n};\n```\n\n```C [sol1-C]\ntypedef struct {\n    int key;\n    int val;\n    UT_hash_handle hh;\n} HashItem; \n\nHashItem *hashFindItem(HashItem **obj, int key) {\n    HashItem *pEntry = NULL;\n    HASH_FIND_INT(*obj, &key, pEntry);\n    return pEntry;\n}\n\nbool hashAddItem(HashItem **obj, int key, int val) {\n    if (hashFindItem(obj, key)) {\n        return false;\n    }\n    HashItem *pEntry = (HashItem *)malloc(sizeof(HashItem));\n    pEntry->key = key;\n    pEntry->val = val;\n    HASH_ADD_INT(*obj, key, pEntry);\n    return true;\n}\n\nint hashGetItem(HashItem **obj, int key, int defaultVal) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        return defaultVal;\n    }\n    return pEntry->val;\n}\n\nbool hashSetItem(HashItem **obj, int key, int val) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        hashAddItem(obj, key, val);\n    } else {\n        pEntry->val = val;\n    }\n    return true;\n}\n\nvoid hashFree(HashItem **obj) {\n    HashItem *curr = NULL, *tmp = NULL;\n    HASH_ITER(hh, *obj, curr, tmp) {\n        HASH_DEL(*obj, curr);  \n        free(curr);             \n    }\n}\n\ninline int min(int a, int b) {\n    return a < b ? a : b;\n}\n\nint dp(int i, int j, int* values, int valuesSize, HashItem **memo) {\n    if (i + 2 > j) {\n        return 0;\n    }\n    if (i + 2 == j) {\n        return values[i] * values[i + 1] * values[j];\n    }\n    int key = i * valuesSize + j;\n    if (!hashFindItem(memo, key)) {\n        int minScore = INT_MAX;\n        for (int k = i + 1; k < j; k++) {\n            minScore = min(minScore, values[i] * values[k] * values[j] + \\\n                                    dp(i, k, values, valuesSize, memo) + \\\n                                    dp(k, j, values, valuesSize, memo));\n        }\n        hashAddItem(memo, key, minScore);\n    }\n    return hashGetItem(memo, key, 0);\n}\n\nint minScoreTriangulation(int* values, int valuesSize) {\n    HashItem *memo = NULL;\n    int ret = dp(0, valuesSize - 1, values, valuesSize, &memo);\n    hashFree(&memo);\n    return ret;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar minScoreTriangulation = function(values) {\n    const n = values.length;\n    const memo = new Map();\n    const dp = (i, j) => {\n        if (i + 2 > j) {\n            return 0;\n        }\n        if (i + 2 === j) {\n            return values[i] * values[i + 1] * values[j];\n        }\n        const key = i * n + j;\n        if (!memo.has(key)) {\n            let minScore = Number.MAX_VALUE;\n            for (let k = i + 1; k < j; k++) {\n                minScore = Math.min(minScore, values[i] * values[k] * values[j] + dp(i, k) + dp(k, j));\n            }\n            memo.set(key, minScore);\n        }\n        return memo.get(key);\n    }\n    return dp(0, n - 1);\n};\n```\n\n```Go [sol1-Go]\nfunc minScoreTriangulation(values []int) int {\n    memo := make(map[int]int)\n    n := len(values)\n    var dp func(int, int) int\n    dp = func(i int, j int) int {\n        if i + 2 > j {\n            return 0\n        }\n        if i + 2 == j {\n            return values[i] * values[i + 1] * values[j]\n        }\n        key := i * n + j\n        if _, ok := memo[key]; !ok {\n            minScore := math.MaxInt32\n            for k := i + 1; k < j; k++ {\n                minScore = min(minScore, values[i] * values[k] * values[j] + dp(i, k) + dp(k, j))\n            }\n            memo[key] = minScore\n        }\n        return memo[key]\n    }\n    return dp(0, n - 1)\n}\n\nfunc min(a, b int) int {\n    if a < b {\n        return a\n    }\n    return b\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n^3)$。动态规划一共有 $O(n^2)$ 个状态，计算每个状态消耗 $O(n)$。\n\n- 空间复杂度：$O(n^2)$。动态规划一共有 $O(n^2)$ 个状态。",
+            "slateValue": "",
+            "slug": "duo-bian-xing-san-jiao-pou-fen-de-zui-di-weqg",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "QOtPv9",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 34,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-04-01T06:29:30.071879+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 思路 设 $\\textit{dp}[i]j$ 的值为顶点 $i, i+1, \\dots, j-1, j$ 构成的凸 $j-i+1$ 边形进行三角形剖分后可以得到的最低分。当 $i+2=j$ 时，凸多边形退化为三角形。其他情况下，需要进行剖分，假设剖分得到的三角形中，顶点 $i, j$ 和另一个顶点 $",
+            "topic": {
+                "id": 2202467,
+                "subscribed": false,
+                "commentCount": 65,
+                "viewCount": 1166,
+                "post": {
+                    "id": 4178806,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 53,
+            "isEditorsPick": false,
+            "hitCount": 24014,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "minimum-score-triangulation-of-polygon",
+                "questionFrontendId": "1039"
+            },
+            "next": {
+                "slug": "shi-pin-jiao-ni-yi-bu-bu-si-kao-dong-tai-aty6",
+                "title": "【视频】教你一步步思考动态规划，从记忆化搜索到递推（Python/Java/C++/C/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

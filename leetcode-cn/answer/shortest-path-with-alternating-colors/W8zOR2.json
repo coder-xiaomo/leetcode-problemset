@@ -1,0 +1,134 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "W8zOR2",
+            "title": "颜色交替的最短路径",
+            "content": "#### 方法一：广度优先搜索\n\n使用 $0$ 表示红色，$1$ 表示蓝色，对于某一节点 $x$，从节点 $0$ 到节点 $x$ 的红色边和蓝色边交替出现的路径有两种类型：\n\n+ 类型 $0$：路径最终到节点 $x$ 的有向边为红色；\n\n+ 类型 $1$：路径最终到节点 $x$ 的有向边为蓝色。\n\n如果存在从节点 $0$ 到节点 $x$ 的类型 $0$ 的颜色交替路径，并且从节点 $x$ 到节点 $y$ 的有向边为蓝色，那么该路径加上该有向边组成了从节点 $0$ 到节点 $y$ 的类型 $1$ 的颜色交替路径。类似地，如果存在从节点 $0$ 到节点 $x$ 的类型 $1$ 的颜色交替路径，并且从节点 $x$ 到节点 $y$ 的有向边为红色，那么该路径加上该有向边组成了从节点 $0$ 到节点 $y$ 的类型 $0$ 的颜色交替路径。\n\n使用广度优先搜索获取从节点 $0$ 到某一节点的两种类型的颜色交替最短路径的长度，广度优先搜索的队列元素由节点编号和节点路径类型组成，初始时节点 $0$ 到节点 $0$ 的两种类型的颜色交替最短路径的长度都是 $0$，将两个初始值入队。对于某一个队列元素，节点编号为 $x$，节点路径类型为 $t$，那么根据类型 $t$ 选择颜色为 $1-t$ 的相邻有向边，如果有向边的终点节点 $y$ 对应类型 $1-t$ 没有被访问过，那么更新节点 $y$ 的类型 $1-t$ 的颜色交替最短路径的长度为节点 $x$ 的类型 $t$ 的颜色交替最短路径的长度加 $1$，并且将它入队。\n\n从节点 $0$ 到某一节点的颜色交替最短路径的长度为两种类型的颜色交替最短路径长度的最小值。\n\n```Python [sol1-Python3]\nclass Solution:\n    def shortestAlternatingPaths(self, n: int, redEdges: List[List[int]], blueEdges: List[List[int]]) -> List[int]:\n        g = [[] for _ in range(n)]\n        for x, y in redEdges:\n            g[x].append((y, 0))\n        for x, y in blueEdges:\n            g[x].append((y, 1))\n\n        dis = [-1] * n\n        vis = {(0, 0), (0, 1)}\n        q = [(0, 0), (0, 1)]\n        level = 0\n        while q:\n            tmp = q\n            q = []\n            for x, color in tmp:\n                if dis[x] == -1:\n                    dis[x] = level\n                for p in g[x]:\n                    if p[1] != color and p not in vis:\n                        vis.add(p)\n                        q.append(p)\n            level += 1\n        return dis\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<int> shortestAlternatingPaths(int n, vector<vector<int>>& redEdges, vector<vector<int>>& blueEdges) {\n        vector<vector<vector<int>>> next(2, vector<vector<int>>(n));\n        for (auto &e : redEdges) {\n            next[0][e[0]].push_back(e[1]);\n        }\n        for (auto &e : blueEdges) {\n            next[1][e[0]].push_back(e[1]);\n        }\n\n        vector<vector<int>> dist(2, vector<int>(n, INT_MAX)); // 两种类型的颜色最短路径的长度\n        queue<pair<int, int>> q;\n        dist[0][0] = 0;\n        dist[1][0] = 0;\n        q.push({0, 0});\n        q.push({0, 1});\n        while (!q.empty()) {\n            auto [x, t] = q.front();\n            q.pop();\n            for (auto y : next[1 - t][x]) {\n                if (dist[1 - t][y] != INT_MAX) {\n                    continue;\n                }\n                dist[1 - t][y] = dist[t][x] + 1;\n                q.push({y, 1 - t});\n            }\n        }\n        vector<int> answer(n);\n        for (int i = 0; i < n; i++) {\n            answer[i] = min(dist[0][i], dist[1][i]);\n            if (answer[i] == INT_MAX) {\n                answer[i] = -1;\n            }\n        }\n        return answer;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int[] shortestAlternatingPaths(int n, int[][] redEdges, int[][] blueEdges) {\n        List<Integer>[][] next = new List[2][n];\n        for (int i = 0; i < 2; i++) {\n            for (int j = 0; j < n; j++) {\n                next[i][j] = new ArrayList<Integer>();\n            }\n        }\n        for (int[] edge : redEdges) {\n            next[0][edge[0]].add(edge[1]);\n        }\n        for (int[] edge : blueEdges) {\n            next[1][edge[0]].add(edge[1]);\n        }\n        int[][] dist = new int[2][n]; // 两种类型的颜色最短路径的长度\n        for (int i = 0; i < 2; i++) {\n            Arrays.fill(dist[i], Integer.MAX_VALUE);\n        }\n        Queue<int[]> queue = new ArrayDeque<int[]>();\n        dist[0][0] = 0;\n        dist[1][0] = 0;\n        queue.offer(new int[]{0, 0});\n        queue.offer(new int[]{0, 1});\n        while (!queue.isEmpty()) {\n            int[] pair = queue.poll();\n            int x = pair[0], t = pair[1];\n            for (int y : next[1 - t][x]) {\n                if (dist[1 - t][y] != Integer.MAX_VALUE) {\n                    continue;\n                }\n                dist[1 - t][y] = dist[t][x] + 1;\n                queue.offer(new int[]{y, 1 - t});\n            }\n        }\n        int[] answer = new int[n];\n        for (int i = 0; i < n; i++) {\n            answer[i] = Math.min(dist[0][i], dist[1][i]);\n            if (answer[i] == Integer.MAX_VALUE) {\n                answer[i] = -1;\n            }\n        }\n        return answer;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int[] ShortestAlternatingPaths(int n, int[][] redEdges, int[][] blueEdges) {\n        IList<int>[][] next = new IList<int>[2][];\n        for (int i = 0; i < 2; i++) {\n            next[i] = new IList<int>[n];\n            for (int j = 0; j < n; j++) {\n                next[i][j] = new List<int>();\n            }\n        }\n        foreach (int[] edge in redEdges) {\n            next[0][edge[0]].Add(edge[1]);\n        }\n        foreach (int[] edge in blueEdges) {\n            next[1][edge[0]].Add(edge[1]);\n        }\n        int[][] dist = new int[2][]; // 两种类型的颜色最短路径的长度\n        for (int i = 0; i < 2; i++) {\n            dist[i] = new int[n];\n            Array.Fill(dist[i], int.MaxValue);\n        }\n        Queue<Tuple<int, int>> queue = new Queue<Tuple<int, int>>();\n        dist[0][0] = 0;\n        dist[1][0] = 0;\n        queue.Enqueue(new Tuple<int, int>(0, 0));\n        queue.Enqueue(new Tuple<int, int>(0, 1));\n        while (queue.Count > 0) {\n            Tuple<int, int> pair = queue.Dequeue();\n            int x = pair.Item1, t = pair.Item2;\n            foreach (int y in next[1 - t][x]) {\n                if (dist[1 - t][y] != int.MaxValue) {\n                    continue;\n                }\n                dist[1 - t][y] = dist[t][x] + 1;\n                queue.Enqueue(new Tuple<int, int>(y, 1 - t));\n            }\n        }\n        int[] answer = new int[n];\n        for (int i = 0; i < n; i++) {\n            answer[i] = Math.Min(dist[0][i], dist[1][i]);\n            if (answer[i] == int.MaxValue) {\n                answer[i] = -1;\n            }\n        }\n        return answer;\n    }\n}\n```\n\n```C [sol1-C]\n#define MIN(a, b) ((a) < (b) ? (a) : (b))\n\nstruct ListNode *createListNode(int val) {\n    struct ListNode *obj = (struct ListNode *)malloc(sizeof(struct ListNode));\n    obj->val = val;\n    obj->next = NULL;\n    return obj;\n}\n\nvoid freeList(struct ListNode *list) {\n    while(list) {\n        struct ListNode * cur = list;\n        list = list->next;\n        free(cur);\n    }\n}\n\nint* shortestAlternatingPaths(int n, int** redEdges, int redEdgesSize, int* redEdgesColSize, int** blueEdges, int blueEdgesSize, int* blueEdgesColSize, int* returnSize) {\n    struct ListNode *next[2][n];\n    for (int i = 0; i < n; i++) {\n        next[0][i] = NULL;\n        next[1][i] = NULL;\n    }\n    for (int i = 0; i < redEdgesSize; i++) {\n        struct ListNode *node = createListNode(redEdges[i][1]);\n        node->next = next[0][redEdges[i][0]];\n        next[0][redEdges[i][0]] = node;\n    }\n    for (int i = 0; i < blueEdgesSize; i++) {\n        struct ListNode *node = createListNode(blueEdges[i][1]);\n        node->next = next[1][blueEdges[i][0]];\n        next[1][blueEdges[i][0]] = node;\n    }\n\n    int dist[2][n]; // 两种类型的颜色最短路径的长度\n    for (int i = 0; i < n; i++) {\n        dist[0][i] = dist[1][i] = INT_MAX;\n    }\n    \n    dist[0][0] = 0;\n    dist[1][0] = 0;\n    int queue[n * 2][2];\n    int head = 0, tail = 0;\n    queue[tail][0] = 0, queue[tail++][1] = 0;\n    queue[tail][0] = 0, queue[tail++][1] = 1;\n    while (head != tail) {\n        int x = queue[head][0], t = queue[head][1];\n        head++;\n        for (struct ListNode *node = next[1 - t][x]; node != NULL; node = node->next) {\n            int y = node->val;\n            if (dist[1 - t][y] != INT_MAX) {\n                continue;\n            }\n            dist[1 - t][y] = dist[t][x] + 1;\n            queue[tail][0] = y, queue[tail++][1] = 1- t;\n        }\n    }\n    int *answer = (int *)malloc(sizeof(int) * n);\n    for (int i = 0; i < n; i++) {\n        answer[i] = MIN(dist[0][i], dist[1][i]);\n        if (answer[i] == INT_MAX) {\n            answer[i] = -1;\n        }\n    }\n    *returnSize = n;\n    for (int i = 0; i < n; i++) {\n        freeList(next[0][i]);\n        freeList(next[1][i]);\n    }\n    return answer;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar shortestAlternatingPaths = function(n, redEdges, blueEdges) {\n    const next = new Array(2).fill(0).map(() => new Array(n).fill(0).map(() => new Array()));\n    for (const edge of redEdges) {\n        next[0][edge[0]].push(edge[1]);\n    }\n    for (const edge of blueEdges) {\n        next[1][edge[0]].push(edge[1]);\n    }\n    const dist = new Array(2).fill(0).map(() => new Array(n).fill(Number.MAX_VALUE)); // 两种类型的颜色最短路径的长度\n    const queue = [];\n    dist[0][0] = 0;\n    dist[1][0] = 0;\n    queue.push([0, 0]);\n    queue.push([0, 1]);\n    while (queue.length) {\n        const pair = queue.shift();\n        let x = pair[0], t = pair[1];\n        for (const y of next[1 - t][x]) {\n            if (dist[1 - t][y] !== Number.MAX_VALUE) {\n                continue;\n            }\n            dist[1 - t][y] = dist[t][x] + 1;\n            queue.push([y, 1 - t]);\n        }\n    }\n    const answer = new Array(n).fill(0);\n    for (let i = 0; i < n; i++) {\n        answer[i] = Math.min(dist[0][i], dist[1][i]);\n        if (answer[i] === Number.MAX_VALUE) {\n            answer[i] = -1;\n        }\n    }\n    return answer;\n};\n```\n\n```go [sol1-Golang]\nfunc shortestAlternatingPaths(n int, redEdges, blueEdges [][]int) []int {\n    type pair struct{ x, color int }\n    g := make([][]pair, n)\n    for _, e := range redEdges {\n        g[e[0]] = append(g[e[0]], pair{e[1], 0})\n    }\n    for _, e := range blueEdges {\n        g[e[0]] = append(g[e[0]], pair{e[1], 1})\n    }\n\n    dis := make([]int, n)\n    for i := range dis {\n        dis[i] = -1\n    }\n    vis := make([][2]bool, n)\n    vis[0] = [2]bool{true, true}\n    q := []pair{{0, 0}, {0, 1}}\n    for level := 0; len(q) > 0; level++ {\n        tmp := q\n        q = nil\n        for _, p := range tmp {\n            x := p.x\n            if dis[x] < 0 {\n                dis[x] = level\n            }\n            for _, to := range g[x] {\n                if to.color != p.color && !vis[to.x][to.color] {\n                    vis[to.x][to.color] = true\n                    q = append(q, to)\n                }\n            }\n        }\n    }\n    return dis\n}\n```\n\n**复杂度分析**\n\n+ 时间复杂度：$O(n + r + b)$，其中 $n$ 是节点数，$r$ 是红色边的数目，$b$ 是蓝色边的数目。广度优先搜索最多访问一个节点两次，最多访问一条边一次，因此时间复杂度为 $O(n + r + b)$。\n\n+ 空间复杂度：$O(n + r + b)$。队列中最多有 $2n$ 个元素，保存 $\\textit{next}$ 需要 $O(r+b)$ 的空间，保存 $\\textit{dist}$ 需要 $O(n)$ 的空间。",
+            "slateValue": "",
+            "slug": "yan-se-jiao-ti-de-zui-duan-lu-jing-by-le-vnuu",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "W8zOR2",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 64,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 5,
+                    "reactionType": "CONFUSED"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Breadth-First Search",
+                    "nameTranslated": "广度优先搜索",
+                    "slug": "breadth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Graph",
+                    "nameTranslated": "图",
+                    "slug": "graph",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-02-01T06:31:38.211991+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：广度优先搜索 使用 $0$ 表示红色，$1$ 表示蓝色，对于某一节点 $x$，从节点 $0$ 到节点 $x$ 的红色边和蓝色边交替出现的路径有两种类型： 类型 $0$：路径最终到节点 $x$ 的有向边为红色； 类型 $1$：路径最终到节点 $x$ 的有向边为蓝色。 如果存在从节点 $0$ 到节点 $x$ 的类型",
+            "topic": {
+                "id": 2086543,
+                "subscribed": false,
+                "commentCount": 88,
+                "viewCount": 1476,
+                "post": {
+                    "id": 3992169,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 93,
+            "isEditorsPick": false,
+            "hitCount": 32314,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "shortest-path-with-alternating-colors",
+                "questionFrontendId": "1129"
+            },
+            "next": {
+                "slug": "python3javacgo-yi-ti-yi-jie-bfsqing-xi-t-ag0i",
+                "title": "[Python3/Java/C++/Go] 一题一解：BFS（清晰题解）"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,106 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "yOIxmw",
+            "title": "子串的最大出现次数",
+            "content": "#### 方法一：枚举\n\n由于 `minSize` 和 `maxSize` 都不超过 `26`，因此我们可以枚举所有长度在 `minSize` 与 `maxSize` 之间的字符串，选出其中字母数量小于等于的 `maxLetters` 的字符串并进行频数统计。\n\n具体地，我们首先递增地枚举字符串的起始位置 `i` 以及结束位置 `j`。对于 `(i, j)` 对应的字符串，我们用一个集合 `exist` 存放其中出现的字母，并在递增地枚举 `j` 时，将对应位置的字母依次加入集合 `exist` 中。若集合中的字母数量不超过 `maxLetters`，并且字符串的长度在 `minSize` 与 `maxSize` 之间，那么我们就找到了一个满足条件的字符串。\n\n我们使用一个无序映射（HashMap）存放所有满足条件的字符串。对于无序映射中的每个键值对，键表示字符串，值表示该字符串出现的次数。在枚举完所有的字符串后，无序映射中出现次数最多的那个字符串即为答案。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int maxFreq(string s, int maxLetters, int minSize, int maxSize) {\n        int n = s.size();\n        unordered_map<string, int> occ;\n        int ans = 0;\n        for (int i = 0; i < n; ++i) {\n            unordered_set<char> exist;\n            string cur;\n            for (int j = i; j < min(n, i + maxSize); ++j) {\n                exist.insert(s[j]);\n                if (exist.size() > maxLetters) {\n                    break;\n                }\n                cur += s[j];\n                if (j - i + 1 >= minSize) {\n                    ++occ[cur];\n                    ans = max(ans, occ[cur]);\n                }\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def maxFreq(self, s: str, maxLetters: int, minSize: int, maxSize: int) -> int:\n        n = len(s)\n        occ = collections.defaultdict(int)\n        ans = 0\n        for i in range(n):\n            exist = set()\n            cur = \"\"\n            for j in range(i, min(n, i + maxSize)):\n                exist.add(s[j])\n                if len(exist) > maxLetters:\n                    break\n                cur += s[j]\n                if j - i + 1 >= minSize:\n                    occ[cur] += 1\n                    ans = max(ans, occ[cur])\n        return ans\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(NS^2)$，其中 $N$ 是字符串的长度，$S$ 是 `minSize` 和 `maxSize` 的数量级，在本题中为 `26`。枚举 $i$ 的时间复杂度为 $O(N)$，枚举 $j$ 的时间复杂度为 $O(S)$，在这之后的操作会有两种情况：\n\n  - 该语言的字符串类型允许对字符串进行修改，例如 `C++`。那么当 `i` 固定时，随着 `j` 的增加，得到 `(i, j)` 对应字符串的时间复杂度为 $O(1)$，即只要在结束位置为 `j - 1` 的字符串结尾添加一个字母，但我们需要 $O(S)$ 的时间将一个字符串无序映射中，这是因为无序映射中保存的是字符串的值；\n\n  - 该语言的字符串类型不允许对字符串进行修改，例如 `Java` 和 `Python`。那么当 `i` 固定时，随着 `j` 的增加，我们每次都需要 $O(S)$ 的时间得到 `(i, j)` 对应的字符串，但只需要 $O(1)$ 的时间将一个字符串加入无序映射中，这是因为无序映射中保存的是字符串的引用。\n\n  同时，由于无序映射的底层实现本质上是哈希算法，因此无论是哪一种情况（保存字符串的值或引用），在将字符串加入无序映射时，都需要花费一定的时间计算字符串的哈希值。不同的语言计算字符串哈希值的方法不同，但时间复杂度均为 $O(S)$，与字符串的长度成正比。综上所述，对于每一组 `(i, j)` 对应的字符串，我们需要 $O(S)$ 的时间进行相关的操作，总时间复杂度为 $O(NS^2)$。\n\n- 空间复杂度：$O(NS^2)$。我们需要枚举所有长度在 `minSize` 与 `maxSize` 之间的字符串，在最坏情况下，这些字符串均满足条件且几乎不相同（即大部分字符串仅出现一次）。此时无序映射中需要存储所有字符串，数量为 $O(NS)$，而字符串的长度为 $O(S)$，因此总空间复杂度为 $O(NS^2)$。\n\n#### 方法二：可行性优化\n\n方法一的时间复杂度较高，上文给出的代码刚好可以在规定时间内通过所有数据，那么我们是否可以进行一些优化呢？\n\n假设字符串 `T` 在给定的字符串 `S` 中出现的次数为 `k`，那么 `T` 的任意一个子串出现的次数至少也为 `k`，即 `T` 的任意一个子串在 `S` 中出现的次数不会少于 `T` 本身。这样我们就可以断定，在所有满足条件且出现次数最多的的字符串中，一定有一个的长度恰好为 `minSize`。\n\n我们可以使用反证法证明上述的结论：假设所有满足条件且出现次数最多的字符串中没有长度为 `minSize` 的，不妨任取其中的一个长度为 `l` 的字符串，根据假设，有 `l > minSize`。此时我们再任取该字符串的一个长度为 `minSize` 的子串，子串出现的次数不会少于原字符串出现的次数，与假设相矛盾。\n\n这样以来，我们只需要枚举所有长度为 `minSize` 的字符串即可，时空复杂度均减少了 $O(S)$。\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    int maxFreq(string s, int maxLetters, int minSize, int maxSize) {\n        int n = s.size();\n        unordered_map<string, int> occ;\n        int ans = 0;\n        for (int i = 0; i < n - minSize + 1; ++i) {\n            string cur = s.substr(i, minSize);\n            unordered_set<char> exist(cur.begin(), cur.end());\n            if (exist.size() <= maxLetters) {\n                ++occ[cur];\n                ans = max(ans, occ[cur]);\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def maxFreq(self, s: str, maxLetters: int, minSize: int, maxSize: int) -> int:\n        n = len(s)\n        occ = collections.defaultdict(int)\n        ans = 0\n        for i in range(n - minSize + 1):\n            cur = s[i : i + minSize]\n            exist = set(cur)\n            if len(exist) <= maxLetters:\n                occ[cur] += 1\n                ans = max(ans, occ[cur])\n        return ans\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(NS)$，其中 $N$ 是字符串的长度，$S$ 是 `minSize` 的大小。\n\n- 空间复杂度：$O(NS)$。\n\n#### 方法三：滚动哈希\n\n**说明**\n\n方法二的时空复杂度已经较为优秀，且无论在竞赛还是面试中，能够将方法二实现都是值得称赞的。而方法三可以忽略题目中 `1 <= minSize <= maxSize <= min(26, s.length)` 的条件，在 `minSize` 和 `maxSize` 为任意值的情况下，均可以在合理的时间得到答案。\n\n方法三需要一些关于「滚动哈希」或「Rabin-Karp 算法」的预备知识，其核心是将字符串看成一个 `k` 进制的整数，其中 `k` 是字符串中可能出现的字符种类，本题中字符串只包含小写字母，即 `k = 26`。这样做的好处是绕开了字符串操作，将字符串看成整数进行比较，使得无论语言的字符串类型是否允许对字符串进行修改，都可以在常数时间内将字符串加入无序映射中。\n\n关于「滚动哈希」或「Rabin-Karp 算法」的知识，可以参考 [1044. 最长重复子串的官方题解](https://leetcode.cn/problems/longest-duplicate-substring/solution/zui-chang-zhong-fu-zi-chuan-by-leetcode/) 或使用搜索引擎，这里对算法本身的流程不再赘述。\n\n**使用滚动哈希**\n\n我们在方法二的基础上进行优化，在枚举长度为 `minSize` 的子串时，使用一个长度为 `minSize` 的滑动窗口表示当前的子串。这样在窗口向右滑动时，我们可以使用 Rabin-Karp 算法在 $O(1)$ 的时间计算出子串对应的整数值。\n\n同时我们也需要优化维护 `exist` 的时间成本。在方法一和方法二中，由于得到一个子串需要 $O(S)$ 的时间，而通过将子串中的字母依次加入 `exist` 中来判断不同字母数目的做法同样需要 $O(S)$ 的时间，两者的时间复杂度相加，仍然为 $O(S)$。而在方法三中，由于得到一个子串需要的时间减少至 $O(1)$，因此我们需要借助滑动窗口，将维护 `exist` 需要的时间减少至 $O(1)$，才能降低总时间复杂度。\n\n我们可以将 `exist` 从集合改为无序映射，对于其中的每个键值对，键表示字母，值表示字母出现的次数。当滑动窗口向右滑动一个字母时，头部的一个字母被移除窗口，尾部的一个字母被加入窗口，则：\n\n- 当一个字母 `c` 被移除窗口时，我们将 `c` 对应的值减 `1`，如果值变为 `0`，说明子串中不同字母的数量也减少 `1`；\n\n- 当一个字母 `c` 被加入窗口时，我们将 `c` 对应的值加 `1`，如果值变为 `1`，说明子串中不同字母的数量也增加 `1`。\n\n这样我们就可以在滑动窗口向右滑动一个字母时，使用 $O(1)$ 的时间同时得到子串对应的整数值以及其包含不同字符的数量。整个算法的时间复杂度与 `minSize` 无关。\n\n**注意事项**\n\n由于 Rabin-Karp 算法会将字符串对应的整数值进行取模，那么：\n\n- 如果字符串 `S1` 和 `S2` 对应的整数值 `I1` 和 `I2` 不相等，那么 `S1` 和 `S2` 一定不相等；\n\n- 如果字符串 `S1` 和 `S2` 对应的整数值 `I1` 和 `I2` 相等，并不代表 `S1` 和 `S2` 一定相等；\n\n这与实际应用中使用的哈希算法也是一致的，即先判断两个实例的哈希值是否相等，再判断它们本质上是否相等。而在竞赛题目中，由于数据量较少，几乎不会产生哈希冲突，因此我们可以直接用 `I1` 和 `I2` 的相等代替 `S1` 和 `S2` 的相等，减少时间复杂度。但需要牢记在实际应用中，这样做是不严谨的。\n\n```C++ [sol3-C++]\nusing LL = long long;\n\nclass Solution {\nprivate:\n    static constexpr int mod = 1000000007;\n\npublic:\n    int maxFreq(string s, int maxLetters, int minSize, int maxSize) {\n        int n = s.size();\n        unordered_map<int, int> occ;\n        unordered_map<char, int> exist;\n        int ans = 0, exist_cnt = 0;\n        int rabin = 0, base = 26, base_mul = base;\n        \n        for (int i = 0; i < minSize - 1; ++i) {\n            ++exist[s[i]];\n            if (exist[s[i]] == 1) {\n                ++exist_cnt;\n            }\n            rabin = ((LL)rabin * base + (s[i] - 97)) % mod;\n            base_mul = (LL)base_mul * base % mod;\n        }\n\n        for (int i = minSize - 1; i < n; ++i) {\n            ++exist[s[i]];\n            if (exist[s[i]] == 1) {\n                ++exist_cnt;\n            }\n            rabin = ((LL)rabin * base + (s[i] - 97)) % mod;\n            if (i >= minSize) {\n                --exist[s[i - minSize]];\n                if (exist[s[i - minSize]] == 0) {\n                    --exist_cnt;\n                }\n                rabin = (rabin - (LL)base_mul * (s[i - minSize] - 97) % mod + mod) % mod;\n            }\n            if (exist_cnt <= maxLetters) {\n                ++occ[rabin];\n                ans = max(ans, occ[rabin]);\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```Python [sol3-Python3]\nclass Solution:\n    def maxFreq(self, s: str, maxLetters: int, minSize: int, maxSize: int) -> int:\n        n = len(s)\n        occ = collections.defaultdict(int)\n        exist = collections.defaultdict(int)\n        mod = 1e9 + 7\n        ans, exist_cnt = 0, 0\n        rabin, base, base_mul = 0, 26, 26\n\n        for i in range(minSize - 1):\n            exist[s[i]] += 1\n            if exist[s[i]] == 1:\n                exist_cnt += 1\n            rabin = (rabin * base + (ord(s[i]) - 97)) % mod\n            base_mul = base_mul * base % mod\n\n        for i in range(minSize - 1, n):\n            exist[s[i]] += 1\n            if exist[s[i]] == 1:\n                exist_cnt += 1\n            rabin = (rabin * base + (ord(s[i]) - 97)) % mod\n            if i >= minSize:\n                exist[s[i - minSize]] -= 1\n                if exist[s[i - minSize]] == 0:\n                    exist_cnt -= 1\n                rabin = (rabin - base_mul * (ord(s[i - minSize]) - 97) % mod + mod) % mod\n            if exist_cnt <= maxLetters:\n                occ[rabin] += 1\n                ans = max(ans, occ[rabin])\n        return ans\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(N)$，其中 $N$ 是字符串的长度。\n\n- 空间复杂度：$O(N)$。",
+            "slateValue": "",
+            "slug": "zi-chuan-de-zui-da-chu-xian-ci-shu-by-leetcode-sol",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "yOIxmw",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 36,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Sliding Window",
+                    "nameTranslated": "滑动窗口",
+                    "slug": "sliding-window",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python3",
+                    "nameTranslated": "",
+                    "slug": "python3",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-02-19T03:31:39.651227+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：枚举 由于 minSize 和 maxSize 都不超过 26，因此我们可以枚举所有长度在 minSize 与 maxSize 之间的字符串，选出其中字母数量小于等于的 maxLetters 的字符串并进行频数统计。 具体地，我们首先递增地枚举字符串的起始位置 i 以及结束位置 j。对于 (i, j) 对应的字",
+            "topic": {
+                "id": 101811,
+                "subscribed": false,
+                "commentCount": 69,
+                "viewCount": 8979,
+                "post": {
+                    "id": 349711,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 129,
+            "isEditorsPick": false,
+            "hitCount": 28062,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "maximum-number-of-occurrences-of-a-substring",
+                "questionFrontendId": "1297"
+            },
+            "next": {
+                "slug": "nao-jin-ji-zhuan-wan-ding-chang-hua-dong-0hol",
+                "title": "脑筋急转弯+定长滑动窗口（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

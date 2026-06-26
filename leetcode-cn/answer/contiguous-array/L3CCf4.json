@@ -1,0 +1,134 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "L3CCf4",
+            "title": "连续数组",
+            "content": "#### 方法一：前缀和 + 哈希表\n\n由于「$0$ 和 $1$ 的数量相同」等价于「$1$ 的数量减去 $0$ 的数量等于 $0$」，我们可以将数组中的 $0$ 视作 $-1$，则原问题转换成「求最长的连续子数组，其元素和为 $0$」。\n\n设数组 $\\textit{nums}$ 的长度为 $n$，将数组 $\\textit{nums}$ 进行转换得到长度相等的新数组 $\\textit{newNums}$：对于 $0 \\le i<n$，当 $\\textit{nums}[i]=1$ 时 $\\textit{newNums}[i]=1$，当 $\\textit{nums}[i]=0$ 时 $\\textit{newNums}[i]=-1$。\n\n为了快速计算 $\\textit{newNums}$ 的子数组的元素和，需要首先计算 $\\textit{newNums}$ 的前缀和。用 $\\textit{prefixSums}[i]$ 表示 $\\textit{newNums}$ 从下标 $0$ 到下标 $i$ 的前缀和，则 $\\textit{newNums}$ 从下标 $j+1$ 到下标 $k$（其中 $j<k$）的子数组的元素和为 $\\textit{prefixSums}[k]-\\textit{prefixSums}[j]$，该子数组的长度为 $k-j$。\n\n当 $\\textit{prefixSums}[k]-\\textit{prefixSums}[j]=0$ 时，即得到 $\\textit{newNums}$ 的一个长度为 $k-j$ 的子数组元素和为 $0$，对应 $\\textit{nums}$ 的一个长度为 $k-j$ 的子数组中有相同数量的 $0$ 和 $1$。\n\n实现方面，不需要创建数组 $\\textit{newNums}$ 和 $\\textit{prefixSums}$，只需要维护一个变量 $\\textit{counter}$ 存储 $\\textit{newNums}$ 的前缀和即可。具体做法是，遍历数组 $\\textit{nums}$，当遇到元素 $1$ 时将 $\\textit{counter}$ 的值加 $1$，当遇到元素 $0$ 时将 $\\textit{counter}$ 的值减 $1$，遍历过程中使用哈希表存储每个前缀和第一次出现的下标。\n\n规定空的前缀的结束下标为 $-1$，由于空的前缀的元素和为 $0$，因此在遍历之前，首先在哈希表中存入键值对 $(0,-1)$。遍历过程中，对于每个下标 $i$，进行如下操作：\n\n- 如果 $\\textit{counter}$ 的值在哈希表中已经存在，则取出 $\\textit{counter}$ 在哈希表中对应的下标 $\\textit{prevIndex}$，$\\textit{nums}$ 从下标 $\\textit{prevIndex}+1$ 到下标 $i$ 的子数组中有相同数量的 $0$ 和 $1$，该子数组的长度为 $i-\\textit{prevIndex}$，使用该子数组的长度更新最长连续子数组的长度；\n\n- 如果 $\\textit{counter}$ 的值在哈希表中不存在，则将当前余数和当前下标 $i$ 的键值对存入哈希表中。\n\n由于哈希表存储的是 $\\textit{counter}$ 的每个取值第一次出现的下标，因此当遇到重复的前缀和时，根据当前下标和哈希表中存储的下标计算得到的子数组长度是以当前下标结尾的子数组中满足有相同数量的 $0$ 和 $1$ 的最长子数组的长度。遍历结束时，即可得到 $\\textit{nums}$ 中的有相同数量的 $0$ 和 $1$ 的最长子数组的长度。\n\n```Java [sol1-Java]\nclass Solution {\n    public int findMaxLength(int[] nums) {\n        int maxLength = 0;\n        Map<Integer, Integer> map = new HashMap<Integer, Integer>();\n        int counter = 0;\n        map.put(counter, -1);\n        int n = nums.length;\n        for (int i = 0; i < n; i++) {\n            int num = nums[i];\n            if (num == 1) {\n                counter++;\n            } else {\n                counter--;\n            }\n            if (map.containsKey(counter)) {\n                int prevIndex = map.get(counter);\n                maxLength = Math.max(maxLength, i - prevIndex);\n            } else {\n                map.put(counter, i);\n            }\n        }\n        return maxLength;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int FindMaxLength(int[] nums) {\n        int maxLength = 0;\n        Dictionary<int, int> dictionary = new Dictionary<int, int>();\n        int counter = 0;\n        dictionary.Add(counter, -1);\n        int n = nums.Length;\n        for (int i = 0; i < n; i++) {\n            int num = nums[i];\n            if (num == 1) {\n                counter++;\n            } else {\n                counter--;\n            }\n            if (dictionary.ContainsKey(counter)) {\n                int prevIndex = dictionary[counter];\n                maxLength = Math.Max(maxLength, i - prevIndex);\n            } else {\n                dictionary.Add(counter, i);\n            }\n        }\n        return maxLength;\n    }\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar findMaxLength = function(nums) {\n    let maxLength = 0;\n    const map = new Map();\n    let counter = 0;\n    map.set(counter, -1);\n    const n = nums.length;\n    for (let i = 0; i < n; i++) {\n        const num = nums[i];\n        if (num == 1) {\n            counter++;\n        } else {\n            counter--;\n        }\n        if (map.has(counter)) {\n            const prevIndex = map.get(counter);\n            maxLength = Math.max(maxLength, i - prevIndex);\n        } else {\n            map.set(counter, i);\n        }\n    }\n    return maxLength;\n};\n```\n\n```go [sol1-Golang]\nfunc findMaxLength(nums []int) (maxLength int) {\n    mp := map[int]int{0: -1}\n    counter := 0\n    for i, num := range nums {\n        if num == 1 {\n            counter++\n        } else {\n            counter--\n        }\n        if prevIndex, has := mp[counter]; has {\n            maxLength = max(maxLength, i-prevIndex)\n        } else {\n            mp[counter] = i\n        }\n    }\n    return\n}\n\nfunc max(a, b int) int {\n    if a > b {\n        return a\n    }\n    return b\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int findMaxLength(vector<int>& nums) {\n        int maxLength = 0;\n        unordered_map<int, int> mp;\n        int counter = 0;\n        mp[counter] = -1;\n        int n = nums.size();\n        for (int i = 0; i < n; i++) {\n            int num = nums[i];\n            if (num == 1) {\n                counter++;\n            } else {\n                counter--;\n            }\n            if (mp.count(counter)) {\n                int prevIndex = mp[counter];\n                maxLength = max(maxLength, i - prevIndex);\n            } else {\n                mp[counter] = i;\n            }\n        }\n        return maxLength;\n    }\n};\n```\n\n```C [sol1-C]\nstruct HashTable {\n    int key, val;\n    UT_hash_handle hh;\n};\n\nint findMaxLength(int* nums, int numsSize) {\n    int maxLength = 0;\n    struct HashTable* hashTable = NULL;\n    struct HashTable* tmp = malloc(sizeof(struct HashTable));\n    tmp->key = 0, tmp->val = -1;\n    HASH_ADD_INT(hashTable, key, tmp);\n    int counter = 0;\n    int n = numsSize;\n    for (int i = 0; i < n; i++) {\n        int num = nums[i];\n        if (num == 1) {\n            counter++;\n        } else {\n            counter--;\n        }\n        HASH_FIND_INT(hashTable, &counter, tmp);\n        if (tmp != NULL) {\n            int prevIndex = tmp->val;\n            maxLength = fmax(maxLength, i - prevIndex);\n        } else {\n            tmp = malloc(sizeof(struct HashTable));\n            tmp->key = counter, tmp->val = i;\n            HASH_ADD_INT(hashTable, key, tmp);\n        }\n    }\n    return maxLength;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是数组 $\\textit{nums}$ 的长度。需要遍历数组一次。\n\n- 空间复杂度：$O(n)$，其中 $n$ 是数组 $\\textit{nums}$ 的长度。空间复杂度主要取决于哈希表，哈希表中存储的不同的 $\\textit{counter}$ 的值不超过 $n$ 个。",
+            "slateValue": "",
+            "slug": "lian-xu-shu-zu-by-leetcode-solution-mvnm",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "L3CCf4",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 155,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 8,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 3,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Prefix Sum",
+                    "nameTranslated": "前缀和",
+                    "slug": "prefix-sum",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2021-06-02T15:30:18.070038+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：前缀和 + 哈希表 由于「$0$ 和 $1$ 的数量相同」等价于「$1$ 的数量减去 $0$ 的数量等于 $0$」，我们可以将数组中的 $0$ 视作 $-1$，则原问题转换成「求最长的连续子数组，其元素和为 $0$」。 设数组 $\\textit{nums}$ 的长度为 $n$，将数组 $\\textit{nums",
+            "topic": {
+                "id": 809683,
+                "subscribed": false,
+                "commentCount": 285,
+                "viewCount": 42826,
+                "post": {
+                    "id": 1779034,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 218,
+            "isEditorsPick": false,
+            "hitCount": 87662,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "contiguous-array",
+                "questionFrontendId": "525"
+            },
+            "next": {
+                "slug": "shi-zi-bian-xing-mei-ju-you-wei-hu-zuo-p-x9q2",
+                "title": "式子变形 + 枚举右维护左（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

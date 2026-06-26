@@ -1,0 +1,88 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "MfOCKn",
+            "title": "有效的快递序列数目",
+            "content": "#### 方法一：递推法\n\n设 `f[i]` 表示订单数量为 `i` 时的序列数目，我们希望通过 `f[1], f[2], ..., f[i - 1]` 得到 `f[i]` 的值，这样就可以使用递推的方法得到 `f[n]` 了。\n\n由于 `f[i]` 包含了 `i` 份订单，我们可以将其拆分为前 `i - 1` 份订单（编号为 `1, 2, ..., i - 1`）与 `1` 份额外的订单（编号为 `i`）。对于一个包含前 `i - 1` 份订单的固定序列，它的长度为 `(i - 1) * 2`，我们只需要在这个序列中加上第 `i` 份订单，就可以得到一条订单数量为 `i` 的序列。\n\n那么有多少种不同的方法能够加上第 `i` 份订单呢？第 `i` 份订单包含 $P_i$ 和 $D_i$，并且 $P_i$ 在序列中必须出现在 $D_i$ 之前，那么我们可以将这些方法分成两类：\n\n- 第一类：$P_i$ 和 $D_i$ 被添加到了序列中连续的位置。由于序列的长度为 `(i - 1) * 2`，那么可以添加的位置为序列的长度加 `1`，即 $2(i - 1) + 1 = 2i - 1$；\n\n- 第二类：$P_i$ 和 $D_i$ 被添加到了序列中不连续的位置，那么就相当于在 `i * 2 - 1` 个位置中选择两个不同的位置，前者用作添加 $P_i$，后者用作添加 $D_i$，方法数为组合数 $\\binom{2i - 1}{2} = (2i - 1)(i - 1)$。\n\n将这两类的方法数量相加，就可以得到：对于一个固定的包含前 `i - 1` 份订单的固定序列，用 $(2i-1)i$ 种方法可以加入第 `i` 份订单。由于前 `i - 1` 份订单对应的序列数目为 `f[i - 1]`，并且对于任意两个不同的包含前 `i - 1` 份订单的序列，都不会因为加上第 `i` 份订单使得它们变得相同。因此我们就得到了递推公式\n\n$$\nf[i] = (2i-1)i * f[i - 1]\n$$\n\n由于递推公式中 `f[i]` 仅与 `f[i - 1]` 有关，我们在递推式可以只存储 `f[i - 1]` 的值，而不用把 `f[1], f[2], ..., f[i - 1]` 都记录下来。\n\n```C++ [sol1-C++]\nusing LL = long long;\n\nclass Solution {\nprivate:\n    static constexpr int mod = 1000000007;\n    \npublic:\n    int countOrders(int n) {\n        if (n == 1) {\n            return 1;\n        }\n        int ans = 1;\n        for (int i = 2; i <= n; ++i) {\n            ans = (LL)ans * (i * 2 - 1) % mod * i % mod;\n        }\n        return ans;\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def countOrders(self, n: int) -> int:\n        if n == 1:\n            return 1\n        ans, mod = 1, int(1e9 + 7)\n        for i in range(2, n + 1):\n            ans = ans * (i * 2 - 1) * i % mod\n        return ans\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(N)$。\n\n- 空间复杂度：$O(1)$。\n\n#### 方法二：整体法\n\n除了递推法之外，我们也可以从整体进行考虑，直接得到 `f[i]` 的通项公式。\n\n假设现在没有 $D_i$ 必须在 $P_i$ 之后的要求，那么\n\n$$\nf[i] = (2i)!\n$$\n\n这是因为我们可以将 $P_1, D_1, P_2, D_2, \\cdots, P_i, D_i$ 的任意一个排列作为答案，排列的数目为 $(2i)!$。我们称这些排列为初始排列。\n\n那么在加上了「$D_i$ 必须在 $P_i$ 之后」的要求后，有一些初始排列就不能作为答案了。但是我们可以对它们进行调整，使它们变成满足要求的排列。具体地，对于任意一个初始排列，如果第 `j` 个物品的 $D_j$ 出现在 $P_j$ 之前，那么我们就把 $D_j$ 和 $P_j$ 交换顺序。在对 `j = 1, 2, ..., i` 全部判断一遍之后，我们就可以得到一个满足要求的排列了。然而这样会导致重复计数，这是因为不同的初始排列在交换顺序之后会得到相同的排列，例如当 `i = 2` 时，初始排列\n\n```\nD1, D2, P1, P2\nD1, P2, P1, D2\n```\n\n在交换后都会得到相同的排列\n\n```\nP1, P2, D1, D2\n```\n\n如何去除重复计数呢？我们可以进行逆向思考，反过来计算一个排列可以从多少个初始排列得来。显然，对于排列中的 `i` 对 $P_j$ 和 $D_j$，我们将其中任意数量的对交换顺序，都可以得到一个不同的初始排列。交换顺序的选择有 $2^i$ 种（每一对 $P_j$ 和 $D_j$ 交换或不交换），因此一个排列对应着 $2^i$ 个初始排列，即排列的数目为：\n\n$$\nf[i] = \\frac{(2i)!}{2^i}\n$$\n\n这样就得到了 `f[i]` 的通项公式。由于通项公式中包含除法，在取模的意义下不好直接计算，我们可以将分母 $2^i$ 拆分成 $i$ 个 $2$，与分子阶乘中的 $i$ 个偶数相除，得到\n\n$$\nf[i] = i!(2i-1)!!\n$$\n\n其中 $(2i-1)!! = 1 \\cdot 3 \\cdot \\cdots \\cdot (2i-1)$，其与方法一中的递推式是一致的，可以直接使用方法一的代码。\n\n**复杂度分析**\n\n- 时间复杂度：$O(N)$。\n\n- 空间复杂度：$O(1)$。",
+            "slateValue": "",
+            "slug": "you-xiao-de-kuai-di-xu-lie-shu-mu-by-leetcode-solu",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "MfOCKn",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 16,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python3",
+                    "nameTranslated": "",
+                    "slug": "python3",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-02-24T07:05:06.961364+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": " 方法一：递推法\n设 f[i] 表示订单数量为 i 时的序列数目，我们希望通过 f[1], f[2], ..., f[i - 1] 得到 f[i] 的值，这样就可以使用递推的方法得到 f[n] 了。\n由于 f[i] 包含了 i 份订单，我们可以将其拆分为前 i - 1 份订单（编号为 1, 2, ..., i - 1）",
+            "topic": {
+                "id": 108077,
+                "subscribed": false,
+                "commentCount": 18,
+                "viewCount": 3819,
+                "post": {
+                    "id": 362784,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 12,
+            "isEditorsPick": false,
+            "hitCount": 7092,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "count-all-valid-pickup-and-delivery-options",
+                "questionFrontendId": "1359"
+            },
+            "next": {
+                "slug": "zu-he-shu-xue-ti-by-paulzfm",
+                "title": "组合数学题！"
+            },
+            "prev": null
+        }
+    }
+}

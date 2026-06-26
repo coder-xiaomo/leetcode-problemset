@@ -1,0 +1,116 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "X9VOwu",
+            "title": "字符串解码",
+            "content": "### 📺 视频题解  \n![394. 字符串解码.mp4](2a9aeb51-59d9-4cc3-9d02-4ac416c29cef)\n\n### 📖 文字题解\n#### 方法一：栈操作\n\n**思路和算法**\n\n本题中可能出现括号嵌套的情况，比如 `2[a2[bc]]`，这种情况下我们可以先转化成 `2[abcbc]`，在转化成 `abcbcabcbc`。我们可以把字母、数字和括号看成是独立的 TOKEN，并用栈来维护这些 TOKEN。具体的做法是，遍历这个栈：\n\n+ 如果当前的字符为数位，解析出一个数字（连续的多个数位）并进栈\n+ 如果当前的字符为字母或者左括号，直接进栈\n+ 如果当前的字符为右括号，开始出栈，一直到左括号出栈，出栈序列反转后拼接成一个字符串，此时取出栈顶的数字（**此时栈顶一定是数字，想想为什么？**），就是这个字符串应该出现的次数，我们根据这个次数和字符串构造出新的字符串并进栈\n\n重复如上操作，最终将栈中的元素按照从栈底到栈顶的顺序拼接起来，就得到了答案。**注意：这里可以用不定长数组来模拟栈操作，方便从栈底向栈顶遍历。**\n\n```cpp [sol1-C++]\nclass Solution {\npublic:\n    string getDigits(string &s, size_t &ptr) {\n        string ret = \"\";\n        while (isdigit(s[ptr])) {\n            ret.push_back(s[ptr++]);\n        }\n        return ret;\n    }\n\n    string getString(vector <string> &v) {\n        string ret;\n        for (const auto &s: v) {\n            ret += s;\n        }\n        return ret;\n    }\n\n    string decodeString(string s) {\n        vector <string> stk;\n        size_t ptr = 0;\n\n        while (ptr < s.size()) {\n            char cur = s[ptr];\n            if (isdigit(cur)) {\n                // 获取一个数字并进栈\n                string digits = getDigits(s, ptr);\n                stk.push_back(digits);\n            } else if (isalpha(cur) || cur == '[') {\n                // 获取一个字母并进栈\n                stk.push_back(string(1, s[ptr++])); \n            } else {\n                ++ptr;\n                vector <string> sub;\n                while (stk.back() != \"[\") {\n                    sub.push_back(stk.back());\n                    stk.pop_back();\n                }\n                reverse(sub.begin(), sub.end());\n                // 左括号出栈\n                stk.pop_back();\n                // 此时栈顶为当前 sub 对应的字符串应该出现的次数\n                int repTime = stoi(stk.back()); \n                stk.pop_back();\n                string t, o = getString(sub);\n                // 构造字符串\n                while (repTime--) t += o; \n                // 将构造好的字符串入栈\n                stk.push_back(t);\n            }\n        }\n\n        return getString(stk);\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    int ptr;\n\n    public String decodeString(String s) {\n        LinkedList<String> stk = new LinkedList<String>();\n        ptr = 0;\n\n        while (ptr < s.length()) {\n            char cur = s.charAt(ptr);\n            if (Character.isDigit(cur)) {\n                // 获取一个数字并进栈\n                String digits = getDigits(s);\n                stk.addLast(digits);\n            } else if (Character.isLetter(cur) || cur == '[') {\n                // 获取一个字母并进栈\n                stk.addLast(String.valueOf(s.charAt(ptr++))); \n            } else {\n                ++ptr;\n                LinkedList<String> sub = new LinkedList<String>();\n                while (!\"[\".equals(stk.peekLast())) {\n                    sub.addLast(stk.removeLast());\n                }\n                Collections.reverse(sub);\n                // 左括号出栈\n                stk.removeLast();\n                // 此时栈顶为当前 sub 对应的字符串应该出现的次数\n                int repTime = Integer.parseInt(stk.removeLast());\n                StringBuffer t = new StringBuffer();\n                String o = getString(sub);\n                // 构造字符串\n                while (repTime-- > 0) {\n                    t.append(o);\n                }\n                // 将构造好的字符串入栈\n                stk.addLast(t.toString());\n            }\n        }\n\n        return getString(stk);\n    }\n\n    public String getDigits(String s) {\n        StringBuffer ret = new StringBuffer();\n        while (Character.isDigit(s.charAt(ptr))) {\n            ret.append(s.charAt(ptr++));\n        }\n        return ret.toString();\n    }\n\n    public String getString(LinkedList<String> v) {\n        StringBuffer ret = new StringBuffer();\n        for (String s : v) {\n            ret.append(s);\n        }\n        return ret.toString();\n    }\n}\n```\n\n```golang [sol1-Golang]\nfunc decodeString(s string) string {\n    stk := []string{}\n    ptr := 0\n    for ptr < len(s) {\n        cur := s[ptr]\n        if cur >= '0' && cur <= '9' {\n            digits := getDigits(s, &ptr)\n            stk = append(stk, digits)\n        } else if (cur >= 'a' && cur <= 'z' || cur >= 'A' && cur <= 'Z') || cur == '[' {\n            stk = append(stk, string(cur))\n            ptr++\n        } else {\n            ptr++\n            sub := []string{}\n            for stk[len(stk)-1] != \"[\" {\n                sub = append(sub, stk[len(stk)-1])\n                stk = stk[:len(stk)-1]\n            }\n            for i := 0; i < len(sub)/2; i++ {\n                sub[i], sub[len(sub)-i-1] = sub[len(sub)-i-1], sub[i]\n            }\n            stk = stk[:len(stk)-1]\n            repTime, _ := strconv.Atoi(stk[len(stk)-1])\n            stk = stk[:len(stk)-1]\n            t := strings.Repeat(getString(sub), repTime)\n            stk = append(stk, t)\n        }\n    }\n    return getString(stk)\n}\n\nfunc getDigits(s string, ptr *int) string {\n    ret := \"\"\n    for ; s[*ptr] >= '0' && s[*ptr] <= '9'; *ptr++ {\n        ret += string(s[*ptr])\n    }\n    return ret\n}\n\nfunc getString(v []string) string {\n    ret := \"\"\n    for _, s := range v {\n        ret += s\n    }\n    return ret\n}\n```\n\n**复杂度分析**\n\n+ 时间复杂度：记解码后得出的字符串长度为 $S$，除了遍历一次原字符串 $s$，我们还需要将解码后的字符串中的每个字符都入栈，并最终拼接进答案中，故渐进时间复杂度为 $O(S+|s|)$，即 $O(S)$。\n+ 空间复杂度：记解码后得出的字符串长度为 $S$，这里用栈维护 TOKEN，栈的总大小最终与 $S$ 相同，故渐进空间复杂度为 $O(S)$。\n\n#### 方法二：递归\n\n**思路和算法**\n\n我们也可以用递归来解决这个问题，从左向右解析字符串：\n\n+ 如果当前位置为数字位，那么后面一定包含一个用方括号表示的字符串，即属于这种情况：`k[...]`：\n  + 我们可以先解析出一个数字，然后解析到了左括号，递归向下解析后面的内容，遇到对应的右括号就返回，此时我们可以根据解析出的数字 $x$ 解析出的括号里的字符串 $s'$ 构造出一个新的字符串 $x \\times s'$；\n  + 我们把 `k[...]` 解析结束后，再次调用递归函数，解析右括号右边的内容。\n+ 如果当前位置是字母位，那么我们直接解析当前这个字母，然后递归向下解析这个字母后面的内容。\n\n**如果觉得这里讲的比较抽象，可以结合代码理解一下这个过程。**\n\n**下面我们可以来讲讲这样做的依据，涉及到《编译原理》相关内容，感兴趣的同学可以参考阅读。** 根据题目的定义，我们可以推导出这样的巴科斯范式（BNF）：\n$$\n\\begin{aligned} \n    {\\rm String} &\\rightarrow {\n        \\rm Digits \\, [String] \\, String \\, | \\,\n        Alpha \\, String \\, | \\, \n        \\epsilon \n    } \\\\\n    {\\rm Digits} &\\rightarrow {\n        \\rm Digit \\, Digits \\, | \\,\n        Digit \n    } \\\\\n    {\\rm Alpha} &\\rightarrow { \n        a | \\cdots | z | A | \\cdots | Z\n    } \\\\\n    {\\rm Digit} &\\rightarrow { \n        0 | \\cdots | 9\n    } \\\\\n    \\end{aligned}\n$$\n\n+ $\\rm Digit$ 表示十进制数位，可能的取值是 $0$ 到 $9$ 之间的整数\n+ $\\rm Alpha$ 表示字母，可能的取值是大小写字母的集合，共 $52$ 个\n+ $\\rm Digits$ 表示一个整数，它的组成是 $\\rm Digit$ 出现一次或多次\n+ $\\rm String$ 代表一个代解析的字符串，它可能有三种构成，如 BNF 所示\n+ $\\rm \\epsilon$ 表示空串，即没有任何子字符\n\n由于 $\\rm Digits$ 和 $\\rm Alpha$ 构成简单，很容易进行词法分析，我们把它他们看作独立的 TOKEN。那么此时的非终结符有 $\\rm String$，终结符有 $\\rm Digits$、$\\rm Alpha$ 和 $\\rm  \\epsilon$，我们可以根据非终结符和 FOLLOW 集构造出这样的预测分析表：\n| |$\\rm Alpha$|$\\rm Digits$|$\\rm \\epsilon$|\n|----|----|----|----|\n|$\\rm String$| $\\rm String \\rightarrow Alpha \\, String$ | $\\rm String \\rightarrow Digits \\, [String] \\, String$ | $\\rm String \\rightarrow \\epsilon$ |\n\n可见不含多重定义的项，为 LL(1) 文法，即：\n\n- 从左向右分析（Left-to-right-parse）\n- 最左推导（Leftmost-derivation）\n- 超前查看一个符号（1-symbol lookahead）\n\n它决定了我们从左向右遍历这个字符串，每次只判断当前最左边的一个字符的分析方法是正确的。\n\n代码如下。\n\n```cpp [sol2-C++]\nclass Solution {\npublic:\n    string src; \n    size_t ptr;\n\n    int getDigits() {\n        int ret = 0;\n        while (ptr < src.size() && isdigit(src[ptr])) {\n            ret = ret * 10 + src[ptr++] - '0';\n        }\n        return ret;\n    }\n\n    string getString() {\n        if (ptr == src.size() || src[ptr] == ']') {\n            // String -> EPS\n            return \"\";\n        }\n\n        char cur = src[ptr]; int repTime = 1;\n        string ret;\n\n        if (isdigit(cur)) {\n            // String -> Digits [ String ] String\n            // 解析 Digits\n            repTime = getDigits(); \n            // 过滤左括号\n            ++ptr;\n            // 解析 String\n            string str = getString(); \n            // 过滤右括号\n            ++ptr;\n            // 构造字符串\n            while (repTime--) ret += str; \n        } else if (isalpha(cur)) {\n            // String -> Char String\n            // 解析 Char\n            ret = string(1, src[ptr++]);\n        }\n        \n        return ret + getString();\n    }\n\n    string decodeString(string s) {\n        src = s;\n        ptr = 0;\n        return getString();\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    String src;\n    int ptr;\n\n    public String decodeString(String s) {\n        src = s;\n        ptr = 0;\n        return getString();\n    }\n\n    public String getString() {\n        if (ptr == src.length() || src.charAt(ptr) == ']') {\n            // String -> EPS\n            return \"\";\n        }\n\n        char cur = src.charAt(ptr);\n        int repTime = 1;\n        String ret = \"\";\n\n        if (Character.isDigit(cur)) {\n            // String -> Digits [ String ] String\n            // 解析 Digits\n            repTime = getDigits(); \n            // 过滤左括号\n            ++ptr;\n            // 解析 String\n            String str = getString(); \n            // 过滤右括号\n            ++ptr;\n            // 构造字符串\n            while (repTime-- > 0) {\n                ret += str;\n            }\n        } else if (Character.isLetter(cur)) {\n            // String -> Char String\n            // 解析 Char\n            ret = String.valueOf(src.charAt(ptr++));\n        }\n        \n        return ret + getString();\n    }\n\n    public int getDigits() {\n        int ret = 0;\n        while (ptr < src.length() && Character.isDigit(src.charAt(ptr))) {\n            ret = ret * 10 + src.charAt(ptr++) - '0';\n        }\n        return ret;\n    }\n}\n```\n\n```golang [sol2-Golang]\nvar (\n    src string\n    ptr int\n)\n\nfunc decodeString(s string) string {\n    src = s\n    ptr = 0\n    return getString()\n}\n\nfunc getString() string {\n    if ptr == len(src) || src[ptr] == ']' {\n        return \"\"\n    }\n    cur := src[ptr]\n    repTime := 1\n    ret := \"\"\n    if cur >= '0' && cur <= '9' {\n        repTime = getDigits()\n        ptr++\n        str := getString()\n        ptr++\n        ret = strings.Repeat(str, repTime)\n    } else if cur >= 'a' && cur <= 'z' || cur >= 'A' && cur <= 'Z' {\n        ret = string(cur)\n        ptr++\n    }\n    return ret + getString()\n}\n\nfunc getDigits() int {\n    ret := 0\n    for ; src[ptr] >= '0' && src[ptr] <= '9'; ptr++ {\n        ret = ret * 10 + int(src[ptr] - '0')\n    }\n    return ret\n}\n```\n\n**复杂度分析**\n\n+ 时间复杂度：记解码后得出的字符串长度为 $S$，除了遍历一次原字符串 $s$，我们还需要将解码后的字符串中的每个字符都拼接进答案中，故渐进时间复杂度为 $O(S+|s|)$，即 $O(S)$。\n+ 空间复杂度：若不考虑答案所占用的空间，那么就只剩递归使用栈空间的大小，这里栈空间的使用和递归树的深度成正比，最坏情况下为 $O(|s|)$，故渐进空间复杂度为 $O(|s|)$。",
+            "slateValue": "",
+            "slug": "zi-fu-chuan-jie-ma-by-leetcode-solution",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "X9VOwu",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 242,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 16,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 7,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Stack",
+                    "nameTranslated": "栈",
+                    "slug": "stack",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-05-27T15:44:13.269488+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "📺 视频题解 📖 文字题解 方法一：栈操作 思路和算法 本题中可能出现括号嵌套的情况，比如 2[a2[bc]]，这种情况下我们可以先转化成 2[abcbc]，在转化成 abcbcabcbc。我们可以把字母、数字和括号看成是独立的 TOKEN，并用栈来维护这些 TOKEN。具体的做法是，遍历这个栈： 如果当前的字符为数位",
+            "topic": {
+                "id": 264391,
+                "subscribed": false,
+                "commentCount": 643,
+                "viewCount": 129657,
+                "post": {
+                    "id": 680203,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 956,
+            "isEditorsPick": false,
+            "hitCount": 431424,
+            "videosInfo": [
+                {
+                    "videoId": "1a2637befb3f4760a67ec4155beda5d2",
+                    "coverUrl": "https://video.leetcode.cn/image/cover/983FED456A16453483DD76782E70A818-6-2.png?auth_key=1782488071-cb661bd952f44831ac6327919959b1cb-0-ada9e4bf8c1135c5109fcfa43c75abb5",
+                    "duration": 328.704
+                }
+            ],
+            "question": {
+                "titleSlug": "decode-string",
+                "questionFrontendId": "394"
+            },
+            "next": {
+                "slug": "decode-string-fu-zhu-zhan-fa-di-gui-fa-by-jyd",
+                "title": "字符串解码（辅助栈法 / 递归法，清晰图解）"
+            },
+            "prev": null
+        }
+    }
+}

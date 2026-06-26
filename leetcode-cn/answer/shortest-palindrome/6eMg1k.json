@@ -1,0 +1,128 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "6eMg1k",
+            "title": "最短回文串",
+            "content": "#### 前言\n\n我们需要在给定的字符串 $s$ 的前面添加字符串 $s'$，得到**最短的**回文串。这里我们用 $s'+s$ 表示得到的回文串。显然，这等价于找到**最短的**字符串 $s'$，使得 $s'+s$ 是一个回文串。\n\n由于我们一定可以将 $s$ 去除第一个字符后得到的字符串反序地添加在 $s$ 的前面得到一个回文串，因此一定有 $|s'| < |s|$，其中 $|s|$ 表示字符串 $s$ 的长度。\n\n> 例如当 $s = \\text{abccda}$ 时，我们可以将 $\\text{bccda}$ 的反序 $\\text{adccb}$ 添加在前面得到回文串 $\\text{adccbabccda}$。\n\n这样一来，我们可以将 $s$ 分成两部分：\n\n- 长度为 $|s| - |s'|$ 的前缀 $s_1$；\n\n- 长度为 $|s'|$ 的后缀 $s_2$。\n\n由于 $s'+s$ 是一个回文串，那么 $s'$ 的反序就必然与 $s_2$ 相同，并且 $s_1$ 本身就是一个回文串。因此，要找到**最短的** $s'$，等价于找到**最长的** $s_1$。也就是说，我们需要在字符串 $s$ 中超出一个**最长的**前缀 $s_1$，它是一个回文串。当我们找到 $s_1$ 后，剩余的部分即为 $s_2$，其反序即为 $s'$。\n\n要想找到 $s_1$，最简单的方法就是暴力地枚举 $s_1$ 的结束位置，并判断其是否是一个回文串。但该方法的时间复杂度为 $O(|s|^2)$，无法通过本题。因此，我们需要使用更优秀的方法。\n\n#### 方法一：字符串哈希\n\n**思路**\n\n我们可以用 Rabin-Karp 字符串哈希算法来找出最长的回文串。\n\n在该方法中，我们将字符串看成一个 $\\textit{base}$ 进制的数，它对应的十进制值就是哈希值。显然，两个字符串的哈希值相等，当且仅当这两个字符串本身相同。然而如果字符串本身很长，其对应的十进制值在大多数语言中无法使用内置的整数类型进行存储。因此，我们会将十进制值对一个大质数 $\\textit{mod}$ 进行取模。此时：\n\n- 如果两个字符串的哈希值在取模后不相等，那么这两个字符串本身一定不相同；\n\n- 如果两个字符串的哈希值在取模后相等，并不能代表这两个字符串本身一定相同。例如两个字符串的哈希值分别为 $2$ 和 $15$，模数为 $13$，虽然 $2 \\equiv 15 ~~ (\\bmod~13)$，但它们不相同。\n\n然而，我们在编码中使用的 $\\textit{base}$ 和 $\\textit{mod}$ 对于测试数据本身是「黑盒」的，也就是说，并不存在一组测试数据，使得对于任意的 $\\textit{base}$ 和 $\\textit{mod}$，都会产生哈希碰撞，导致错误的判断结果。因此，我们可以「投机取巧」地尝试不同的 $\\textit{base}$ 和 $\\textit{mod}$，使之可以通过所有的测试数据。\n\n> **注意：在工程代码中，千万不能投机取巧。**\n\n一般来说，我们选取一个大于字符集大小（即字符串中可能出现的字符种类的数目）的质数作为 $\\textit{base}$，再选取一个在字符串长度平方级别左右的质数作为 $\\textit{mod}$，产生哈希碰撞的概率就会很低。\n\n**算法**\n\n一个字符串是回文串，当且仅当该字符串与它的反序相同。因此，我们仍然暴力地枚举 $s_1$ 的结束位置，并计算 $s_1$ 与 $s_1$ 反序的哈希值。如果这两个哈希值相等，说明我们找到了一个 $s$ 的前缀回文串。\n\n在枚举 $s_1$ 的结束位置时，我们可以从小到大地进行枚举，这样就可以很容易地维护 $s_1$ 与 $s_1$ 反序的哈希值：\n\n设当前枚举到的结束位置为 $i$，对应的 $s_1$ 记为 $s_1^i$，其反序记为 $\\hat{s}_1^i$。我们可以通过递推的方式，在 $O(1)$ 的时间通过 $s_1^{i-1}$ 和 $\\hat{s}_1^{i-1}$ 的哈希值得到 $s_1^i$ 和 $\\hat{s}_1^i$ 的哈希值：\n\n- $\\text{hash}(s_1^i) = \\text{hash}(s_1^{i-1}) \\times \\textit{base} + \\text{ASCII}(s[i])$\n\n- $\\text{hash}(\\hat{s}_1^i) = \\text{hash}(\\hat{s}_1^{i-1}) + \\text{ASCII}(s[i]) \\times \\text{base}^i$\n\n其中 $\\text{ASCII}(x)$ 表示字符 $x$ 的 $\\text{ASCII}$ 码。注意需要将结果对 $\\textit{mod}$ 取模。\n\n如果 $\\text{hash}(s_1^i) = \\text{hash}(\\hat{s}_1^i)$，那么 $s_1^i$ 就是一个回文串。我们将最长的回文串作为最终的 $s_1$。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    string shortestPalindrome(string s) {\n        int n = s.size();\n        int base = 131, mod = 1000000007;\n        int left = 0, right = 0, mul = 1;\n        int best = -1;\n        for (int i = 0; i < n; ++i) {\n            left = ((long long)left * base + s[i]) % mod;\n            right = (right + (long long)mul * s[i]) % mod;\n            if (left == right) {\n                best = i;\n            }\n            mul = (long long)mul * base % mod;\n        }\n        string add = (best == n - 1 ? \"\" : s.substr(best + 1, n));\n        reverse(add.begin(), add.end());\n        return add + s;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public String shortestPalindrome(String s) {\n        int n = s.length();\n        int base = 131, mod = 1000000007;\n        int left = 0, right = 0, mul = 1;\n        int best = -1;\n        for (int i = 0; i < n; ++i) {\n            left = (int) (((long) left * base + s.charAt(i)) % mod);\n            right = (int) ((right + (long) mul * s.charAt(i)) % mod);\n            if (left == right) {\n                best = i;\n            }\n            mul = (int) ((long) mul * base % mod);\n        }\n        String add = (best == n - 1 ? \"\" : s.substring(best + 1));\n        StringBuffer ans = new StringBuffer(add).reverse();\n        ans.append(s);\n        return ans.toString();\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def shortestPalindrome(self, s: str) -> str:\n        n = len(s)\n        base, mod = 131, 10**9 + 7\n        left = right = 0\n        mul = 1\n        best = -1\n        \n        for i in range(n):\n            left = (left * base + ord(s[i])) % mod\n            right = (right + mul * ord(s[i])) % mod\n            if left == right:\n                best = i\n            mul = mul * base % mod\n        \n        add = (\"\" if best == n - 1 else s[best+1:])\n        return add[::-1] + s\n```\n\n```C [sol1-C]\nchar* shortestPalindrome(char* s) {\n    int n = strlen(s);\n    int base = 131, mod = 1000000007;\n    int left = 0, right = 0, mul = 1;\n    int best = -1;\n    for (int i = 0; i < n; ++i) {\n        left = ((long long)left * base + s[i]) % mod;\n        right = (right + (long long)mul * s[i]) % mod;\n        if (left == right) {\n            best = i;\n        }\n        mul = (long long)mul * base % mod;\n    }\n    int ret_len = n - best - 1;\n    char* ret = malloc(sizeof(char) * (ret_len + n + 1));\n    for (int i = 0; i < ret_len; i++) ret[i] = s[n - i - 1];\n    for (int i = 0; i < n; i++) ret[i + ret_len] = s[i];\n    ret[ret_len + n] = 0;\n    return ret;\n}\n```\n\n```golang [sol1-Golang]\nfunc shortestPalindrome(s string) string {\n    n := len(s)\n    base, mod := 131, 1000000007\n    left, right, mul := 0, 0, 1\n    best := -1\n    for i := 0; i < n; i++ {\n        left = (left * base + int(s[i] - '0')) % mod\n        right = (right + mul * int(s[i] - '0')) % mod\n        if left == right {\n            best = i\n        }\n        mul = mul * base % mod\n    }\n    add := \"\"\n    if best != n - 1 {\n        add = s[best + 1:]\n    }\n    b := []byte(add)\n    for i := 0; i < len(b) / 2; i++ {\n        b[i], b[len(b) - 1 -i] = b[len(b) - 1 -i], b[i]\n    }\n    return string(b) + s\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(|s|)$。\n\n- 空间复杂度：$O(1)$。\n\n#### 方法二：KMP 算法\n\n**思路与算法**\n\n我们也可以不「投机取巧」，而是使用 KMP 字符串匹配算法来找出这个最长的前缀回文串。\n\n具体地，记 $\\hat{s}$ 为 $s$ 的反序，由于 $s_1$ 是 $s$ 的前缀，那么 $\\hat{s}_1$ 就是 $\\hat{s}$ 的后缀。\n\n考虑到 $s_1$ 是一个回文串，因此 $s_1 = \\hat{s}_1$，$s_1$ 同样是 $\\hat{s}$ 的后缀。\n\n这样一来，我们将 $s$ 作为模式串，$\\hat{s}$ 作为查询串进行匹配。当遍历到 $\\hat{s}$ 的末尾时，如果匹配到 $s$ 中的第 $i$ 个字符，那么说明 $s$ 的前 $i$ 个字符与 $\\hat{s}$ 的后 $i$ 个字符相匹配（即相同），$s$ 的前 $i$ 个字符对应 $s_1$，$\\hat{s}$ 的后 $i$ 个字符对应 $\\hat{s}_1$，由于 $s_1 = \\hat{s}_1$，因此 $s_1$ 就是一个回文串。\n\n> 如果存在更长的回文串，那么 KMP 算法的匹配结果也会大于 $i$，因此 $s_1$ 就是最长的前缀回文串。\n\n**代码**\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    string shortestPalindrome(string s) {\n        int n = s.size();\n        vector<int> fail(n, -1);\n        for (int i = 1; i < n; ++i) {\n            int j = fail[i - 1];\n            while (j != -1 && s[j + 1] != s[i]) {\n                j = fail[j];\n            }\n            if (s[j + 1] == s[i]) {\n                fail[i] = j + 1;\n            }\n        }\n        int best = -1;\n        for (int i = n - 1; i >= 0; --i) {\n            while (best != -1 && s[best + 1] != s[i]) {\n                best = fail[best];\n            }\n            if (s[best + 1] == s[i]) {\n                ++best;\n            }\n        }\n        string add = (best == n - 1 ? \"\" : s.substr(best + 1, n));\n        reverse(add.begin(), add.end());\n        return add + s;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public String shortestPalindrome(String s) {\n        int n = s.length();\n        int[] fail = new int[n];\n        Arrays.fill(fail, -1);\n        for (int i = 1; i < n; ++i) {\n            int j = fail[i - 1];\n            while (j != -1 && s.charAt(j + 1) != s.charAt(i)) {\n                j = fail[j];\n            }\n            if (s.charAt(j + 1) == s.charAt(i)) {\n                fail[i] = j + 1;\n            }\n        }\n        int best = -1;\n        for (int i = n - 1; i >= 0; --i) {\n            while (best != -1 && s.charAt(best + 1) != s.charAt(i)) {\n                best = fail[best];\n            }\n            if (s.charAt(best + 1) == s.charAt(i)) {\n                ++best;\n            }\n        }\n        String add = (best == n - 1 ? \"\" : s.substring(best + 1));\n        StringBuffer ans = new StringBuffer(add).reverse();\n        ans.append(s);\n        return ans.toString();\n    }\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def shortestPalindrome(self, s: str) -> str:\n        n = len(s)\n        fail = [-1] * n\n        for i in range(1, n):\n            j = fail[i - 1]\n            while j != -1 and s[j + 1] != s[i]:\n                j = fail[j]\n            if s[j + 1] == s[i]:\n                fail[i] = j + 1\n        \n        best = -1\n        for i in range(n - 1, -1, -1):\n            while best != -1 and s[best + 1] != s[i]:\n                best = fail[best]\n            if s[best + 1] == s[i]:\n                best += 1\n\n        add = (\"\" if best == n - 1 else s[best+1:])\n        return add[::-1] + s\n```\n\n```C [sol2-C]\nchar* shortestPalindrome(char* s) {\n    int n = strlen(s);\n    int fail[n + 1];\n    memset(fail, -1, sizeof(fail));\n    for (int i = 1; i < n; ++i) {\n        int j = fail[i - 1];\n        while (j != -1 && s[j + 1] != s[i]) {\n            j = fail[j];\n        }\n        if (s[j + 1] == s[i]) {\n            fail[i] = j + 1;\n        }\n    }\n    int best = -1;\n    for (int i = n - 1; i >= 0; --i) {\n        while (best != -1 && s[best + 1] != s[i]) {\n            best = fail[best];\n        }\n        if (s[best + 1] == s[i]) {\n            ++best;\n        }\n    }\n    int ret_len = n - best - 1;\n    char* ret = malloc(sizeof(char) * (ret_len + n + 1));\n    for (int i = 0; i < ret_len; i++) ret[i] = s[n - i - 1];\n    for (int i = 0; i < n; i++) ret[i + ret_len] = s[i];\n    ret[ret_len + n] = 0;\n    return ret;\n}\n```\n\n```golang [sol2-Golang]\nfunc shortestPalindrome(s string) string {\n    n := len(s)\n    fail := make([]int, n)\n    for i := 0; i < n; i++ {\n        fail[i] = -1\n    }\n    for i := 1; i < n; i++ {\n        j := fail[i - 1]\n        for j != -1 && s[j + 1] != s[i] {\n            j = fail[j]\n        }\n        if s[j + 1] == s[i] {\n            fail[i] = j + 1\n        }\n    }\n    best := -1\n    for i := n - 1; i >= 0; i-- {\n        for best != -1 && s[best + 1] != s[i] {\n            best = fail[best]\n        }\n        if s[best + 1] == s[i] {\n            best++\n        }\n    }\n    add := \"\"\n    if best != n - 1 {\n        add = s[best + 1:]\n    }\n    b := []byte(add)\n    for i := 0; i < len(b) / 2; i++ {\n        b[i], b[len(b) - 1 -i] = b[len(b) - 1 -i], b[i]\n    }\n    return string(b) + s\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(|s|)$。\n\n- 空间复杂度：$O(|s|)$。\n\n**结语**\n\n如果读者对 KMP 算法不熟悉，可以自行查阅资料进行学习。KMP 算法在笔试或面试中也是非常罕见的考点，读者可以参考「[459. 重复的子字符串的官方题解](https://leetcode.cn/problems/repeated-substring-pattern/solution/zhong-fu-de-zi-zi-fu-chuan-by-leetcode-solution/)」中的对应部分检验自己的学习成果。\n\n本题也可以用 Manacher 算法找出回文串，但该方法已经达到竞赛难度，读者可以参考「[5. 最长回文子串的官方题解](https://leetcode.cn/problems/longest-palindromic-substring/solution/zui-chang-hui-wen-zi-chuan-by-leetcode-solution/)」中的对应部分汲取一些灵感，并尝试用该算法解决本题。",
+            "slateValue": "",
+            "slug": "zui-duan-hui-wen-chuan-by-leetcode-solution",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "6eMg1k",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 97,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 7,
+                    "reactionType": "CONFUSED"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "字符串哈希",
+                    "nameTranslated": "",
+                    "slug": "zi-fu-chuan-ha-xi",
+                    "tagType": "ADDITIONAL_TOPIC"
+                },
+                {
+                    "name": "String Matching",
+                    "nameTranslated": "字符串匹配",
+                    "slug": "string-matching",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2020-08-28T15:31:12.739796+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "前言 我们需要在给定的字符串 $s$ 的前面添加字符串 $s'$，得到最短的回文串。这里我们用 $s'+s$ 表示得到的回文串。显然，这等价于找到最短的字符串 $s'$，使得 $s'+s$ 是一个回文串。 由于我们一定可以将 $s$ 去除第一个字符后得到的字符串反序地添加在 $s$ 的前面得到一个回文串，因此一定有 $",
+            "topic": {
+                "id": 392561,
+                "subscribed": false,
+                "commentCount": 211,
+                "viewCount": 39644,
+                "post": {
+                    "id": 960058,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 294,
+            "isEditorsPick": false,
+            "hitCount": 86033,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "shortest-palindrome",
+                "questionFrontendId": "214"
+            },
+            "next": {
+                "slug": "shou-hua-tu-jie-cong-jian-dan-de-bao-li-fa-xiang-d",
+                "title": "「手画图解」从简单的暴力法想到 KMP"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,140 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "KT7Z3Z",
+            "title": "跳跃游戏 V",
+            "content": "#### 方法一：记忆化搜索\n\n我们用 $\\textit{dp}[i]$ 表示从位置 $i$ 开始跳跃，最多可以访问的下标个数。我们可以写出如下的状态转移方程：\n\n$$\n\\textit{dp}[i] = \\max(\\textit{dp}[j]) + 1\n$$\n\n其中 $j$ 需要满足三个条件：\n\n- $0 \\leq j < \\textit{arr}.\\text{length}$，即 $j$ 必须在数组 $\\textit{arr}$ 的范围内；\n\n- $i - d \\leq j \\leq i + d$，即 $j$ 到 $i$ 的距离不能超过给定的 $d$；\n\n- 从 $\\textit{arr}[j]$ 到 $\\textit{arr}[i]$ 的这些元素除了 $\\textit{arr}[i]$ 本身之外，都必须小于 $\\textit{arr}[i]$，这是题目中的要求。\n\n对于任意的位置 $i$，根据第二个条件，我们只需要在其左右两侧最多扫描 $d$ 个元素，就可以找出所有满足条件的位置 $j$。随后我们通过这些 $j$ 的 $\\textit{dp}$ 值对位置 $i$ 进行状态转移，就可以得到 $\\textit{dp}[i]$ 的值。\n\n此时出现了一个需要解决的问题：如何保证在处理到位置 $i$ 时，所有满足条件的位置 $j$ 都已经被处理过了呢？换句话说，如何保证这些位置 $j$ 对应的 $\\textit{dp}[j]$ 都已经计算过了？如果我们用常规的动态规划方法（例如根据位置从小到大或者从大到小进行动态规划），那么并不能保证这一点，因为 $j$ 分布在位置 $i$ 的两侧。\n\n因此我们需要借助记忆化搜索的方法，即当我们需要 $\\textit{dp}[j]$ 的值时，如果我们之前已经计算过，就直接返回这个值（记忆）；如果我们之前没有计算过，就先将 $\\textit{dp}[i]$ 搁在一边，转而去计算 $\\textit{dp}[j]$（搜索），当 $\\textit{dp}[j]$ 计算完成后，再用其对 $\\textit{dp}[i]$ 进行状态转移。\n\n记忆化搜索一定能在有限的时间内停止吗？如果它不能在有限的时间内停止，说明在搜索的过程中出现了环。即当我们需要计算 $\\textit{dp}[i]$ 时，我们发现某个 $\\textit{dp}[j]$ 没有计算过，接着在计算 $\\textit{dp}[j]$ 时，又发现某个 $\\textit{dp}[k]$ 没有计算过，以此类推，直到某次搜索时发现当前位置的 $\\textit{dp}$ 值需要 $\\textit{dp}[i]$ 的值才能得到，这样就出现了环。在本题中，根据第三个条件，$\\textit{arr}[j]$ 是一定小于 $\\textit{arr}[i]$ 的，即我们的搜索每深入一层，就跳到了高度更小的位置。因此在搜索的过程中不会出现环。这样一来，我们通过记忆化搜索，就可以在与常规的动态规划相同的时间复杂度内得到所有的 $\\textit{dp}$ 值。\n\n注意：如果你不太能理解这篇题解在讲什么，请使用搜索引擎，补充「记忆化搜索」的相关知识。记忆化搜索以深度优先搜索为基础，在第一次搜索到某个状态时，会将该状态与其对应的值存储下来，这样在未来的搜索中，如果搜索到相同的状态，就不用再进行重复搜索了。记忆化搜索和动态规划非常相似，大部分的题目如果可以使用动态规划解决，那么一定可以使用记忆化搜索解决，反之亦然。这是因为记忆化搜索要求搜索状态满足拓扑序（即不会出现环），而动态规划同样要求状态满足拓扑序，不然就没法进行状态转移了。\n\n```C++ [sol1-C++]\nclass Solution {\nprivate:\n    vector<int> f;\n    \npublic:\n    void dfs(vector<int>& arr, int id, int d, int n) {\n        if (f[id] != -1) {\n            return;\n        }\n        f[id] = 1;\n        for (int i = id - 1; i >= 0 && id - i <= d && arr[id] > arr[i]; --i) {\n            dfs(arr, i, d, n);\n            f[id] = max(f[id], f[i] + 1);\n        }\n        for (int i = id + 1; i < n && i - id <= d && arr[id] > arr[i]; ++i) {\n            dfs(arr, i, d, n);\n            f[id] = max(f[id], f[i] + 1);\n        }\n    }\n    \n    int maxJumps(vector<int>& arr, int d) {\n        int n = arr.size();\n        f.resize(n, -1);\n        for (int i = 0; i < n; ++i) {\n            dfs(arr, i, d, n);\n        }\n        return *max_element(f.begin(), f.end());\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def maxJumps(self, arr: List[int], d: int) -> int:\n        seen = dict()\n\n        def dfs(pos):\n            if pos in seen:\n                return\n            seen[pos] = 1\n\n            i = pos - 1\n            while i >= 0 and pos - i <= d and arr[pos] > arr[i]:\n                dfs(i)\n                seen[pos] = max(seen[pos], seen[i] + 1)\n                i -= 1\n            i = pos + 1\n            while i < len(arr) and i - pos <= d and arr[pos] > arr[i]:\n                dfs(i)\n                seen[pos] = max(seen[pos], seen[i] + 1)\n                i += 1\n\n        for i in range(len(arr)):\n            dfs(i)\n\n        return max(seen.values())\n```\n\n```Java [sol1-Java]\nclass Solution {\n    private int[] f;\n    \n    private void dfs(int[] arr, int id, int d, int n) {\n        if (f[id] != -1) {\n            return;\n        }\n        f[id] = 1;\n        for (int i = id - 1; i >= 0 && id - i <= d && arr[id] > arr[i]; --i) {\n            dfs(arr, i, d, n);\n            f[id] = Math.max(f[id], f[i] + 1);\n        }\n        for (int i = id + 1; i < n && i - id <= d && arr[id] > arr[i]; ++i) {\n            dfs(arr, i, d, n);\n            f[id] = Math.max(f[id], f[i] + 1);\n        }\n    }\n    \n    public int maxJumps(int[] arr, int d) {\n        int n = arr.length;\n        f = new int[n];\n        Arrays.fill(f, -1);\n        for (int i = 0; i < n; ++i) {\n            dfs(arr, i, d, n);\n        }\n        int ans = 0;\n        for (int val : f) {\n            ans = Math.max(ans, val);\n        }\n        return ans;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    private int[] f;\n    \n    private void Dfs(int[] arr, int id, int d, int n) {\n        if (f[id] != -1) {\n            return;\n        }\n        f[id] = 1;\n        for (int i = id - 1; i >= 0 && id - i <= d && arr[id] > arr[i]; --i) {\n            Dfs(arr, i, d, n);\n            f[id] = Math.Max(f[id], f[i] + 1);\n        }\n        for (int i = id + 1; i < n && i - id <= d && arr[id] > arr[i]; ++i) {\n            Dfs(arr, i, d, n);\n            f[id] = Math.Max(f[id], f[i] + 1);\n        }\n    }\n    \n    public int MaxJumps(int[] arr, int d) {\n        int n = arr.Length;\n        f = new int[n];\n        Array.Fill(f, -1);\n        for (int i = 0; i < n; ++i) {\n            Dfs(arr, i, d, n);\n        }\n        return f.Max();\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc maxJumps(arr []int, d int) int {\n    n := len(arr)\n    f := make([]int, n)\n    for i := range f {\n        f[i] = -1\n    }\n    \n    var dfs func(int)\n    dfs = func(id int) {\n        if f[id] != -1 {\n            return\n        }\n        f[id] = 1\n        for i := id - 1; i >= 0 && id-i <= d && arr[id] > arr[i]; i-- {\n            dfs(i)\n            if f[i]+1 > f[id] {\n                f[id] = f[i] + 1\n            }\n        }\n        for i := id + 1; i < n && i-id <= d && arr[id] > arr[i]; i++ {\n            dfs(i)\n            if f[i]+1 > f[id] {\n                f[id] = f[i] + 1\n            }\n        }\n    }\n    \n    for i := 0; i < n; i++ {\n        dfs(i)\n    }\n    \n    ans := 0\n    for _, val := range f {\n        if val > ans {\n            ans = val\n        }\n    }\n    return ans\n}\n```\n\n```C [sol1-C]\nvoid dfs(int* arr, int id, int d, int n, int *f) {\n    if (f[id] != -1) {\n        return;\n    }\n    f[id] = 1;\n    for (int i = id - 1; i >= 0 && id - i <= d && arr[id] > arr[i]; --i) {\n        dfs(arr, i, d, n, f);\n        if (f[i] + 1 > f[id]) {\n            f[id] = f[i] + 1;\n        }\n    }\n    for (int i = id + 1; i < n && i - id <= d && arr[id] > arr[i]; ++i) {\n        dfs(arr, i, d, n, f);\n        if (f[i] + 1 > f[id]) {\n            f[id] = f[i] + 1;\n        }\n    }\n}\n\nint maxJumps(int* arr, int arrSize, int d) {\n    int n = arrSize;\n    int *f = (int*)malloc(n * sizeof(int));\n    for (int i = 0; i < n; ++i) {\n        f[i] = -1;\n    }\n    \n    for (int i = 0; i < n; ++i) {\n        dfs(arr, i, d, n, f);\n    }\n    \n    int ans = 0;\n    for (int i = 0; i < n; ++i) {\n        if (f[i] > ans) {\n            ans = f[i];\n        }\n    }\n    \n    free(f);\n    return ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar maxJumps = function(arr, d) {\n    const n = arr.length;\n    const f = new Array(n).fill(-1);\n    \n    const dfs = (id) => {\n        if (f[id] !== -1) {\n            return;\n        }\n        f[id] = 1;\n        for (let i = id - 1; i >= 0 && id - i <= d && arr[id] > arr[i]; --i) {\n            dfs(i);\n            f[id] = Math.max(f[id], f[i] + 1);\n        }\n        for (let i = id + 1; i < n && i - id <= d && arr[id] > arr[i]; ++i) {\n            dfs(i);\n            f[id] = Math.max(f[id], f[i] + 1);\n        }\n    };\n    \n    for (let i = 0; i < n; ++i) {\n        dfs(i);\n    }\n    \n    return Math.max(...f);\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction maxJumps(arr: number[], d: number): number {\n    const n = arr.length;\n    const f: number[] = new Array(n).fill(-1);\n    \n    const dfs = (id: number): void => {\n        if (f[id] !== -1) {\n            return;\n        }\n        f[id] = 1;\n        for (let i = id - 1; i >= 0 && id - i <= d && arr[id] > arr[i]; --i) {\n            dfs(i);\n            f[id] = Math.max(f[id], f[i] + 1);\n        }\n        for (let i = id + 1; i < n && i - id <= d && arr[id] > arr[i]; ++i) {\n            dfs(i);\n            f[id] = Math.max(f[id], f[i] + 1);\n        }\n    };\n    \n    for (let i = 0; i < n; ++i) {\n        dfs(i);\n    }\n    \n    return Math.max(...f);\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn max_jumps(arr: Vec<i32>, d: i32) -> i32 {\n        let n = arr.len();\n        let mut f = vec![-1; n];\n        let d = d as usize;\n        \n        fn dfs(arr: &Vec<i32>, f: &mut Vec<i32>, id: usize, d: usize, n: usize) {\n            if f[id] != -1 {\n                return;\n            }\n            f[id] = 1;\n            \n            let mut i = id as i32 - 1;\n            while i >= 0 && (id as i32 - i) <= d as i32 && arr[id] > arr[i as usize] {\n                let i_idx = i as usize;\n                dfs(arr, f, i_idx, d, n);\n                f[id] = f[id].max(f[i_idx] + 1);\n                i -= 1;\n            }\n            \n            for i in id + 1..n {\n                if i - id <= d && arr[id] > arr[i] {\n                    dfs(arr, f, i, d, n);\n                    f[id] = f[id].max(f[i] + 1);\n                } else {\n                    break;\n                }\n            }\n        }\n        \n        for i in 0..n {\n            dfs(&arr, &mut f, i, d, n);\n        }\n        \n        *f.iter().max().unwrap()\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(ND)$，其中 $N$ 是数组 `arr` 的长度。\n\n- 空间复杂度：$O(N)$。\n\n**思考**\n\n上面我们提到：大部分的题目如果可以使用动态规划解决，那么一定可以使用记忆化搜索解决，反之亦然。那么本题如何使用动态规划解决呢？\n\n由于我们已经得到了状态转移方程，因此重点在于动态规划的顺序。可以发现，如果我们将所有的位置按照高度进行升序排序，并按照该顺序计算状态转移方程，那么就可以完成动态规划。这是因为在第三个条件中，`arr[j] < arr[i]` 一定成立，因此对于位置 `i`，如果我们在此之前计算出了所有高度小于 `arr[i]` 的位置的 `dp` 值，那么在对位置 `i` 进行状态转移时，所有满足条件的 `j` 的 `dp` 值就已经全部计算完成了，因此我们可以通过该顺序完成动态规划。",
+            "slateValue": "",
+            "slug": "tiao-yue-you-xi-v-by-leetcode-solution",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "KT7Z3Z",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 22,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "CONFUSED"
+                },
+                {
+                    "count": 0,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-03-04T09:23:13.037806+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：记忆化搜索 我们用 [latex] 表示从位置 [latex] 开始跳跃，最多可以访问的下标个数。我们可以写出如下的状态转移方程： [latex] 其中 [latex] 需要满足三个条件： [latex]，即 [latex] 必须在数组 [latex] 的范围内； [latex]，即 [latex] 到 [la",
+            "topic": {
+                "id": 130601,
+                "subscribed": false,
+                "commentCount": 28,
+                "viewCount": 4805,
+                "post": {
+                    "id": 398444,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 42,
+            "isEditorsPick": false,
+            "hitCount": 12991,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "jump-game-v",
+                "questionFrontendId": "1340"
+            },
+            "next": {
+                "slug": "liang-chong-fang-fa-zheng-zhao-tiao-dao-pl5ep",
+                "title": "两种方法：正着跳 / 倒着跳，O(n) 时间（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,116 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "ET2fAL",
+            "title": "验证二叉树的前序序列化",
+            "content": "#### 方法一：栈\n\n我们可以定义一个概念，叫做槽位。一个槽位可以被看作「当前二叉树中正在等待被节点填充」的那些位置。\n\n二叉树的建立也伴随着槽位数量的变化。每当遇到一个节点时：\n\n- 如果遇到了空节点，则要消耗一个槽位；\n\n- 如果遇到了非空节点，则除了消耗一个槽位外，还要再补充两个槽位。\n\n此外，还需要将根节点作为特殊情况处理。\n\n![fig1](https://assets.leetcode.cn/solution-static/331/1.png)\n\n我们使用栈来维护槽位的变化。栈中的每个元素，代表了对应节点处**剩余槽位的数量**，而栈顶元素就对应着下一步可用的槽位数量。当遇到空节点时，仅将栈顶元素减 $1$；当遇到非空节点时，将栈顶元素减 $1$ 后，再向栈中压入一个 $2$。无论何时，如果栈顶元素变为 $0$，就立刻将栈顶弹出。\n\n遍历结束后，若栈为空，说明没有待填充的槽位，因此是一个合法序列；否则若栈不为空，则序列不合法。此外，在遍历的过程中，若槽位数量不足，则序列不合法。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    bool isValidSerialization(string preorder) {\n        int n = preorder.length();\n        int i = 0;\n        stack<int> stk;\n        stk.push(1);\n        while (i < n) {\n            if (stk.empty()) {\n                return false;\n            }\n            if (preorder[i] == ',') {\n                i++;\n            } else if (preorder[i] == '#'){\n                stk.top() -= 1;\n                if (stk.top() == 0) {\n                    stk.pop();\n                }\n                i++;\n            } else {\n                // 读一个数字\n                while (i < n && preorder[i] != ',') {\n                    i++;\n                }\n                stk.top() -= 1;\n                if (stk.top() == 0) {\n                    stk.pop();\n                }\n                stk.push(2);\n            }\n        }\n        return stk.empty();\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public boolean isValidSerialization(String preorder) {\n        int n = preorder.length();\n        int i = 0;\n        Deque<Integer> stack = new LinkedList<Integer>();\n        stack.push(1);\n        while (i < n) {\n            if (stack.isEmpty()) {\n                return false;\n            }\n            if (preorder.charAt(i) == ',') {\n                i++;\n            } else if (preorder.charAt(i) == '#'){\n                int top = stack.pop() - 1;\n                if (top > 0) {\n                    stack.push(top);\n                }\n                i++;\n            } else {\n                // 读一个数字\n                while (i < n && preorder.charAt(i) != ',') {\n                    i++;\n                }\n                int top = stack.pop() - 1;\n                if (top > 0) {\n                    stack.push(top);\n                }\n                stack.push(2);\n            }\n        }\n        return stack.isEmpty();\n    }\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar isValidSerialization = function(preorder) {\n    const n = preorder.length;\n    let i = 0;\n    const stack = [1];\n    while (i < n) {\n        if (!stack.length) {\n            return false;\n        }\n        if (preorder[i] === ',') {\n            ++i;\n        } else if (preorder[i] === '#') {\n            stack[stack.length - 1]--;\n            if (stack[stack.length - 1] === 0) {\n                stack.pop();\n            } \n            ++i;\n        } else {\n            // 读一个数字\n            while (i < n && preorder[i] !== ',') {\n                ++i;\n            }\n            stack[stack.length - 1]--;\n            if (stack[stack.length - 1] === 0) {\n                stack.pop();\n            }\n            stack.push(2);\n        }\n    }\n    return stack.length === 0;\n};\n```\n\n```go [sol1-Golang]\nfunc isValidSerialization(preorder string) bool {\n    n := len(preorder)\n    stk := []int{1}\n    for i := 0; i < n; {\n        if len(stk) == 0 {\n            return false\n        }\n        if preorder[i] == ',' {\n            i++\n        } else if preorder[i] == '#' {\n            stk[len(stk)-1]--\n            if stk[len(stk)-1] == 0 {\n                stk = stk[:len(stk)-1]\n            }\n            i++\n        } else {\n            // 读一个数字\n            for i < n && preorder[i] != ',' {\n                i++\n            }\n            stk[len(stk)-1]--\n            if stk[len(stk)-1] == 0 {\n                stk = stk[:len(stk)-1]\n            }\n            stk = append(stk, 2)\n        }\n    }\n    return len(stk) == 0\n}\n```\n\n```C [sol1-C]\nbool isValidSerialization(char* preorder) {\n    int n = strlen(preorder);\n    int stk[n], top = 0;\n    int i = 0;\n    stk[top++] = 1;\n    while (i < n) {\n        if (!top) {\n            return false;\n        }\n        if (preorder[i] == ',') {\n            i++;\n        } else if (preorder[i] == '#') {\n            stk[top - 1] -= 1;\n            if (stk[top - 1] == 0) {\n                top--;\n            }\n            i++;\n        } else {\n            // 读一个数字\n            while (i < n && preorder[i] != ',') {\n                i++;\n            }\n            stk[top - 1] -= 1;\n            if (stk[top - 1] == 0) {\n                top--;\n            }\n            stk[top++] = 2;\n        }\n    }\n    return !top;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 为字符串的长度。我们每个字符只遍历一次，同时每个字符对应的操作都是常数时间的。\n\n- 空间复杂度：$O(n)$。此为栈所需要使用的空间。\n\n#### 方法二：计数\n\n能否将方法一的空间复杂度优化至 $O(1)$ 呢？\n\n回顾方法一的逻辑，如果把栈中元素看成一个整体，即所有剩余槽位的数量，也能维护槽位的变化。\n\n因此，我们可以只维护一个计数器，代表栈中所有元素之和，其余的操作逻辑均可以保持不变。\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    bool isValidSerialization(string preorder) {\n        int n = preorder.length();\n        int i = 0;\n        int slots = 1;\n        while (i < n) {\n            if (slots == 0) {\n                return false;\n            }\n            if (preorder[i] == ',') {\n                i++;\n            } else if (preorder[i] == '#'){\n                slots--;\n                i++;\n            } else {\n                // 读一个数字\n                while (i < n && preorder[i] != ',') {\n                    i++;\n                }\n                slots++; // slots = slots - 1 + 2\n            }\n        }\n        return slots == 0;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public boolean isValidSerialization(String preorder) {\n        int n = preorder.length();\n        int i = 0;\n        int slots = 1;\n        while (i < n) {\n            if (slots == 0) {\n                return false;\n            }\n            if (preorder.charAt(i) == ',') {\n                i++;\n            } else if (preorder.charAt(i) == '#'){\n                slots--;\n                i++;\n            } else {\n                // 读一个数字\n                while (i < n && preorder.charAt(i) != ',') {\n                    i++;\n                }\n                slots++; // slots = slots - 1 + 2\n            }\n        }\n        return slots == 0;\n    }\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar isValidSerialization = function(preorder) {\n    const n = preorder.length;\n    let i = 0;\n    let slots = 1;\n    while (i < n) {\n        if (slots === 0) {\n            return false;\n        }\n        if (preorder[i] === ',') {\n            ++i;\n        } else if (preorder[i] === '#') {\n            --slots;\n            ++i;\n        } else {\n            // 读一个数字\n            while (i < n && preorder[i] !== ',') {\n                ++i;\n            }\n            ++slots; // slots = slots - 1 + 2\n        }\n    }\n    return slots === 0;\n};\n```\n\n```go [sol2-Golang]\nfunc isValidSerialization(preorder string) bool {\n    n := len(preorder)\n    slots := 1\n    for i := 0; i < n; {\n        if slots == 0 {\n            return false\n        }\n        if preorder[i] == ',' {\n            i++\n        } else if preorder[i] == '#' {\n            slots--\n            i++\n        } else {\n            // 读一个数字\n            for i < n && preorder[i] != ',' {\n                i++\n            }\n            slots++ // slots = slots - 1 + 2\n        }\n    }\n    return slots == 0\n}\n```\n\n```C [sol2-C]\nbool isValidSerialization(char* preorder) {\n    int n = strlen(preorder);\n    int i = 0;\n    int slots = 1;\n    while (i < n) {\n        if (!slots) {\n            return false;\n        }\n        if (preorder[i] == ',') {\n            i++;\n        } else if (preorder[i] == '#') {\n            slots--;\n            i++;\n        } else {\n            // 读一个数字\n            while (i < n && preorder[i] != ',') {\n                i++;\n            }\n            slots++;  // slots = slots - 1 + 2\n        }\n    }\n    return !slots;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 为字符串的长度。我们每个字符只遍历一次，同时每个字符对应的操作都是常数时间的。\n\n- 空间复杂度：$O(1)$。",
+            "slateValue": "",
+            "slug": "yan-zheng-er-cha-shu-de-qian-xu-xu-lie-h-jghn",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "ET2fAL",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 104,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 8,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Stack",
+                    "nameTranslated": "栈",
+                    "slug": "stack",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-03-11T13:59:41.870525+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：栈 我们可以定义一个概念，叫做槽位。一个槽位可以被看作「当前二叉树中正在等待被节点填充」的那些位置。 二叉树的建立也伴随着槽位数量的变化。每当遇到一个节点时： 如果遇到了空节点，则要消耗一个槽位； 如果遇到了非空节点，则除了消耗一个槽位外，还要再补充两个槽位。 此外，还需要将根节点作为特殊情况处理。 我们使用栈",
+            "topic": {
+                "id": 650583,
+                "subscribed": false,
+                "commentCount": 283,
+                "viewCount": 33136,
+                "post": {
+                    "id": 1478134,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 164,
+            "isEditorsPick": false,
+            "hitCount": 75844,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "verify-preorder-serialization-of-a-binary-tree",
+                "questionFrontendId": "331"
+            },
+            "next": {
+                "slug": "pai-an-jiao-jue-de-liang-chong-jie-fa-zh-66nt",
+                "title": "拍案叫绝的两种解法：「栈」和「入度出度」"
+            },
+            "prev": null
+        }
+    }
+}

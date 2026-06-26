@@ -1,0 +1,112 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "gvbjdg",
+            "title": "二叉树中的最长交错路径",
+            "content": "#### 题目分析\n\n题目要求我们找到树当中一条最长的左右交错的路径。\n\n#### 方法一：动态规划\n\n**思路**\n\n记 $f(u)$ 为从根到节点 $u$ 的路径上以 $u$ 结尾并且 $u$ 是它父亲的左儿子的最长交错路径，$g(u)$ 为从根到节点 $u$ 的路径上以 $u$ 结尾并且 $u$ 是它父亲的右儿子的最长交错路径。记 $u$ 的父节点为 ${\\rm father}(u)$，我们可以推得这样的转移方程：\n\n$$\\begin{aligned} & f[u] = g[{\\rm father}(u)] + 1 &,& \\, u \\text{是左儿子} \\\\ & g[u] = f[{\\rm father}(u)] + 1 &,& \\, u \\text{是右儿子}  \\end{aligned}$$\n\n很好理解，因为我们需要一条「交错」的路，如果 $u$ 是 ${\\rm father}(u)$ 的左儿子，那么 ${\\rm father}(u)$ 一定是 ${\\rm father}({\\rm father}(u))$ 的右儿子；反之，如果 $u$ 是 ${\\rm father}(u)$ 的右儿子，那么 ${\\rm father}(u)$ 一定是 ${\\rm father}({\\rm father}(u))$ 的左儿子。\n\n实现的时候我们需要维护两个数组—— `f` 和 `g`，这里我们可以用从树的节点到整数的映射容器来实现，这样很方便从节点的指针映射到 $f$ 和 $g$ 的函数值。理论上我们可以用 DFS 或者 BFS 的任意一种框架来遍历这棵树，这里提供一个 BFS 的版本。我们用二元组 `(node, parent)` 作为状态，其中 `node` 表示当前待计算 `f` 和 `g` 的值的节点，`parent` 表示它的父亲。初始化的时候我们可以把每个点的 `f` 和 `g` 的值都置 0。在动态规划算法 BFS 过程中，先根据当前的点是左子树还是右子树更新 `f` 和 `g`，然后再拓展新状态入队。\n\n最终我们可以遍历 `f` 和 `g`，找到最大的答案。\n\n代码如下。\n\n\n**代码**\n\n```C++ [sol1]\nclass Solution {\npublic:\n    unordered_map <TreeNode*, int> f, g;\n    \n    queue <pair <TreeNode *, TreeNode *>> q;\n    \n    void dp(TreeNode *o) {\n        f[o] = g[o] = 0;\n        q.push({o, nullptr});\n        while (!q.empty()) {\n            auto y = q.front(); q.pop();\n            auto x = y.second, u = y.first;\n            f[u] = g[u] = 0;\n            if (x) {\n                if (x->left == u) f[u] = g[x] + 1;\n                if (x->right == u) g[u] = f[x] + 1;\n            }\n            if (u->left) q.push({u->left, u});\n            if (u->right) q.push({u->right, u});\n        }\n    }\n    \n    int longestZigZag(TreeNode* root) {\n        dp(root);\n        int maxAns = 0;\n        for (const auto &u: f) maxAns = max(maxAns, max(u.second, g[u.first]));\n        return maxAns;\n    }\n};\n```\n\n```Java [sol1]\nclass Solution {\n    Map<TreeNode, Integer> f = new HashMap<TreeNode, Integer>();\n    Map<TreeNode, Integer> g = new HashMap<TreeNode, Integer>();\n    Queue<TreeNode[]> q = new LinkedList<TreeNode[]>();\n\n    public int longestZigZag(TreeNode root) {\n        dp(root);\n        int maxAns = 0;\n        for (TreeNode u : f.keySet()) {\n            maxAns = Math.max(maxAns, Math.max(f.get(u), g.get(u)));\n        }\n        return maxAns;\n    }\n    \n    public void dp(TreeNode o) {\n        f.put(o, 0);\n        g.put(o, 0);\n        q.offer(new TreeNode[]{o, null});\n        while (!q.isEmpty()) {\n            TreeNode[] y = q.poll();\n            TreeNode u = y[0], x = y[1];\n            f.put(u, 0);\n            g.put(u, 0);\n            if (x != null) {\n                if (x.left == u) {\n                    f.put(u, g.get(x) + 1);\n                }\n                if (x.right == u) {\n                    g.put(u, f.get(x) + 1);\n                }\n            }\n            if (u.left != null) {\n                q.offer(new TreeNode[]{u.left, u});\n            }\n            if (u.right != null) {\n                q.offer(new TreeNode[]{u.right, u});\n            }\n        }\n    }\n}\n```\n\n```Python [sol1]\nclass Solution:\n    def longestZigZag(self, root: TreeNode) -> int:\n        f, g = collections.defaultdict(int), collections.defaultdict(int)\n        q = collections.deque([(root, None)])\n        while len(q) > 0:\n            node, parent = q.popleft()\n            if parent:\n                if parent.left == node:\n                    f[node] = g[parent] + 1\n                else:\n                    g[node] = f[parent] + 1\n            if node.left:\n                q.append((node.left, node))\n            if node.right:\n                q.append((node.right, node))\n        \n        maxans = 0\n        for _, val in f.items():\n            maxans = max(maxans, val)\n        for _, val in g.items():\n            maxans = max(maxans, val)\n        return maxans\n```\n\n**复杂度**\n\n记 $n$ 为树上的节点总数。\n\n- 时间复杂度：在 BFS 的过程中，每个点只被访问一次，所以这里的渐进时间复杂度为 $O(n)$。\n\n- 空间复杂度：我们这里开了 `f` 和 `g` 两个大小为 $n$ 的数组和一个用来做 BFS 的队列。每个点最多进队两次（一次在初始化的过程中，一次在动态规划的过程中），所以队列最大的时候不会超过 $n$ 个元素。所以这里的渐进空间复杂度为 $O(n)$。\n\n#### 方法二：深度优先搜索\n\n**思路**\n\n考虑以上的 DP 对于每个节点 $u$ 只使用到了父亲节点的信息，所以我们可以在 DFS 的时候作为参数传递下来，省掉两个数组的空间开销。\n\n**思考：是否需要把 `f` 和 `g` 的值都传递下来？** 其实是不需要的，实际上我们只需要传递「当前」这个点应该走的方向（「向左」或者「向右」）`dir`，以及以这个点结尾的最长交错路径的长度 `len`。对于 `dir` 这个参数，这里 `0` 表示向左，`1` 表示向右。\n\n在 DFS 的过程中，每次我们都把当前点的 `len` 参数和答案 `maxAns` 打擂台，这样可以比出一个最大的。然后我们根据 `dir` 分类讨论。如果当前点应该向左且可以向左，那么就让他向左走一步，新的 `len` 是当前的 `len` 加一。如果的的点应该向左但是却没有左子树呢？很无奈那就只能向右了，这个时候 `len` 的值应该「重置」。\n\n**思考：「重置」为什么是把 `len` 变成 1 而不是 0？** 因为当前的点下传到它的子节点的时候已经走了一条长度为 1 的边。**那么为什么 `main` 函数中传入的 `len` 值是 0 而不是 1 呢？** 因为 `main` 函数中的 `root` 是没有父亲节点的，所以当前已经走过的路为 0。\n\n以下是代码实现。\n\n**代码**\n\n```C++ [sol2]\nclass Solution {\npublic:\n    int maxAns;\n\n    /* 0 => left, 1 => right */\n    void dfs(TreeNode* o, bool dir, int len) {\n        maxAns = max(maxAns, len);\n        if (!dir) {\n            if (o->left) dfs(o->left, 1, len + 1);\n            if (o->right) dfs(o->right, 0, 1);\n        } else {\n            if (o->right) dfs(o->right, 0, len + 1);\n            if (o->left) dfs(o->left, 1, 1);\n        }\n    } \n\n    int longestZigZag(TreeNode* root) {\n        if (!root) return 0;\n        maxAns = 0;\n        dfs(root, 0, 0);\n        dfs(root, 1, 0);\n        return maxAns;\n    }\n};\n```\n\n```Java [sol2]\nclass Solution {\n    int maxAns;\n\n    public int longestZigZag(TreeNode root) {\n        if (root == null) {\n            return 0;\n        }\n        maxAns = 0;\n        dfs(root, false, 0);\n        dfs(root, true, 0);\n        return maxAns;\n    }\n\n    public void dfs(TreeNode o, boolean dir, int len) {\n        maxAns = Math.max(maxAns, len);\n        if (!dir) {\n            if (o.left != null) {\n                dfs(o.left, true, len + 1);\n            }\n            if (o.right != null) {\n                dfs(o.right, false, 1);\n            }\n        } else {\n            if (o.right != null) {\n                dfs(o.right, false, len + 1);\n            }\n            if (o.left != null) {\n                dfs(o.left, true, 1);\n            }\n        }\n    }\n}\n```\n\n```Python [sol2]\nclass Solution:\n    def longestZigZag(self, root: TreeNode) -> int:\n        maxans = 0\n\n        def dfs(o, direction, length):\n            if not o:\n                return\n\n            nonlocal maxans\n            maxans = max(maxans, length)\n            if direction == 0:\n                dfs(o.left, 1, length + 1)\n                dfs(o.right, 0, 1)\n            else:\n                dfs(o.right, 0, length + 1)\n                dfs(o.left, 1, 1)\n        \n        dfs(root, 0, 0)\n        dfs(root, 1, 0)\n        return maxans\n```\n\n**复杂度分析**\n\n- 时间复杂度：在 DFS 的过程中，这棵树中的所有节点都会被访问一次，所以如果节点总数是 $n$ 的话，那么渐进时间复杂度就是 $O(n)$。\n\n- 空间复杂度：这里用到的辅助空间是 `maxAns` 变量，所以渐进空间复杂度是 $O(1)$。",
+            "slateValue": "",
+            "slug": "er-cha-shu-zhong-de-zui-chang-jiao-cuo-lu-jing-b-2",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "gvbjdg",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 50,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "BFS",
+                    "nameTranslated": "",
+                    "slug": "bfs",
+                    "tagType": "ADDITIONAL_TOPIC"
+                },
+                {
+                    "name": "DFS",
+                    "nameTranslated": "",
+                    "slug": "dfs",
+                    "tagType": "ADDITIONAL_TOPIC"
+                }
+            ],
+            "createdAt": "2020-03-13T05:12:21.802535+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "题目分析\n题目要求我们找到树当中一条最长的左右交错的路径。\n 方法一：动态规划\n思路\n记 f(u) 为从根到节点 u 的路径上以 u 结尾并且 u 是它父亲的左儿子的最长交错路径，g(u) 为从根到节点 u 的路径上以 u 结尾并且 u 是它父亲的右儿子的最长交错路径。记 u 的父节点为 {\\rm father}(u",
+            "topic": {
+                "id": 147425,
+                "subscribed": false,
+                "commentCount": 113,
+                "viewCount": 8112,
+                "post": {
+                    "id": 431198,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 124,
+            "isEditorsPick": false,
+            "hitCount": 34454,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "longest-zigzag-path-in-a-binary-tree",
+                "questionFrontendId": "1372"
+            },
+            "next": {
+                "slug": "dfsduan-duan-ba-xing-dai-ma-you-ya-jie-j-kfyz",
+                "title": "DFS,短短八行代码，优雅解决"
+            },
+            "prev": null
+        }
+    }
+}

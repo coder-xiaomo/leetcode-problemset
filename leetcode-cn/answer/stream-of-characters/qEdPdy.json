@@ -1,0 +1,146 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "qEdPdy",
+            "title": "字符流",
+            "content": "#### 方法一：AC 自动机\n\n**思路**\n\n这题需要用到 AC 自动机的数据结构，概念可以参照「[AC 自动机](https://oi-wiki.org/string/ac-automaton/)」。\n\n首先需要将字符串数组 $\\textit{words}$ 中的单词构建一棵字典树。字典树的节点 $\\textit{TrieNode}$ 有三个元素：\n1. $\\textit{children}$，长度为 $26$ 的数组，元素均为 $\\textit{TrieNode}$；\n2. $\\textit{isEnd}$，布尔值，表示当前节点是否为一个单词的结尾；\n3. $\\textit{fail}$，失配指针，后文会继续提到。\n\n构建字典树的步骤比较常规，将 $\\textit{word}$ 一一插入字典树，并给结尾节点的 $\\textit{isEnd}$ 赋为 $\\textit{true}$。这里需要记住的是，此时字典树中的每一个非空节点，都表示字符串数组 $\\textit{words}$ 的某个前缀，且节点的深度就是该前缀的长度。\n\n接下来需要更新每个非空节点的失配指针。失配指针的定义是，可以表示当前节点的最长后缀的节点，具体解释如下：当前节点能表示字符串数组 $\\textit{words}$ 的某个前缀 $\\textit{pre}_1$，我们需要找到字典树中的另一个节点，且该节点表示的前缀 $\\textit{pre}_2$，是 $\\textit{pre}_1$ 的一个后缀，并且是能在字典树中找到的最长的后缀。那么如何更新所有节点的失配指针呢？首先，特殊地，我们将根节点和所有根节点的非空子节点的失配指针指向根节点，然后思考如何计算其他非空节点的失配指针。\n\n当我们要计算某个节点 $u$ 的失配指针时，假设所有比 $u$ 浅的节点的失配指针已经计算完毕，设 $u$ 的父节点为 $p$，节点 $p$ 依靠字符 $c$ 指向节点 $u$（即节点 $u$ 代表的前缀 $\\textit{pre}_u$ 比节点 $p$ 代表的前缀 $\\textit{pre}_p$ 多一个字符 $c$）。我们需要考察 $p.\\textit{fail}$ 依靠字符 $c$ 指向的节点是否非空，如果非空，我们就找到 $u$ 的失配节点，如果为空，我们需要继续考察 $p.\\textit{fail}.\\textit{fail}$，直到在这条失配链上找到一个节点，它依靠字符 $c$ 指向的子节点非空；或者我们在失配链上不断考察的过程中，最终考察到了根节点，此时我们将 $u$ 的失配节点指向根节点。这样一来，我们可以根据广度优先搜索的过程，计算出所有非空节点的失配节点。\n\n如此，我们就可以用这棵字典树来匹配后缀数据流了。初始化时，设置一个指针 $\\textit{temp}$ 指向根节点，每接收一个字符 $c$，$\\textit{temp}$ 先试图依靠字符 $c$ 移动到子节点，如果子节点为空，则在失配链上不停移动，直到找到一个节点，它依靠字符 $c$ 指向的子节点非空，这时该子节点表示的前缀，是可以匹配到的数据流里的最长后缀。注意此时，并不能立刻返回结果，需要遍历该子节点的失配链上的所有节点，如果有节点的 $\\textit{isEnd}$ 值为 $\\textit{true}$，则返回 $\\textit{true}$，否则返回 $\\textit{false}$。\n\n注意到此时已经可以解决这道题了，但是计算每个节点的失配节点和单次 $\\textit{query}$ 的时间复杂度仍然较大，最差情况下，需要遍历整条失配链路才能得到结果，因此，我们在广度优先搜索时引入以下两个优化：\n1. 当节点 $p$ 的依靠字符 $c$ 指向的子节点 $u$ 为空时，将其指向 $p.\\textit{fail}$ 依靠字符 $c$ 指向的子节点 $v$，这种类似于路径压缩的思路，使得每个空子节点最终都会指向一个非空节点，从而省去了在失配链路上不停考察的过程。\n2. 广度优先搜索过程中，节点 $u$ 出队列时，将 $u.\\textit{isEnd}$ 更新为 $u.\\textit{isEnd} \\| u.\\textit{fail}.\\textit{isEnd}$，这样每个节点的 $\\textit{isEnd}$ 参数的定义就变为：当自己或者自己的某一后缀能匹配字符串数组的某个字符串时为 $\\textit{true}$。这样一来，$\\textit{query}$ 时也不需要遍历失配链路了。\n\n**代码**\n\n```Python [sol1-Python3]\nclass StreamChecker:\n\n    def __init__(self, words: List[str]):\n        self.root = TrieNode()\n        for word in words:\n            cur = self.root\n            for char in word:\n                idx = ord(char) - ord('a')\n                if not cur.children[idx]:\n                    cur.children[idx] = TrieNode()\n                cur = cur.children[idx]\n            cur.isEnd = True\n        \n        self.root.fail = self.root\n        q = deque()\n        for i in range(26):\n            if self.root.children[i]:\n                self.root.children[i].fail = self.root\n                q.append(self.root.children[i])\n            else:\n                self.root.children[i] = self.root\n        while q:\n            node = q.popleft()\n            node.isEnd = node.isEnd or node.fail.isEnd\n            for i in range(26):\n                if node.children[i]:\n                    node.children[i].fail = node.fail.children[i]\n                    q.append(node.children[i])\n                else:\n                    node.children[i] = node.fail.children[i]\n\n        self.temp = self.root\n            \n    def query(self, letter: str) -> bool:\n        self.temp = self.temp.children[ord(letter) - ord('a')]\n        return self.temp.isEnd\n\nclass TrieNode:\n    def __init__(self):\n        self.children = [None] * 26\n        self.isEnd = False\n        self.fail = None\n```\n\n```Java [sol1-Java]\nclass StreamChecker {\n    TrieNode root;\n    TrieNode temp;\n\n    public StreamChecker(String[] words) {\n        root = new TrieNode();\n        for (String word : words) {\n            TrieNode cur = root;\n            for (int i = 0; i < word.length(); i++) {\n                int index = word.charAt(i) - 'a';\n                if (cur.getChild(index) == null) {\n                    cur.setChild(index, new TrieNode());\n                }\n                cur = cur.getChild(index);\n            }\n            cur.setIsEnd(true);\n        }\n        root.setFail(root);\n        Queue<TrieNode> q = new LinkedList<>();\n        for (int i = 0; i < 26; i++) {\n            if(root.getChild(i) != null) {\n                root.getChild(i).setFail(root);\n                q.add(root.getChild(i));\n            } else {\n                root.setChild(i, root);\n            }\n        }\n        while (!q.isEmpty()) {\n            TrieNode node = q.poll();\n            node.setIsEnd(node.getIsEnd() || node.getFail().getIsEnd());\n            for (int i = 0; i < 26; i++) {\n                if(node.getChild(i) != null) {\n                    node.getChild(i).setFail(node.getFail().getChild(i));\n                    q.offer(node.getChild(i));\n                } else {\n                    node.setChild(i, node.getFail().getChild(i));\n                }\n            }\n        }\n\n        temp = root;\n    }\n\n    public boolean query(char letter) {\n        temp = temp.getChild(letter - 'a');\n        return temp.getIsEnd();\n    }\n}\n\nclass TrieNode {\n    TrieNode[] children;\n    boolean isEnd;\n    TrieNode fail;\n\n    public TrieNode() {\n        children = new TrieNode[26];\n    }\n\n    public TrieNode getChild(int index) {\n        return children[index];\n    }\n\n    public void setChild(int index, TrieNode node) {\n        children[index] = node;\n    }\n\n    public boolean getIsEnd() {\n        return isEnd;\n    }\n\n    public void setIsEnd(boolean b) {\n        isEnd = b;\n    }\n\n    public TrieNode getFail() {\n        return fail;\n    } \n\n    public void setFail(TrieNode node) {\n        fail = node;\n    } \n}\n```\n\n```C# [sol1-C#]\npublic class StreamChecker {\n\n    TrieNode root;\n    TrieNode temp;\n\n    public StreamChecker(String[] words) {\n        root = new TrieNode();\n        foreach (String word in words) {\n            TrieNode cur = root;\n            foreach (char ch in word) {\n                int index = ch - 'a';\n                if (cur.getChild(index) == null) {\n                    cur.setChild(index, new TrieNode());\n                }\n                cur = cur.getChild(index);\n            }\n            cur.setIsEnd(true);\n        }\n        root.setFail(root);\n        Queue<TrieNode> q = new Queue<TrieNode>();\n        for (int i = 0; i < 26; i++) {\n            if(root.getChild(i) != null) {\n                root.getChild(i).setFail(root);\n                q.Enqueue(root.getChild(i));\n            } else {\n                root.setChild(i, root);\n            }\n        }\n        while (q.Count > 0) {\n            TrieNode node = q.Dequeue();\n            node.setIsEnd(node.getIsEnd() || node.getFail().getIsEnd());\n            for (int i = 0; i<26; i++) {\n                if(node.getChild(i) != null) {\n                    node.getChild(i).setFail(node.getFail().getChild(i));\n                    q.Enqueue(node.getChild(i));\n                } else {\n                    node.setChild(i, node.getFail().getChild(i));\n                }\n            }\n        }\n\n        temp = root;\n    }\n\n    public bool Query(char letter) {\n        temp = temp.getChild(letter - 'a');\n        return temp.getIsEnd();\n    }\n}\n\nclass TrieNode {\n    TrieNode[] children;\n    bool isEnd;\n    TrieNode fail;\n\n    public TrieNode() {\n        children = new TrieNode[26];\n    }\n\n    public TrieNode getChild(int index) {\n        return children[index];\n    }\n\n    public void setChild(int index, TrieNode node) {\n        children[index] = node;\n    }\n\n    public bool getIsEnd() {\n        return isEnd;\n    }\n\n    public void setIsEnd(bool b) {\n        isEnd = b;\n    }\n\n    public TrieNode getFail() {\n        return fail;\n    } \n\n    public void setFail(TrieNode node) {\n        fail = node;\n    } \n}\n```\n\n```C++ [sol1-C++]\ntypedef struct TrieNode {\n    vector<TrieNode *> children;\n    bool isEnd;\n    TrieNode *fail;\n    TrieNode() {\n        this->children = vector<TrieNode *>(26, nullptr);\n        this->isEnd = false;\n        this->fail = nullptr;\n    }\n};\n\nclass StreamChecker {\npublic:\n    TrieNode *root;\n    TrieNode *temp;\n    StreamChecker(vector<string>& words) {\n        root = new TrieNode();\n        for (string &word : words) {\n            TrieNode *cur = root;\n            for (int i = 0; i < word.size(); i++) {\n                int index = word[i] - 'a';\n                if (cur->children[index] == nullptr) {\n                    cur->children[index] = new TrieNode();\n                }\n                cur = cur->children[index];\n            }\n            cur->isEnd = true;\n        }\n        root->fail = root;\n        queue<TrieNode *> q;\n        for (int i = 0; i < 26; i++) {\n            if(root->children[i] != nullptr) {\n                root->children[i]->fail = root;\n                q.emplace(root->children[i]);\n            } else {\n                root->children[i] = root;\n            }\n        }\n        while (!q.empty()) {\n            TrieNode *node = q.front();\n            q.pop();\n            node->isEnd = node->isEnd || node->fail->isEnd;\n            for (int i = 0; i < 26; i++) {\n                if(node->children[i] != nullptr) {\n                    node->children[i]->fail = node->fail->children[i];\n                    q.emplace(node->children[i]);\n                } else {\n                    node->children[i] = node->fail->children[i];\n                }\n            }\n        }\n\n        temp = root;\n    }\n    \n    bool query(char letter) {\n        temp = temp->children[letter - 'a'];\n        return temp->isEnd;\n    }\n};\n```\n\n```C [sol1-C]\n#define MAX_QUEUE_SIZE 81920\n\ntypedef struct TrieNode {\n    struct TrieNode *children[26];\n    struct TrieNode *fail;\n    bool isEnd;\n} TrieNode;\n\ntypedef struct {\n    TrieNode *root;\n    TrieNode *temp;\n} StreamChecker;\n\nTrieNode* trieNodeCreate() {\n    TrieNode *obj = (TrieNode *)malloc(sizeof(TrieNode));\n    for (int i = 0; i < 26; i++) {\n        obj->children[i] = NULL;\n    }\n    obj->isEnd = false;\n    obj->fail = NULL;\n    return obj;\n}\n\nvoid freeTrieNode(TrieNode* root) {\n    for (int i = 0; i < 26; i++) {\n        if (root->children[i]) {\n            freeTrieNode(root->children[i]);\n        }\n    }\n    free(root);\n}\n\nStreamChecker* streamCheckerCreate(char ** words, int wordsSize) {\n    StreamChecker *obj = (StreamChecker *)malloc(sizeof(StreamChecker));\n    obj->root = trieNodeCreate();\n    obj->temp = obj->root;\n    for (int i = 0; i < wordsSize; i++) {\n        TrieNode *cur = obj->root;\n        for (int j = 0; words[i][j] != '\\0'; j++) {\n            int index = words[i][j] - 'a';\n            if (cur->children[index] == NULL) {\n                cur->children[index] = trieNodeCreate();\n            }\n            cur = cur->children[index];\n        }\n        cur->isEnd = true;\n    }\n    obj->root->fail = obj->root;\n    TrieNode *queue[MAX_QUEUE_SIZE];\n    int head = 0;\n    int tail = 0;\n    for (int i = 0; i < 26; i++) {\n        if(obj->root->children[i] != NULL) {\n            obj->root->children[i]->fail = obj->root;\n            queue[tail++] = obj->root->children[i];\n        } else {\n            obj->root->children[i] = obj->root;\n        }\n    }\n    while (head != tail) {\n        TrieNode *node = queue[head++];\n        node->isEnd = node->isEnd || node->fail->isEnd;\n        for (int i = 0; i < 26; i++) {\n            if(node->children[i] != NULL) {\n                node->children[i]->fail = node->fail->children[i];\n                queue[tail++] = node->children[i];\n            } else {\n                node->children[i] = node->fail->children[i];\n            }\n        }\n    }\n    return obj;\n}\n\nbool streamCheckerQuery(StreamChecker* obj, char letter) {\n    obj->temp = obj->temp->children[letter - 'a'];\n    return obj->temp->isEnd;\n}\n\nvoid streamCheckerFree(StreamChecker* obj) {\n    free(obj);\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar StreamChecker = function(words) {\n    const root = new TrieNode();\n    for (const word of words) {\n        let cur = root;\n        for (let i = 0; i < word.length; i++) {\n            const index = word[i].charCodeAt() - 'a'.charCodeAt();\n            if (cur.getChild(index) === 0) {\n                cur.setChild(index, new TrieNode());\n            }\n            cur = cur.getChild(index);\n        }\n        cur.setIsEnd(true);\n    }\n    root.setFail(root);\n    const q = [];\n    for (let i = 0; i < 26; i++) {\n        if(root.getChild(i) != 0) {\n            root.getChild(i).setFail(root);\n            q.push(root.getChild(i));\n        } else {\n            root.setChild(i, root);\n        }\n    }\n    while (q.length) {\n        const node = q.shift();\n        node.setIsEnd(node.getIsEnd() || node.getFail().getIsEnd());\n        for (let i = 0; i < 26; i++) {\n            if(node.getChild(i) != 0) {\n                node.getChild(i).setFail(node.getFail().getChild(i));\n                q.push(node.getChild(i));\n            } else {\n                node.setChild(i, node.getFail().getChild(i));\n            }\n        }\n    }\n\n    this.temp = root;\n};\n\nStreamChecker.prototype.query = function(letter) {\n    this.temp = this.temp.getChild(letter.charCodeAt() - 'a'.charCodeAt());\n    return this.temp.getIsEnd();\n};\n\nclass TrieNode {\n    constructor() {\n        this.children = new Array(26).fill(0);\n        this.isEnd = false;\n        this.fail;\n    }\n\n    getChild(index) {\n        return this.children[index];\n    }\n\n    setChild(index, node) {\n        this.children[index] = node;\n    }\n\n    getIsEnd() {\n        return this.isEnd;\n    }\n\n    setIsEnd(b) {\n        this.isEnd = b;\n    }\n\n    getFail() {\n        return this.fail;\n    }\n\n    setFail(node) {\n        this.fail = node;\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(L+q)$，其中 $L$ 是字符串数组总的字符数，$q$ 是查询次数。构建字典树需要消耗 $O(L)$ 的时间，单次查询的时间复杂度为 $O(1)$。\n\n- 空间复杂度：$O(L)$。构建字典树需要消耗 $O(L)$ 的空间。",
+            "slateValue": "",
+            "slug": "zi-fu-liu-by-leetcode-solution-b9yo",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "qEdPdy",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 25,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Design",
+                    "nameTranslated": "设计",
+                    "slug": "design",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Trie",
+                    "nameTranslated": "字典树",
+                    "slug": "trie",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Data Stream",
+                    "nameTranslated": "数据流",
+                    "slug": "data-stream",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-03-23T08:55:04.145980+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：AC 自动机 思路 这题需要用到 AC 自动机的数据结构，概念可以参照「AC 自动机」。 首先需要将字符串数组 $\\textit{words}$ 中的单词构建一棵字典树。字典树的节点 $\\textit{TrieNode}$ 有三个元素： 1. $\\textit{children}$，长度为 $26$ 的数组，元",
+            "topic": {
+                "id": 2186583,
+                "subscribed": false,
+                "commentCount": 88,
+                "viewCount": 1209,
+                "post": {
+                    "id": 4153136,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 47,
+            "isEditorsPick": false,
+            "hitCount": 14582,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "stream-of-characters",
+                "questionFrontendId": "1032"
+            },
+            "next": {
+                "slug": "python3javacgo-yi-ti-yi-jie-qian-zhui-sh-79kg",
+                "title": "[Python3/Java/C++/Go] 一题一解：前缀树（清晰题解）"
+            },
+            "prev": null
+        }
+    }
+}

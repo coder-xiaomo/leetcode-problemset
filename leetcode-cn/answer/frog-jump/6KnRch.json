@@ -1,0 +1,134 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "6KnRch",
+            "title": "青蛙过河",
+            "content": "#### 方法一：记忆化搜索 + 二分查找\n\n**思路及算法**\n\n最直接的想法是使用深度优先搜索的方式尝试所有跳跃方案，直到我们找到一组可行解为止。但是不加优化的该算法的时间复杂度在最坏情况下是指数级的，因此考虑优化。\n\n注意到当青蛙每次能够跳跃的距离仅取决于青蛙的「上一次跳跃距离」。而青蛙此后能否到达终点，只和它「现在所处的石子编号」以及「上一次跳跃距离」有关。因此我们可以将这两个维度综合记录为一个状态。使用记忆化搜索的方式优化时间复杂度。\n\n具体地，当青蛙位于第 $i$ 个石子，上次跳跃距离为 $\\textit{lastDis}$ 时，它当前能够跳跃的距离范围为 $[\\textit{lastDis}-1,\\textit{lastDis}+1]$。我们需要分别判断这三个距离对应的三个位置是否存在石子。注意到给定的石子列表为升序，所以我们可以利用二分查找来优化查找石子的时间复杂度。每次我们找到了符合要求的位置，我们就尝试进行一次递归搜索即可。\n\n为了优化编码，我们可以认为青蛙的初始状态为：「现在所处的石子编号」为 $0$（石子从 $0$ 开始编号），「上一次跳跃距离」为 $0$（这样可以保证青蛙的第一次跳跃距离为 $1$）。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<unordered_map<int, int>> rec;\n\n    bool dfs(vector<int>& stones, int i, int lastDis) {\n        if (i == stones.size() - 1) {\n            return true;\n        }\n        if (rec[i].count(lastDis)) {\n            return rec[i][lastDis];\n        }\n        for (int curDis = lastDis - 1; curDis <= lastDis + 1; curDis++) {\n            if (curDis > 0) {\n                int j = lower_bound(stones.begin(), stones.end(), curDis + stones[i]) - stones.begin();\n                if (j != stones.size() && stones[j] == curDis + stones[i] && dfs(stones, j, curDis)) {\n                    return rec[i][lastDis] = true;\n                }\n            }\n        }\n        return rec[i][lastDis] = false;\n    }\n\n    bool canCross(vector<int>& stones) {\n        int n = stones.size();\n        rec.resize(n);\n        return dfs(stones, 0, 0);\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    private Boolean[][] rec;\n\n    public boolean canCross(int[] stones) {\n        int n = stones.length;\n        rec = new Boolean[n][n];\n        return dfs(stones, 0, 0);\n    }\n\n    private boolean dfs(int[] stones, int i, int lastDis) {\n        if (i == stones.length - 1) {\n            return true;\n        }\n        if (rec[i][lastDis] != null) {\n            return rec[i][lastDis];\n        }\n\n        for (int curDis = lastDis - 1; curDis <= lastDis + 1; curDis++) {\n            if (curDis > 0) {\n                int j = Arrays.binarySearch(stones, i + 1, stones.length, curDis + stones[i]);\n                if (j >= 0 && dfs(stones, j, curDis)) {\n                    return rec[i][lastDis] = true;\n                }\n            }\n        }\n        return rec[i][lastDis] = false;\n    }\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar canCross = function(stones) {\n    const n = stones.length;\n    rec = new Array(n).fill(0).map(() => new Map());\n\n    const dfs = (stones, i, lastDis) => {\n        if (i === stones.length - 1) {\n            return true;\n        }\n        if (rec[i].has(lastDis)) {\n            return rec[i].get(lastDis);\n        }\n        for (let curDis = lastDis - 1; curDis <= lastDis + 1; curDis++) {\n            if (curDis > 0) {\n                const j = lower_bound(stones, curDis + stones[i]);\n                if (j !== stones.length && stones[j] === curDis + stones[i] && dfs(stones, j, curDis)) {\n                    rec[i].set(lastDis, true);\n                    return rec[i].get(lastDis);\n                }\n            }\n        }\n        rec[i].set(lastDis, false);\n        return rec[i].get(lastDis);\n    }\n\n    return dfs(stones, 0, 0);\n};\n\nfunction lower_bound(nums, target) {\n    let lo = 0, hi = nums.length;\n\n    while (lo < hi) {\n        const mid = lo + Math.floor((hi - lo) / 2);\n\n        if (nums[mid] >= target) {\n            hi = mid;\n        } else {\n            lo = mid + 1;\n        }\n    }\n    return lo;\n}\n```\n\n```go [sol1-Golang]\nfunc canCross(stones []int) bool {\n    n := len(stones)\n    dp := make([]map[int]bool, n-1)\n    for i := range dp {\n        dp[i] = map[int]bool{}\n    }\n    var dfs func(int, int) bool\n    dfs = func(i, lastDis int) (res bool) {\n        if i == n-1 {\n            return true\n        }\n        if res, has := dp[i][lastDis]; has {\n            return res\n        }\n        defer func() { dp[i][lastDis] = res }()\n        for curDis := lastDis - 1; curDis <= lastDis+1; curDis++ {\n            if curDis > 0 {\n                j := sort.SearchInts(stones, curDis+stones[i])\n                if j != n && stones[j] == curDis+stones[i] && dfs(j, curDis) {\n                    return true\n                }\n            }\n        }\n        return false\n    }\n    return dfs(0, 0)\n}\n```\n\n```C [sol1-C]\nstruct HashTable {\n    int key, val;\n    UT_hash_handle hh;\n};\n\nstruct HashTable** rec;\n\nbool count(struct HashTable** hashTable, int ikey) {\n    struct HashTable* tmp;\n    HASH_FIND_INT(*hashTable, &ikey, tmp);\n    return tmp != NULL;\n}\n\nint modify(struct HashTable** hashTable, int ikey, int ival) {\n    struct HashTable* tmp;\n    HASH_FIND_INT(*hashTable, &ikey, tmp);\n    if (tmp == NULL) {\n        tmp = malloc(sizeof(struct HashTable));\n        tmp->key = ikey, tmp->val = ival;\n        HASH_ADD_INT(*hashTable, key, tmp);\n    } else {\n        tmp->val = ival;\n    }\n    return ival;\n}\n\nint query(struct HashTable** hashTable, int ikey) {\n    struct HashTable* tmp;\n    HASH_FIND_INT(*hashTable, &ikey, tmp);\n    return tmp->val;\n}\n\nint lower_bound(int* stones, int stonesSize, int target) {\n    int left = 0, right = stonesSize;\n    while (left < right) {\n        int mid = (left + right) >> 1;\n        if (stones[mid] < target) {\n            left = mid + 1;\n        } else {\n            right = mid;\n        }\n    }\n    return left;\n}\n\nbool dfs(int* stones, int stonesSize, int i, int lastDis) {\n    if (i == stonesSize - 1) {\n        return true;\n    }\n    if (count(&rec[i], lastDis)) {\n        return query(&rec[i], lastDis);\n    }\n    for (int curDis = lastDis - 1; curDis <= lastDis + 1; curDis++) {\n        if (curDis > 0) {\n            int j = lower_bound(stones, stonesSize, curDis + stones[i]);\n            if (j != stonesSize && stones[j] == curDis + stones[i] && dfs(stones, stonesSize, j, curDis)) {\n                return modify(&rec[i], lastDis, true);\n            }\n        }\n    }\n    return modify(&rec[i], lastDis, false);\n}\n\nbool canCross(int* stones, int stonesSize) {\n    rec = malloc(sizeof(struct HashTable*) * stonesSize);\n    memset(rec, 0, sizeof(struct HashTable*) * stonesSize);\n    return dfs(stones, stonesSize, 0, 0);\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n^2\\log n)$，其中 $n$ 是石子的数量。因为青蛙仅能在石子间跳跃，且不能向后方（起点的方向）跳跃，而第 $i$ 个石子后方只有 $i-1$ 个石子，因此在任意位置，青蛙的「上一次跳跃距离」至多只有 $O(n)$ 种，状态总数为 $O(n^2)$。最坏情况下我们要遍历每一个状态，每次我们需要 $O(\\log n)$ 的时间查找指定位置的石子是否存在，相乘即可得到最终时间复杂度。\n\n- 空间复杂度：$O(n^2)$，其中 $n$ 是石子的数量。最坏情况下我们需要记录全部 $O(n^2)$ 个状态。\n\n#### 方法二：动态规划\n\n**思路及算法**\n\n我们也可以使用动态规划的方法，令 $\\textit{dp}[i][k]$ 表示青蛙能否达到「现在所处的石子编号」为 $i$ 且「上一次跳跃距离」为 $k$ 的状态。\n\n这样我们可以写出状态转移方程：\n\n$$\\textit{dp}[i][k] = \\textit{dp}[j][k - 1] \\bigvee \\textit{dp}[j][k] \\bigvee \\textit{dp}[j][k + 1]$$ \n\n式中 $j$ 代表了青蛙的「上一次所在的石子编号」，满足 $stones[i] - stones[j] = k$。\n\n和方法一相同，状态转移的初始条件为 $\\textit{dp}[0][0] = \\text{true}$，表示：「现在所处的石子编号」为 $0$（石子从 $0$ 开始编号），「上一次跳跃距离」为 $0$（这样可以保证青蛙的第一次跳跃距离为 $1$）。当我们找到一个 $\\textit{dp}[n-1][k]$ 为真时，我们就知道青蛙可以到达终点（第 $n-1$ 个石子）。\n\n具体地，对于第 $i$ 个石子，我们首先枚举所有的 $j$（即上一次所在的石子编号），那么「上一次跳跃距离」$k$ 即为 $stones[i] - stones[j]$。如果在第 $j$ 个石子上，青蛙的「上一次跳跃距离」可以为 $k-1,k,k+1$ 三者之一，那么我们此时的方案即为合法方案。因此我们只需要检查 $\\textit{dp}[j][k - 1], \\textit{dp}[j][k], \\textit{dp}[j][k + 1]$ 是否有至少一个为真即可。\n\n**优化**\n\n为了优化程序运行速度，我们还将推出两个结论，并做出优化：\n\n1. 「现在所处的石子编号」为 $i$ 时，「上一次跳跃距离」$k$ 必定满足 $k \\leq i$。\n   - 当青蛙位于第 $0$ 个石子上时，青蛙的上一次跳跃距离限定为 $0$，之后每次跳跃，青蛙所在的石子编号至少增加 $1$，而每次跳跃距离至多增加 $1$。\n   - 跳跃 $m$ 次后，青蛙「现在所处的石子编号」$i \\geq m$，「上一次跳跃距离」$k \\leq m$，因此 $k\\leq i$。\n   - 这样我们可以将状态数约束在 $O(n^2)$。\n   - 我们可以从后向前枚举「上一次所在的石子编号」$j$，当「上一次跳跃距离」$k$ 超过了 $j+1$ 时，我们即可以停止跳跃，因为在第 $j$ 个石子上我们至多只能跳出 $j+1$ 的距离。\n2. 当第 $i$ 个石子与第 $i-1$ 个石子距离超过 $i$ 时，青蛙必定无法到达终点。\n   - 由结论 $1$ 可知，当青蛙到达第 $i-1$ 个石子时，它的「上一次跳跃距离」至多为 $i-1$，因此青蛙在第 $i$ 个石子上最远只能跳出 $i$ 的距离。\n   - 而距离第 $i-1$ 个石子最近的石子即为第 $i$ 个石子，它们的距离超过了青蛙当前能跳出的最远距离，因此青蛙无路可跳。\n   - 因此我们可以提前检查是否有相邻的石子不满足条件，如果有，我们可以提前返回 $\\text{false}$。\n\n**代码**\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    bool canCross(vector<int>& stones) {\n        int n = stones.size();\n        vector<vector<int>> dp(n, vector<int>(n));\n        dp[0][0] = true;\n        for (int i = 1; i < n; ++i) {\n            if (stones[i] - stones[i - 1] > i) {\n                return false;\n            }\n        }\n        for (int i = 1; i < n; ++i) {\n            for (int j = i - 1; j >= 0; --j) {\n                int k = stones[i] - stones[j];\n                if (k > j + 1) {\n                    break;\n                }\n                dp[i][k] = dp[j][k - 1] || dp[j][k] || dp[j][k + 1];\n                if (i == n - 1 && dp[i][k]) {\n                    return true;\n                }\n            }\n        }\n        return false;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public boolean canCross(int[] stones) {\n        int n = stones.length;\n        boolean[][] dp = new boolean[n][n];\n        dp[0][0] = true;\n        for (int i = 1; i < n; ++i) {\n            if (stones[i] - stones[i - 1] > i) {\n                return false;\n            }\n        }\n        for (int i = 1; i < n; ++i) {\n            for (int j = i - 1; j >= 0; --j) {\n                int k = stones[i] - stones[j];\n                if (k > j + 1) {\n                    break;\n                }\n                dp[i][k] = dp[j][k - 1] || dp[j][k] || dp[j][k + 1];\n                if (i == n - 1 && dp[i][k]) {\n                    return true;\n                }\n            }\n        }\n        return false;\n    }\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar canCross = function(stones) {\n    const n = stones.length;\n    const dp = new Array(n).fill(0).map(() => new Array(n).fill(0));\n    dp[0][0] = true;\n    for (let i = 1; i < n; ++i) {\n        if (stones[i] - stones[i - 1] > i) {\n            return false;\n        }\n    }\n    for (let i = 1; i < n; ++i) {\n        for (let j = i - 1; j >= 0; --j) {\n            const k = stones[i] - stones[j];\n            if (k > j + 1) {\n                break;\n            }\n            dp[i][k] = dp[j][k - 1] || dp[j][k] || dp[j][k + 1];\n            if (i === n - 1 && dp[i][k]) {\n                return true;\n            }\n        }\n    }\n    return false;\n};\n```\n\n```go [sol2-Golang]\nfunc canCross(stones []int) bool {\n    n := len(stones)\n    dp := make([][]bool, n)\n    for i := range dp {\n        dp[i] = make([]bool, n)\n    }\n    dp[0][0] = true\n    for i := 1; i < n; i++ {\n        if stones[i]-stones[i-1] > i {\n            return false\n        }\n    }\n    for i := 1; i < n; i++ {\n        for j := i - 1; j >= 0; j-- {\n            k := stones[i] - stones[j]\n            if k > j+1 {\n                break\n            }\n            dp[i][k] = dp[j][k-1] || dp[j][k] || dp[j][k+1]\n            if i == n-1 && dp[i][k] {\n                return true\n            }\n        }\n    }\n    return false\n}\n```\n\n```C [sol2-C]\nbool canCross(int* stones, int stonesSize) {\n    int dp[stonesSize][stonesSize];\n    memset(dp, 0, sizeof(dp));\n    dp[0][0] = true;\n    for (int i = 1; i < stonesSize; ++i) {\n        if (stones[i] - stones[i - 1] > i) {\n            return false;\n        }\n    }\n    for (int i = 1; i < stonesSize; ++i) {\n        for (int j = i - 1; j >= 0; --j) {\n            int k = stones[i] - stones[j];\n            if (k > j + 1) {\n                break;\n            }\n            dp[i][k] = dp[j][k - 1] || dp[j][k] || dp[j][k + 1];\n            if (i == stonesSize - 1 && dp[i][k]) {\n                return true;\n            }\n        }\n    }\n    return false;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n^2)$，其中 $n$ 是石子的数量。因为青蛙仅能在石子间跳跃，且不能向后方（起点的方向）跳跃，而第 $i$ 个石子后方只有 $i-1$ 个石子，因此在任意位置，青蛙的「上一次跳跃距离」至多只有 $n$ 种，状态总数为 $n^2$。最坏情况下我们要遍历每一个状态，每次我们只需要 $O(1)$ 的时间计算当前状态是否可达，相乘即可得到最终时间复杂度。\n\n- 空间复杂度：$O(n^2)$，其中 $n$ 是石子的数量。我们需要记录全部 $n^2$ 个状态。",
+            "slateValue": "",
+            "slug": "qing-wa-guo-he-by-leetcode-solution-mbuo",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "6KnRch",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 94,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 5,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-04-27T06:29:25.174497+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：记忆化搜索 + 二分查找 思路及算法 最直接的想法是使用深度优先搜索的方式尝试所有跳跃方案，直到我们找到一组可行解为止。但是不加优化的该算法的时间复杂度在最坏情况下是指数级的，因此考虑优化。 注意到当青蛙每次能够跳跃的距离仅取决于青蛙的「上一次跳跃距离」。而青蛙此后能否到达终点，只和它「现在所处的石子编号」以及",
+            "topic": {
+                "id": 746996,
+                "subscribed": false,
+                "commentCount": 250,
+                "viewCount": 35518,
+                "post": {
+                    "id": 1660390,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 167,
+            "isEditorsPick": false,
+            "hitCount": 75788,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "frog-jump",
+                "questionFrontendId": "403"
+            },
+            "next": {
+                "slug": "shou-hua-tu-jie-ji-hao-de-di-gui-ti-man-8kk2z",
+                "title": "『手画图解』先写出递归，再加入记忆化 | 403.青蛙过河"
+            },
+            "prev": null
+        }
+    }
+}

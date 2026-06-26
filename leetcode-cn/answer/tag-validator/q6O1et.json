@@ -1,0 +1,132 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "q6O1et",
+            "title": "标签验证器",
+            "content": "#### 方法一：栈 + 字符串遍历\n\n**思路与算法**\n\n本题是一道解析字符串的题目，涉及到标签的闭合。由于标签具有「最先开始的标签最后结束」的特性，因此我们可以考虑使用一个栈存储当前开放的标签。除此之外，我们还需要考虑 $\\text{cdata}$ 以及一般的字符，二者都可以使用遍历 + 判断的方法直接进行验证。\n\n我们可以对字符串 $\\textit{code}$ 进行一次遍历。在遍历的过程中，根据遍历到位置 $i$ 的当前字符，采取对应的判断：\n\n- 如果当前的字符为 $\\texttt{<}$，那么需要考虑下面的四种情况：\n\n    - 如果下一个字符为 $\\texttt{/}$，那么说明我们遇到了一个结束标签。我们需要定位下一个 $\\texttt{>}$ 的位置 $j$，此时 $\\textit{code}[i+2..j-1]$ 就是该结束标签的名称。我们需要判断该名称与当前栈顶的名称是否匹配，如果匹配，说明名称的标签已经闭合，我们需要将当前栈顶的名称弹出。同时根据规则 $1$，我们需要保证整个 $\\textit{code}$ 被闭合标签包围，因此如果栈中已经没有标签，但是 $j$ 并不是 $\\textit{code}$ 的末尾，那么说明后续还会有字符，它们不被闭合标签包围。\n\n    - 如果下一个字符为 $\\texttt{!}$，那么说明我们遇到了一个 $\\text{cdata}$，我们需要继续往后读 $7$ 个字符，判断其是否为 $\\texttt{[CDATA[}$。在这之后，我们定位下一个 $\\texttt{]]>}$ 的位置 $j$，此时 $\\textit{code}[i+9..j-1]$ 就是 $\\text{cdata}$ 中的内容，它不需要被解析，所以我们也不必进行任何验证。需要注意的是，根据规则 $1$，栈中需要存在至少一个开放的标签。\n\n    - 如果下一个字符为大写字母，那么说明我们遇到了一个开始标签。我们需要定位下一个 $\\texttt{>}$ 的位置 $j$，此时 $\\textit{code}[i+2..j-1]$ 就是该开始标签的名称。我们需要判断该名称是否恰好由 $1$ 至 $9$ 个大写字母组成，如果是，说明该标签合法，我们需要将该名称放入栈顶。\n\n    - 除此之外，如果不存在下一个字符，或者下一个字符不属于上述三种情况，那么 $\\textit{code}$ 是不合法的。\n\n- 如果当前的字符为其它字符，那么根据规则 $1$，栈中需要存在至少一个开放的标签。\n\n在遍历完成后，我们还需要保证此时栈中没有任何（还没有结束的）标签。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    bool isValid(string code) {\n        int n = code.size();\n        stack<string> tags;\n\n        int i = 0;\n        while (i < n) {\n            if (code[i] == '<') {\n                if (i == n - 1) {\n                    return false;\n                }\n                if (code[i + 1] == '/') {\n                    int j = code.find('>', i);\n                    if (j == string::npos) {\n                        return false;\n                    }\n                    string tagname = code.substr(i + 2, j - (i + 2));\n                    if (tags.empty() || tags.top() != tagname) {\n                        return false;\n                    }\n                    tags.pop();\n                    i = j + 1;\n                    if (tags.empty() && i != n) {\n                        return false;\n                    }\n                }\n                else if (code[i + 1] == '!') {\n                    if (tags.empty()) {\n                        return false;\n                    }\n                    string cdata = code.substr(i + 2, 7);\n                    if (cdata != \"[CDATA[\") {\n                        return false;\n                    }\n                    int j = code.find(\"]]>\", i);\n                    if (j == string::npos) {\n                        return false;\n                    }\n                    i = j + 3;\n                }\n                else {\n                    int j = code.find('>', i);\n                    if (j == string::npos) {\n                        return false;\n                    }\n                    string tagname = code.substr(i + 1, j - (i + 1));\n                    if (tagname.size() < 1 || tagname.size() > 9) {\n                        return false;\n                    }\n                    if (!all_of(tagname.begin(), tagname.end(), [](unsigned char c) { return isupper(c); })) {\n                        return false;\n                    }\n                    tags.push(move(tagname));\n                    i = j + 1;\n                }\n            }\n            else {\n                if (tags.empty()) {\n                    return false;\n                }\n                ++i;\n            }\n        }\n\n        return tags.empty();\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public boolean isValid(String code) {\n        int n = code.length();\n        Deque<String> tags = new ArrayDeque<String>();\n\n        int i = 0;\n        while (i < n) {\n            if (code.charAt(i) == '<') {\n                if (i == n - 1) {\n                    return false;\n                }\n                if (code.charAt(i + 1) == '/') {\n                    int j = code.indexOf('>', i);\n                    if (j < 0) {\n                        return false;\n                    }\n                    String tagname = code.substring(i + 2, j);\n                    if (tags.isEmpty() || !tags.peek().equals(tagname)) {\n                        return false;\n                    }\n                    tags.pop();\n                    i = j + 1;\n                    if (tags.isEmpty() && i != n) {\n                        return false;\n                    }\n                } else if (code.charAt(i + 1) == '!') {\n                    if (tags.isEmpty()) {\n                        return false;\n                    }\n                    if (i + 9 > n) {\n                        return false;\n                    }\n                    String cdata = code.substring(i + 2, i + 9);\n                    if (!\"[CDATA[\".equals(cdata)) {\n                        return false;\n                    }\n                    int j = code.indexOf(\"]]>\", i);\n                    if (j < 0) {\n                        return false;\n                    }\n                    i = j + 3;\n                } else {\n                    int j = code.indexOf('>', i);\n                    if (j < 0) {\n                        return false;\n                    }\n                    String tagname = code.substring(i + 1, j);\n                    if (tagname.length() < 1 || tagname.length() > 9) {\n                        return false;\n                    }\n                    for (int k = 0; k < tagname.length(); ++k) {\n                        if (!Character.isUpperCase(tagname.charAt(k))) {\n                            return false;\n                        }\n                    }\n                    tags.push(tagname);\n                    i = j + 1;\n                }\n            } else {\n                if (tags.isEmpty()) {\n                    return false;\n                }\n                ++i;\n            }\n        }\n\n        return tags.isEmpty();\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public bool IsValid(string code) {\n        int n = code.Length;\n        Stack<string> tags = new Stack<string>();\n\n        int i = 0;\n        while (i < n) {\n            if (code[i] == '<') {\n                if (i == n - 1) {\n                    return false;\n                }\n                if (code[i + 1] == '/') {\n                    int j = code.IndexOf('>', i);\n                    if (j < 0) {\n                        return false;\n                    }\n                    string tagname = code.Substring(i + 2, j - (i + 2));\n                    if (tags.Count == 0 || !tags.Peek().Equals(tagname)) {\n                        return false;\n                    }\n                    tags.Pop();\n                    i = j + 1;\n                    if (tags.Count == 0 && i != n) {\n                        return false;\n                    }\n                } else if (code[i + 1] == '!') {\n                    if (tags.Count == 0) {\n                        return false;\n                    }\n                    if (i + 9 > n) {\n                        return false;\n                    }\n                    string cdata = code.Substring(i + 2, 7);\n                    if (!\"[CDATA[\".Equals(cdata)) {\n                        return false;\n                    }\n                    int j = code.IndexOf(\"]]>\", i);\n                    if (j < 0) {\n                        return false;\n                    }\n                    i = j + 3;\n                } else {\n                    int j = code.IndexOf('>', i);\n                    if (j < 0) {\n                        return false;\n                    }\n                    string tagname = code.Substring(i + 1, j - (i + 1));\n                    if (tagname.Length < 1 || tagname.Length > 9) {\n                        return false;\n                    }\n                    foreach (char c in tagname) {\n                        if (!char.IsUpper(c)) {\n                            return false;\n                        }\n                    }\n                    tags.Push(tagname);\n                    i = j + 1;\n                }\n            } else {\n                if (tags.Count == 0) {\n                    return false;\n                }\n                ++i;\n            }\n        }\n\n        return tags.Count == 0;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def isValid(self, code: str) -> bool:\n        n = len(code)\n        tags = list()\n\n        i = 0\n        while i < n:\n            if code[i] == \"<\":\n                if i == n - 1:\n                    return False\n                if code[i + 1] == \"/\":\n                    j = code.find(\">\", i)\n                    if j == -1:\n                        return False\n                    tagname = code[i+2:j]\n                    if not tags or tags[-1] != tagname:\n                        return False\n                    tags.pop()\n                    i = j + 1\n                    if not tags and i != n:\n                        return False\n                elif code[i + 1] == \"!\":\n                    if not tags:\n                        return False\n                    cdata = code[i+2:i+9]\n                    if cdata != \"[CDATA[\":\n                        return False\n                    j = code.find(\"]]>\", i)\n                    if j == -1:\n                        return False\n                    i = j + 3\n                else:\n                    j = code.find(\">\", i)\n                    if j == -1:\n                        return False\n                    tagname = code[i+1:j]\n                    if not 1 <= len(tagname) <= 9 or not all(ch.isupper() for ch in tagname):\n                        return False\n                    tags.append(tagname)\n                    i = j + 1\n            else:\n                if not tags:\n                    return False\n                i += 1\n        \n        return not tags\n```\n\n```C [sol1-C]\n#define MIN(a, b) ((a) < (b) ? (a) : (b))\n\nbool isValid(char * code){\n    int n = strlen(code);\n    char ** tags = (char **)malloc(sizeof(char *) * n);\n\n    int i = 0;\n    int top = 0;\n    while (i < n) {\n        if (code[i] == '<') {\n            if (i == n - 1) {\n                return false;\n            }\n            if (code[i + 1] == '/') {\n                char *p = strchr(code + i, '>');\n                if (NULL == p) {\n                    return false;\n                }\n                int j = p - code;\n                if (top == 0 || strncmp(tags[top - 1], code + i + 2, j - (i + 2)) != 0) {\n                    return false;\n                }\n                free(tags[top - 1]);\n                top--;\n                i = j + 1;\n                if (top == 0 && i != n) {\n                    return false;\n                }\n            } else if (code[i + 1] == '!') {\n                if (top == 0) {\n                    return false;\n                }\n                if (strncmp(code + i + 2, \"[CDATA[\", 7) != 0) {\n                    return false;\n                }\n                char *p = strstr(code + i, \"]]>\");\n                if (NULL == p) {\n                    return false;\n                }\n                int j = p - code;\n                i = j + 3;\n            } else {\n                char *p = strchr(code + i, '>');\n                if (NULL == p) {\n                    return false;\n                }\n                int j = p - code;\n                int len = MIN(n - i - 1, j - (i + 1));\n                if (len < 1 || len > 9) {\n                    return false;\n                }\n                for (int k = 0; k < len; k++) {\n                    if (!isupper(code[i + 1 + k])) {\n                        return false;\n                    }\n                }\n                char *tagname = (char *)malloc(sizeof(char) * (len + 1));\n                strncpy(tagname, code + i + 1, len);\n                tagname[len] = 0;\n                tags[top++] = tagname;\n                i = j + 1;\n            }\n        } else {\n            if (top == 0) {\n                return false;\n            }\n            ++i;\n        }\n    }\n    return top == 0;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar isValid = function(code) {\n    const n = code.length;\n    const tags = [];\n\n    let i = 0;\n    while (i < n) {\n        if (code[i] === '<') {\n            if (i === n - 1) {\n                return false;\n            }\n            if (code[i + 1] === '/') {\n                const j = code.indexOf('>', i);\n                if (j < 0) {\n                    return false;\n                }\n                const tagname = code.slice(i + 2, j);\n                if (tags.length === 0 || tags[tags.length - 1] !== tagname) {\n                    return false;\n                }\n                tags.pop();\n                i = j + 1;\n                if (tags.length === 0 && i !== n) {\n                    return false;\n                }\n            } else if (code[i + 1] === '!') {\n                if (tags.length === 0) {\n                    return false;\n                }\n                if (i + 9 > n) {\n                    return false;\n                }\n                const cdata = code.slice(i + 2, i + 9);\n                if (\"[CDATA[\" !== cdata) {\n                    return false;\n                }\n                const j = code.indexOf(\"]]>\", i);\n                if (j < 0) {\n                    return false;\n                }\n                i = j + 3;\n            } else {\n                const j = code.indexOf('>', i);\n                if (j < 0) {\n                    return false;\n                }\n                const tagname = code.slice(i + 1, j);\n                if (tagname.length < 1 || tagname.length > 9) {\n                    return false;\n                }\n                for (let k = 0; k < tagname.length; ++k) {\n                    if (!(tagname[k] >= 'A' && tagname[k] <= 'Z')) {\n                        return false;\n                    }\n                }\n                tags.push(tagname);\n                i = j + 1;\n            }\n        } else {\n            if (tags.length === 0) {\n                return false;\n            }\n            ++i;\n        }\n    }\n\n    return tags.length === 0;\n};\n```\n\n```go [sol1-Golang]\nfunc isValid(code string) bool {\n    tags := []string{}\n    for code != \"\" {\n        if code[0] != '<' {\n            if len(tags) == 0 {\n                return false\n            }\n            code = code[1:]\n            continue\n        }\n        if len(code) == 1 {\n            return false\n        }\n        if code[1] == '/' {\n            j := strings.IndexByte(code, '>')\n            if j == -1 {\n                return false\n            }\n            if len(tags) == 0 || tags[len(tags)-1] != code[2:j] {\n                return false\n            }\n            tags = tags[:len(tags)-1]\n            code = code[j+1:]\n            if len(tags) == 0 && code != \"\" {\n                return false\n            }\n        } else if code[1] == '!' {\n            if len(tags) == 0 || len(code) < 9 || code[2:9] != \"[CDATA[\" {\n                return false\n            }\n            j := strings.Index(code, \"]]>\")\n            if j == -1 {\n                return false\n            }\n            code = code[j+3:]\n        } else {\n            j := strings.IndexByte(code, '>')\n            if j == -1 {\n                return false\n            }\n            tagName := code[1:j]\n            if tagName == \"\" || len(tagName) > 9 {\n                return false\n            }\n            for _, ch := range tagName {\n                if !unicode.IsUpper(ch) {\n                    return false\n                }\n            }\n            tags = append(tags, tagName)\n            code = code[j+1:]\n        }\n    }\n    return len(tags) == 0\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是字符串 $\\textit{code}$ 的长度。我们只需要对 $\\textit{code}$ 进行一次遍历。\n\n- 空间复杂度：$O(n)$，即为栈存储标签名称需要使用的空间。",
+            "slateValue": "",
+            "slug": "biao-qian-yan-zheng-qi-by-leetcode-solut-fecy",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "q6O1et",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 28,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Stack",
+                    "nameTranslated": "栈",
+                    "slug": "stack",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Simulation",
+                    "nameTranslated": "模拟",
+                    "slug": "simulation",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2022-05-01T01:06:45.501956+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：栈 + 字符串遍历 思路与算法 本题是一道解析字符串的题目，涉及到标签的闭合。由于标签具有「最先开始的标签最后结束」的特性，因此我们可以考虑使用一个栈存储当前开放的标签。除此之外，我们还需要考虑 $\\text{cdata}$ 以及一般的字符，二者都可以使用遍历 + 判断的方法直接进行验证。 我们可以对字符串 $",
+            "topic": {
+                "id": 1461120,
+                "subscribed": false,
+                "commentCount": 75,
+                "viewCount": 13385,
+                "post": {
+                    "id": 2999386,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 26,
+            "isEditorsPick": false,
+            "hitCount": 20667,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "tag-validator",
+                "questionFrontendId": "591"
+            },
+            "next": {
+                "slug": "by-ac_oier-9l8z",
+                "title": "【宫水三叶】字符串模拟"
+            },
+            "prev": null
+        }
+    }
+}

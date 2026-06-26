@@ -1,0 +1,88 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "EicRKv",
+            "title": "验证二叉树",
+            "content": "#### 方法一：连通性判定\n\n我们将验证二叉树的过程分为两步：第一步找到二叉树的根节点，第二步从根节点开始对二叉树进行遍历，判断其是否为一颗有效的二叉树。\n\n在第一步中，为了找到根节点，我们需要用数组 `indeg` 存放所有节点的入度，这是因为只有入度为 `0` 的点才能是根节点。我们遍历数组 `leftChild` 和 `rightChild`，如果数组中的某个元素 `x` 不为 `-1`，那么就表示有一条边指向节点 `x`，节点 `x` 的入度 `indeg[x]` 增加 `1`。在遍历完数组 `leftChild` 和 `rightChild` 后，我们在数组 `indeg` 中找到一个满足 `index[root] == 0` 的节点 `root`，即为二叉树的根节点。\n\n如果有多个满足 `index[root] == 0` 的节点呢？在这种情况下，这 `n` 个节点一定不是一颗有效的二叉树。我们把这个问题放在第二步来考虑，而在第一步中，我们先不处理这个问题。\n\n在第二步中，我们从根节点开始进行深度优先搜索或广度优先搜索，判定这 `n` 个节点的连通性，这是因为当这个 `n` 个节点是一颗有效的二叉树时，所有的节点会恰好被遍历一次。如果某一个节点被遍历了超过一次（有不止一个父节点）或零次（不连通），那么这 `n` 个节点都不是一颗有效的二叉树。我们可以使用哈希集合（HashSet）`seen` 来存放所有被遍历过的节点，如果在搜索时遍历到了 `seen` 中出现的节点，那么说明该节点被遍历了超过一次。如果在搜索完成后，`seen` 中的节点个数少于 `n`，那么说明有些节点没有被遍历过。\n\n回到第一步中遗留的那个问题，如果有多个满足 `index[root] == 0` 的节点 `r1, r2, ...`，那么我们可以任意选择一个节点，例如 `r1`，作为根节点。在搜索时，由于节点 `r2, ...` 的入度为 `0`，因此不可能被遍历到。这样在搜索结束后，`seen` 中的节点个数一定少于 `n`。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    bool validateBinaryTreeNodes(int n, vector<int>& leftChild, vector<int>& rightChild) {\n        vector<int> indeg(n);\n        for (int i = 0; i < n; ++i) {\n            if (leftChild[i] != -1) {\n                ++indeg[leftChild[i]];\n            }\n            if (rightChild[i] != -1) {\n                ++indeg[rightChild[i]];\n            }\n        }\n\n        int root = -1;\n        for (int i = 0; i < n; ++i) {\n            if (!indeg[i]) {\n                root = i;\n                break;\n            }\n        }\n        if (root == -1) {\n            return false;\n        }\n\n        unordered_set<int> seen;\n        queue<int> q;\n        seen.insert(root);\n        q.push(root);\n\n        while (!q.empty()) {\n            int u = q.front();\n            q.pop();\n            if (leftChild[u] != -1) {\n                if (seen.count(leftChild[u])) {\n                    return false;\n                }\n                seen.insert(leftChild[u]);\n                q.push(leftChild[u]);\n            }\n            if (rightChild[u] != -1) {\n                if (seen.count(rightChild[u])) {\n                    return false;\n                }\n                seen.insert(rightChild[u]);\n                q.push(rightChild[u]);\n            }\n        }\n\n        return seen.size() == n;\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def validateBinaryTreeNodes(self, n: int, leftChild: List[int], rightChild: List[int]) -> bool:\n        indeg = [0] * n\n        for u in leftChild:\n            if u != -1:\n                indeg[u] += 1\n        for u in rightChild:\n            if u != -1:\n                indeg[u] += 1\n        \n        root = -1\n        for i in range(n):\n            if indeg[i] == 0:\n                root = i\n                break\n        if root == -1:\n            return False\n\n        \n        seen = set([root])\n        q = collections.deque([root])\n\n        while len(q) > 0:\n            u = q.popleft()\n            if leftChild[u] != -1:\n                if leftChild[u] in seen:\n                    return False\n                seen.add(leftChild[u])\n                q.append(leftChild[u])\n            if rightChild[u] != -1:\n                if rightChild[u] in seen:\n                    return False\n                seen.add(rightChild[u])\n                q.append(rightChild[u])\n        \n        return len(seen) == n\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(N)$。\n\n- 空间复杂度：$O(N)$。\n\n#### 注意事项\n\n本题的标准程序有误，并且测试数据非常弱，这会导致一些错误的算法可以通过所有的数据。我们必须注意到这些错误的算法。\n\n对于一个包含 `n` 个节点 `m` 条边的无向图，如果它是一棵树，那么必须满足以下三个条件中的两个：\n\n- `m = n - 1`；\n\n- 该无向图连通；\n\n- 该无向图无环。\n\n事实上，只要满足其中的两个条件，就可以推出第三个条件。证明不是本题的重点，因此这里不再赘述。\n\n可以发现，第二个条件「该无向图连通」和第三个条件「该无向图无环」都需要我们对至少整个图进行一次遍历，因此只统计图的出入度、边数等信息而不对整个图进行遍历的所有算法都是错误的。并且由于本题是有向图，和无向图不同的是，有向图中仅有一个节点可以作为树的根节点（而无向图中任意一个节点都可以作为树的根节点），因此我们还需要对根节点的唯一性进行判定。那么对应到本题中：\n\n- 第一个条件 `m = n - 1`：统计数组 `leftChild` 和 `rightChild` 中非 `-1` 的元素个数即为 `m`；\n\n- 另一个条件可以考虑验证剩下两个条件中的任意一个：\n\n    - 如果选择第二个条件「该无向图连通」，那么可以使用搜索遍历的方式来判断（例如上面给出的代码）；\n\n    - 如果选择第三个条件「该无向图无环」，那么可以使用并查集的方式来判断。\n\n- 此外还需要使用统计入度的方式对根节点的唯一性进行判定。",
+            "slateValue": "",
+            "slug": "yan-zheng-er-cha-shu-by-leetcode-solution",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "EicRKv",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 29,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python3",
+                    "nameTranslated": "",
+                    "slug": "python3",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-02-24T07:08:20.229236+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": " 方法一：连通性判定\n我们将验证二叉树的过程分为两步：第一步找到二叉树的根节点，第二步从根节点开始对二叉树进行遍历，判断其是否为一颗有效的二叉树。\n在第一步中，为了找到根节点，我们需要用数组 indeg 存放所有节点的入度，这是因为只有入度为 0 的点才能是根节点。我们遍历数组 leftChild 和 rightChi",
+            "topic": {
+                "id": 108080,
+                "subscribed": false,
+                "commentCount": 42,
+                "viewCount": 9395,
+                "post": {
+                    "id": 362790,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 31,
+            "isEditorsPick": false,
+            "hitCount": 17311,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "validate-binary-tree-nodes",
+                "questionFrontendId": "1361"
+            },
+            "next": {
+                "slug": "java-bing-cha-ji-yi-ci-bian-li-xiang-xi-6450j",
+                "title": "Java 并查集 一次遍历 详细注释！"
+            },
+            "prev": null
+        }
+    }
+}

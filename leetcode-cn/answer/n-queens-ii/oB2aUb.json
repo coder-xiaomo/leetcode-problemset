@@ -1,0 +1,148 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "oB2aUb",
+            "title": "N皇后 II",
+            "content": "#### 前言\n\n这道题和「[51. N 皇后](https://leetcode.cn/problems/n-queens/)」非常相似，区别在于，第 $51$ 题需要得到所有可能的解，这道题只需要得到可能的解的数量。因此这道题可以使用第 $51$ 题的做法，只需要将得到所有可能的解改成得到可能的解的数量即可。\n\n皇后的走法是：可以横直斜走，格数不限。因此要求皇后彼此之间不能相互攻击，等价于要求任何两个皇后都不能在同一行、同一列以及同一条斜线上。\n\n直观的做法是暴力枚举将 $N$ 个皇后放置在 $N \\times N$ 的棋盘上的所有可能的情况，并对每一种情况判断是否满足皇后彼此之间不相互攻击。暴力枚举的时间复杂度是非常高的，因此必须利用限制条件加以优化。\n\n显然，每个皇后必须位于不同行和不同列，因此将 $N$ 个皇后放置在 $N \\times N$ 的棋盘上，一定是每一行有且仅有一个皇后，每一列有且仅有一个皇后，且任何两个皇后都不能在同一条斜线上。基于上述发现，可以通过回溯的方式得到可能的解的数量。\n\n回溯的具体做法是：依次在每一行放置一个皇后，每次新放置的皇后都不能和已经放置的皇后之间有攻击，即新放置的皇后不能和任何一个已经放置的皇后在同一列以及同一条斜线上。当 $N$ 个皇后都放置完毕，则找到一个可能的解，将可能的解的数量加 $1$。\n\n由于每个皇后必须位于不同列，因此已经放置的皇后所在的列不能放置别的皇后。第一个皇后有 $N$ 列可以选择，第二个皇后最多有 $N-1$ 列可以选择，第三个皇后最多有 $N-2$ 列可以选择（如果考虑到不能在同一条斜线上，可能的选择数量更少），因此所有可能的情况不会超过 $N!$ 种，遍历这些情况的时间复杂度是 $O(N!)$。\n\n为了降低总时间复杂度，每次放置皇后时需要快速判断每个位置是否可以放置皇后，显然，最理想的情况是在 $O(1)$ 的时间内判断该位置所在的列和两条斜线上是否已经有皇后。\n\n以下两种方法分别使用集合和位运算对皇后的放置位置进行判断，都可以在 $O(1)$ 的时间内判断一个位置是否可以放置皇后，算法的总时间复杂度都是 $O(N!)$。\n\n#### 方法一：基于集合的回溯\n\n为了判断一个位置所在的列和两条斜线上是否已经有皇后，使用三个集合 $\\textit{columns}$、$\\textit{diagonals}_1$ 和 $\\textit{diagonals}_2$ 分别记录每一列以及两个方向的每条斜线上是否有皇后。\n\n列的表示法很直观，一共有 $N$ 列，每一列的下标范围从 $0$ 到 $N-1$，使用列的下标即可明确表示每一列。\n\n如何表示两个方向的斜线呢？对于每个方向的斜线，需要找到斜线上的每个位置的行下标与列下标之间的关系。\n\n方向一的斜线为从左上到右下方向，同一条斜线上的每个位置满足**行下标与列下标之差相等**，例如 $(0,0)$ 和 $(3,3)$ 在同一条方向一的斜线上。因此使用行下标与列下标之差即可明确表示每一条方向一的斜线。\n\n![fig1](https://assets.leetcode.cn/solution-static/52/1.png)\n\n方向二的斜线为从右上到左下方向，同一条斜线上的每个位置满足**行下标与列下标之和相等**，例如 $(3,0)$ 和 $(1,2)$ 在同一条方向二的斜线上。因此使用行下标与列下标之和即可明确表示每一条方向二的斜线。\n\n![fig2](https://assets.leetcode.cn/solution-static/52/2.png)\n\n每次放置皇后时，对于每个位置判断其是否在三个集合中，如果三个集合都不包含当前位置，则当前位置是可以放置皇后的位置。\n\n```Java [sol1-Java]\nclass Solution {\n    public int totalNQueens(int n) {\n        Set<Integer> columns = new HashSet<Integer>();\n        Set<Integer> diagonals1 = new HashSet<Integer>();\n        Set<Integer> diagonals2 = new HashSet<Integer>();\n        return backtrack(n, 0, columns, diagonals1, diagonals2);\n    }\n\n    public int backtrack(int n, int row, Set<Integer> columns, Set<Integer> diagonals1, Set<Integer> diagonals2) {\n        if (row == n) {\n            return 1;\n        } else {\n            int count = 0;\n            for (int i = 0; i < n; i++) {\n                if (columns.contains(i)) {\n                    continue;\n                }\n                int diagonal1 = row - i;\n                if (diagonals1.contains(diagonal1)) {\n                    continue;\n                }\n                int diagonal2 = row + i;\n                if (diagonals2.contains(diagonal2)) {\n                    continue;\n                }\n                columns.add(i);\n                diagonals1.add(diagonal1);\n                diagonals2.add(diagonal2);\n                count += backtrack(n, row + 1, columns, diagonals1, diagonals2);\n                columns.remove(i);\n                diagonals1.remove(diagonal1);\n                diagonals2.remove(diagonal2);\n            }\n            return count;\n        }\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int TotalNQueens(int n) {\n        HashSet<int> columns = new HashSet<int>();\n        HashSet<int> diagonals1 = new HashSet<int>();\n        HashSet<int> diagonals2 = new HashSet<int>();\n        return Backtrack(n, 0, columns, diagonals1, diagonals2);\n    }\n\n    private int Backtrack(int n, int row, HashSet<int> columns, HashSet<int> diagonals1, HashSet<int> diagonals2) {\n        if (row == n) {\n            return 1;\n        } else {\n            int count = 0;\n            for (int i = 0; i < n; i++) {\n                if (columns.Contains(i)) {\n                    continue;\n                }\n                int diagonal1 = row - i;\n                if (diagonals1.Contains(diagonal1)) {\n                    continue;\n                }\n                int diagonal2 = row + i;\n                if (diagonals2.Contains(diagonal2)) {\n                    continue;\n                }\n                columns.Add(i);\n                diagonals1.Add(diagonal1);\n                diagonals2.Add(diagonal2);\n                count += Backtrack(n, row + 1, columns, diagonals1, diagonals2);\n                columns.Remove(i);\n                diagonals1.Remove(diagonal1);\n                diagonals2.Remove(diagonal2);\n            }\n            return count;\n        }\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int totalNQueens(int n) {\n        unordered_set<int> columns, diagonals1, diagonals2;\n        return backtrack(n, 0, columns, diagonals1, diagonals2);\n    }\n\n    int backtrack(int n, int row, unordered_set<int>& columns, unordered_set<int>& diagonals1, unordered_set<int>& diagonals2) {\n        if (row == n) {\n            return 1;\n        } else {\n            int count = 0;\n            for (int i = 0; i < n; i++) {\n                if (columns.find(i) != columns.end()) {\n                    continue;\n                }\n                int diagonal1 = row - i;\n                if (diagonals1.find(diagonal1) != diagonals1.end()) {\n                    continue;\n                }\n                int diagonal2 = row + i;\n                if (diagonals2.find(diagonal2) != diagonals2.end()) {\n                    continue;\n                }\n                columns.insert(i);\n                diagonals1.insert(diagonal1);\n                diagonals2.insert(diagonal2);\n                count += backtrack(n, row + 1, columns, diagonals1, diagonals2);\n                columns.erase(i);\n                diagonals1.erase(diagonal1);\n                diagonals2.erase(diagonal2);\n            }\n            return count;\n        }\n    }\n};\n```\n\n```JavaScript [sol1-JavaScript]\nconst backtrack = (n, row, columns, diagonals1, diagonals2) => {\n    if (row === n) {\n        return 1;\n    } else {\n        let count = 0;\n        for (let i = 0; i < n; i++) {\n            if (columns.has(i)) {\n                continue;\n            }\n            const diagonal1 = row - i;\n            if (diagonals1.has(diagonal1)) {\n                continue;\n            }\n            const diagonal2 = row + i;\n            if (diagonals2.has(diagonal2)) {\n                continue;\n            }\n            columns.add(i);\n            diagonals1.add(diagonal1);\n            diagonals2.add(diagonal2);\n            count += backtrack(n, row + 1, columns, diagonals1, diagonals2);\n            columns.delete(i);\n            diagonals1.delete(diagonal1);\n            diagonals2.delete(diagonal2);\n        }\n        return count;\n    }\n}\nvar totalNQueens = function(n) {\n    const columns = new Set();\n    const diagonals1 = new Set();\n    const diagonals2 = new Set();\n    return backtrack(n, 0, columns, diagonals1, diagonals2);\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def totalNQueens(self, n: int) -> int:\n        def backtrack(row: int) -> int:\n            if row == n:\n                return 1\n            else:\n                count = 0\n                for i in range(n):\n                    if i in columns or row - i in diagonal1 or row + i in diagonal2:\n                        continue\n                    columns.add(i)\n                    diagonal1.add(row - i)\n                    diagonal2.add(row + i)\n                    count += backtrack(row + 1)\n                    columns.remove(i)\n                    diagonal1.remove(row - i)\n                    diagonal2.remove(row + i)\n                return count\n                    \n        columns = set()\n        diagonal1 = set()\n        diagonal2 = set()\n        return backtrack(0)\n```\n\n```Go [sol1-Go]\nfunc totalNQueens(n int) (ans int) {\n    columns := make([]bool, n)        // 列上是否有皇后\n    diagonals1 := make([]bool, 2*n-1) // 左上到右下是否有皇后\n    diagonals2 := make([]bool, 2*n-1) // 右上到左下是否有皇后\n    var backtrack func(int)\n    backtrack = func(row int) {\n        if row == n {\n            ans++\n            return\n        }\n        for col, hasQueen := range columns {\n            d1, d2 := row+n-1-col, row+col\n            if hasQueen || diagonals1[d1] || diagonals2[d2] {\n                continue\n            }\n            columns[col] = true\n            diagonals1[d1] = true\n            diagonals2[d2] = true\n            backtrack(row + 1)\n            columns[col] = false\n            diagonals1[d1] = false\n            diagonals2[d2] = false\n        }\n    }\n    backtrack(0)\n    return\n}\n```\n\n```C [sol1-C]\nstruct hashTable {\n    int key;\n    UT_hash_handle hh;\n};\n\nstruct hashTable* find(struct hashTable** hashtable, int ikey) {\n    struct hashTable* tmp = NULL;\n    HASH_FIND_INT(*hashtable, &ikey, tmp);\n    return tmp;\n}\n\nvoid insert(struct hashTable** hashtable, int ikey) {\n    struct hashTable* tmp = NULL;\n    HASH_FIND_INT(*hashtable, &ikey, tmp);\n    if (tmp == NULL) {\n        tmp = malloc(sizeof(struct hashTable));\n        tmp->key = ikey;\n        HASH_ADD_INT(*hashtable, key, tmp);\n    }\n}\n\nvoid erase(struct hashTable** hashtable, int ikey) {\n    struct hashTable* tmp = NULL;\n    HASH_FIND_INT(*hashtable, &ikey, tmp);\n    if (tmp != NULL) {\n        HASH_DEL(*hashtable, tmp);\n        free(tmp);\n    }\n}\n\nstruct hashTable *columns, *diagonals1, *diagonals2;\n\nint backtrack(int n, int row) {\n    if (row == n) {\n        return 1;\n    } else {\n        int count = 0;\n        for (int i = 0; i < n; i++) {\n            if (find(&columns, i) != NULL) {\n                continue;\n            }\n            int diagonal1 = row - i;\n            if (find(&diagonals1, diagonal1) != NULL) {\n                continue;\n            }\n            int diagonal2 = row + i;\n            if (find(&diagonals2, diagonal2) != NULL) {\n                continue;\n            }\n            insert(&columns, i);\n            insert(&diagonals1, diagonal1);\n            insert(&diagonals2, diagonal2);\n            count += backtrack(n, row + 1);\n            erase(&columns, i);\n            erase(&diagonals1, diagonal1);\n            erase(&diagonals2, diagonal2);\n        }\n        return count;\n    }\n}\n\nint totalNQueens(int n) {\n    columns = diagonals1 = diagonals2 = NULL;\n    return backtrack(n, 0);\n}\n```\n\n```TypeScript [sol1-TypeScript]\nfunction totalNQueens(n: number): number {\n    const columns: Set<number> = new Set();\n    const diagonal1: Set<number> = new Set();\n    const diagonal2: Set<number> = new Set();\n\n    function backtrack(row: number): number {\n        if (row === n) {\n            return 1;\n        } else {\n            let count = 0;\n            for (let i = 0; i < n; i++) {\n                if (columns.has(i) || diagonal1.has(row - i) || diagonal2.has(row + i)) {\n                    continue;\n                }\n                columns.add(i);\n                diagonal1.add(row - i);\n                diagonal2.add(row + i);\n                count += backtrack(row + 1);\n                columns.delete(i);\n                diagonal1.delete(row - i);\n                diagonal2.delete(row + i);\n            }\n            return count;\n        }\n    }\n\n    return backtrack(0);\n};\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn total_n_queens(n: i32) -> i32 {\n        let mut columns = std::collections::HashSet::new();\n        let mut diagonal1 = std::collections::HashSet::new();\n        let mut diagonal2 = std::collections::HashSet::new();\n\n        fn backtrack(\n            row: usize,\n            n: usize,\n            columns: &mut std::collections::HashSet<usize>,\n            diagonal1: &mut std::collections::HashSet<i32>,\n            diagonal2: &mut std::collections::HashSet<i32>,\n        ) -> i32 {\n            if row == n {\n                return 1;\n            } else {\n                let mut count = 0;\n                for i in 0..n {\n                    if columns.contains(&i) || diagonal1.contains(&(row as i32 - i as i32)) || diagonal2.contains(&(row as i32 + i as i32)) {\n                        continue;\n                    }\n                    columns.insert(i);\n                    diagonal1.insert(row as i32 - i as i32);\n                    diagonal2.insert(row as i32 + i as i32);\n                    count += backtrack(row + 1, n, columns, diagonal1, diagonal2);\n                    columns.remove(&i);\n                    diagonal1.remove(&(row as i32 - i as i32));\n                    diagonal2.remove(&(row as i32 + i as i32));\n                }\n                return count;\n            }\n        }\n\n        backtrack(0, n as usize, &mut columns, &mut diagonal1, &mut diagonal2)\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(N!)$，其中 $N$ 是皇后数量。\n\n- 空间复杂度：$O(N)$，其中 $N$ 是皇后数量。空间复杂度主要取决于递归调用层数以及三个集合，递归调用层数不会超过 $N$，每个集合的元素个数都不会超过 $N$。\n\n#### 方法二：基于位运算的回溯\n\n方法一使用三个集合记录分别记录每一列以及两个方向的每条斜线上是否有皇后，每个集合最多包含 $N$ 个元素，因此集合的空间复杂度是 $O(N)$。如果利用位运算记录皇后的信息，就可以将记录皇后信息的空间复杂度从 $O(N)$ 降到 $O(1)$。\n\n具体做法是，使用三个整数 $\\textit{columns}$、$\\textit{diagonals}_1$ 和 $\\textit{diagonals}_2$ 分别记录每一列以及两个方向的每条斜线上是否有皇后，每个整数有 $N$ 个二进制位。棋盘的每一列对应每个整数的二进制表示中的一个数位，其中棋盘的最左列对应每个整数的最低二进制位，最右列对应每个整数的最高二进制位。\n\n那么如何根据每次放置的皇后更新三个整数的值呢？在说具体的计算方法之前，首先说一个例子。\n\n棋盘的边长和皇后的数量 $N=8$。如果棋盘的前两行分别在第 $2$ 列和第 $4$ 列放置了皇后（下标从 $0$ 开始），则棋盘的前两行如下图所示。\n\n![fig3](https://assets.leetcode.cn/solution-static/52/3.png)\n\n如果要在下一行放置皇后，哪些位置不能放置呢？我们用 $0$ 代表可以放置皇后的位置，$1$ 代表不能放置皇后的位置。\n\n新放置的皇后不能和任何一个已经放置的皇后在同一列，因此不能放置在第 $2$ 列和第 $4$ 列，对应 $\\textit{columns}=00010100_{(2)}$。\n\n新放置的皇后不能和任何一个已经放置的皇后在同一条方向一（从左上到右下方向）的斜线上，因此不能放置在第 $4$ 列和第 $5$ 列，对应 $\\textit{diagonals}_1=00110000_{(2)}$。其中，第 $4$ 列为其前两行的第 $2$ 列的皇后往右下移动两步的位置，第 $5$ 列为其前一行的第 $4$ 列的皇后往右下移动一步的位置。\n\n新放置的皇后不能和任何一个已经放置的皇后在同一条方向二（从右上到左下方向）的斜线上，因此不能放置在第 $0$ 列和第 $3$ 列，对应 $\\textit{diagonals}_2=00001001_{(2)}$。其中，第 $0$ 列为其前两行的第 $2$ 列的皇后往左下移动两步的位置，第 $3$ 列为其前一行的第 $4$ 列的皇后往左下移动一步的位置。\n\n![fig4](https://assets.leetcode.cn/solution-static/52/4.png)\n\n由此可以得到三个整数的计算方法：\n\n- 初始时，三个整数的值都等于 $0$，表示没有放置任何皇后；\n\n- 在当前行放置皇后，如果皇后放置在第 $i$ 列，则将三个整数的第 $i$ 个二进制位（指从低到高的第 $i$ 个二进制位）的值设为 $1$；\n\n- 进入下一行时，$\\textit{columns}$ 的值保持不变，$\\textit{diagonals}_1$ 左移一位，$\\textit{diagonals}_2$ 右移一位，由于棋盘的最左列对应每个整数的最低二进制位，即每个整数的最右二进制位，因此对整数的移位操作方向和对棋盘的移位操作方向相反（对棋盘的移位操作方向是 $\\textit{diagonals}_1$ 右移一位，$\\textit{diagonals}_2$ 左移一位）。\n\n<![ppt1](https://assets.leetcode.cn/solution-static/52/2_1.png),![ppt2](https://assets.leetcode.cn/solution-static/52/2_2.png),![ppt3](https://assets.leetcode.cn/solution-static/52/2_3.png),![ppt4](https://assets.leetcode.cn/solution-static/52/2_4.png),![ppt5](https://assets.leetcode.cn/solution-static/52/2_5.png),![ppt6](https://assets.leetcode.cn/solution-static/52/2_6.png)>\n\n每次放置皇后时，三个整数的按位或运算的结果即为不能放置皇后的位置，其余位置即为可以放置皇后的位置。可以通过 $(2^n-1)~\\&~(\\sim(\\textit{columns} | \\textit{diagonals}_1 | \\textit{diagonals}_2))$ 得到可以放置皇后的位置（该结果的值为 $1$ 的位置表示可以放置皇后的位置），然后遍历这些位置，尝试放置皇后并得到可能的解。\n\n遍历可以放置皇后的位置时，可以利用以下两个按位与运算的性质：\n\n- $x~\\&~(-x)$ 可以获得 $x$ 的二进制表示中的最低位的 $1$ 的位置；\n\n- $x~\\&~(x-1)$ 可以将 $x$ 的二进制表示中的最低位的 $1$ 置成 $0$。\n\n具体做法是，每次获得可以放置皇后的位置中的最低位，并将该位的值置成 $0$，尝试在该位置放置皇后。这样即可遍历每个可以放置皇后的位置。\n\n```Java [sol2-Java]\nclass Solution {\n    public int totalNQueens(int n) {\n        return solve(n, 0, 0, 0, 0);\n    }\n\n    public int solve(int n, int row, int columns, int diagonals1, int diagonals2) {\n        if (row == n) {\n            return 1;\n        } else {\n            int count = 0;\n            int availablePositions = ((1 << n) - 1) & (~(columns | diagonals1 | diagonals2));\n            while (availablePositions != 0) {\n                int position = availablePositions & (-availablePositions);\n                availablePositions = availablePositions & (availablePositions - 1);\n                count += solve(n, row + 1, columns | position, (diagonals1 | position) << 1, (diagonals2 | position) >> 1);\n            }\n            return count;\n        }\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    public int TotalNQueens(int n) {\n        return Solve(n, 0, 0, 0, 0);\n    }\n\n    private int Solve(int n, int row, int columns, int diagonals1, int diagonals2) {\n        if (row == n) {\n            return 1;\n        } else {\n            int count = 0;\n            int availablePositions = ((1 << n) - 1) & (~(columns | diagonals1 | diagonals2));\n            while (availablePositions != 0) {\n                int position = availablePositions & -availablePositions;\n                availablePositions &= (availablePositions - 1);\n                count += Solve(n, row + 1, columns | position, (diagonals1 | position) << 1, (diagonals2 | position) >> 1);\n            }\n            return count;\n        }\n    }\n}\n```\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    int totalNQueens(int n) {\n        return solve(n, 0, 0, 0, 0);\n    }\n\n    int solve(int n, int row, int columns, int diagonals1, int diagonals2) {\n        if (row == n) {\n            return 1;\n        } else {\n            int count = 0;\n            int availablePositions = ((1 << n) - 1) & (~(columns | diagonals1 | diagonals2));\n            while (availablePositions != 0) {\n                int position = availablePositions & (-availablePositions);\n                availablePositions = availablePositions & (availablePositions - 1);\n                count += solve(n, row + 1, columns | position, (diagonals1 | position) << 1, (diagonals2 | position) >> 1);\n            }\n            return count;\n        }\n    }\n};\n```\n\n```JavaScript [sol2-JavaScript]\nconst __builtin_popcount = (x) => x.toString(2).split('').reduce((prev, v) => prev + (v === '1'), 0);\nconst solve = (n, row, columns, diagonals1, diagonals2) => {\n    if (row === n) {\n        return 1;\n    } else {\n        let count = 0;\n        let availablePositions = ((1 << n) - 1) & (~(columns | diagonals1 | diagonals2));\n        while (availablePositions != 0) {\n            const position = availablePositions & (-availablePositions);\n            availablePositions = availablePositions & (availablePositions - 1);\n            count += solve(n, row + 1, columns | position, (diagonals1 | position) << 1, (diagonals2 | position) >> 1);\n        }\n        return count;\n    }\n}\nvar totalNQueens = function(n) {\n    return solve(n, 0, 0, 0, 0);\n};\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def totalNQueens(self, n: int) -> int:\n        def solve(row: int, columns: int, diagonals1: int, diagonals2: int) -> int:\n            if row == n:\n                return 1\n            else:\n                count = 0\n                availablePositions = ((1 << n) - 1) & (~(columns | diagonals1 | diagonals2))\n                while availablePositions:\n                    position = availablePositions & (-availablePositions)\n                    availablePositions = availablePositions & (availablePositions - 1)\n                    count += solve(row + 1, columns | position, (diagonals1 | position) << 1, (diagonals2 | position) >> 1)\n                return count\n\n        return solve(0, 0, 0, 0)\n```\n\n```Go [sol2-Go]\nfunc totalNQueens(n int) (ans int) {\n    var solve func(row, columns, diagonals1, diagonals2 int)\n    solve = func(row, columns, diagonals1, diagonals2 int) {\n        if row == n {\n            ans++\n            return\n        }\n        availablePositions := (1<<n - 1) &^ (columns | diagonals1 | diagonals2)\n        for availablePositions > 0 {\n            position := availablePositions & -availablePositions\n            solve(row+1, columns|position, (diagonals1|position)<<1, (diagonals2|position)>>1)\n            availablePositions &^= position // 移除该比特位\n        }\n    }\n    solve(0, 0, 0, 0)\n    return\n}\n```\n\n```C [sol2-C]\nint solve(int n, int row, int columns, int diagonals1, int diagonals2) {\n    if (row == n) {\n        return 1;\n    } else {\n        int count = 0;\n        int availablePositions = ((1 << n) - 1) & (~(columns | diagonals1 | diagonals2));\n        while (availablePositions != 0) {\n            int position = availablePositions & (-availablePositions);\n            availablePositions = availablePositions & (availablePositions - 1);\n            count += solve(n, row + 1, columns | position, (diagonals1 | position) << 1, (diagonals2 | position) >> 1);\n        }\n        return count;\n    }\n}\n\nint totalNQueens(int n) {\n    return solve(n, 0, 0, 0, 0);\n}\n```\n\n```TypeScript [sol2-TypeScript]\nfunction totalNQueens(n: number): number {\n    function solve(row: number, columns: number, diagonals1: number, diagonals2: number): number {\n        if (row === n) {\n            return 1;\n        } else {\n            let count = 0;\n            let availablePositions = ((1 << n) - 1) & (~(columns | diagonals1 | diagonals2));\n            while (availablePositions) {\n                const position = availablePositions & -availablePositions;\n                availablePositions &= availablePositions - 1;\n                count += solve(row + 1, columns | position, (diagonals1 | position) << 1, (diagonals2 | position) >> 1);\n            }\n            return count;\n        }\n    }\n\n    return solve(0, 0, 0, 0);\n};\n```\n\n```Rust [sol2-Rust]\nimpl Solution {\n    pub fn total_n_queens(n: i32) -> i32 {\n        fn solve(row: usize, columns: usize, diagonals1: usize, diagonals2: usize, n: usize) -> i32 {\n            if row == n {\n                return 1;\n            } else {\n                let mut count = 0;\n                let mut available_positions = ((1 << n) - 1) & !(columns | diagonals1 | diagonals2);\n                while available_positions != 0 {\n                    let position = available_positions & available_positions.wrapping_neg();\n                    available_positions &= available_positions - 1;\n                    count += solve(\n                        row + 1,\n                        columns | position,\n                        (diagonals1 | position) << 1,\n                        (diagonals2 | position) >> 1,\n                        n,\n                    );\n                }\n                return count;\n            }\n        }\n\n        solve(0, 0, 0, 0, n as usize)\n    }   \n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(N!)$，其中 $N$ 是皇后数量。\n\n- 空间复杂度：$O(N)$，其中 $N$ 是皇后数量。由于使用位运算表示，因此存储皇后信息的空间复杂度是 $O(1)$，空间复杂度主要取决于递归调用层数，递归调用层数不会超过 $N$。\n\n#### 小结\n\n回顾这道题，拿到这道题的时候，其实我们很容易看出需要使用枚举的方法来求解这个问题，当我们不知道用什么办法来枚举是最优的时候，可以从下面三个方向考虑：\n\n+ 子集枚举：可以把问题转化成「从 $n^2$ 个格子中选一个子集，使得子集中恰好有 $n$ 个格子，且任意选出两个都不在同行、同列或者同对角线」，这里枚举的规模是 $2^{n^2}$；\n+ 组合枚举：可以把问题转化成「从 $n^2$ 个格子中选择 $n$ 个，且任意选出两个都不在同行、同列或者同对角线」，这里的枚举规模是 ${n^2} \\choose {n}$；\n+ 排列枚举：因为这里每行只能放置一个皇后，而所有行中皇后的列号正好构成一个 $1$ 到 $n$ 的排列，所以我们可以把问题转化为一个排列枚举，规模是 $n!$。\n\n带入一些 $n$ 进这三种方法验证，就可以知道哪种方法的枚举规模是最小的，这里我们发现第三种方法的枚举规模最小。这道题给出的两个方法其实和排列枚举的本质是类似的。",
+            "slateValue": "",
+            "slug": "nhuang-hou-ii-by-leetcode-solution",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "oB2aUb",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 86,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Bit Manipulation",
+                    "nameTranslated": "位运算",
+                    "slug": "bit-manipulation",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Backtracking",
+                    "nameTranslated": "回溯",
+                    "slug": "backtracking",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-10-16T14:08:56.664279+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "前言 这道题和「51. N 皇后」非常相似，区别在于，第 [latex] 题需要得到所有可能的解，这道题只需要得到可能的解的数量。因此这道题可以使用第 [latex] 题的做法，只需要将得到所有可能的解改成得到可能的解的数量即可。 皇后的走法是：可以横直斜走，格数不限。因此要求皇后彼此之间不能相互攻击，等价于要求任何两",
+            "topic": {
+                "id": 449388,
+                "subscribed": false,
+                "commentCount": 170,
+                "viewCount": 46150,
+                "post": {
+                    "id": 1079337,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 286,
+            "isEditorsPick": false,
+            "hitCount": 114384,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "n-queens-ii",
+                "questionFrontendId": "52"
+            },
+            "next": {
+                "slug": "dfs-wei-yun-suan-jian-zhi-by-makeex",
+                "title": "DFS + 位运算剪枝"
+            },
+            "prev": null
+        }
+    }
+}

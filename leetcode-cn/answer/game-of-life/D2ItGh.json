@@ -1,0 +1,110 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "D2ItGh",
+            "title": "生命游戏",
+            "content": "### 📺 视频题解  \n![289.生命游戏.mp4](d8b9131f-e15e-49bc-acd6-b55aa2342b07)\n\n### 📖 文字题解\n\n#### 分析\n\n在讲具体解法之前，请先根据下面的图片理解题目中描述的细胞遵循的生存定律，这有助于我们后面的讲解。\n\n![fig](https://pic.leetcode.cn/Figures/289/Game_of_life_1.png)\n\n![fig](https://pic.leetcode.cn/Figures/289/Game_of_life_2.png)\n\n#### 方法一：复制原数组进行模拟\n\n**思路**\n\n这个问题看起来很简单，但有一个陷阱，如果你直接根据规则更新原始数组，那么就做不到题目中说的 **同步** 更新。假设你直接将更新后的细胞状态填入原始数组，那么当前轮次其他细胞状态的更新就会引用到当前轮已更新细胞的状态，但实际上每一轮更新需要依赖上一轮细胞的状态，是不能用这一轮的细胞状态来更新的。\n\n![fig](https://pic.leetcode.cn/Figures/289/Game_of_life_3.png)\n\n如上图所示，已更新细胞的状态会影响到周围其他还未更新细胞状态的计算。一个最简单的解决方法就是复制一份原始数组，复制的那一份永远不修改，只作为更新规则的引用。这样原始数组的细胞值就不会被污染了。\n\n![fig](https://pic.leetcode.cn/Figures/289/Game_of_life_4.png)\n\n**算法**\n\n- 复制一份原始数组；\n\n- 根据复制数组中邻居细胞的状态来更新 `board` 中的细胞状态。\n\n```C++ [solution1-C++]\nclass Solution {\npublic:\n    void gameOfLife(vector<vector<int>>& board) {\n        int neighbors[3] = {0, 1, -1};\n\n        int rows = board.size();\n        int cols = board[0].size();\n\n        // 创建复制数组 copyBoard\n        vector<vector<int> >copyBoard(rows, vector<int>(cols, 0));\n\n        // 从原数组复制一份到 copyBoard 中\n        for (int row = 0; row < rows; row++) {\n            for (int col = 0; col < cols; col++) {\n                copyBoard[row][col] = board[row][col];\n            }\n        }\n\n        // 遍历面板每一个格子里的细胞\n        for (int row = 0; row < rows; row++) {\n            for (int col = 0; col < cols; col++) {\n\n                // 对于每一个细胞统计其八个相邻位置里的活细胞数量\n                int liveNeighbors = 0;\n\n                for (int i = 0; i < 3; i++) {\n                    for (int j = 0; j < 3; j++) {\n\n                        if (!(neighbors[i] == 0 && neighbors[j] == 0)) {\n                            int r = (row + neighbors[i]);\n                            int c = (col + neighbors[j]);\n\n                            // 查看相邻的细胞是否是活细胞\n                            if ((r < rows && r >= 0) && (c < cols && c >= 0) && (copyBoard[r][c] == 1)) {\n                                liveNeighbors += 1;\n                            }\n                        }\n                    }\n                }\n\n                // 规则 1 或规则 3      \n                if ((copyBoard[row][col] == 1) && (liveNeighbors < 2 || liveNeighbors > 3)) {\n                    board[row][col] = 0;\n                }\n                // 规则 4\n                if (copyBoard[row][col] == 0 && liveNeighbors == 3) {\n                    board[row][col] = 1;\n                }\n            }\n        }\n    }\n};\n```\n```Java [solution1-Java]\nclass Solution {\n    public void gameOfLife(int[][] board) {\n        int[] neighbors = {0, 1, -1};\n\n        int rows = board.length;\n        int cols = board[0].length;\n\n        // 创建复制数组 copyBoard\n        int[][] copyBoard = new int[rows][cols];\n\n        // 从原数组复制一份到 copyBoard 中\n        for (int row = 0; row < rows; row++) {\n            for (int col = 0; col < cols; col++) {\n                copyBoard[row][col] = board[row][col];\n            }\n        }\n\n        // 遍历面板每一个格子里的细胞\n        for (int row = 0; row < rows; row++) {\n            for (int col = 0; col < cols; col++) {\n\n                // 对于每一个细胞统计其八个相邻位置里的活细胞数量\n                int liveNeighbors = 0;\n\n                for (int i = 0; i < 3; i++) {\n                    for (int j = 0; j < 3; j++) {\n\n                        if (!(neighbors[i] == 0 && neighbors[j] == 0)) {\n                            int r = (row + neighbors[i]);\n                            int c = (col + neighbors[j]);\n\n                            // 查看相邻的细胞是否是活细胞\n                            if ((r < rows && r >= 0) && (c < cols && c >= 0) && (copyBoard[r][c] == 1)) {\n                                liveNeighbors += 1;\n                            }\n                        }\n                    }\n                }\n\n                // 规则 1 或规则 3      \n                if ((copyBoard[row][col] == 1) && (liveNeighbors < 2 || liveNeighbors > 3)) {\n                    board[row][col] = 0;\n                }\n                // 规则 4\n                if (copyBoard[row][col] == 0 && liveNeighbors == 3) {\n                    board[row][col] = 1;\n                }\n            }\n        }\n    }\n}\n```\n```Python [solution1-Python3]\nclass Solution:\n    def gameOfLife(self, board: List[List[int]]) -> None:\n        \"\"\"\n        Do not return anything, modify board in-place instead.\n        \"\"\"\n\n        neighbors = [(1,0), (1,-1), (0,-1), (-1,-1), (-1,0), (-1,1), (0,1), (1,1)]\n\n        rows = len(board)\n        cols = len(board[0])\n\n        # 从原数组复制一份到 copy_board 中\n        copy_board = [[board[row][col] for col in range(cols)] for row in range(rows)]\n\n        # 遍历面板每一个格子里的细胞\n        for row in range(rows):\n            for col in range(cols):\n\n                # 对于每一个细胞统计其八个相邻位置里的活细胞数量\n                live_neighbors = 0\n                for neighbor in neighbors:\n\n                    r = (row + neighbor[0])\n                    c = (col + neighbor[1])\n\n                    # 查看相邻的细胞是否是活细胞\n                    if (r < rows and r >= 0) and (c < cols and c >= 0) and (copy_board[r][c] == 1):\n                        live_neighbors += 1\n\n                # 规则 1 或规则 3        \n                if copy_board[row][col] == 1 and (live_neighbors < 2 or live_neighbors > 3):\n                    board[row][col] = 0\n                # 规则 4\n                if copy_board[row][col] == 0 and live_neighbors == 3:\n                    board[row][col] = 1\n```\n\n**复杂度分析**\n\n* 时间复杂度：$O(mn)$，其中 $m$ 和 $n$ 分别为 `board` 的行数和列数。\n\n* 空间复杂度：$O(mn)$，为复制数组占用的空间。 \n\n#### 方法二：使用额外的状态\n\n**思路**\n\n方法一中 $O(mn)$ 的空间复杂度在数组很大的时候内存消耗是非常昂贵的。题目中每个细胞只有两种状态 `live(1)` 或 `dead(0)`，但我们可以拓展一些复合状态使其包含之前的状态。举个例子，如果细胞之前的状态是 `0`，但是在更新之后变成了 `1`，我们就可以给它定义一个复合状态 `2`。这样我们看到 `2`，既能知道目前这个细胞是活的，还能知道它之前是死的。\n\n![fig](https://pic.leetcode.cn/Figures/289/Game_of_life_5.png)\n\n**算法**\n\n- 遍历 `board` 中的细胞。\n\n-  根据数组的细胞状态计算新一轮的细胞状态，这里会用到能同时代表过去状态和现在状态的复合状态。\n\n-  具体的计算规则如下所示：\n\n      * 规则 1：如果活细胞周围八个位置的活细胞数少于两个，则该位置活细胞死亡。这时候，将细胞值改为 `-1`，代表这个细胞过去是活的现在死了；\n\n      * 规则 2：如果活细胞周围八个位置有两个或三个活细胞，则该位置活细胞仍然存活。这时候不改变细胞的值，仍为 `1`；\n\n      * 规则 3：如果活细胞周围八个位置有超过三个活细胞，则该位置活细胞死亡。这时候，将细胞的值改为 `-1`，代表这个细胞过去是活的现在死了。可以看到，因为规则 1 和规则 3 下细胞的起始终止状态是一致的，因此它们的复合状态也一致；\n      \n      * 规则 4：如果死细胞周围正好有三个活细胞，则该位置死细胞复活。这时候，将细胞的值改为 `2`，代表这个细胞过去是死的现在活了。\n      \n-  根据新的规则更新数组；\n\n- 现在复合状态隐含了过去细胞的状态，所以我们可以在不复制数组的情况下完成原地更新；\n\n- 对于最终的输出，需要将 `board` 转成 `0`，`1` 的形式。因此这时候需要再遍历一次数组，将复合状态为 `2` 的细胞的值改为 `1`，复合状态为 `-1` 的细胞的值改为 `0`。\n\n```C++ [solution2-C++]\nclass Solution {\npublic:\n    void gameOfLife(vector<vector<int>>& board) {\n        int neighbors[3] = {0, 1, -1};\n\n        int rows = board.size();\n        int cols = board[0].size();\n\n        // 遍历面板每一个格子里的细胞\n        for (int row = 0; row < rows; row++) {\n            for (int col = 0; col < cols; col++) {\n\n                // 对于每一个细胞统计其八个相邻位置里的活细胞数量\n                int liveNeighbors = 0;\n\n                for (int i = 0; i < 3; i++) {\n                    for (int j = 0; j < 3; j++) {\n\n                        if (!(neighbors[i] == 0 && neighbors[j] == 0)) {\n                            // 相邻位置的坐标\n                            int r = (row + neighbors[i]);\n                            int c = (col + neighbors[j]);\n\n                            // 查看相邻的细胞是否是活细胞\n                            if ((r < rows && r >= 0) && (c < cols && c >= 0) && (abs(board[r][c]) == 1)) {\n                                liveNeighbors += 1;\n                            }\n                        }\n                    }\n                }\n\n                // 规则 1 或规则 3 \n                if ((board[row][col] == 1) && (liveNeighbors < 2 || liveNeighbors > 3)) {\n                    // -1 代表这个细胞过去是活的现在死了\n                    board[row][col] = -1;\n                }\n                // 规则 4\n                if (board[row][col] == 0 && liveNeighbors == 3) {\n                    // 2 代表这个细胞过去是死的现在活了\n                    board[row][col] = 2;\n                }\n            }\n        }\n\n        // 遍历 board 得到一次更新后的状态\n        for (int row = 0; row < rows; row++) {\n            for (int col = 0; col < cols; col++) {\n                if (board[row][col] > 0) {\n                    board[row][col] = 1;\n                } else {\n                    board[row][col] = 0;\n                }\n            }\n        }\n    }\n};\n```\n\n```Java [solution2-Java]\nclass Solution {\n    public void gameOfLife(int[][] board) {\n        int[] neighbors = {0, 1, -1};\n\n        int rows = board.length;\n        int cols = board[0].length;\n\n        // 遍历面板每一个格子里的细胞\n        for (int row = 0; row < rows; row++) {\n            for (int col = 0; col < cols; col++) {\n\n                // 对于每一个细胞统计其八个相邻位置里的活细胞数量\n                int liveNeighbors = 0;\n\n                for (int i = 0; i < 3; i++) {\n                    for (int j = 0; j < 3; j++) {\n\n                        if (!(neighbors[i] == 0 && neighbors[j] == 0)) {\n                            // 相邻位置的坐标\n                            int r = (row + neighbors[i]);\n                            int c = (col + neighbors[j]);\n\n                            // 查看相邻的细胞是否是活细胞\n                            if ((r < rows && r >= 0) && (c < cols && c >= 0) && (Math.abs(board[r][c]) == 1)) {\n                                liveNeighbors += 1;\n                            }\n                        }\n                    }\n                }\n\n                // 规则 1 或规则 3 \n                if ((board[row][col] == 1) && (liveNeighbors < 2 || liveNeighbors > 3)) {\n                    // -1 代表这个细胞过去是活的现在死了\n                    board[row][col] = -1;\n                }\n                // 规则 4\n                if (board[row][col] == 0 && liveNeighbors == 3) {\n                    // 2 代表这个细胞过去是死的现在活了\n                    board[row][col] = 2;\n                }\n            }\n        }\n\n        // 遍历 board 得到一次更新后的状态\n        for (int row = 0; row < rows; row++) {\n            for (int col = 0; col < cols; col++) {\n                if (board[row][col] > 0) {\n                    board[row][col] = 1;\n                } else {\n                    board[row][col] = 0;\n                }\n            }\n        }\n    }\n}\n```\n\n```Python [solution2-Python3]\nclass Solution:\n    def gameOfLife(self, board: List[List[int]]) -> None:\n        \"\"\"\n        Do not return anything, modify board in-place instead.\n        \"\"\"\n\n        neighbors = [(1,0), (1,-1), (0,-1), (-1,-1), (-1,0), (-1,1), (0,1), (1,1)]\n\n        rows = len(board)\n        cols = len(board[0])\n\n        # 遍历面板每一个格子里的细胞\n        for row in range(rows):\n            for col in range(cols):\n\n                # 对于每一个细胞统计其八个相邻位置里的活细胞数量\n                live_neighbors = 0\n                for neighbor in neighbors:\n\n                    # 相邻位置的坐标\n                    r = (row + neighbor[0])\n                    c = (col + neighbor[1])\n\n                    # 查看相邻的细胞是否是活细胞\n                    if (r < rows and r >= 0) and (c < cols and c >= 0) and abs(board[r][c]) == 1:\n                        live_neighbors += 1\n\n                # 规则 1 或规则 3 \n                if board[row][col] == 1 and (live_neighbors < 2 or live_neighbors > 3):\n                    # -1 代表这个细胞过去是活的现在死了\n                    board[row][col] = -1\n                # 规则 4\n                if board[row][col] == 0 and live_neighbors == 3:\n                    # 2 代表这个细胞过去是死的现在活了\n                    board[row][col] = 2\n\n        # 遍历 board 得到一次更新后的状态\n        for row in range(rows):\n            for col in range(cols):\n                if board[row][col] > 0:\n                    board[row][col] = 1\n                else:\n                    board[row][col] = 0\n```\n\n**复杂度分析**\n\n* 时间复杂度：$O(mn)$，其中 $m$，$n$ 分别为 `board` 的行数和列数。\n\n* 空间复杂度：$O(1)$，除原数组外只需要常数的空间存放若干变量。",
+            "slateValue": "",
+            "slug": "sheng-ming-you-xi-by-leetcode-solution",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "D2ItGh",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 220,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 5,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 4,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-03-31T06:49:07.229999+00:00",
+            "thumbnail": "https://pic.leetcode-cn.com/Figures/289/Game_of_life_1.png",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "📺 视频题解 📖 文字题解 分析 在讲具体解法之前，请先根据下面的图片理解题目中描述的细胞遵循的生存定律，这有助于我们后面的讲解。 方法一：复制原数组进行模拟 思路 这个问题看起来很简单，但有一个陷阱，如果你直接根据规则更新原始数组，那么就做不到题目中说的 同步 更新。假设你直接将更新后的细胞状态填入原始数组，那么当前",
+            "topic": {
+                "id": 179750,
+                "subscribed": false,
+                "commentCount": 358,
+                "viewCount": 48130,
+                "post": {
+                    "id": 499896,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 356,
+            "isEditorsPick": false,
+            "hitCount": 150975,
+            "videosInfo": [
+                {
+                    "videoId": "9d755a22db084ed88856c897ddddcfaa",
+                    "coverUrl": "https://video.leetcode.cn/image/cover/C340617DE51F4FAFA6DCFB1F679DA252-6-2.png?auth_key=1782488176-a216afb488e3426799c9ce5b64c31eda-0-73e70288914f15d50f7d382ef451380c",
+                    "duration": 255.2533
+                }
+            ],
+            "question": {
+                "titleSlug": "game-of-life",
+                "questionFrontendId": "289"
+            },
+            "next": {
+                "slug": "c-wei-yun-suan-yuan-di-cao-zuo-ji-bai-shuang-bai-b",
+                "title": "C++ 位运算原地操作，击败双百。"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,128 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "5Wz0pA",
+            "title": "LFU缓存",
+            "content": "### 📺 视频题解  \n![460. LFU缓存.mp4](1e5e9b82-4b02-4e11-ab0c-cd51b31d5653)\n\n### 📖 文字题解\n\n#### 方法一：哈希表 + 平衡二叉树\n\n**说明**\n\n本方法需要使用到「平衡二叉树」。在 C++ 语言中，我们可以直接使用 `std::set` 类作为平衡二叉树；同样在 Java 语言中，我们可以直接使用 `TreeSet`。但是在 Python 语言中，并没有内置的库可以用来模拟平衡二叉树。\n\n**思路和算法**\n\n首先我们定义缓存的数据结构：\n\n```C++\nstruct Node {\n    int cnt;\n    int time;\n    int key, value;\n    \n    // 我们需要实现一个 Node 类的比较函数\n    // 将 cnt（使用频率）作为第一关键字，time（最近一次使用的时间）作为第二关键字\n    // 下面是 C++ 语言的一个比较函数的例子\n    bool operator< (const Node& rhs) const {\n        return cnt == rhs.cnt ? time < rhs.time : cnt < rhs.cnt;\n    }\n};\n```\n\n其中 `cnt` 表示缓存使用的频率，`time` 表示缓存的使用时间，`key` 和 `value` 表示缓存的键值。\n\n比较直观的想法就是我们用哈希表 `key_table` 以键 `key` 为索引存储缓存，建立一个平衡二叉树 `S` 来保持缓存根据 `(cnt，time)` 双关键字由于。在 C++ 中，我们可以使用 STL 提供的 `std::set` 类，`set` 背后的实现是红黑树：\n\n- 对于 `get(key)` 操作，我们只要查看一下哈希表 `key_table` 是否有 `key` 这个键即可，有的话需要同时更新哈希表和集合中该缓存的使用频率以及使用时间，否则返回 `-1`。 \n\n- 对于 `put(key, value)` 操作，首先需要查看 `key_table` 中是否已有对应的键值。如果有的话操作基本等同于 `get(key)`，不同的是需要更新缓存的 `value` 值。如果没有的话相当于是新插入一个缓存，这时候需要先查看是否达到缓存容量 `capacity`，如果达到了的话，需要删除最近最少使用的缓存，即平衡二叉树中最左边的结点，同时删除 `key_table` 中对应的索引，最后向 `key_table` 和 `S` 插入新的缓存信息即可。\n\n```C++ [sol1-C++]\nstruct Node {\n    int cnt, time, key, value;\n\n    Node(int _cnt, int _time, int _key, int _value):cnt(_cnt), time(_time), key(_key), value(_value){}\n    \n    bool operator < (const Node& rhs) const {\n        return cnt == rhs.cnt ? time < rhs.time : cnt < rhs.cnt;\n    }\n};\nclass LFUCache {\n    // 缓存容量，时间戳\n    int capacity, time;\n    unordered_map<int, Node> key_table;\n    set<Node> S;\npublic:\n    LFUCache(int _capacity) {\n        capacity = _capacity;\n        time = 0;\n        key_table.clear();\n        S.clear();\n    }\n    \n    int get(int key) {\n        if (capacity == 0) return -1;\n        auto it = key_table.find(key);\n        // 如果哈希表中没有键 key，返回 -1\n        if (it == key_table.end()) return -1;\n        // 从哈希表中得到旧的缓存\n        Node cache = it -> second;\n        // 从平衡二叉树中删除旧的缓存\n        S.erase(cache);\n        // 将旧缓存更新\n        cache.cnt += 1;\n        cache.time = ++time;\n        // 将新缓存重新放入哈希表和平衡二叉树中\n        S.insert(cache);\n        it -> second = cache;\n        return cache.value;\n    }\n    \n    void put(int key, int value) {\n        if (capacity == 0) return;\n        auto it = key_table.find(key);\n        if (it == key_table.end()) {\n            // 如果到达缓存容量上限\n            if (key_table.size() == capacity) {\n                // 从哈希表和平衡二叉树中删除最近最少使用的缓存\n                key_table.erase(S.begin() -> key);\n                S.erase(S.begin());\n            }\n            // 创建新的缓存\n            Node cache = Node(1, ++time, key, value);\n            // 将新缓存放入哈希表和平衡二叉树中\n            key_table.insert(make_pair(key, cache));\n            S.insert(cache);\n        }\n        else {\n            // 这里和 get() 函数类似\n            Node cache = it -> second;\n            S.erase(cache);\n            cache.cnt += 1;\n            cache.time = ++time;\n            cache.value = value;\n            S.insert(cache);\n            it -> second = cache;\n        }\n    }\n};\n```\n```Java [sol1-Java]\nclass LFUCache {\n    // 缓存容量，时间戳\n    int capacity, time;\n    Map<Integer, Node> key_table;\n    TreeSet<Node> S;\n\n    public LFUCache(int capacity) {\n        this.capacity = capacity;\n        this.time = 0;\n        key_table = new HashMap<Integer, Node>();\n        S = new TreeSet<Node>();\n    }\n    \n    public int get(int key) {\n        if (capacity == 0) {\n            return -1;\n        }\n        // 如果哈希表中没有键 key，返回 -1\n        if (!key_table.containsKey(key)) {\n            return -1;\n        }\n        // 从哈希表中得到旧的缓存\n        Node cache = key_table.get(key);\n        // 从平衡二叉树中删除旧的缓存\n        S.remove(cache);\n        // 将旧缓存更新\n        cache.cnt += 1;\n        cache.time = ++time;\n        // 将新缓存重新放入哈希表和平衡二叉树中\n        S.add(cache);\n        key_table.put(key, cache);\n        return cache.value;\n    }\n    \n    public void put(int key, int value) {\n        if (capacity == 0) {\n            return;\n        }\n        if (!key_table.containsKey(key)) {\n            // 如果到达缓存容量上限\n            if (key_table.size() == capacity) {\n                // 从哈希表和平衡二叉树中删除最近最少使用的缓存\n                key_table.remove(S.first().key);\n                S.remove(S.first());\n            }\n            // 创建新的缓存\n            Node cache = new Node(1, ++time, key, value);\n            // 将新缓存放入哈希表和平衡二叉树中\n            key_table.put(key, cache);\n            S.add(cache);\n        } else {\n            // 这里和 get() 函数类似\n            Node cache = key_table.get(key);\n            S.remove(cache);\n            cache.cnt += 1;\n            cache.time = ++time;\n            cache.value = value;\n            S.add(cache);\n            key_table.put(key, cache);\n        }\n    }\n}\n\nclass Node implements Comparable<Node> {\n    int cnt, time, key, value;\n\n    Node(int cnt, int time, int key, int value) {\n        this.cnt = cnt;\n        this.time = time;\n        this.key = key;\n        this.value = value;\n    }\n\n    public boolean equals(Object anObject) {\n        if (this == anObject) {\n            return true;\n        }\n        if (anObject instanceof Node) {\n            Node rhs = (Node) anObject;\n            return this.cnt == rhs.cnt && this.time == rhs.time;\n        }\n        return false;\n    }\n\n    public int compareTo(Node rhs) {\n        return cnt == rhs.cnt ? time - rhs.time : cnt - rhs.cnt;\n    }\n\n    public int hashCode() {\n        return cnt * 1000000007 + time;\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：`get` 时间复杂度 $O(\\log n)$，`put` 时间复杂度 $O(\\log n)$，操作的时间复杂度瓶颈在于平衡二叉树的插入删除均需要 $O(\\log n)$ 的时间。\n\n- 空间复杂度：$O(\\textit{capacity})$，其中 $\\textit{capacity}$ 为 `LFU` 的缓存容量。哈希表和平衡二叉树不会存放超过缓存容量的键值对。\n\n\n#### 方法二：双哈希表\n\n**思路和算法**\n\n我们定义两个哈希表，第一个 `freq_table` 以频率 `freq` 为索引，每个索引存放一个双向链表，这个链表里存放所有使用频率为 `freq` 的缓存，缓存里存放三个信息，分别为键 `key`，值 `value`，以及使用频率 `freq`。第二个 `key_table` 以键值 `key` 为索引，每个索引存放对应缓存在 `freq_table` 中链表里的内存地址，这样我们就能利用两个哈希表来使得两个操作的时间复杂度均为 $O(1)$。同时需要记录一个当前缓存最少使用的频率 `minFreq`，这是为了删除操作服务的。\n\n对于 `get(key)` 操作，我们能通过索引 `key` 在 `key_table` 中找到缓存在 `freq_table` 中的链表的内存地址，如果不存在直接返回 `-1`，否则我们能获取到对应缓存的相关信息，这样我们就能知道缓存的键值还有使用频率，直接返回 `key` 对应的值即可。\n\n但是我们注意到 `get` 操作后这个缓存的使用频率加一了，所以我们需要更新缓存在哈希表 `freq_table` 中的位置。已知这个缓存的键 `key`，值 `value`，以及使用频率 `freq`，那么该缓存应该存放到 `freq_table` 中 `freq + 1` 索引下的链表中。所以我们在当前链表中 $O(1)$ 删除该缓存对应的节点，根据情况更新 `minFreq` 值，然后将其$O(1)$ 插入到 `freq + 1` 索引下的链表头完成更新。这其中的操作复杂度均为 $O(1)$。你可能会疑惑更新的时候为什么是插入到链表头，这其实是为了保证缓存在当前链表中从链表头到链表尾的**插入时间是有序的**，为下面的删除操作服务。 \n\n对于 `put(key, value)` 操作，我们先通过索引 `key`在 `key_table` 中查看是否有对应的缓存，如果有的话，其实操作等价于 `get(key)` 操作，唯一的区别就是我们需要将当前的缓存里的值更新为 `value`。如果没有的话，相当于是新加入的缓存，如果缓存已经到达容量，需要先删除最近最少使用的缓存，再进行插入。\n\n先考虑插入，由于是新插入的，所以缓存的使用频率一定是 `1`，所以我们将缓存的信息插入到 `freq_table` 中 `1` 索引下的列表头即可，同时更新 `key_table[key]` 的信息，以及更新 `minFreq = 1`。\n\n那么剩下的就是删除操作了，由于我们实时维护了 `minFreq`，所以我们能够知道 `freq_table` 里目前最少使用频率的索引，同时因为我们保证了链表中从链表头到链表尾的插入时间是有序的，所以 `freq_table[minFreq]` 的链表中链表尾的节点即为使用频率最小且插入时间最早的节点，我们删除它同时根据情况更新 `minFreq` ，整个时间复杂度均为 $O(1)$。\n\n如下图展示了样例的全部操作过程：\n\n<![460_fig1.PNG](https://pic.leetcode.cn/9a528dbe009db486bd3211d85cdc16ed065ac246910800fdf8323672f67c6c18-460_fig1.PNG),![460_fig2.PNG](https://pic.leetcode.cn/7785efe871e48ea8971e8f097e1d6a91e98a4a8c6ef9b6832fd679b41e052f09-460_fig2.PNG),![460_fig3.PNG](https://pic.leetcode.cn/1fd0070ff3c311b36d2df0cf2a8d3dac86f5263d068f2ab80d9ca91988913394-460_fig3.PNG),![460_fig4.PNG](https://pic.leetcode.cn/e0268524f5484ae54332fd14ed5417e9e09b700f170e2854b381bf562fa8fd09-460_fig4.PNG),![460_fig5.PNG](https://pic.leetcode.cn/2b88cb8fdf0a294196aebb91c6c7a1895821b30cf0526ea4a64589dedd1546e6-460_fig5.PNG),![460_fig6.PNG](https://pic.leetcode.cn/857216ccedacc885dd7dc23f8641fa16a54f3f0387d0542cdf5432c0268b62ea-460_fig6.PNG),![460_fig7.PNG](https://pic.leetcode.cn/284dbd56dee83433599abfd8dcfd6ef64a0af678da092d781c9a39f2034ebd08-460_fig7.PNG),![460_fig8.PNG](https://pic.leetcode.cn/52c7ed8a33bb2b5818f04f80cd3130a96b02fc766c4d6d854ec8bd09734beaa8-460_fig8.PNG),![460_fig9.PNG](https://pic.leetcode.cn/e0ed80aa2a514d4aab82c53817d68b653517cc615212ea7ded6806c4672b2c9d-460_fig9.PNG),![460_fig10.PNG](https://pic.leetcode.cn/8cb941356d2fafb73d67b407a815e5b9cd10919809bbbcc6b81b6e835165dedd-460_fig10.PNG)>\n\n```C++ [sol2-C++]\n// 缓存的节点信息\nstruct Node {\n    int key, val, freq;\n    Node(int _key,int _val,int _freq): key(_key), val(_val), freq(_freq){}\n};\nclass LFUCache {\n    int minfreq, capacity;\n    unordered_map<int, list<Node>::iterator> key_table;\n    unordered_map<int, list<Node>> freq_table;\npublic:\n    LFUCache(int _capacity) {\n        minfreq = 0;\n        capacity = _capacity;\n        key_table.clear();\n        freq_table.clear();\n    }\n    \n    int get(int key) {\n        if (capacity == 0) return -1;\n        auto it = key_table.find(key);\n        if (it == key_table.end()) return -1;\n        list<Node>::iterator node = it -> second;\n        int val = node -> val, freq = node -> freq;\n        freq_table[freq].erase(node);\n        // 如果当前链表为空，我们需要在哈希表中删除，且更新minFreq\n        if (freq_table[freq].size() == 0) {\n            freq_table.erase(freq);\n            if (minfreq == freq) minfreq += 1;\n        }\n        // 插入到 freq + 1 中\n        freq_table[freq + 1].push_front(Node(key, val, freq + 1));\n        key_table[key] = freq_table[freq + 1].begin();\n        return val;\n    }\n    \n    void put(int key, int value) {\n        if (capacity == 0) return;\n        auto it = key_table.find(key);\n        if (it == key_table.end()) {\n            // 缓存已满，需要进行删除操作\n            if (key_table.size() == capacity) {\n                // 通过 minFreq 拿到 freq_table[minFreq] 链表的末尾节点\n                auto it2 = freq_table[minfreq].back();\n                key_table.erase(it2.key);\n                freq_table[minfreq].pop_back();\n                if (freq_table[minfreq].size() == 0) {\n                    freq_table.erase(minfreq);\n                }\n            } \n            freq_table[1].push_front(Node(key, value, 1));\n            key_table[key] = freq_table[1].begin();\n            minfreq = 1;\n        } else {\n            // 与 get 操作基本一致，除了需要更新缓存的值\n            list<Node>::iterator node = it -> second;\n            int freq = node -> freq;\n            freq_table[freq].erase(node);\n            if (freq_table[freq].size() == 0) {\n                freq_table.erase(freq);\n                if (minfreq == freq) minfreq += 1;\n            }\n            freq_table[freq + 1].push_front(Node(key, value, freq + 1));\n            key_table[key] = freq_table[freq + 1].begin();\n        }\n    }\n};\n```\n```Java [sol2-Java]\nclass LFUCache {\n    int minfreq, capacity;\n    Map<Integer, Node> keyTable;\n    Map<Integer, DoublyLinkedList> freqTable;\n\n    public LFUCache(int capacity) {\n        this.minfreq = 0;\n        this.capacity = capacity;\n        keyTable = new HashMap<Integer, Node>();\n        freqTable = new HashMap<Integer, DoublyLinkedList>();\n    }\n    \n    public int get(int key) {\n        if (capacity == 0) {\n            return -1;\n        }\n        if (!keyTable.containsKey(key)) {\n            return -1;\n        }\n        Node node = keyTable.get(key);\n        int val = node.val, freq = node.freq;\n        freqTable.get(freq).remove(node);\n        // 如果当前链表为空，我们需要在哈希表中删除，且更新minFreq\n        if (freqTable.get(freq).size == 0) {\n            freqTable.remove(freq);\n            if (minfreq == freq) {\n                minfreq += 1;\n            }\n        }\n        // 插入到 freq + 1 中\n        DoublyLinkedList list = freqTable.getOrDefault(freq + 1, new DoublyLinkedList());\n        list.addFirst(new Node(key, val, freq + 1));\n        freqTable.put(freq + 1, list);\n        keyTable.put(key, freqTable.get(freq + 1).getHead());\n        return val;\n    }\n    \n    public void put(int key, int value) {\n        if (capacity == 0) {\n            return;\n        }\n        if (!keyTable.containsKey(key)) {\n            // 缓存已满，需要进行删除操作\n            if (keyTable.size() == capacity) {\n                // 通过 minFreq 拿到 freqTable[minFreq] 链表的末尾节点\n                Node node = freqTable.get(minfreq).getTail();\n                keyTable.remove(node.key);\n                freqTable.get(minfreq).remove(node);\n                if (freqTable.get(minfreq).size == 0) {\n                    freqTable.remove(minfreq);\n                }\n            }\n            DoublyLinkedList list = freqTable.getOrDefault(1, new DoublyLinkedList());\n            list.addFirst(new Node(key, value, 1));\n            freqTable.put(1, list);\n            keyTable.put(key, freqTable.get(1).getHead());\n            minfreq = 1;\n        } else {\n            // 与 get 操作基本一致，除了需要更新缓存的值\n            Node node = keyTable.get(key);\n            int freq = node.freq;\n            freqTable.get(freq).remove(node);\n            if (freqTable.get(freq).size == 0) {\n                freqTable.remove(freq);\n                if (minfreq == freq) {\n                    minfreq += 1;\n                }\n            }\n            DoublyLinkedList list = freqTable.getOrDefault(freq + 1, new DoublyLinkedList());\n            list.addFirst(new Node(key, value, freq + 1));\n            freqTable.put(freq + 1, list);\n            keyTable.put(key, freqTable.get(freq + 1).getHead());\n        }\n    }\n}\n\nclass Node {\n    int key, val, freq;\n    Node prev, next;\n\n    Node() {\n        this(-1, -1, 0);\n    }\n\n    Node(int key, int val, int freq) {\n        this.key = key;\n        this.val = val;\n        this.freq = freq;\n    }\n}\n\nclass DoublyLinkedList {\n    Node dummyHead, dummyTail;\n    int size;\n\n    DoublyLinkedList() {\n        dummyHead = new Node();\n        dummyTail = new Node();\n        dummyHead.next = dummyTail;\n        dummyTail.prev = dummyHead;\n        size = 0;\n    }\n\n    public void addFirst(Node node) {\n        Node prevHead = dummyHead.next;\n        node.prev = dummyHead;\n        dummyHead.next = node;\n        node.next = prevHead;\n        prevHead.prev = node;\n        size++;\n    }\n\n    public void remove(Node node) {\n        Node prev = node.prev, next = node.next;\n        prev.next = next;\n        next.prev = prev;\n        size--;\n    }\n\n    public Node getHead() {\n        return dummyHead.next;\n    }\n\n    public Node getTail() {\n        return dummyTail.prev;\n    }\n}\n```\n```Python [sol2-Python3]\nclass Node:\n    def __init__(self, key, val, pre=None, nex=None, freq=0):\n        self.pre = pre\n        self.nex = nex\n        self.freq = freq\n        self.val = val\n        self.key = key\n        \n    def insert(self, nex):\n        nex.pre = self\n        nex.nex = self.nex\n        self.nex.pre = nex\n        self.nex = nex\n    \ndef create_linked_list():\n    head = Node(0, 0)\n    tail = Node(0, 0)\n    head.nex = tail\n    tail.pre = head\n    return (head, tail)\n\nclass LFUCache:\n    def __init__(self, capacity: int):\n        self.capacity = capacity\n        self.size = 0\n        self.minFreq = 0\n        self.freqMap = collections.defaultdict(create_linked_list)\n        self.keyMap = {}\n\n    def delete(self, node):\n        if node.pre:\n            node.pre.nex = node.nex\n            node.nex.pre = node.pre\n            if node.pre is self.freqMap[node.freq][0] and node.nex is self.freqMap[node.freq][-1]:\n                self.freqMap.pop(node.freq)\n        return node.key\n        \n    def increase(self, node):\n        node.freq += 1\n        self.delete(node)\n        self.freqMap[node.freq][-1].pre.insert(node)\n        if node.freq == 1:\n            self.minFreq = 1\n        elif self.minFreq == node.freq - 1:\n            head, tail = self.freqMap[node.freq - 1]\n            if head.nex is tail:\n                self.minFreq = node.freq\n\n    def get(self, key: int) -> int:\n        if key in self.keyMap:\n            self.increase(self.keyMap[key])\n            return self.keyMap[key].val\n        return -1\n\n    def put(self, key: int, value: int) -> None:\n        if self.capacity != 0:\n            if key in self.keyMap:\n                node = self.keyMap[key]\n                node.val = value\n            else:\n                node = Node(key, value)\n                self.keyMap[key] = node\n                self.size += 1\n            if self.size > self.capacity:\n                self.size -= 1\n                deleted = self.delete(self.freqMap[self.minFreq][0].nex)\n                self.keyMap.pop(deleted)\n            self.increase(node)\n```\n\n**复杂度分析**\n\n- 时间复杂度：`get` 时间复杂度 $O(1)$，`put` 时间复杂度 $O(1)$。由于两个操作从头至尾都只利用了哈希表的插入删除还有链表的插入删除，且它们的时间复杂度均为 $O(1)$，所以保证了两个操作的时间复杂度均为 $O(1)$。\n\n- 空间复杂度：$O(\\textit{capacity})$，其中 $\\textit{capacity}$ 为 `LFU` 的缓存容量。哈希表中不会存放超过缓存容量的键值对。",
+            "slateValue": "",
+            "slug": "lfuhuan-cun-by-leetcode-solution",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "5Wz0pA",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 184,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 8,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 7,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Design",
+                    "nameTranslated": "设计",
+                    "slug": "design",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Linked List",
+                    "nameTranslated": "链表",
+                    "slug": "linked-list",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Doubly-Linked List",
+                    "nameTranslated": "双向链表",
+                    "slug": "doubly-linked-list",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-04-04T07:21:10.534878+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "📺 视频题解 📖 文字题解 方法一：哈希表 + 平衡二叉树 说明 本方法需要使用到「平衡二叉树」。在 C++ 语言中，我们可以直接使用 std::set 类作为平衡二叉树；同样在 Java 语言中，我们可以直接使用 TreeSet。但是在 Python 语言中，并没有内置的库可以用来模拟平衡二叉树。 思路和算法 首先我",
+            "topic": {
+                "id": 186348,
+                "subscribed": false,
+                "commentCount": 337,
+                "viewCount": 67127,
+                "post": {
+                    "id": 514489,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 423,
+            "isEditorsPick": false,
+            "hitCount": 150984,
+            "videosInfo": [
+                {
+                    "videoId": "842a6ded084444f1a80d48269419ab93",
+                    "coverUrl": "https://video.leetcode.cn/image/cover/2F844C3E8D1047F9A38B3055CDF3DEFA-6-2.png?auth_key=1782488011-7de006ad6d2a4ae39730e02fd7b713f3-0-3319a0c3c70cee621a98c20fda86d445",
+                    "duration": 649.6
+                }
+            ],
+            "question": {
+                "titleSlug": "lfu-cache",
+                "questionFrontendId": "460"
+            },
+            "next": {
+                "slug": "java-13ms-shuang-100-shuang-xiang-lian-biao-duo-ji",
+                "title": "Java 13ms 双100% 双向链表 多解法超全😂"
+            },
+            "prev": null
+        }
+    }
+}

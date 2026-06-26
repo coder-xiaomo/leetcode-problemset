@@ -1,0 +1,158 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "CMGiKt",
+            "title": "变为棋盘",
+            "content": "#### 方法一：分维度计算\n\n首先需要思考的是对矩阵做一次交换之后，矩阵的变换状态。比如我们以交换列为代表，在对任意两列进行交换之后，可以看到列交换是不会改变任意相邻两行之间的元素异同对应关系，比如相邻两行的两个元素 $\\textit{board}[i][j],\\textit{board}[i+1][j]$ 原本就相同，任意列交换之后这个两个元素对应的关系保持不变，如果这两个元素本来就不同，经过列交换之后也仍然不同，因此可以推出矩阵一定只能包含有两种不同的行，要么与第一行的元素相同，要么每一行的元素刚好与第一行的元素「相反」。如果矩阵可以转换为合法的「棋盘」，假设第 $1$ 行的元素为 $[0,1,1,1,0]$，则其他行的元素要么为 $[0,1,1,1,0]$，要么为 $[1,0,0,0,1]$。最终的棋盘一定只有两种不同的行，要么以 $0$ 开始的 $[0,1,0,1,\\cdots]$，要么以 $1$ 开始的 $[1,0,1,0,\\cdots]$，因此我们可以推出棋盘也一定可以通过列变换将所有的行变为只有以上两种状态的行，否则无法得到最终合法的「棋盘」。同时我们可以观察到，先换行再换列跟先换列再换行结果是一样的，因为我们可以先将所有的行调整到正确的位置，再将所有的列调整到正确的位置。行与列之间的变换实际是相互独立的，二者互不影响，列变换不会影响相邻两行的异同关系，行变换不会不会影响相邻两列的异同关系。\n\n由于最终只有两种不同的行，要达成最终的「棋盘」实际上等价于将矩阵的行表示成 $0,1$ 相互交替的状态，如果一个行无法变为 $0,1$ 交替的状态，则我们认为矩阵不存在可行的变换。假设矩阵的某行用 $[0,1]$ 表示之后得到数组为 $[0, 1, 1, 1, 0, 0]$，那么只需求出这个数组变成 $[0, 1, 0, 1, 0, 1]$ 或者 $[1, 0, 1, 0, 1, 0]$ 的最少交换次数即可。同理，对于矩阵的列也是如此，这就将二维问题变成了两个一维问题。我们实际只需要分别将矩阵的第一行变为最终状态和第一列变为最终状态，最终的矩阵一定为合法「棋盘」。\n\n+ 首先我们需要检测矩阵的合法性，即该矩阵是否可以变为合法的「棋盘」。我们依次检测矩阵的每一行是否可以变为 $0,1$ 交替，即变为 $[0,1,0,1,\\cdots],[1,0,1,0,\\cdots]$ 两种可能的行；然后依次检测矩阵的每一列是否可以变为 $0,1$ 交替，即变为 $[0,1,0,1,\\cdots],[1,0,1,0,\\cdots]$ 两种可能的列。设行的数目为 $n$，检测矩阵的行与列时需要进行如下检测：\n  + 检测每一行和每一列的状态是否合法：由于列变换不改变相邻两行元素的对应关系，因此我们可以知道矩阵的行要么与第 $1$ 行相同，要么与第 $1$ 行「相反」。设第一行的状态为 $\\textit{rowMask}$，与之相反对应的状态为 $\\textit{reverseRowMask}$，我们检测每一行是否属于这两个合法的状态 $\\textit{rowMask},\\textit{reverseRowMask}$，如果不合法直接返回，对于列也采用同样的检测方法。由于题目中的行与列的值均为 $0$ 或者 $1$，且行数和列数最大为 $30$，我们利用压缩位图来表示每一行或者每一列的状态，可以用一个 $32$ 位整数来表示每一行，其中整数每位上的数字对应着每列上的数字。\n\n  + 检测每一行和每一列中含有的数字是否合法：检测每一行或者每一列若要变为 $0,1$ 交替的状态，如果 $n$ 为偶数，则每一行中 $1$ 的数目与 $0$ 的数目相等；如果 $n$ 为奇数，则每一行中 $1$ 的数目与 $0$ 的数目相差的绝对值一定为 $1$。此时我们只需要检测第一行中含有的数字 $0,1$ 的个数是否合法，对于列我们也采用同样的检测方法。由于我们用一个 $32$ 位整数来表示每一行或者每一列，我们只需要要快速计算出整数的二进制位上含有的 $1$ 的数目即可。\n  \n  + 检测不同状态的行数和列数是否合法：我们设矩阵中与第一行相同的行的数量为 $\\textit{count}$。根据我们之前的推论可知，需要满足两种不同的行交替分情况讨论：如果 $n$ 为偶数，由于必须要满足两种不同的行交替，每种行的数目只能占到总行数的一半，此时一定有 $\\textit{count} \\times 2 = n$；如果 $n$ 为奇数，由于必须要满足两种不同的行交替，则另一种行的数量只能为 $n - \\textit{count}$，由于必须满足交替不同，则二者之间的差值的绝对值一定为 $1$，因此此时一定满足 $|2 \\times \\textit{count} - n| = 1$，满足以上条件才是合法的行数。我们采用同样的方法对矩阵的列数进行检测。\n\n+ 其次我们求出将矩阵变为棋盘的最少交换次数。分为两种情况讨论:\n  + 如果 $n$ 为偶数，则此时最终的合法棋盘有两种可能，即第一行的元素的第一个元素 $\\textit{board}[0][0] = 0$ 或者 $\\textit{board}[0][0] = 1$。我们可以选择将第 $1$ 行变为以 $0$ 开头，此时只需将偶数位上的 $0$ 全部替换为 $1$ 即可；也可以选择将第 $1$ 行变为以 $1$ 开头，此时只需将奇数位上的 $0$ 全部替换为 $1$ 即可。我们可以用位图来快速计算出偶数位或者奇数位上 $1$ 的个数，可以与特定的数进行布尔代数运算即可快速消除奇数位或者偶数位上的 $1$。\n \n  + 如果 $n$ 为奇数，则此时最终的合法棋盘只有一种可能，如果第一行中 $0$ 的数目大于 $1$ 的数目，此时第一行只能变为以 $0$ 为开头交替的序列，此时我们只需要将偶数位上的 $0$ 全部变为 $1$；如果第一行中 $0$ 的数目小于 $1$ 的数目，此时第一行只能交换变为以 $1$ 为开头交替的序列，此时我们只需要将奇数位上的 $0$ 全部变为 $1$。可以用位图来快速计算出偶数位或者奇数位上 $1$ 的个数，可以与特定的数进行布尔代数运算即可快速消除奇数位或者偶数位上的 $1$。\n \n  + 由于我们采用 $32$ 位整数表示每一行或者每一列，在快速计算偶数位或者上的 $1$ 的数目时可以采用位运算掩码。比如 $32$ 位整数 $x$，我们只保留 $x$ 偶数位上的 $1$，此时我们需要去掉奇数位上的 $1$，此时只需将 $x$ 与掩码：\n    \n    > $\\texttt{(1010~1010~1010~1010~1010~1010~1010~1010)}_\\texttt{2}=\\texttt{0xAAAAAAAA}$\n    \n    相与即可；我们只保留 $x$ 奇数位上的 $1$，此时我们需要去掉偶数位上的 $1$，此时只需将 $x$ 与掩码：\n\n    > $\\texttt{(0101~0101~0101~0101~0101~0101~0101~0101)}_\\texttt{2}=\\texttt{0x55555555}$\n\n    相与即可。\n    \n```Python [sol1-Python3]\nclass Solution:\n    def movesToChessboard(self, board: List[List[int]]) -> int:\n        n = len(board)\n        # 棋盘的第一行与第一列\n        rowMask = colMask = 0\n        for i in range(n):\n            rowMask |= board[0][i] << i\n            colMask |= board[i][0] << i\n        reverseRowMask = ((1 << n) - 1) ^ rowMask\n        reverseColMask = ((1 << n) - 1) ^ colMask\n        rowCnt = colCnt = 0\n        for i in range(n):\n            currRowMask = currColMask = 0\n            for j in range(n):\n                currRowMask |= board[i][j] << j\n                currColMask |= board[j][i] << j\n            # 检测每一行和每一列的状态是否合法\n            if currRowMask != rowMask and currRowMask != reverseRowMask or \\\n               currColMask != colMask and currColMask != reverseColMask:\n                return -1\n            rowCnt += currRowMask == rowMask  # 记录与第一行相同的行数\n            colCnt += currColMask == colMask  # 记录与第一列相同的列数\n\n        def getMoves(mask: int, count: int) -> int:\n            ones = mask.bit_count()\n            if n & 1:\n                # 如果 n 为奇数，则每一行中 1 与 0 的数目相差为 1，且满足相邻行交替\n                if abs(n - 2 * ones) != 1 or abs(n - 2 * count) != 1:\n                    return -1\n                if ones == n // 2:\n                    # 偶数位变为 1 的最小交换次数\n                    return n // 2 - (mask & 0xAAAAAAAA).bit_count()\n                else:\n                    # 奇数位变为 1 的最小交换次数\n                    return (n + 1) // 2 - (mask & 0x55555555).bit_count()\n            else:\n                # 如果 n 为偶数，则每一行中 1 与 0 的数目相等，且满足相邻行交替\n                if ones != n // 2 or count != n // 2:\n                    return -1\n                # 偶数位变为 1 的最小交换次数\n                count0 = n // 2 - (mask & 0xAAAAAAAA).bit_count()\n                # 奇数位变为 1 的最小交换次数\n                count1 = n // 2 - (mask & 0x55555555).bit_count()\n                return min(count0, count1)\n\n        rowMoves = getMoves(rowMask, rowCnt)\n        colMoves = getMoves(colMask, colCnt)\n        return -1 if rowMoves == -1 or colMoves == -1 else rowMoves + colMoves\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int getMoves(int mask, int count, int n) {\n        int ones = __builtin_popcount(mask);\n        if (n & 1) {\n            /* 如果 n 为奇数，则每一行中 1 与 0 的数目相差为 1，且满足相邻行交替 */\n            if (abs(n - 2 * ones) != 1 || abs(n - 2 * count) != 1 ) {\n                return -1;\n            }\n            if (ones == (n >> 1)) {\n                /* 偶数位变为 1 的最小交换次数 */\n                return n / 2 - __builtin_popcount(mask & 0xAAAAAAAA);\n            } else {\n                /* 奇数位变为 1 的最小交换次数 */\n                return (n + 1) / 2 - __builtin_popcount(mask & 0x55555555);\n            }\n        } else { \n            /* 如果 n 为偶数，则每一行中 1 与 0 的数目相等，且满足相邻行交替 */\n            if (ones != (n >> 1) || count != (n >> 1)) {\n                return -1;\n            }\n            /* 偶数位变为 1 的最小交换次数 */\n            int count0 = n / 2 - __builtin_popcount(mask & 0xAAAAAAAA);\n            /* 奇数位变为 1 的最小交换次数 */\n            int count1 = n / 2 - __builtin_popcount(mask & 0x55555555);  \n            return min(count0, count1);\n        }\n    }\n\n    int movesToChessboard(vector<vector<int>>& board) {\n        int n = board.size();\n        int rowMask = 0, colMask = 0;        \n\n        /* 检查棋盘的第一行与第一列 */\n        for (int i = 0; i < n; i++) {\n            rowMask |= (board[0][i] << i);\n            colMask |= (board[i][0] << i);\n        }\n        int reverseRowMask = ((1 << n) - 1) ^ rowMask;\n        int reverseColMask = ((1 << n) - 1) ^ colMask;\n        int rowCnt = 0, colCnt = 0;\n        for (int i = 0; i < n; i++) {\n            int currRowMask = 0;\n            int currColMask = 0;\n            for (int j = 0; j < n; j++) {\n                currRowMask |= (board[i][j] << j);\n                currColMask |= (board[j][i] << j);\n            }\n            /* 检测每一行的状态是否合法 */\n            if (currRowMask != rowMask && currRowMask != reverseRowMask) {\n                return -1;\n            } else if (currRowMask == rowMask) {\n                /* 记录与第一行相同的行数 */\n                rowCnt++;\n            }\n            /* 检测每一列的状态是否合法 */\n            if (currColMask != colMask && currColMask != reverseColMask) {\n                return -1;\n            } else if (currColMask == colMask) {\n                /* 记录与第一列相同的列数 */\n                colCnt++;\n            }\n        }\n        int rowMoves = getMoves(rowMask, rowCnt, n);\n        int colMoves = getMoves(colMask, colCnt, n);\n        return (rowMoves == -1 || colMoves == -1) ? -1 : (rowMoves + colMoves); \n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int movesToChessboard(int[][] board) {\n        int n = board.length;\n        int rowMask = 0, colMask = 0;        \n\n        /* 检查棋盘的第一行与第一列 */\n        for (int i = 0; i < n; i++) {\n            rowMask |= (board[0][i] << i);\n            colMask |= (board[i][0] << i);\n        }\n        int reverseRowMask = ((1 << n) - 1) ^ rowMask;\n        int reverseColMask = ((1 << n) - 1) ^ colMask;\n        int rowCnt = 0, colCnt = 0;\n        for (int i = 0; i < n; i++) {\n            int currRowMask = 0;\n            int currColMask = 0;\n            for (int j = 0; j < n; j++) {\n                currRowMask |= (board[i][j] << j);\n                currColMask |= (board[j][i] << j);\n            }\n            /* 检测每一行的状态是否合法 */\n            if (currRowMask != rowMask && currRowMask != reverseRowMask) {\n                return -1;\n            } else if (currRowMask == rowMask) {\n                /* 记录与第一行相同的行数 */\n                rowCnt++;\n            }\n            /* 检测每一列的状态是否合法 */\n            if (currColMask != colMask && currColMask != reverseColMask) {\n                return -1;\n            } else if (currColMask == colMask) {\n                /* 记录与第一列相同的列数 */\n                colCnt++;\n            }\n        }\n        int rowMoves = getMoves(rowMask, rowCnt, n);\n        int colMoves = getMoves(colMask, colCnt, n);\n        return (rowMoves == -1 || colMoves == -1) ? -1 : (rowMoves + colMoves); \n    }\n\n    public int getMoves(int mask, int count, int n) {\n        int ones = Integer.bitCount(mask);\n        if ((n & 1) == 1) {\n            /* 如果 n 为奇数，则每一行中 1 与 0 的数目相差为 1，且满足相邻行交替 */\n            if (Math.abs(n - 2 * ones) != 1 || Math.abs(n - 2 * count) != 1 ) {\n                return -1;\n            }\n            if (ones == (n >> 1)) {\n                /* 以 0 为开头的最小交换次数 */\n                return n / 2 - Integer.bitCount(mask & 0xAAAAAAAA);\n            } else {\n                return (n + 1) / 2 - Integer.bitCount(mask & 0x55555555);\n            }\n        } else { \n            /* 如果 n 为偶数，则每一行中 1 与 0 的数目相等，且满足相邻行交替 */\n            if (ones != (n >> 1) || count != (n >> 1)) {\n                return -1;\n            }\n            /* 找到行的最小交换次数 */\n            int count0 = n / 2 - Integer.bitCount(mask & 0xAAAAAAAA);\n            int count1 = n / 2 - Integer.bitCount(mask & 0x55555555);  \n            return Math.min(count0, count1);\n        }\n    }\n}\n```\n\n```C# [sol1-C#]\n\npublic class Solution {\n    public int MovesToChessboard(int[][] board) {\n        int n = board.Length;\n        int rowMask = 0, colMask = 0;        \n\n        /* 检查棋盘的第一行与第一列 */\n        for (int i = 0; i < n; i++) {\n            rowMask |= (board[0][i] << i);\n            colMask |= (board[i][0] << i);\n        }\n\n        int reverseRowMask = ((1 << n) - 1) ^ rowMask;\n        int reverseColMask = ((1 << n) - 1) ^ colMask;\n        int rowCnt = 0, colCnt = 0;\n        \n        for (int i = 0; i < n; i++) {\n            int currRowMask = 0;\n            int currColMask = 0;\n            for (int j = 0; j < n; j++) {\n                currRowMask |= (board[i][j] << j);\n                currColMask |= (board[j][i] << j);\n            }\n            \n            /* 检测每一行的状态是否合法 */\n            if (currRowMask != rowMask && currRowMask != reverseRowMask) {\n                return -1;\n            } else if (currRowMask == rowMask) {\n                /* 记录与第一行相同的行数 */\n                rowCnt++;\n            }\n            /* 检测每一列的状态是否合法 */\n            if (currColMask != colMask && currColMask != reverseColMask) {\n                return -1;\n            } else if (currColMask == colMask) {\n                /* 记录与第一列相同的列数 */\n                colCnt++;\n            }\n        }\n        \n        int rowMoves = GetMoves(rowMask, rowCnt, n);\n        int colMoves = GetMoves(colMask, colCnt, n);\n        return (rowMoves == -1 || colMoves == -1) ? -1 : (rowMoves + colMoves); \n    }\n\n    public int GetMoves(int mask, int count, int n) {\n        int ones = BitOperations.PopCount((ulong)mask);\n        if ((n & 1) == 1) {\n            /* 如果 n 为奇数，则每一行中 1 与 0 的数目相差为 1，且满足相邻行交替 */\n            if (Math.Abs(n - 2 * ones) != 1 || Math.Abs(n - 2 * count) != 1 ) {\n                return -1;\n            }\n            if (ones == (n >> 1)) {\n                /* 偶数位变为 1 的最小交换次数 */\n                return n / 2 - BitOperations.PopCount((ulong)mask & 0xAAAAAAAA);\n            } else {\n                /* 奇数位变为 1 的最小交换次数 */\n                return (n + 1) / 2 - BitOperations.PopCount((ulong)mask & 0x55555555);\n            }\n        } else { \n            /* 如果 n 为偶数，则每一行中 1 与 0 的数目相等，且满足相邻行交替 */\n            if (ones != (n >> 1) || count != (n >> 1)) {\n                return -1;\n            }\n            /* 偶数位变为 1 的最小交换次数 */\n            int count0 = n / 2 - BitOperations.PopCount((ulong)mask & 0xAAAAAAAA);\n            /* 奇数位变为 1 的最小交换次数 */\n            int count1 = n / 2 - BitOperations.PopCount((ulong)mask & 0x55555555);  \n            return Math.Min(count0, count1);\n        }\n    }\n}\n```\n\n```C [sol1-C]\n#define MIN(a, b) ((a) < (b) ? (a) : (b))\n\nstatic int countBit(int x) {\n    int ans = 0;\n    while (x != 0) {\n        x &= (x - 1);\n        ans++;\n    }\n    return ans;\n}\n\nstatic int getMoves(int mask, int count, int n) {\n    int ones = countBit(mask);\n    if (n & 1) {\n        /* 如果 n 为奇数，则每一行中 1 与 0 的数目相差为 1，且满足相邻行交替 */\n        if (abs(n - 2 * ones) != 1 || abs(n - 2 * count) != 1 ) {\n            return -1;\n        }\n        if (ones == (n >> 1)) {\n            /* 偶数位变为 1 的最小交换次数 */\n            return n / 2 - countBit(mask & 0xAAAAAAAA);\n        } else {\n            /* 奇数位变为 1 的最小交换次数 */\n            return (n + 1) / 2 - countBit(mask & 0x55555555);\n        }\n    } else { \n        /* 如果 n 为偶数，则每一行中 1 与 0 的数目相等，且满足相邻行交替 */\n        if (ones != (n >> 1) || count != (n >> 1)) {\n            return -1;\n        }\n        /* 偶数位变为 1 的最小交换次数 */\n        int count0 = n / 2 - countBit(mask & 0xAAAAAAAA);\n        /* 奇数位变为 1 的最小交换次数 */\n        int count1 = n / 2 - countBit(mask & 0x55555555);  \n        return MIN(count0, count1);\n    }\n}\n\nint movesToChessboard(int** board, int boardSize, int* boardColSize){\n    int rowMask = 0, colMask = 0;        \n\n    /* 检查棋盘的第一行与第一列 */\n    for (int i = 0; i < boardSize; i++) {\n        rowMask |= (board[0][i] << i);\n        colMask |= (board[i][0] << i);\n    }\n    int reverseRowMask = ((1 << boardSize) - 1) ^ rowMask;\n    int reverseColMask = ((1 << boardSize) - 1) ^ colMask;\n    int rowCnt = 0, colCnt = 0;\n    for (int i = 0; i < boardSize; i++) {\n        int currRowMask = 0;\n        int currColMask = 0;\n        for (int j = 0; j < boardSize; j++) {\n            currRowMask |= (board[i][j] << j);\n            currColMask |= (board[j][i] << j);\n        }\n        /* 检测每一行的状态是否合法 */\n        if (currRowMask != rowMask && currRowMask != reverseRowMask) {\n            return -1;\n        } else if (currRowMask == rowMask) {\n            /* 记录与第一行相同的行数 */\n            rowCnt++;\n        }\n        /* 检测每一列的状态是否合法 */\n        if (currColMask != colMask && currColMask != reverseColMask) {\n            return -1;\n        } else if (currColMask == colMask) {\n            /* 记录与第一列相同的列数 */\n            colCnt++;\n        }\n    }\n    int rowMoves = getMoves(rowMask, rowCnt, boardSize);\n    int colMoves = getMoves(colMask, colCnt, boardSize);\n    return (rowMoves == -1 || colMoves == -1) ? -1 : (rowMoves + colMoves); \n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar movesToChessboard = function(board) {\n    const n = board.length;\n    let rowMask = 0, colMask = 0;        \n\n    /* 检查棋盘的第一行与第一列 */\n    for (let i = 0; i < n; i++) {\n        rowMask |= (board[0][i] << i);\n        colMask |= (board[i][0] << i);\n    }\n    const reverseRowMask = ((1 << n) - 1) ^ rowMask;\n    const reverseColMask = ((1 << n) - 1) ^ colMask;\n    let rowCnt = 0, colCnt = 0;\n    for (let i = 0; i < n; i++) {\n        let currRowMask = 0;\n        let currColMask = 0;\n        for (let j = 0; j < n; j++) {\n            currRowMask |= (board[i][j] << j);\n            currColMask |= (board[j][i] << j);\n        }\n        /* 检测每一行的状态是否合法 */\n        if (currRowMask !== rowMask && currRowMask !== reverseRowMask) {\n            return -1;\n        } else if (currRowMask === rowMask) {\n            /* 记录与第一行相同的行数 */\n            rowCnt++;\n        }\n        /* 检测每一列的状态是否合法 */\n        if (currColMask !== colMask && currColMask !== reverseColMask) {\n            return -1;\n        } else if (currColMask === colMask) {\n            /* 记录与第一列相同的列数 */\n            colCnt++;\n        }\n    }\n    const rowMoves = getMoves(rowMask, rowCnt, n);\n    const colMoves = getMoves(colMask, colCnt, n);\n    return (rowMoves == -1 || colMoves == -1) ? -1 : (rowMoves + colMoves); \n};\n\nconst getMoves = (mask, count, n) => {\n    const ones = bitCount(mask);\n    if ((n & 1) === 1) {\n        /* 如果 n 为奇数，则每一行中 1 与 0 的数目相差为 1，且满足相邻行交替 */\n        if (Math.abs(n - 2 * ones) !== 1 || Math.abs(n - 2 * count) !== 1 ) {\n            return -1;\n        }\n        if (ones === (n >> 1)) {\n            /* 以 0 为开头的最小交换次数 */\n            return Math.floor(n / 2) - bitCount(mask & 0xAAAAAAAA);\n        } else {\n            return Math.floor((n + 1) / 2) - bitCount(mask & 0x55555555);\n        }\n    } else { \n        /* 如果 n 为偶数，则每一行中 1 与 0 的数目相等，且满足相邻行交替 */\n        if (ones !== (n >> 1) || count !== (n >> 1)) {\n            return -1;\n        }\n        /* 找到行的最小交换次数 */\n        const count0 = Math.floor(n / 2) - bitCount(mask & 0xAAAAAAAA);\n        const count1 = Math.floor(n / 2) - bitCount(mask & 0x55555555);  \n        return Math.min(count0, count1);\n    }\n}\n\nconst bitCount = (num) => {\n    return num.toString(2).split('0').join('').length\n}\n```\n\n```Go [sol1-Go]\nfunc getMoves(mask uint, count, n int) int {\n    ones := bits.OnesCount(mask)\n    if n & 1 > 0 {\n        // 如果 n 为奇数，则每一行中 1 与 0 的数目相差为 1，且满足相邻行交替\n        if abs(n-2*ones) != 1 || abs(n-2*count) != 1 {\n            return -1\n        }\n        if ones == n>>1 {\n            // 偶数位变为 1 的最小交换次数\n            return n/2 - bits.OnesCount(mask&0xAAAAAAAA)\n        } else {\n            // 奇数位变为 1 的最小交换次数\n            return (n+1)/2 - bits.OnesCount(mask&0x55555555)\n        }\n    } else {\n        // 如果 n 为偶数，则每一行中 1 与 0 的数目相等，且满足相邻行交替\n        if ones != n>>1 || count != n>>1 {\n            return -1\n        }\n        // 偶数位变为 1 的最小交换次数\n        count0 := n/2 - bits.OnesCount(mask&0xAAAAAAAA)\n        // 奇数位变为 1 的最小交换次数\n        count1 := n/2 - bits.OnesCount(mask&0x55555555)\n        return min(count0, count1)\n    }\n}\n\nfunc movesToChessboard(board [][]int) int {\n    n := len(board)\n    // 棋盘的第一行与第一列\n    rowMask, colMask := 0, 0\n    for i := 0; i < n; i++ {\n        rowMask |= board[0][i] << i\n        colMask |= board[i][0] << i\n    }\n    reverseRowMask := 1<<n - 1 ^ rowMask\n    reverseColMask := 1<<n - 1 ^ colMask\n    rowCnt, colCnt := 0, 0\n    for i := 0; i < n; i++ {\n        currRowMask, currColMask := 0, 0\n        for j := 0; j < n; j++ {\n            currRowMask |= board[i][j] << j\n            currColMask |= board[j][i] << j\n        }\n        if currRowMask != rowMask && currRowMask != reverseRowMask || // 检测每一行的状态是否合法\n            currColMask != colMask && currColMask != reverseColMask { // 检测每一列的状态是否合法\n            return -1\n        }\n        if currRowMask == rowMask {\n            rowCnt++ // 记录与第一行相同的行数\n        }\n        if currColMask == colMask {\n            colCnt++ // 记录与第一列相同的列数\n        }\n    }\n    rowMoves := getMoves(uint(rowMask), rowCnt, n)\n    colMoves := getMoves(uint(colMask), colCnt, n)\n    if rowMoves == -1 || colMoves == -1 {\n        return -1\n    }\n    return rowMoves + colMoves\n}\n\nfunc abs(x int) int {\n    if x < 0 {\n        return -x\n    }\n    return x\n}\n\nfunc min(a, b int) int {\n    if a > b {\n        return b\n    }\n    return a\n}\n```\n\n```TypeScript [sol1-TypeScript]\nfunction getMoves(mask: number, count: number, n: number): number {\n    const ones = bitCount(mask);\n    if (n % 2 === 1) {\n        // 如果 n 为奇数，则每一行中 1 与 0 的数目相差为 1，且满足相邻行交替\n        if (Math.abs(n - 2 * ones) !== 1 || Math.abs(n - 2 * count) !== 1) {\n            return -1;\n        }\n        if (ones === Math.floor(n / 2)) {\n            // 偶数位变为 1 的最小交换次数\n            return Math.floor(n / 2) - bitCount(mask & 0xAAAAAAAA);\n        } else {\n            // 奇数位变为 1 的最小交换次数\n            return Math.floor((n + 1) / 2) - bitCount(mask & 0x55555555);\n        }\n    } else {\n        // 如果 n 为偶数，则每一行中 1 与 0 的数目相等，且满足相邻行交替\n        if (ones !== Math.floor(n / 2) || count !== Math.floor(n / 2)) {\n            return -1;\n        }\n        // 偶数位变为 1 的最小交换次数\n        const count0 = Math.floor(n / 2) - bitCount(mask & 0xAAAAAAAA);\n        // 奇数位变为 1 的最小交换次数\n        const count1 = Math.floor(n / 2) - bitCount(mask & 0x55555555);\n        return Math.min(count0, count1);\n    }\n}\n\nfunction movesToChessboard(board: number[][]): number {\n    const n = board.length;\n    // 棋盘的第一行与第一列\n    let rowMask = 0, colMask = 0;\n    for (let i = 0; i < n; i++) {\n        rowMask |= board[0][i] << i;\n        colMask |= board[i][0] << i;\n    }\n    const reverseRowMask = ((1 << n) - 1) ^ rowMask;\n    const reverseColMask = ((1 << n) - 1) ^ colMask;\n    let rowCnt = 0, colCnt = 0;\n    for (let i = 0; i < n; i++) {\n        let currRowMask = 0, currColMask = 0;\n        for (let j = 0; j < n; j++) {\n            currRowMask |= board[i][j] << j;\n            currColMask |= board[j][i] << j;\n        }\n        // 检测每一行和每一列的状态是否合法\n        if ((currRowMask !== rowMask && currRowMask !== reverseRowMask) || \n            (currColMask !== colMask && currColMask !== reverseColMask)) {\n            return -1;\n        }\n        rowCnt += currRowMask === rowMask ? 1 : 0; // 记录与第一行相同的行数\n        colCnt += currColMask === colMask ? 1 : 0; // 记录与第一列相同的列数\n    }\n\n    const rowMoves = getMoves(rowMask, rowCnt, n);\n    const colMoves = getMoves(colMask, colCnt, n);\n    return rowMoves === -1 || colMoves === -1 ? -1 : rowMoves + colMoves;\n};\n\nconst bitCount = (x : number) : number =>  {\n    let cnt = 0;\n    while (x != 0) {\n        x &= x - 1;\n        cnt++;\n    }\n    return cnt;\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn moves_to_chessboard(board: Vec<Vec<i32>>) -> i32 {\n        let n = board.len();\n\n        // 棋盘的第一行与第一列\n        let mut row_mask = 0;\n        let mut col_mask = 0;\n        for i in 0..n {\n            row_mask |= board[0][i] << i;\n            col_mask |= board[i][0] << i;\n        }\n\n        let reverse_row_mask = ((1 << n) - 1) ^ row_mask;\n        let reverse_col_mask = ((1 << n) - 1) ^ col_mask;\n        let mut row_cnt = 0;\n        let mut col_cnt = 0;\n\n        for i in 0..n {\n            let mut curr_row_mask = 0;\n            let mut curr_col_mask = 0;\n            for j in 0..n {\n                curr_row_mask |= board[i][j] << j;\n                curr_col_mask |= board[j][i] << j;\n            }\n\n            // 检测每一行和每一列的状态是否合法\n            if (curr_row_mask != row_mask && curr_row_mask != reverse_row_mask) || \n            (curr_col_mask != col_mask && curr_col_mask != reverse_col_mask) {\n                return -1;\n            }\n\n            if curr_row_mask == row_mask {\n                row_cnt += 1; // 记录与第一行相同的行数\n            }\n            if curr_col_mask == col_mask {\n                col_cnt += 1; // 记录与第一列相同的列数\n            }\n        }\n\n        fn get_moves(mask: usize, count: i32, n: usize) -> i32 {\n            let ones = mask.count_ones() as i32;\n            if n % 2 == 1 {\n                // 如果 n 为奇数，则每一行中 1 与 0 的数目相差为 1，且满足相邻行交替\n                if (n as i32 - 2 * ones).abs() != 1 || (n as i32 - 2 * count).abs() != 1 {\n                    return -1;\n                }\n                if ones == (n / 2) as i32 {\n                    // 偶数位变为 1 的最小交换次数\n                    return (n as i32 / 2) - (mask & 0xAAAAAAAA).count_ones() as i32;\n                } else {\n                    // 奇数位变为 1 的最小交换次数\n                    return ((n as i32 + 1) / 2) - (mask & 0x55555555).count_ones() as i32;\n                }\n            } else {\n                // 如果 n 为偶数，则每一行中 1 与 0 的数目相等，且满足相邻行交替\n                if ones != (n / 2) as i32 || count != (n / 2) as i32 {\n                    return -1;\n                }\n                // 偶数位变为 1 的最小交换次数\n                let count0 = (n as i32 / 2) - (mask & 0xAAAAAAAA).count_ones() as i32;\n                // 奇数位变为 1 的最小交换次数\n                let count1 = (n as i32 / 2) - (mask & 0x55555555).count_ones() as i32;\n                return std::cmp::min(count0, count1);\n            }\n        }\n\n        let row_moves = get_moves(row_mask as usize, row_cnt, n);\n        let col_moves = get_moves(col_mask as usize, col_cnt, n);\n        if row_moves == -1 || col_moves == -1 {\n            return -1;\n        } else {\n            return row_moves + col_moves;\n        }\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n^2)$，其中 $n$ 为矩阵的行数。我们只需要遍历矩阵一遍即可。\n\n- 空间复杂度：$O(1)$。",
+            "slateValue": "",
+            "slug": "bian-wei-qi-pan-by-leetcode-solution-39dd",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "CMGiKt",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 54,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Bit Manipulation",
+                    "nameTranslated": "位运算",
+                    "slug": "bit-manipulation",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Matrix",
+                    "nameTranslated": "矩阵",
+                    "slug": "matrix",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-08-22T09:16:50.640544+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：分维度计算 首先需要思考的是对矩阵做一次交换之后，矩阵的变换状态。比如我们以交换列为代表，在对任意两列进行交换之后，可以看到列交换是不会改变任意相邻两行之间的元素异同对应关系，比如相邻两行的两个元素 [latex] 原本就相同，任意列交换之后这个两个元素对应的关系保持不变，如果这两个元素本来就不同，经过列交换之",
+            "topic": {
+                "id": 1767787,
+                "subscribed": false,
+                "commentCount": 80,
+                "viewCount": 17286,
+                "post": {
+                    "id": 3484953,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 81,
+            "isEditorsPick": false,
+            "hitCount": 31899,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "transform-to-chessboard",
+                "questionFrontendId": "782"
+            },
+            "next": {
+                "slug": "tu-jie-ni-xiang-si-wei-pythonjavaccgojsr-mixb",
+                "title": "【图解】逆向思维（Python/Java/C++/C/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

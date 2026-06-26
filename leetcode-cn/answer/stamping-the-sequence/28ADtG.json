@@ -1,0 +1,100 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": false,
+            "canEditReward": false,
+            "uuid": "28ADtG",
+            "title": "戳印序列",
+            "content": "#### 方法一：逆推\n\n**分析**\n\n如果我们正着考虑戳印序列，即将问号序列变为目标序列 `target`，那么这个问题会很难下手，因为某一个戳印会将前面的戳印覆盖掉。但我们如果倒着考虑这个问题（逆推），即将目标序列 `target` 变为问号序列，那么这个问题就变得可解决了。\n\n我们将 `target` 中从第 `i` 个字符开始的长度为 `stamp.length` 的字符串称为第 `i` 个窗口。在第一步时，只有和 `stamp` 完全匹配的窗口才能进行戳印，而被戳印的所有位置都会变成问号 `?`，在后续的戳印过程中，问号可以匹配任意字符。\n\n例如 `target` 为 `\"aabcaca\"` 且 `stamp` 为 `\"abca\"`，在逆推时，首先选择第 `1` 个窗口戳印，`target` 变为 `\"a????ca\"`，随后选择第 `3`，`0` 个窗口戳印，`target` 依次变为 `\"a??????\"`，`\"???????\"`。\n\n**算法**\n\n我们对每个窗口维护两个集合 `made` 和 `todo`，前者表示和 `stamp` 可以匹配的位置，后者表示不可以匹配的位置（后者中只有某个位置的字符变成了问号，它才会变成可以匹配的位置）。只有当一个窗口的 `todo` 集合为空，这个窗口才可以被戳印，从而把一些字符变成问号。\n\n我们用一个队列存储所有因为戳印而变成问号的字符位置。队列初始时包含所有 `todo` 集合一开始就为空的窗口对应的位置。当我们取出队列中的一个位置时，我们遍历所有覆盖了该位置的窗口，并且更新这些窗口的 `todo` 集合。如果 `todo` 集合变为空，那就说明产生了一个新的可被戳印的窗口，我们把这个窗口中所有未变成问号的字符的位置添加入队列中。\n\n```Java [sol1-Java]\nclass Solution {\n    public int[] movesToStamp(String stamp, String target) {\n        int M = stamp.length(), N = target.length();\n        Queue<Integer> queue = new ArrayDeque();\n        boolean[] done = new boolean[N];\n        Stack<Integer> ans = new Stack();\n        List<Node> A = new ArrayList();\n\n        for (int i = 0; i <= N-M; ++i) {\n            // For each window [i, i+M), A[i] will contain\n            // info on what needs to change before we can\n            // reverse stamp at this window.\n\n            Set<Integer> made = new HashSet();\n            Set<Integer> todo = new HashSet();\n            for (int j = 0; j < M; ++j) {\n                if (target.charAt(i+j) == stamp.charAt(j))\n                    made.add(i+j);\n                else\n                    todo.add(i+j);\n            }\n\n            A.add(new Node(made, todo));\n\n            // If we can reverse stamp at i immediately,\n            // enqueue letters from this window.\n            if (todo.isEmpty()) {\n                ans.push(i);\n                for (int j = i; j < i + M; ++j) if (!done[j]) {\n                    queue.add(j);\n                    done[j] = true;\n                }\n            }\n        }\n\n        // For each enqueued letter (position),\n        while (!queue.isEmpty()) {\n            int i = queue.poll();\n\n            // For each window that is potentially affected,\n            // j: start of window\n            for (int j = Math.max(0, i-M+1); j <= Math.min(N-M, i); ++j) {\n                if (A.get(j).todo.contains(i)) {  // This window is affected\n                    A.get(j).todo.remove(i);\n                    if (A.get(j).todo.isEmpty()) {\n                        ans.push(j);\n                        for (int m: A.get(j).made) if (!done[m]) {\n                            queue.add(m);\n                            done[m] = true;\n                        }\n                    }\n                }\n            }\n        }\n\n        for (boolean b: done)\n            if (!b) return new int[0];\n\n        int[] ret = new int[ans.size()];\n        int t = 0;\n        while (!ans.isEmpty())\n            ret[t++] = ans.pop();\n\n        return ret;\n    }\n}\n\nclass Node {\n    Set<Integer> made, todo;\n    Node(Set<Integer> m, Set<Integer> t) {\n        made = m;\n        todo = t;\n    }\n}\n```\n\n```Python [sol1-Python]\nclass Solution(object):\n    def movesToStamp(self, stamp, target):\n        M, N = len(stamp), len(target)\n\n        queue = collections.deque()\n        done = [False] * N\n        ans = []\n        A = []\n        for i in xrange(N - M + 1):\n            # For each window [i, i+M),\n            # A[i] will contain info on what needs to change\n            # before we can reverse stamp at i.\n\n            made, todo = set(), set()\n            for j, c in enumerate(stamp):\n                a = target[i+j]\n                if a == c:\n                    made.add(i+j)\n                else:\n                    todo.add(i+j)\n            A.append((made, todo))\n\n            # If we can reverse stamp at i immediately,\n            # enqueue letters from this window.\n            if not todo:\n                ans.append(i)\n                for j in xrange(i, i + len(stamp)):\n                    if not done[j]:\n                        queue.append(j)\n                        done[j] = True\n\n        # For each enqueued letter,\n        while queue:\n            i = queue.popleft()\n\n            # For each window that is potentially affected,\n            # j: start of window\n            for j in xrange(max(0, i-M+1), min(N-M, i)+1):\n                if i in A[j][1]:  # This window is affected\n                    A[j][1].discard(i) # Remove it from todo list of this window\n                    if not A[j][1]:  # Todo list of this window is empty\n                        ans.append(j)\n                        for m in A[j][0]: # For each letter to potentially enqueue,\n                            if not done[m]:\n                                queue.append(m)\n                                done[m] = True\n\n        return ans[::-1] if all(done) else []\n```\n\n**复杂度分析**\n\n* 时间复杂度：$O(N(N-M))$，其中 $M$ 和 $N$ 分别是数组 `stamp` 和 `target` 的长度。\n\n* 空间复杂度：$O(N(N-M))$。",
+            "slateValue": "",
+            "slug": "chuo-yin-xu-lie-by-leetcode",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "28ADtG",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 23,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 3,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Queue",
+                    "nameTranslated": "队列",
+                    "slug": "queue",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Backtracking",
+                    "nameTranslated": "回溯",
+                    "slug": "backtracking",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2019-08-06T05:48:49.605329+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/uploaded_files/2021/03/73c9f099-abbe-4d94-853f-f8abffd459cd/leetcode.png",
+                    "userSlug": "leetcode",
+                    "realName": "LeetCode",
+                    "reputation": 2117
+                }
+            },
+            "summary": "方法一：逆推分析如果我们正着考虑戳印序列，即将问号序列变为目标序列 target，那么这个问题会很难下手，因为某一个戳印会将前面的戳印覆盖掉。但我们如果倒着考虑这个问题（逆推），即将目标序列 target 变为问号序列，那么这个问题就变得可解决了。我们将 target 中从第 i 个字符开始的长度为 stamp.len",
+            "topic": {
+                "id": 18748,
+                "subscribed": false,
+                "commentCount": 37,
+                "viewCount": 3940,
+                "post": {
+                    "id": 145286,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 33,
+            "isEditorsPick": false,
+            "hitCount": 12551,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "stamping-the-sequence",
+                "questionFrontendId": "936"
+            },
+            "next": {
+                "slug": "tuo-bu-pai-xu-by-kevinchen147-09ad",
+                "title": "Python3 & C++｜拓扑排序"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,140 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "5luPf0",
+            "title": "恢复二叉搜索树",
+            "content": "#### 方法一：显式中序遍历\n\n**思路与算法**\n\n我们需要考虑两个节点被错误地交换后对原二叉搜索树造成了什么影响。对于二叉搜索树，我们知道如果对其进行中序遍历，得到的值序列是递增有序的，而如果我们错误地交换了两个节点，等价于在这个值序列中交换了两个值，破坏了值序列的递增性。\n\n我们来看下如果在一个递增的序列中交换两个值会造成什么影响。假设有一个递增序列 $a=[1,2,3,4,5,6,7]$。如果我们交换两个不相邻的数字，例如 $2$ 和 $6$，原序列变成了 $a=[1,6,3,4,5,2,7]$，那么显然序列中有两个位置不满足 $a_i<a_{i+1}$，在这个序列中体现为 $6>3$，$5>2$，因此只要我们找到这两个位置，即可找到被错误交换的两个节点。如果我们交换两个相邻的数字，例如 $2$ 和 $3$，此时交换后的序列只有一个位置不满足 $a_i<a_{i+1}$。因此整个值序列中不满足条件的位置或者有两个，或者有一个。\n\n至此，解题方法已经呼之欲出了：\n\n1. 找到二叉搜索树中序遍历得到值序列的不满足条件的位置。\n2. 如果有两个，我们记为 $i$ 和 $j$（$i<j$ 且 $a_i>a_{i+1}\\ \\&\\&\\ a_j>a_{j+1}$)，那么对应被错误交换的节点即为 $a_i$ 对应的节点和 $a_{j+1}$ 对应的节点，我们分别记为 $x$ 和 $y$。\n3. 如果有一个，我们记为 $i$，那么对应被错误交换的节点即为 $a_i$ 对应的节点和 $a_{i+1}$ 对应的节点，我们分别记为 $x$ 和 $y$。\n4. 交换 $x$ 和 $y$ 两个节点即可。\n\n实现部分，本方法开辟一个新数组 $\\textit{nums}$ 来记录中序遍历得到的值序列，然后线性遍历找到两个位置 $i$ 和 $j$，并重新遍历原二叉搜索树修改对应节点的值完成修复，具体实现可以看下面的代码。\n\n**代码**\n\n```Java [sol1-Java]\nclass Solution {\n    public void recoverTree(TreeNode root) {\n        List<Integer> nums = new ArrayList<Integer>();\n        inorder(root, nums);\n        int[] swapped = findTwoSwapped(nums);\n        recover(root, 2, swapped[0], swapped[1]);\n    }\n\n    public void inorder(TreeNode root, List<Integer> nums) {\n        if (root == null) {\n            return;\n        }\n        inorder(root.left, nums);\n        nums.add(root.val);\n        inorder(root.right, nums);\n    }\n\n    public int[] findTwoSwapped(List<Integer> nums) {\n        int n = nums.size();\n        int index1 = -1, index2 = -1;\n        for (int i = 0; i < n - 1; ++i) {\n            if (nums.get(i + 1) < nums.get(i)) {\n                index2 = i + 1;\n                if (index1 == -1) {\n                    index1 = i;\n                } else {\n                    break;\n                }\n            }\n        }\n        int x = nums.get(index1), y = nums.get(index2);\n        return new int[]{x, y};\n    }\n\n    public void recover(TreeNode root, int count, int x, int y) {\n        if (root != null) {\n            if (root.val == x || root.val == y) {\n                root.val = root.val == x ? y : x;\n                if (--count == 0) {\n                    return;\n                }\n            }\n            recover(root.right, count, x, y);\n            recover(root.left, count, x, y);\n        }\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    void inorder(TreeNode* root, vector<int>& nums) {\n        if (root == nullptr) {\n            return;\n        }\n        inorder(root->left, nums);\n        nums.push_back(root->val);\n        inorder(root->right, nums);\n    }\n\n    pair<int,int> findTwoSwapped(vector<int>& nums) {\n        int n = nums.size();\n        int index1 = -1, index2 = -1;\n        for (int i = 0; i < n - 1; ++i) {\n            if (nums[i + 1] < nums[i]) {\n                index2 = i + 1;\n                if (index1 == -1) {\n                    index1 = i;\n                } else {\n                    break;\n                }\n            }\n        }\n        int x = nums[index1], y = nums[index2];\n        return {x, y};\n    }\n    \n    void recover(TreeNode* r, int count, int x, int y) {\n        if (r != nullptr) {\n            if (r->val == x || r->val == y) {\n                r->val = r->val == x ? y : x;\n                if (--count == 0) {\n                    return;\n                }\n            }\n            recover(r->left, count, x, y);\n            recover(r->right, count, x, y);\n        }\n    }\n\n    void recoverTree(TreeNode* root) {\n        vector<int> nums;\n        inorder(root, nums);\n        pair<int,int> swapped= findTwoSwapped(nums);\n        recover(root, 2, swapped.first, swapped.second);\n    }\n};\n```\n\n```JavaScript [sol1-JavaScript]\nconst inorder = (root, nums) => {\n    if (root === null) {\n        return;\n    }\n    inorder(root.left, nums);\n    nums.push(root.val);\n    inorder(root.right, nums);\n}\n\nconst findTwoSwapped = (nums) => {\n    const n = nums.length;\n    let index1 = -1, index2 = -1;\n    for (let i = 0; i < n - 1; ++i) {\n        if (nums[i + 1] < nums[i]) {\n            index2 = i + 1;\n            if (index1 === -1) {\n                index1 = i;\n            } else {\n                break;\n            }\n        }\n    }\n    let x = nums[index1], y = nums[index2];\n    return [x, y];\n}\n\nconst recover = (r, count, x, y) => {\n    if (r !== null) {\n        if (r.val === x || r.val === y) {\n            r.val = r.val === x ? y : x;\n            if (--count === 0) {\n                return;\n            }\n        }\n        recover(r.left, count, x, y);\n        recover(r.right, count, x, y);\n    }\n}\n\nvar recoverTree = function(root) {\n    const nums = [];\n    inorder(root, nums);\n    const [first, second] = findTwoSwapped(nums);\n    recover(root, 2, first, second); \n};\n```\n\n```golang [sol1-Golang]\nfunc recoverTree(root *TreeNode)  {\n    nums := []int{}\n    var inorder func(node *TreeNode)\n    inorder = func(node *TreeNode) {\n        if node == nil {\n            return\n        }\n        inorder(node.Left)\n        nums = append(nums, node.Val)\n        inorder(node.Right)\n    }\n    inorder(root)\n    x, y := findTwoSwapped(nums)\n    recover(root, 2, x, y)\n}\n\nfunc findTwoSwapped(nums []int) (int, int) {\n    index1, index2 := -1, -1\n    for i := 0; i < len(nums) - 1; i++ {\n        if nums[i + 1] < nums[i] {\n            index2 = i + 1\n            if index1 == -1 {\n                index1 = i\n            } else {\n                break\n            }\n        }\n    }\n    x, y := nums[index1], nums[index2]\n    return x, y\n}\n\nfunc recover(root *TreeNode, count, x, y int) {\n    if root == nil {\n        return\n    }\n    if root.Val == x || root.Val == y {\n        if root.Val == x {\n            root.Val = y\n        } else {\n            root.Val = x\n        }\n        count--\n        if count == 0 {\n            return\n        }\n    }\n    recover(root.Right, count, x, y)\n    recover(root.Left, count, x, y)\n}\n```\n\n```C [sol1-C]\nint len, max_size;\n\nvoid inorder(struct TreeNode* root, int** nums) {\n    if (root == NULL) {\n        return;\n    }\n    inorder(root->left, nums);\n    (*nums)[len++] = root->val;\n    if (len == max_size) {\n        max_size <<= 1;\n        (*nums) = (int*)realloc((*nums), sizeof(int) * max_size);\n    }\n    inorder(root->right, nums);\n}\n\nint* findTwoSwapped(int* nums) {\n    int index1 = -1, index2 = -1;\n    for (int i = 0; i < len - 1; ++i) {\n        if (nums[i + 1] < nums[i]) {\n            index2 = i + 1;\n            if (index1 == -1) {\n                index1 = i;\n            } else {\n                break;\n            }\n        }\n    }\n    int x = nums[index1], y = nums[index2];\n    int* ret = (int*)malloc(sizeof(int) * 2);\n    ret[0] = x, ret[1] = y;\n    return ret;\n}\n\nvoid recover(struct TreeNode* r, int count, int x, int y) {\n    if (r != NULL) {\n        if (r->val == x || r->val == y) {\n            r->val = r->val == x ? y : x;\n            if (--count == 0) {\n                return;\n            }\n        }\n        recover(r->left, count, x, y);\n        recover(r->right, count, x, y);\n    }\n}\n\nvoid recoverTree(struct TreeNode* root) {\n    len = 0, max_size = 1;\n    int* nums = (int*)malloc(sizeof(int));\n    inorder(root, &nums);\n    int* swapped = findTwoSwapped(nums);\n    recover(root, 2, swapped[0], swapped[1]);\n}\n```\n\n**复杂度分析**\n\n* 时间复杂度：$O(N)$，其中 $N$ 为二叉搜索树的节点数。中序遍历需要 $O(N)$ 的时间，判断两个交换节点在最好的情况下是 $O(1)$，在最坏的情况下是 $O(N)$，因此总时间复杂度为 $O(N)$。\n* 空间复杂度：$O(N)$。我们需要用 $\\textit{nums}$ 数组存储树的中序遍历列表。\n\n#### 方法二：隐式中序遍历\n\n**思路与算法**\n\n方法一是显式地将中序遍历的值序列保存在一个 $\\textit{nums}$ 数组中，然后再去寻找被错误交换的节点，但我们也可以隐式地在中序遍历的过程就找到被错误交换的节点 $x$ 和 $y$。\n\n具体来说，由于我们只关心中序遍历的值序列中每个**相邻的位置的大小关系是否满足条件**，且错误交换后**最多两个位置不满足条件**，因此在中序遍历的过程我们只需要维护当前中序遍历到的最后一个节点 $\\textit{pred}$，然后在遍历到下一个节点的时候，看两个节点的值是否满足前者小于后者即可，如果不满足说明找到了一个交换的节点，且在找到两次以后就可以终止遍历。\n\n这样我们就可以在中序遍历中直接找到被错误交换的两个节点 $x$ 和 $y$，不用显式建立 $\\textit{nums}$ 数组。\n\n中序遍历的实现有迭代和递归两种等价的写法，在本方法中提供迭代实现的写法。使用迭代实现中序遍历需要手动维护栈。\n\n<![fig1](https://assets.leetcode.cn/solution-static/99/1.png),![fig2](https://assets.leetcode.cn/solution-static/99/2.png),![fig3](https://assets.leetcode.cn/solution-static/99/3.png),![fig4](https://assets.leetcode.cn/solution-static/99/4.png),![fig5](https://assets.leetcode.cn/solution-static/99/5.png),![fig6](https://assets.leetcode.cn/solution-static/99/6.png),![fig7](https://assets.leetcode.cn/solution-static/99/7.png),![fig8](https://assets.leetcode.cn/solution-static/99/8.png),![fig9](https://assets.leetcode.cn/solution-static/99/9.png)>\n\n**代码**\n\n```Java [sol2-Java]\nclass Solution {\n    public void recoverTree(TreeNode root) {\n        Deque<TreeNode> stack = new ArrayDeque<TreeNode>();\n        TreeNode x = null, y = null, pred = null;\n\n        while (!stack.isEmpty() || root != null) {\n            while (root != null) {\n                stack.push(root);\n                root = root.left;\n            }\n            root = stack.pop();\n            if (pred != null && root.val < pred.val) {\n                y = root;\n                if (x == null) {\n                    x = pred;\n                } else {\n                    break;\n                }\n            }\n            pred = root;\n            root = root.right;\n        }\n\n        swap(x, y);\n    }\n\n    public void swap(TreeNode x, TreeNode y) {\n        int tmp = x.val;\n        x.val = y.val;\n        y.val = tmp;\n    }\n}\n```\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    void recoverTree(TreeNode* root) {\n        stack<TreeNode*> stk;\n        TreeNode* x = nullptr;\n        TreeNode* y = nullptr;\n        TreeNode* pred = nullptr;\n\n        while (!stk.empty() || root != nullptr) {\n            while (root != nullptr) {\n                stk.push(root);\n                root = root->left;\n            }\n            root = stk.top();\n            stk.pop();\n            if (pred != nullptr && root->val < pred->val) {\n                y = root;\n                if (x == nullptr) {\n                    x = pred;\n                }\n                else break;\n            }\n            pred = root;\n            root = root->right;\n        }\n\n        swap(x->val, y->val);\n    }\n};\n```\n\n```JavaScript [sol2-JavaScript]\nconst swap = (x, y) => {\n    const temp = x.val;\n    x.val = y.val;\n    y.val = temp;\n}\n\nvar recoverTree = function(root) {\n    const stack = [];\n    let x = null, y = null, pred = null;\n\n    while (stack.length || root !== null) {\n      while (root !== null) {\n        stack.push(root);\n        root = root.left;\n      }\n      root = stack.pop();\n      if (pred !== null && root.val < pred.val) {\n        y = root;\n        if (x === null) {\n            x = pred;\n        }\n        else break;\n      }\n      pred = root;\n      root = root.right;\n    }\n    swap(x, y);\n};\n```\n\n```golang [sol2-Golang]\nfunc recoverTree(root *TreeNode)  {\n    stack := []*TreeNode{}\n    var x, y, pred *TreeNode\n    for len(stack) > 0 || root != nil {\n        for root != nil {\n            stack = append(stack, root)\n            root = root.Left\n        }\n        root = stack[len(stack)-1]\n        stack = stack[:len(stack)-1]\n        if pred != nil && root.Val < pred.Val {\n            y = root\n            if x == nil {\n                x = pred\n            } else {\n                break\n            }\n        }\n        pred = root\n        root = root.Right\n    }\n    x.Val, y.Val = y.Val, x.Val\n}\n```\n\n```C [sol2-C]\nvoid recoverTree(struct TreeNode* root) {\n    struct TreeNode** stk = (struct TreeNode**)malloc(0);\n    int stk_top = 0;\n    struct TreeNode* x = NULL;\n    struct TreeNode* y = NULL;\n    struct TreeNode* pred = NULL;\n\n    while (stk_top > 0 || root != NULL) {\n        while (root != NULL) {\n            stk_top++;\n            stk = (struct TreeNode**)realloc(stk, sizeof(struct TreeNode*) * stk_top);\n            stk[stk_top - 1] = root;\n            root = root->left;\n        }\n        root = stk[--stk_top];\n        if (pred != NULL && root->val < pred->val) {\n            y = root;\n            if (x == NULL) {\n                x = pred;\n            } else\n                break;\n        }\n        pred = root;\n        root = root->right;\n    }\n    int t = x->val;\n    x->val = y->val, y->val = t;\n}\n```\n\n**复杂度分析**\n\n* 时间复杂度：最坏情况下（即待交换节点为二叉搜索树最右侧的叶子节点）我们需要遍历整棵树，时间复杂度为 $O(N)$，其中 $N$ 为二叉搜索树的节点个数。\n* 空间复杂度：$O(H)$，其中 $H$ 为二叉搜索树的高度。中序遍历的时候栈的深度取决于二叉搜索树的高度。\n\n#### 方法三：Morris 中序遍历\n\n**思路与算法**\n\n方法二中我们不再显示的用数组存储中序遍历的值序列，但是我们会发现我们仍需要 $O(H)$ 的栈空间，无法满足题目的进阶要求，那么该怎么办呢？这里向大家介绍一种不同于平常递归或迭代的遍历二叉树的方法：**Morris 遍历算法**，该算法能将非递归的中序遍历空间复杂度降为 $O(1)$。\n\n**Morris 遍历算法**整体步骤如下（假设当前遍历到的节点为 $x$）：\n\n1. 如果 $x$ 无左孩子，则访问 $x$ 的右孩子，即 $x = x.\\textit{right}$。\n2. 如果 $x$ 有左孩子，则找到 $x$ 左子树上最右的节点（**即左子树中序遍历的最后一个节点，$x$ 在中序遍历中的前驱节点**），我们记为 $\\textit{predecessor}$。根据 $\\textit{predecessor}$ 的右孩子是否为空，进行如下操作。\n   - 如果 $\\textit{predecessor}$ 的右孩子为空，则将其右孩子指向 $x$，然后访问 $x$ 的左孩子，即 $x = x.\\textit{left}$。\n   - 如果 $\\textit{predecessor}$ 的右孩子不为空，则此时其右孩子指向 $x$，说明我们已经遍历完 $x$ 的左子树，我们将 $\\textit{predecessor}$ 的右孩子置空，然后访问 $x$ 的右孩子，即 $x = x.\\textit{right}$。\n3. 重复上述操作，直至访问完整棵树。\n\n其实整个过程我们就多做一步：将当前节点左子树中最右边的节点指向它，这样在左子树遍历完成后我们通过这个指向走回了 $x$，且能再通过这个知晓我们已经遍历完成了左子树，而不用再通过栈来维护，省去了栈的空间复杂度。\n\n了解完这个算法以后，其他地方与方法二并无不同，我们同样也是维护一个 $\\textit{pred}$ 变量去比较即可，具体实现可以看下面的代码，这里不再赘述。\n\n<![morris1](https://assets.leetcode.cn/solution-static/99/2_1.png),![morris2](https://assets.leetcode.cn/solution-static/99/2_2.png),![morris3](https://assets.leetcode.cn/solution-static/99/2_3.png),![morris4](https://assets.leetcode.cn/solution-static/99/2_4.png),![morris5](https://assets.leetcode.cn/solution-static/99/2_5.png),![morris6](https://assets.leetcode.cn/solution-static/99/2_6.png),![morris7](https://assets.leetcode.cn/solution-static/99/2_7.png),![morris8](https://assets.leetcode.cn/solution-static/99/2_8.png),![morris9](https://assets.leetcode.cn/solution-static/99/2_9.png),![morris10](https://assets.leetcode.cn/solution-static/99/2_10.png),![morris11](https://assets.leetcode.cn/solution-static/99/2_11.png)>\n\n**代码**\n\n```Java [sol3-Java]\nclass Solution {\n    public void recoverTree(TreeNode root) {\n        TreeNode x = null, y = null, pred = null, predecessor = null;\n\n        while (root != null) {\n            if (root.left != null) {\n                // predecessor 节点就是当前 root 节点向左走一步，然后一直向右走至无法走为止\n                predecessor = root.left;\n                while (predecessor.right != null && predecessor.right != root) {\n                    predecessor = predecessor.right;\n                }\n                \n                // 让 predecessor 的右指针指向 root，继续遍历左子树\n                if (predecessor.right == null) {\n                    predecessor.right = root;\n                    root = root.left;\n                }\n                // 说明左子树已经访问完了，我们需要断开链接\n                else {\n                    if (pred != null && root.val < pred.val) {\n                        y = root;\n                        if (x == null) {\n                            x = pred;\n                        }\n                    }\n                    pred = root;\n\n                    predecessor.right = null;\n                    root = root.right;\n                }\n            }\n            // 如果没有左孩子，则直接访问右孩子\n            else {\n                if (pred != null && root.val < pred.val) {\n                    y = root;\n                    if (x == null) {\n                        x = pred;\n                    }\n                }\n                pred = root;\n                root = root.right;\n            }\n        }\n        swap(x, y);\n    }\n\n    public void swap(TreeNode x, TreeNode y) {\n        int tmp = x.val;\n        x.val = y.val;\n        y.val = tmp;\n    }\n}\n```\n\n```C++ [sol3-C++]\nclass Solution {\npublic:\n    void recoverTree(TreeNode* root) {\n        TreeNode *x = nullptr, *y = nullptr, *pred = nullptr, *predecessor = nullptr;\n\n        while (root != nullptr) {\n            if (root->left != nullptr) {\n                // predecessor 节点就是当前 root 节点向左走一步，然后一直向右走至无法走为止\n                predecessor = root->left;\n                while (predecessor->right != nullptr && predecessor->right != root) {\n                    predecessor = predecessor->right;\n                }\n                \n                // 让 predecessor 的右指针指向 root，继续遍历左子树\n                if (predecessor->right == nullptr) {\n                    predecessor->right = root;\n                    root = root->left;\n                }\n                // 说明左子树已经访问完了，我们需要断开链接\n                else {\n                    if (pred != nullptr && root->val < pred->val) {\n                        y = root;\n                        if (x == nullptr) {\n                            x = pred;\n                        }\n                    }\n                    pred = root;\n\n                    predecessor->right = nullptr;\n                    root = root->right;\n                }\n            }\n            // 如果没有左孩子，则直接访问右孩子\n            else {\n                if (pred != nullptr && root->val < pred->val) {\n                    y = root;\n                    if (x == nullptr) {\n                        x = pred;\n                    }\n                }\n                pred = root;\n                root = root->right;\n            }\n        }\n        swap(x->val, y->val);\n    }\n};\n```\n\n```JavaScript [sol3-JavaScript]\nconst swap = (x, y) => {\n    const temp = x.val;\n    x.val = y.val;\n    y.val = temp;\n}\n\nvar recoverTree = function(root) {\n    let x = null, y = null, pred = null, predecessor = null;\n\n    while (root !== null) {\n      if (root.left !== null) {\n        // predecessor 节点就是当前 root 节点向左走一步，然后一直向右走至无法走为止\n        predecessor = root.left;\n        while (predecessor.right !== null && predecessor.right !== root)\n          predecessor = predecessor.right;\n\n        // 让 predecessor 的右指针指向 root，继续遍历左子树\n        if (predecessor.right === null) {\n          predecessor.right = root;\n          root = root.left;\n        }\n        // 说明左子树已经访问完了，我们需要断开链接\n        else {\n          if (pred !== null && root.val < pred.val) {\n            y = root;\n            if (x === null) {\n                x = pred;\n            }\n          }\n          pred = root;\n\n          predecessor.right = null;\n          root = root.right;\n        }\n      }\n      // 如果没有左孩子，则直接访问右孩子\n      else {\n        if (pred !== null && root.val < pred.val) {\n            y = root;\n            if (x === null) {\n                x = pred;\n            }\n        }\n        pred = root;\n\n        root = root.right;\n      }\n    }\n    swap(x, y);\n};\n```\n\n```golang [sol3-Golang]\nfunc recoverTree(root *TreeNode)  {\n    var x, y, pred, predecessor *TreeNode\n\n    for root != nil {\n        if root.Left != nil {\n            // predecessor 节点就是当前 root 节点向左走一步，然后一直向右走至无法走为止\n            predecessor = root.Left\n            for predecessor.Right != nil && predecessor.Right != root {\n                predecessor = predecessor.Right\n            }\n\n            // 让 predecessor 的右指针指向 root，继续遍历左子树\n            if predecessor.Right == nil {\n                predecessor.Right = root\n                root = root.Left\n            } else { // 说明左子树已经访问完了，我们需要断开链接\n                if pred != nil && root.Val < pred.Val {\n                    y = root\n                    if x == nil {\n                        x = pred\n                    }\n                }\n                pred = root\n                predecessor.Right = nil\n                root = root.Right\n            }\n        } else { // 如果没有左孩子，则直接访问右孩子\n            if pred != nil && root.Val < pred.Val {\n                y = root\n                if x == nil {\n                    x = pred\n                }\n            }\n            pred = root\n            root = root.Right\n        }\n    }\n    x.Val, y.Val = y.Val, x.Val\n}\n```\n\n```C [sol3-C]\nvoid recoverTree(struct TreeNode* root) {\n    struct TreeNode *x = NULL, *y = NULL, *pred = NULL, *predecessor = NULL;\n\n    while (root != NULL) {\n        if (root->left != NULL) {\n            // predecessor 节点就是当前 root 节点向左走一步，然后一直向右走至无法走为止\n            predecessor = root->left;\n            while (predecessor->right != NULL && predecessor->right != root) {\n                predecessor = predecessor->right;\n            }\n\n            // 让 predecessor 的右指针指向 root，继续遍历左子树\n            if (predecessor->right == NULL) {\n                predecessor->right = root;\n                root = root->left;\n            }\n            // 说明左子树已经访问完了，我们需要断开链接\n            else {\n                if (pred != NULL && root->val < pred->val) {\n                    y = root;\n                    if (x == NULL) {\n                        x = pred;\n                    }\n                }\n                pred = root;\n\n                predecessor->right = NULL;\n                root = root->right;\n            }\n        }\n        // 如果没有左孩子，则直接访问右孩子\n        else {\n            if (pred != NULL && root->val < pred->val) {\n                y = root;\n                if (x == NULL) {\n                    x = pred;\n                }\n            }\n            pred = root;\n            root = root->right;\n        }\n    }\n    int t = x->val;\n    x->val = y->val, y->val = t;\n}\n```\n\n**复杂度分析**\n\n* 时间复杂度：$O(N)$，其中 $N$ 为二叉搜索树的高度。Morris 遍历中每个节点会被访问两次，因此总时间复杂度为 $O(2N)=O(N)$。\n* 空间复杂度：$O(1)$。",
+            "slateValue": "",
+            "slug": "hui-fu-er-cha-sou-suo-shu-by-leetcode-solution",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "5luPf0",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 213,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 7,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 4,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Stack",
+                    "nameTranslated": "栈",
+                    "slug": "stack",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Tree",
+                    "nameTranslated": "树",
+                    "slug": "tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Depth-First Search",
+                    "nameTranslated": "深度优先搜索",
+                    "slug": "depth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search Tree",
+                    "nameTranslated": "二叉搜索树",
+                    "slug": "binary-search-tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Tree",
+                    "nameTranslated": "二叉树",
+                    "slug": "binary-tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-08-07T15:51:16.172832+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：显式中序遍历 思路与算法 我们需要考虑两个节点被错误地交换后对原二叉搜索树造成了什么影响。对于二叉搜索树，我们知道如果对其进行中序遍历，得到的值序列是递增有序的，而如果我们错误地交换了两个节点，等价于在这个值序列中交换了两个值，破坏了值序列的递增性。 我们来看下如果在一个递增的序列中交换两个值会造成什么影响。假",
+            "topic": {
+                "id": 365385,
+                "subscribed": false,
+                "commentCount": 296,
+                "viewCount": 90080,
+                "post": {
+                    "id": 900523,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 635,
+            "isEditorsPick": false,
+            "hitCount": 203362,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "recover-binary-search-tree",
+                "questionFrontendId": "99"
+            },
+            "next": {
+                "slug": "san-chong-jie-fa-xiang-xi-tu-jie-99-hui-fu-er-cha-",
+                "title": "三种解法+详细图解 99. 恢复二叉搜索树"
+            },
+            "prev": null
+        }
+    }
+}

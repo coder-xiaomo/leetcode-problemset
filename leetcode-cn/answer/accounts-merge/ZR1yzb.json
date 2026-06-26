@@ -1,0 +1,128 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "ZR1yzb",
+            "title": "账户合并",
+            "content": "#### 方法一：哈希表 + 并查集\n\n两个账户需要合并，当且仅当两个账户至少有一个共同的邮箱地址，因此这道题的实质是判断所有的邮箱地址中有哪些邮箱地址必定属于同一人，可以使用并查集实现。\n\n为了使用并查集实现账户合并，需要知道一共有多少个不同的邮箱地址，以及每个邮箱对应的名称，因此需要使用两个哈希表分别记录每个邮箱对应的编号和每个邮箱对应的名称，遍历所有的账户并在两个哈希表中记录相应的信息。虽然同一个邮箱地址可能在多个账户中出现，但是同一个邮箱地址在两个哈希表中都只能存储一次。\n\n然后使用并查集进行合并操作。由于同一个账户中的邮箱地址一定属于同一个人，因此遍历每个账户，对账户中的邮箱地址进行合并操作。并查集存储的是每个邮箱地址对应的编号，合并操作也是针对编号进行合并。\n\n完成并查集的合并操作之后，即可知道合并后有多少个不同的账户。遍历所有的邮箱地址，对于每个邮箱地址，通过并查集得到该邮箱地址属于哪个合并后的账户，即可整理出每个合并后的账户包含哪些邮箱地址。\n\n对于每个合并后的账户，需要整理出题目要求的返回账户的格式，具体做法是：将邮箱地址排序，账户的名称可以通过在哈希表中查找任意一个邮箱对应的名称得到，将名称和排序后的邮箱地址整理成一个账户列表。对所有合并后的账户整理出账户列表，即可得到最终答案。\n\n```Java [sol1-Java]\nclass Solution {\n    public List<List<String>> accountsMerge(List<List<String>> accounts) {\n        Map<String, Integer> emailToIndex = new HashMap<String, Integer>();\n        Map<String, String> emailToName = new HashMap<String, String>();\n        int emailsCount = 0;\n        for (List<String> account : accounts) {\n            String name = account.get(0);\n            int size = account.size();\n            for (int i = 1; i < size; i++) {\n                String email = account.get(i);\n                if (!emailToIndex.containsKey(email)) {\n                    emailToIndex.put(email, emailsCount++);\n                    emailToName.put(email, name);\n                }\n            }\n        }\n        UnionFind uf = new UnionFind(emailsCount);\n        for (List<String> account : accounts) {\n            String firstEmail = account.get(1);\n            int firstIndex = emailToIndex.get(firstEmail);\n            int size = account.size();\n            for (int i = 2; i < size; i++) {\n                String nextEmail = account.get(i);\n                int nextIndex = emailToIndex.get(nextEmail);\n                uf.union(firstIndex, nextIndex);\n            }\n        }\n        Map<Integer, List<String>> indexToEmails = new HashMap<Integer, List<String>>();\n        for (String email : emailToIndex.keySet()) {\n            int index = uf.find(emailToIndex.get(email));\n            List<String> account = indexToEmails.getOrDefault(index, new ArrayList<String>());\n            account.add(email);\n            indexToEmails.put(index, account);\n        }\n        List<List<String>> merged = new ArrayList<List<String>>();\n        for (List<String> emails : indexToEmails.values()) {\n            Collections.sort(emails);\n            String name = emailToName.get(emails.get(0));\n            List<String> account = new ArrayList<String>();\n            account.add(name);\n            account.addAll(emails);\n            merged.add(account);\n        }\n        return merged;\n    }\n}\n\nclass UnionFind {\n    int[] parent;\n\n    public UnionFind(int n) {\n        parent = new int[n];\n        for (int i = 0; i < n; i++) {\n            parent[i] = i;\n        }\n    }\n\n    public void union(int index1, int index2) {\n        parent[find(index2)] = find(index1);\n    }\n\n    public int find(int index) {\n        if (parent[index] != index) {\n            parent[index] = find(parent[index]);\n        }\n        return parent[index];\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass UnionFind {\npublic:\n    vector<int> parent;\n\n    UnionFind(int n) {\n        parent.resize(n);\n        for (int i = 0; i < n; i++) {\n            parent[i] = i;\n        }\n    }\n\n    void unionSet(int index1, int index2) {\n        parent[find(index2)] = find(index1);\n    }\n\n    int find(int index) {\n        if (parent[index] != index) {\n            parent[index] = find(parent[index]);\n        }\n        return parent[index];\n    }\n};\n\nclass Solution {\npublic:\n    vector<vector<string>> accountsMerge(vector<vector<string>>& accounts) {\n        map<string, int> emailToIndex;\n        map<string, string> emailToName;\n        int emailsCount = 0;\n        for (auto& account : accounts) {\n            string& name = account[0];\n            int size = account.size();\n            for (int i = 1; i < size; i++) {\n                string& email = account[i];\n                if (!emailToIndex.count(email)) {\n                    emailToIndex[email] = emailsCount++;\n                    emailToName[email] = name;\n                }\n            }\n        }\n        UnionFind uf(emailsCount);\n        for (auto& account : accounts) {\n            string& firstEmail = account[1];\n            int firstIndex = emailToIndex[firstEmail];\n            int size = account.size();\n            for (int i = 2; i < size; i++) {\n                string& nextEmail = account[i];\n                int nextIndex = emailToIndex[nextEmail];\n                uf.unionSet(firstIndex, nextIndex);\n            }\n        }\n        map<int, vector<string>> indexToEmails;\n        for (auto& [email, _] : emailToIndex) {\n            int index = uf.find(emailToIndex[email]);\n            vector<string>& account = indexToEmails[index];\n            account.emplace_back(email);\n            indexToEmails[index] = account;\n        }\n        vector<vector<string>> merged;\n        for (auto& [_, emails] : indexToEmails) {\n            sort(emails.begin(), emails.end());\n            string& name = emailToName[emails[0]];\n            vector<string> account;\n            account.emplace_back(name);\n            for (auto& email : emails) {\n                account.emplace_back(email);\n            }\n            merged.emplace_back(account);\n        }\n        return merged;\n    }\n};\n```\n\n```JavaScript [sol1-JavaScript]\nvar accountsMerge = function(accounts) {\n    const emailToIndex = new Map();\n    const emailToName = new Map();\n    let emailsCount = 0;\n    for (const account of accounts) {\n        const name = account[0];\n        const size = account.length;\n        for (let i = 1; i < size; i++) {\n            const email = account[i];\n            if (!emailToIndex.has(email)) {\n                emailToIndex.set(email, emailsCount++);\n                emailToName.set(email, name);\n            }\n        }\n    }\n\n    const uf = new UnionFind(emailsCount);\n    for (const account of accounts) {\n        const firstEmail = account[1];\n        const firstIndex = emailToIndex.get(firstEmail);\n        const size = account.length;\n        for (let i = 2; i < size; i++) {\n            const nextEmail = account[i];\n            const nextIndex = emailToIndex.get(nextEmail);\n            uf.union(firstIndex, nextIndex);\n        }\n    }\n\n    const indexToEmails = new Map();\n    for (const email of emailToIndex.keys()) {\n        const index = uf.find(emailToIndex.get(email));\n        const account = indexToEmails.get(index) ? indexToEmails.get(index) : [];\n        account.push(email);\n        indexToEmails.set(index, account);\n    }\n    const merged = [];\n    for (const emails of indexToEmails.values()) {\n        emails.sort();\n        const name = emailToName.get(emails[0]);\n        const account = [];\n        account.push(name);\n        account.push(...emails);\n        merged.push(account);\n    }\n    return merged;\n};\n\nclass UnionFind {\n    constructor (n) {\n        this.parent = new Array(n).fill(0).map((element, index) => index);\n    }\n\n    union (index1, index2) {\n        this.parent[this.find(index2)] = this.find(index1);\n    }\n\n    find (index) {\n        if (this.parent[index] !== index) {\n            this.parent[index] = this.find(this.parent[index]);\n        }\n        return this.parent[index];\n    }\n}\n```\n\n```go [sol1-Golang]\nfunc accountsMerge(accounts [][]string) (ans [][]string) {\n    emailToIndex := map[string]int{}\n    emailToName := map[string]string{}\n    for _, account := range accounts {\n        name := account[0]\n        for _, email := range account[1:] {\n            if _, has := emailToIndex[email]; !has {\n                emailToIndex[email] = len(emailToIndex)\n                emailToName[email] = name\n            }\n        }\n    }\n\n    parent := make([]int, len(emailToIndex))\n    for i := range parent {\n        parent[i] = i\n    }\n    var find func(int) int\n    find = func(x int) int {\n        if parent[x] != x {\n            parent[x] = find(parent[x])\n        }\n        return parent[x]\n    }\n    union := func(from, to int) {\n        parent[find(from)] = find(to)\n    }\n\n    for _, account := range accounts {\n        firstIndex := emailToIndex[account[1]]\n        for _, email := range account[2:] {\n            union(emailToIndex[email], firstIndex)\n        }\n    }\n\n    indexToEmails := map[int][]string{}\n    for email, index := range emailToIndex {\n        index = find(index)\n        indexToEmails[index] = append(indexToEmails[index], email)\n    }\n\n    for _, emails := range indexToEmails {\n        sort.Strings(emails)\n        account := append([]string{emailToName[emails[0]]}, emails...)\n        ans = append(ans, account)\n    }\n    return\n}\n```\n\n```Python [sol1-Python3]\nclass UnionFind:\n    def __init__(self, n):\n        self.parent = list(range(n))\n\n    def union(self, index1: int, index2: int):\n        self.parent[self.find(index2)] = self.find(index1)\n\n    def find(self, index: int) -> int:\n        if self.parent[index] != index:\n            self.parent[index] = self.find(self.parent[index])\n        return self.parent[index]\n\nclass Solution:\n    def accountsMerge(self, accounts: List[List[str]]) -> List[List[str]]:\n        emailToIndex = dict()\n        emailToName = dict()\n\n        for account in accounts:\n            name = account[0]\n            for email in account[1:]:\n                if email not in emailToIndex:\n                    emailToIndex[email] = len(emailToIndex)\n                    emailToName[email] = name\n        \n        uf = UnionFind(len(emailToIndex))\n        for account in accounts:\n            firstIndex = emailToIndex[account[1]]\n            for email in account[2:]:\n                uf.union(firstIndex, emailToIndex[email])\n        \n        indexToEmails = collections.defaultdict(list)\n        for email, index in emailToIndex.items():\n            index = uf.find(index)\n            indexToEmails[index].append(email)\n        \n        ans = list()\n        for emails in indexToEmails.values():\n            ans.append([emailToName[emails[0]]] + sorted(emails))\n        return ans\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log n)$，其中 $n$ 是不同邮箱地址的数量。\n  需要遍历所有邮箱地址，在并查集内进行查找和合并操作，对于两个不同的邮箱地址，如果它们的祖先不同则需要进行合并，需要进行 $2$ 次查找和最多 $1$ 次合并。一共需要进行 $2n$ 次查找和最多 $n$ 次合并，因此时间复杂度是 $O(2n \\log n)=O(n \\log n)$。这里的并查集使用了路径压缩，但是没有使用按秩合并，最坏情况下的时间复杂度是 $O(n \\log n)$，平均情况下的时间复杂度依然是 $O(n \\alpha (n))$，其中 $\\alpha$ 为阿克曼函数的反函数，$\\alpha (n)$ 可以认为是一个很小的常数。\n  整理出题目要求的返回账户的格式时需要对邮箱地址排序，时间复杂度是 $O(n \\log n)$。  \n  其余操作包括遍历所有邮箱地址，在哈希表中记录相应的信息，时间复杂度是 $O(n)$，在渐进意义下 $O(n)$ 小于 $O(n \\log n)$。\n  因此总时间复杂度是 $O(n \\log n)$。\n\n- 空间复杂度：$O(n)$，其中 $n$ 是不同邮箱地址的数量。空间复杂度主要取决于哈希表和并查集，每个哈希表存储的邮箱地址的数量为 $n$，并查集的大小为 $n$。",
+            "slateValue": "",
+            "slug": "zhang-hu-he-bing-by-leetcode-solution-3dyq",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "ZR1yzb",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 93,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 4,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 4,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Union Find",
+                    "nameTranslated": "并查集",
+                    "slug": "union-find",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-01-17T15:40:32.721770+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：哈希表 + 并查集 两个账户需要合并，当且仅当两个账户至少有一个共同的邮箱地址，因此这道题的实质是判断所有的邮箱地址中有哪些邮箱地址必定属于同一人，可以使用并查集实现。 为了使用并查集实现账户合并，需要知道一共有多少个不同的邮箱地址，以及每个邮箱对应的名称，因此需要使用两个哈希表分别记录每个邮箱对应的编号和每个",
+            "topic": {
+                "id": 564305,
+                "subscribed": false,
+                "commentCount": 220,
+                "viewCount": 33895,
+                "post": {
+                    "id": 1313626,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 230,
+            "isEditorsPick": false,
+            "hitCount": 84602,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "accounts-merge",
+                "questionFrontendId": "721"
+            },
+            "next": {
+                "slug": "ha-xi-biao-dfspythonjavacgojsrust-by-end-z9nh",
+                "title": "哈希表 + DFS（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,92 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "5y0rv8",
+            "title": "网格中的最短路径",
+            "content": "### 方法一：广度优先搜索\n\n对于二维网格中的最短路问题，我们一般可以使用广度优先搜索 + 队列的方法解决。\n\n本题中，玩家在移动时可以消除障碍物，这会导致网格的结构发生变化，看起来我们需要在广度优先搜索时额外存储网格的变化。但实际上，由于玩家在最短路中显然不会经过同一位置超过一次，因此最多消除 `k` 个障碍物等价于最多经过 `k` 个障碍物。\n\n这样我们就可以使用三元组 `(x, y, rest)` 表示一个搜索状态，其中 `(x, y)` 表示玩家的位置，`rest` 表示玩家还可以经过 `rest` 个障碍物，它的值必须为非负整数。对于当前的状态 `(x, y, rest)`，它可以向最多四个新状态进行搜索，即将玩家 `(x, y)` 向四个方向移动一格。假设移动的方向为 `(dx, dy)`，那么玩家的新位置为 `(mx + dx, my + dy)`。如果该位置为障碍物，那么新的状态为 `(mx + dx, my + dy, rest - 1)`，否则新的状态为 `(mx + dx, my + dy, rest)`。我们从初始状态 `(0, 0, k)` 开始搜索，当我们第一次到达状态 `(m - 1, n - 1, k')`，其中 `k'` 是任意非负整数时，就得到了从左上角 `(0, 0)` 到右下角 `(m - 1, n - 1)` 且最多经过 `k` 个障碍物的最短路径。\n\n此外，我们还可以对搜索空间进行优化。注意到题目中 `k` 的上限为 `m * n`，但考虑一条从 `(0, 0)` 向下走到 `(m - 1, 0)` 再向右走到 `(m - 1, n - 1)` 的路径，它经过了 `m + n - 1` 个位置，其中起点 `(0, 0)` 和终点 `(m - 1, n - 1)` 没有障碍物，那么这条路径上最多只会有 `m + n - 3` 个障碍物。因此我们可以将 `k` 的值设置为 `m + n - 3` 与其本身的较小值 `min(k, m + n - 3)`，将广度优先搜索的时间复杂度从 $O(MNK)$ 降低至 $O(MN * \\min(M + N, K))$。\n\n```C++ [sol1-C++]\nstruct Nagato {\n    int x, y;\n    int rest;\n    Nagato(int _x, int _y, int _r): x(_x), y(_y), rest(_r) {}\n};\n\nclass Solution {\nprivate:\n    static constexpr int dirs[4][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};\n\npublic:\n    int shortestPath(vector<vector<int>>& grid, int k) {\n        int m = grid.size(), n = grid[0].size();\n        if (m == 1 && n == 1) {\n            return 0;\n        }\n\n        k = min(k, m + n - 3);\n        bool visited[m][n][k + 1];\n        memset(visited, false, sizeof(visited));\n        queue<Nagato> q;\n        q.emplace(0, 0, k);\n        visited[0][0][k] = true;\n\n        for (int step = 1; q.size() > 0; ++step) {\n            int cnt = q.size();\n            for (int _ = 0; _ < cnt; ++_) {\n                Nagato cur = q.front();\n                q.pop();\n                for (int i = 0; i < 4; ++i) {\n                    int nx = cur.x + dirs[i][0];\n                    int ny = cur.y + dirs[i][1];\n                    if (nx >= 0 && nx < m && ny >= 0 && ny < n) {\n                        if (grid[nx][ny] == 0 && !visited[nx][ny][cur.rest]) {\n                            if (nx == m - 1 && ny == n - 1) {\n                                return step;\n                            }\n                            q.emplace(nx, ny, cur.rest);\n                            visited[nx][ny][cur.rest] = true;\n                        }\n                        else if (grid[nx][ny] == 1 && cur.rest > 0 && !visited[nx][ny][cur.rest - 1]) {\n                            q.emplace(nx, ny, cur.rest - 1);\n                            visited[nx][ny][cur.rest - 1] = true;\n                        }\n                    }\n                }\n            }\n        }\n        return -1;\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def shortestPath(self, grid: List[List[int]], k: int) -> int:\n        m, n = len(grid), len(grid[0])\n        if m == 1 and n == 1:\n            return 0\n        \n        k = min(k, m + n - 3)\n        visited = set([(0, 0, k)])\n        q = collections.deque([(0, 0, k)])\n\n        step = 0\n        while len(q) > 0:\n            step += 1\n            cnt = len(q)\n            for _ in range(cnt):\n                x, y, rest = q.popleft()\n                for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:\n                    nx, ny = x + dx, y + dy\n                    if 0 <= nx < m and 0 <= ny < n:\n                        if grid[nx][ny] == 0 and (nx, ny, rest) not in visited:\n                            if nx == m - 1 and ny == n - 1:\n                                return step\n                            q.append((nx, ny, rest))\n                            visited.add((nx, ny, rest))\n                        elif grid[nx][ny] == 1 and rest > 0 and (nx, ny, rest - 1) not in visited:\n                            q.append((nx, ny, rest - 1))\n                            visited.add((nx, ny, rest - 1))\n        return -1\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(MN * \\min(M + N, K))$。\n\n- 空间复杂度：$O(MN * \\min(M + N, K))$。",
+            "slateValue": "",
+            "slug": "wang-ge-zhong-de-zui-duan-lu-jing-by-leetcode-solu",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "5y0rv8",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 70,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "CONFUSED"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python3",
+                    "nameTranslated": "",
+                    "slug": "python3",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-02-19T02:52:20.457272+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：广度优先搜索\n对于二维网格中的最短路问题，我们一般可以使用广度优先搜索 + 队列的方法解决。\n本题中，玩家在移动时可以消除障碍物，这会导致网格的结构发生变化，看起来我们需要在广度优先搜索时额外存储网格的变化。但实际上，由于玩家在最短路中显然不会经过同一位置超过一次，因此最多消除 k 个障碍物等价于最多经过 k ",
+            "topic": {
+                "id": 101739,
+                "subscribed": false,
+                "commentCount": 97,
+                "viewCount": 30231,
+                "post": {
+                    "id": 349560,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 169,
+            "isEditorsPick": false,
+            "hitCount": 61973,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "shortest-path-in-a-grid-with-obstacles-elimination",
+                "questionFrontendId": "1293"
+            },
+            "next": {
+                "slug": "yan-du-sou-suo-memojie-jue-kun-nan-ti-di-hpfb",
+                "title": "广度搜索+memo解决困难题，第一次这么认真写题解"
+            },
+            "prev": null
+        }
+    }
+}

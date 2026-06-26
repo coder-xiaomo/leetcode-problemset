@@ -1,0 +1,158 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "0AQXMR",
+            "title": "我能赢吗",
+            "content": "#### 方法一：记忆化搜索 + 状态压缩\n\n**思路**\n\n考虑边界情况，当所有数字选完仍无法到达 $\\textit{desiredTotal}$ 时，两人都无法获胜，返回 $\\text{false}$。当所有数字的和大于等于 $\\textit{desiredTotal}$ 时，其中一方能获得胜利，需要通过搜索来判断获胜方。\n\n在游戏中途，假设已经被使用的数字的集合为 $\\textit{usedNumbers}$，这些数字的和为 $\\textit{currentTotal}$。当某方行动时，如果他能在未选择的数字中选出一个 $i$，使得 $i + \\textit{currentTotal} \\geq \\textit{desiredTotal}$，则他能获胜。否则，需要继续通过搜索来判断获胜方。在剩下的数字中，如果他能选择一个 $i$，使得对方在接下来的局面中无法获胜，则他会获胜。否则，他会失败。\n\n根据这个思想设计搜索函数 $\\textit{dfs}$，其中 $\\textit{usedNumbers}$ 可以用一个整数来表示，从低位到高位，第 $i$ 位为 $1$ 则表示数字 $i$ 已经被使用，为 $0$ 则表示数字 $i$ 未被使用。如果当前玩家获胜，则返回 $\\text{true}$，否则返回 $\\text{false}$。为了避免重复计算，需要使用记忆化的操作来降低时间复杂度。\n\n**代码**\n\n```Python [sol1-Python3]\nclass Solution:\n    def canIWin(self, maxChoosableInteger: int, desiredTotal: int) -> bool:\n        @cache\n        def dfs(usedNumbers: int, currentTotal: int) -> bool:\n            for i in range(maxChoosableInteger):\n                if (usedNumbers >> i) & 1 == 0:\n                    if currentTotal + i + 1 >= desiredTotal or not dfs(usedNumbers | (1 << i), currentTotal + i + 1):\n                        return True\n            return False\n\n        return (1 + maxChoosableInteger) * maxChoosableInteger // 2 >= desiredTotal and dfs(0, 0)\n```\n\n```Java [sol1-Java]\nclass Solution {\n    Map<Integer, Boolean> memo = new HashMap<Integer, Boolean>();\n\n    public boolean canIWin(int maxChoosableInteger, int desiredTotal) {\n        if ((1 + maxChoosableInteger) * (maxChoosableInteger) / 2 < desiredTotal) {\n            return false;\n        }\n        return dfs(maxChoosableInteger, 0, desiredTotal, 0);\n    }\n\n    public boolean dfs(int maxChoosableInteger, int usedNumbers, int desiredTotal, int currentTotal) {\n        if (!memo.containsKey(usedNumbers)) {\n            boolean res = false;\n            for (int i = 0; i < maxChoosableInteger; i++) {\n                if (((usedNumbers >> i) & 1) == 0) {\n                    if (i + 1 + currentTotal >= desiredTotal) {\n                        res = true;\n                        break;\n                    }\n                    if (!dfs(maxChoosableInteger, usedNumbers | (1 << i), desiredTotal, currentTotal + i + 1)) {\n                        res = true;\n                        break;\n                    }\n                }\n            }\n            memo.put(usedNumbers, res);\n        }\n        return memo.get(usedNumbers);\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    Dictionary<int, bool> memo = new Dictionary<int, bool>();\n\n    public bool CanIWin(int maxChoosableInteger, int desiredTotal) {\n        if ((1 + maxChoosableInteger) * (maxChoosableInteger) / 2 < desiredTotal) {\n            return false;\n        }\n        return DFS(maxChoosableInteger, 0, desiredTotal, 0);\n    }\n\n    public bool DFS(int maxChoosableInteger, int usedNumbers, int desiredTotal, int currentTotal) {\n        if (!memo.ContainsKey(usedNumbers)) {\n            bool res = false;\n            for (int i = 0; i < maxChoosableInteger; i++) {\n                if (((usedNumbers >> i) & 1) == 0) {\n                    if (i + 1 + currentTotal >= desiredTotal) {\n                        res = true;\n                        break;\n                    }\n                    if (!DFS(maxChoosableInteger, usedNumbers | (1 << i), desiredTotal, currentTotal + i + 1)) {\n                        res = true;\n                        break;\n                    }\n                }\n            }\n            memo.Add(usedNumbers, res);\n        }\n        return memo[usedNumbers];\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    unordered_map<int, bool> memo;\n\n    bool canIWin(int maxChoosableInteger, int desiredTotal) {\n        if ((1 + maxChoosableInteger) * (maxChoosableInteger) / 2 < desiredTotal) {\n            return false;\n        }\n        return dfs(maxChoosableInteger, 0, desiredTotal, 0);\n    }\n\n    bool dfs(int maxChoosableInteger, int usedNumbers, int desiredTotal, int currentTotal) {\n        if (!memo.count(usedNumbers)) {\n            bool res = false;\n            for (int i = 0; i < maxChoosableInteger; i++) {\n                if (((usedNumbers >> i) & 1) == 0) {\n                    if (i + 1 + currentTotal >= desiredTotal) {\n                        res = true;\n                        break;\n                    }\n                    if (!dfs(maxChoosableInteger, usedNumbers | (1 << i), desiredTotal, currentTotal + i + 1)) {\n                        res = true;\n                        break;\n                    }\n                }\n            }\n            memo[usedNumbers] = res;\n        }\n        return memo[usedNumbers];\n    }\n};\n```\n\n```C [sol1-C]\ntypedef struct HashItem {\n    int key;\n    bool val;\n    UT_hash_handle hh;\n} HashItem;\n\nbool dfs(int maxChoosableInteger, int usedNumbers, int desiredTotal, int currentTotal, HashItem **memo) {\n    HashItem *pEntry = NULL;\n    HASH_FIND_INT(*memo, &usedNumbers, pEntry);\n    if (NULL == pEntry) {\n        bool res = false;\n        for (int i = 0; i < maxChoosableInteger; i++) {\n            if (((usedNumbers >> i) & 1) == 0) {\n                if (i + 1 + currentTotal >= desiredTotal) {\n                    res = true;\n                    break;\n                }\n                if (!dfs(maxChoosableInteger, usedNumbers | (1 << i), desiredTotal, currentTotal + i + 1, memo)) {\n                    res = true;\n                    break;\n                }\n            }\n        }\n        pEntry = (HashItem *)malloc(sizeof(HashItem));\n        pEntry->key = usedNumbers;\n        pEntry->val = res;\n        HASH_ADD_INT(*memo, key, pEntry);\n    }\n    return pEntry->val;\n}\n\nbool canIWin(int maxChoosableInteger, int desiredTotal) {\n    HashItem *memo = NULL;\n    if ((1 + maxChoosableInteger) * (maxChoosableInteger) / 2 < desiredTotal) {\n        return false;\n    }\n    return dfs(maxChoosableInteger, 0, desiredTotal, 0, &memo);\n}\n```\n\n```go [sol1-Golang]\nfunc canIWin(maxChoosableInteger, desiredTotal int) bool {\n    if (1+maxChoosableInteger)*maxChoosableInteger/2 < desiredTotal {\n        return false\n    }\n\n    dp := make([]int8, 1<<maxChoosableInteger)\n    for i := range dp {\n        dp[i] = -1\n    }\n    var dfs func(int, int) int8\n    dfs = func(usedNum, curTot int) (res int8) {\n        dv := &dp[usedNum]\n        if *dv != -1 {\n            return *dv\n        }\n        defer func() { *dv = res }()\n        for i := 0; i < maxChoosableInteger; i++ {\n            if usedNum>>i&1 == 0 && (curTot+i+1 >= desiredTotal || dfs(usedNum|1<<i, curTot+i+1) == 0) {\n                return 1\n            }\n        }\n        return\n    }\n    return dfs(0, 0) == 1\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar canIWin = function(maxChoosableInteger, desiredTotal) {\n    const memo = new Map();\n    const dfs = (maxChoosableInteger, usedNumbers, desiredTotal, currentTotal) => {\n        if (!memo.has(usedNumbers)) {\n            let res = false;\n            for (let i = 0; i < maxChoosableInteger; i++) {\n                if (((usedNumbers >> i) & 1) === 0) {\n                    if (i + 1 + currentTotal >= desiredTotal) {\n                        res = true;\n                        break;\n                    }\n                    if (!dfs(maxChoosableInteger, usedNumbers | (1 << i), desiredTotal, currentTotal + i + 1)) {\n                        res = true;\n                        break;\n                    }\n                }\n            }\n            memo.set(usedNumbers, res);\n        }\n        return memo.get(usedNumbers);\n    }\n    if ((1 + maxChoosableInteger) * (maxChoosableInteger) / 2 < desiredTotal) {\n        return false;\n    }\n    return dfs(maxChoosableInteger, 0, desiredTotal, 0);\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(2 ^ n \\times n)$，其中 $n = \\textit{maxChoosableInteger}$。记忆化后，函数 $\\textit{dfs}$ 最多调用 $O(2 ^ n)$ 次，每次消耗 $O(n)$ 时间，总时间复杂度为 $O(2 ^ n \\times n)$。 \n\n- 空间复杂度：$O(2 ^ n)$，其中 $n = \\textit{maxChoosableInteger}$。搜索的状态有 $O(2 ^ n)$ 种，需要消耗空间记忆化。",
+            "slateValue": "",
+            "slug": "wo-neng-ying-ma-by-leetcode-solution-ef5v",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "0AQXMR",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 80,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 4,
+                    "reactionType": "CONFUSED"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Bit Manipulation",
+                    "nameTranslated": "位运算",
+                    "slug": "bit-manipulation",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Memoization",
+                    "nameTranslated": "记忆化",
+                    "slug": "memoization",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Bitmask",
+                    "nameTranslated": "位掩码",
+                    "slug": "bitmask",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Game Theory",
+                    "nameTranslated": "博弈",
+                    "slug": "game-theory",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-05-20T01:50:57.729645+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：记忆化搜索 + 状态压缩 思路 考虑边界情况，当所有数字选完仍无法到达 $\\textit{desiredTotal}$ 时，两人都无法获胜，返回 $\\text{false}$。当所有数字的和大于等于 $\\textit{desiredTotal}$ 时，其中一方能获得胜利，需要通过搜索来判断获胜方。 在游戏中途，",
+            "topic": {
+                "id": 1506106,
+                "subscribed": false,
+                "commentCount": 183,
+                "viewCount": 22878,
+                "post": {
+                    "id": 3078327,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 143,
+            "isEditorsPick": false,
+            "hitCount": 57461,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "can-i-win",
+                "questionFrontendId": "464"
+            },
+            "next": {
+                "slug": "by-fuxuemingzhu-g16c",
+                "title": "【负雪明烛】图解算法：递归，步步优化，弄清每个细节"
+            },
+            "prev": null
+        }
+    }
+}

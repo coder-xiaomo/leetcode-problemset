@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "LBYlwg",
+            "title": "找出输掉零场或一场比赛的玩家",
+            "content": "#### 方法一：哈希表\n\n**思路与算法**\n\n我们用一个哈希映射记录每一名玩家输掉比赛的次数。对于其中的每一个键值对，键表示一名玩家，值表示该玩家输掉比赛的次数。\n\n这样一来，我们对数组 $\\textit{matches}$ 进行遍历。当我们遍历到第 $i$ 项 $(\\textit{winner}_i, \\textit{loser}_i)$ 时，我们需要将 $\\textit{loser}_i$ 在哈希映射中对应的值增加 $1$（初始值为 $0$），表示玩家 $\\textit{loser}_i$ 输掉了一场比赛。此外，如果 $\\textit{winner}_i$ 没有在哈希映射中作为键出现过，我们也需要将其加入哈希映射中，并且对应的值为初始值 $0$。这是因为后续我们需要统计「没有输掉任何比赛的玩家」。\n\n在这之后，我们只需要再对哈希表进行一次遍历，「没有输掉任何比赛的玩家」即为所有值为 $0$ 的键，「恰好输掉一场比赛的玩家」即为所有值为 $1$ 的键。在得到了这些玩家后，我们对它们进行递增排序即可。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<vector<int>> findWinners(vector<vector<int>>& matches) {\n        unordered_map<int, int> freq;\n        for (const auto& match: matches) {\n            int winner = match[0], loser = match[1];\n            if (!freq.count(winner)) {\n                freq[winner] = 0;\n            }\n            ++freq[loser];\n        }\n\n        vector<vector<int>> ans(2);\n        for (const auto& [key, value]: freq) {\n            if (value < 2) {\n                ans[value].push_back(key);\n            }\n        }\n\n        sort(ans[0].begin(), ans[0].end());\n        sort(ans[1].begin(), ans[1].end());\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public List<List<Integer>> findWinners(int[][] matches) {\n        Map<Integer, Integer> freq = new HashMap<Integer, Integer>();\n        for (int[] match : matches) {\n            int winner = match[0], loser = match[1];\n            freq.putIfAbsent(winner, 0);\n            freq.put(loser, freq.getOrDefault(loser, 0) + 1);\n        }\n\n        List<List<Integer>> ans = new ArrayList<List<Integer>>();\n        for (int i = 0; i < 2; ++i) {\n            ans.add(new ArrayList<Integer>());\n        }\n        for (Map.Entry<Integer, Integer> entry : freq.entrySet()) {\n            int key = entry.getKey(), value = entry.getValue();\n            if (value < 2) {\n                ans.get(value).add(key);\n            }\n        }\n\n        Collections.sort(ans.get(0));\n        Collections.sort(ans.get(1));\n        return ans;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public IList<IList<int>> FindWinners(int[][] matches) {\n        IDictionary<int, int> freq = new Dictionary<int, int>();\n        foreach (int[] match in matches) {\n            int winner = match[0], loser = match[1];\n            freq.TryAdd(winner, 0);\n            freq.TryAdd(loser, 0);\n            ++freq[loser];\n        }\n\n        IList<IList<int>> ans = new List<IList<int>>();\n        for (int i = 0; i < 2; ++i) {\n            ans.Add(new List<int>());\n        }\n        foreach (KeyValuePair<int, int> pair in freq) {\n            if (pair.Value < 2) {\n                ans[pair.Value].Add(pair.Key);\n            }\n        }\n\n        ((List<int>) ans[0]).Sort();\n        ((List<int>) ans[1]).Sort();\n        return ans;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def findWinners(self, matches: List[List[int]]) -> List[List[int]]:\n        freq = Counter()\n        for winner, loser in matches:\n            if winner not in freq:\n                freq[winner] = 0\n            freq[loser] += 1\n        \n        ans = [[], []]\n        for key, value in freq.items():\n            if value < 2:\n                ans[value].append(key)\n        \n        ans[0].sort()\n        ans[1].sort()\n        return ans\n```\n\n```Go [sol1-Go]\nfunc findWinners(matches [][]int) [][]int {\n    freq := map[int]int{}\n    for _, match := range matches {\n        winner, loser := match[0], match[1]\n        if freq[winner] == 0 {\n            freq[winner] = 0\n        }\n        freq[loser]++\n    }\n    ans := make([][]int, 2)\n    for key, value := range freq {\n        if value < 2 {\n            ans[value] = append(ans[value], key)\n        }\n    }\n    sort.Ints(ans[0])\n    sort.Ints(ans[1])\n    return ans\n}\n```\n\n```C [sol1-C]\ntypedef struct {\n    int key;\n    int val;\n    UT_hash_handle hh;\n} HashItem; \n\nHashItem *hashFindItem(HashItem **obj, int key) {\n    HashItem *pEntry = NULL;\n    HASH_FIND_INT(*obj, &key, pEntry);\n    return pEntry;\n}\n\nbool hashAddItem(HashItem **obj, int key, int val) {\n    if (hashFindItem(obj, key)) {\n        return false;\n    }\n    HashItem *pEntry = (HashItem *)malloc(sizeof(HashItem));\n    pEntry->key = key;\n    pEntry->val = val;\n    HASH_ADD_INT(*obj, key, pEntry);\n    return true;\n}\n\nbool hashSetItem(HashItem **obj, int key, int val) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        hashAddItem(obj, key, val);\n    } else {\n        pEntry->val = val;\n    }\n    return true;\n}\n\nint hashGetItem(HashItem **obj, int key, int defaultVal) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        return defaultVal;\n    }\n    return pEntry->val;\n}\n\nvoid hashFree(HashItem **obj) {\n    HashItem *curr = NULL, *tmp = NULL;\n    HASH_ITER(hh, *obj, curr, tmp) {\n        HASH_DEL(*obj, curr);  \n        free(curr);\n    }\n}\n\nstatic int cmp(const void *a, const void *b) {\n    return *(int *)a - *(int *)b;\n}\n\nint** findWinners(int** matches, int matchesSize, int* matchesColSize, int* returnSize, int** returnColumnSizes) {\n    HashItem *freq = NULL;\n    for (int i = 0; i < matchesSize; i++) {\n        int winner = matches[i][0], loser = matches[i][1];\n        if (!hashFindItem(&freq, winner)) {\n            hashAddItem(&freq, winner, 0);\n        }\n        hashSetItem(&freq, loser, hashGetItem(&freq, loser, 0) + 1);\n    }\n\n    int **ans = (int **)malloc(sizeof(int *) * 2); \n    *returnSize = 2;\n    *returnColumnSizes = (int *)malloc(sizeof(int) * 2);\n    int pos[2];\n    memset(pos, 0, sizeof(pos));\n    for (int i = 0; i < 2; i++) {\n        ans[i] = (int *)malloc(sizeof(int) * HASH_COUNT(freq));\n    }\n    for (HashItem *pEntry = freq; pEntry; pEntry = pEntry->hh.next) {\n        int key = pEntry->key, value = pEntry->val;\n        if (value < 2) {\n            ans[value][pos[value]++] = key;\n        }\n    }\n  \n    (*returnColumnSizes)[0] = pos[0];\n    (*returnColumnSizes)[1] = pos[1];\n    qsort(ans[0], pos[0], sizeof(int), cmp);\n    qsort(ans[1], pos[1], sizeof(int), cmp);\n    hashFree(&freq);\n    return ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar findWinners = function(matches) {\n    const freq = new Map();\n    for (const [winner, loser] of matches) {\n        if (!freq.has(winner)) {\n            freq.set(winner, 0);\n        }\n        freq.set(loser, (freq.get(loser) || 0) + 1);\n    }\n\n    const ans = [[], []];\n    for (const [key, value] of freq) {\n        if (value < 2) {\n            ans[value].push(key);\n        }\n    }\n    ans[0].sort((a, b) => a - b);\n    ans[1].sort((a, b) => a - b);\n    return ans;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction findWinners(matches: number[][]): number[][] {\n    const freq: Map<number, number> = new Map();\n    for (const [winner, loser] of matches) {\n        if (!freq.has(winner)) {\n            freq.set(winner, 0);\n        }\n        freq.set(loser, (freq.get(loser) || 0) + 1);\n    }\n\n    const ans: number[][] = [[], []];\n    for (const [key, value] of freq) {\n        if (value < 2) {\n            ans[value].push(key);\n        }\n    }\n\n    ans[0].sort((a, b) => a - b);\n    ans[1].sort((a, b) => a - b);\n    return ans;\n};\n```\n\n```Rust [sol1-Rust]\nuse std::collections::HashMap;\n\nimpl Solution {\n    pub fn find_winners(matches: Vec<Vec<i32>>) -> Vec<Vec<i32>> {\n        let mut freq = HashMap::new();\n        for match_ in matches {\n            let (winner, loser) = (match_[0], match_[1]);\n            freq.entry(winner).or_insert(0);\n            *freq.entry(loser).or_insert(0) += 1;\n        }\n\n        let mut ans = vec![Vec::new(), Vec::new()];\n        for (key, value) in freq {\n            if value < 2 {\n                ans[value as usize].push(key);\n            }\n        }\n        ans[0].sort_unstable();\n        ans[1].sort_unstable();\n        ans\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log n)$，其中 $n$ 是数组 $\\textit{matches}$ 的长度。\n\n- 空间复杂度：$O(n)$，即为哈希映射需要使用的空间。",
+            "slateValue": "",
+            "slug": "zhao-chu-shu-diao-ling-chang-huo-yi-chan-fpsj",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "LBYlwg",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 11,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-04-13T08:24:54.884411+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：哈希表 思路与算法 我们用一个哈希映射记录每一名玩家输掉比赛的次数。对于其中的每一个键值对，键表示一名玩家，值表示该玩家输掉比赛的次数。 这样一来，我们对数组 $\\textit{matches}$ 进行遍历。当我们遍历到第 $i$ 项 $(\\textit{winner}_i, \\textit{loser}_i)",
+            "topic": {
+                "id": 1418074,
+                "subscribed": false,
+                "commentCount": 48,
+                "viewCount": 1524,
+                "post": {
+                    "id": 2922051,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 20,
+            "isEditorsPick": false,
+            "hitCount": 12878,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "find-players-with-zero-or-one-losses",
+                "questionFrontendId": "2225"
+            },
+            "next": {
+                "slug": "ha-xi-biao-mo-ni-by-endlesscheng-6p09",
+                "title": "哈希表+排序（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

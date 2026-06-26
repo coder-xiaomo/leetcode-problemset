@@ -1,0 +1,140 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "YlfLF7",
+            "title": "有序链表转换二叉搜索树",
+            "content": "#### 前言\n\n将给定的有序链表转换为二叉搜索树的第一步是确定根节点。由于我们需要构造出**平衡**的二叉树，因此比较直观的想法是让根节点左子树中的节点个数与右子树中的节点个数尽可能接近。这样一来，左右子树的高度也会非常接近，可以达到高度差绝对值不超过 $1$ 的题目要求。\n\n如何找出这样的一个根节点呢？我们可以找出链表元素的**中位数**作为根节点的值。\n\n> 这里对于中位数的定义为：如果链表中的元素个数为奇数，那么唯一的中间值为中位数；如果元素个数为偶数，那么唯二的中间值都可以作为中位数，而不是常规定义中二者的平均值。\n\n根据中位数的性质，链表中小于中位数的元素个数与大于中位数的元素个数要么相等，要么相差 $1$。此时，小于中位数的元素组成了左子树，大于中位数的元素组成了右子树，它们分别对应着有序链表中连续的一段。在这之后，我们使用分治的思想，继续递归地对左右子树进行构造，找出对应的中位数作为根节点，以此类推。\n\n可以证明，这样的构造方法得到的二叉搜索树是平衡的，详见文末的「正确性证明」部分。\n\n#### 方法一：分治\n\n我们可以直接模拟「前言」部分的构造方案。\n\n具体地，设当前链表的左端点为 $\\textit{left}$，右端点 $\\textit{right}$，包含关系为「左闭右开」，即 $\\textit{left}$ 包含在链表中而 $\\textit{right}$ 不包含在链表中。我们希望快速地找出链表的中位数节点 $\\textit{mid}$。\n\n> 为什么要设定「左闭右开」的关系？由于题目中给定的链表为单向链表，访问后继元素十分容易，但无法直接访问前驱元素。因此在找出链表的中位数节点 $\\textit{mid}$ 之后，如果设定「左闭右开」的关系，我们就可以直接用 $(\\textit{left}, \\textit{mid})$ 以及 $(\\textit{mid}.\\textit{next}, \\textit{right})$ 来表示左右子树对应的列表了。并且，初始的列表也可以用 $(\\textit{head}, \\textit{null})$ 方便地进行表示，其中 $\\textit{null}$ 表示空节点。\n\n找出链表中位数节点的方法多种多样，其中较为简单的一种是「快慢指针法」。初始时，快指针 $\\textit{fast}$ 和慢指针 $\\textit{slow}$ 均指向链表的左端点 $\\textit{left}$。我们将快指针 $\\textit{fast}$ 向右移动两次的同时，将慢指针 $\\textit{slow}$ 向右移动一次，直到快指针到达边界（即快指针到达右端点或快指针的下一个节点是右端点）。此时，慢指针对应的元素就是中位数。\n\n在找出了中位数节点之后，我们将其作为当前根节点的元素，并递归地构造其左侧部分的链表对应的左子树，以及右侧部分的链表对应的右子树。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    ListNode* getMedian(ListNode* left, ListNode* right) {\n        ListNode* fast = left;\n        ListNode* slow = left;\n        while (fast != right && fast->next != right) {\n            fast = fast->next;\n            fast = fast->next;\n            slow = slow->next;\n        }\n        return slow;\n    }\n\n    TreeNode* buildTree(ListNode* left, ListNode* right) {\n        if (left == right) {\n            return nullptr;\n        }\n        ListNode* mid = getMedian(left, right);\n        TreeNode* root = new TreeNode(mid->val);\n        root->left = buildTree(left, mid);\n        root->right = buildTree(mid->next, right);\n        return root;\n    }\n\n    TreeNode* sortedListToBST(ListNode* head) {\n        return buildTree(head, nullptr);\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public TreeNode sortedListToBST(ListNode head) {\n        return buildTree(head, null);\n    }\n\n    public TreeNode buildTree(ListNode left, ListNode right) {\n        if (left == right) {\n            return null;\n        }\n        ListNode mid = getMedian(left, right);\n        TreeNode root = new TreeNode(mid.val);\n        root.left = buildTree(left, mid);\n        root.right = buildTree(mid.next, right);\n        return root;\n    }\n\n    public ListNode getMedian(ListNode left, ListNode right) {\n        ListNode fast = left;\n        ListNode slow = left;\n        while (fast != right && fast.next != right) {\n            fast = fast.next;\n            fast = fast.next;\n            slow = slow.next;\n        }\n        return slow;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def sortedListToBST(self, head: ListNode) -> TreeNode:\n        def getMedian(left: ListNode, right: ListNode) -> ListNode:\n            fast = slow = left\n            while fast != right and fast.next != right:\n                fast = fast.next.next\n                slow = slow.next\n            return slow\n        \n        def buildTree(left: ListNode, right: ListNode) -> TreeNode:\n            if left == right:\n                return None\n            mid = getMedian(left, right)\n            root = TreeNode(mid.val)\n            root.left = buildTree(left, mid)\n            root.right = buildTree(mid.next, right)\n            return root\n        \n        return buildTree(head, None)\n```\n\n```golang [sol1-Golang]\nfunc sortedListToBST(head *ListNode) *TreeNode {\n    return buildTree(head, nil)\n}\n\nfunc getMedian(left, right *ListNode) *ListNode {\n    fast, slow := left, left\n    for fast != right && fast.Next != right {\n        fast = fast.Next.Next\n        slow = slow.Next\n    }\n    return slow\n}\n\nfunc buildTree(left, right *ListNode) *TreeNode{\n    if left == right {\n        return nil\n    }\n    mid := getMedian(left, right)\n    root := &TreeNode{mid.Val, nil, nil}\n    root.Left = buildTree(left, mid)\n    root.Right = buildTree(mid.Next, right)\n    return root\n}\n```\n\n```C [sol1-C]\nstruct ListNode* getMedian(struct ListNode* left, struct ListNode* right) {\n    struct ListNode* fast = left;\n    struct ListNode* slow = left;\n    while (fast != right && fast->next != right) {\n        fast = fast->next;\n        fast = fast->next;\n        slow = slow->next;\n    }\n    return slow;\n}\n\nstruct TreeNode* buildTree(struct ListNode* left, struct ListNode* right) {\n    if (left == right) {\n        return NULL;\n    }\n    struct ListNode* mid = getMedian(left, right);\n    struct TreeNode* root = (struct TreeNode*)malloc(sizeof(struct TreeNode));\n    root->val = mid->val;\n    root->left = root->right = NULL;\n    root->left = buildTree(left, mid);\n    root->right = buildTree(mid->next, right);\n    return root;\n}\n\nstruct TreeNode* sortedListToBST(struct ListNode* head) {\n    return buildTree(head, NULL);\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log n)$，其中 $n$ 是链表的长度。\n\n    设长度为 $n$ 的链表构造二叉搜索树的时间为 $T(n)$，递推式为 $T(n) = 2 \\cdot T(n/2) + O(n)$，根据主定理，$T(n) = O(n \\log n)$。\n\n- 空间复杂度：$O(\\log n)$，这里只计算除了返回答案之外的空间。平衡二叉树的高度为 $O(\\log n)$，即为递归过程中栈的最大深度，也就是需要的空间。\n\n#### 方法二：分治 + 中序遍历优化\n\n方法一的时间复杂度的瓶颈在于寻找中位数节点。由于**构造出的二叉搜索树的中序遍历结果就是链表本身**，因此我们可以将分治和中序遍历结合起来，减少时间复杂度。\n\n具体地，设当前链表的左端点**编号**为 $\\textit{left}$，右端点**编号**为 $\\textit{right}$，包含关系为「双闭」，即 $\\textit{left}$ 和 $\\textit{right}$ 均包含在链表中。链表节点的编号为 $[0, n)$。中序遍历的顺序是「左子树 - 根节点 - 右子树」，那么在分治的过程中，我们不用急着找出链表的中位数节点，而是使用一个占位节点，等到中序遍历到该节点时，再填充它的值。\n\n我们可以通过计算编号范围来进行中序遍历：\n\n- 中位数节点对应的编号为 $\\textit{mid} = (\\textit{left} + \\textit{right} + 1) / 2$；\n\n    > 根据方法一中对于中位数的定义，编号为 $(\\textit{left} + \\textit{right}) / 2$ 的节点同样也可以是中位数节点。\n\n- 左右子树对应的编号范围分别为 $[\\textit{left}, \\textit{mid}-1]$ 和 $[\\textit{mid}+1, \\textit{right}]$。\n\n如果 $\\textit{left} > \\textit{right}$，那么遍历到的位置对应着一个空节点，否则对应着二叉搜索树中的一个节点。\n\n这样一来，我们其实已经知道了这棵二叉搜索树的结构，并且题目给定了它的中序遍历结果，那么我们只要对其进行中序遍历，就可以还原出整棵二叉搜索树了。\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    int getLength(ListNode* head) {\n        int ret = 0;\n        for (; head != nullptr; ++ret, head = head->next);\n        return ret;\n    }\n\n    TreeNode* buildTree(ListNode*& head, int left, int right) {\n        if (left > right) {\n            return nullptr;\n        }\n        int mid = (left + right + 1) / 2;\n        TreeNode* root = new TreeNode();\n        root->left = buildTree(head, left, mid - 1);\n        root->val = head->val;\n        head = head->next;\n        root->right = buildTree(head, mid + 1, right);\n        return root;\n    }\n\n    TreeNode* sortedListToBST(ListNode* head) {\n        int length = getLength(head);\n        return buildTree(head, 0, length - 1);\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    ListNode globalHead;\n\n    public TreeNode sortedListToBST(ListNode head) {\n        globalHead = head;\n        int length = getLength(head);\n        return buildTree(0, length - 1);\n    }\n\n    public int getLength(ListNode head) {\n        int ret = 0;\n        while (head != null) {\n            ++ret;\n            head = head.next;\n        }\n        return ret;\n    }\n\n    public TreeNode buildTree(int left, int right) {\n        if (left > right) {\n            return null;\n        }\n        int mid = (left + right + 1) / 2;\n        TreeNode root = new TreeNode();\n        root.left = buildTree(left, mid - 1);\n        root.val = globalHead.val;\n        globalHead = globalHead.next;\n        root.right = buildTree(mid + 1, right);\n        return root;\n    }\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def sortedListToBST(self, head: ListNode) -> TreeNode:\n        def getLength(head: ListNode) -> int:\n            ret = 0\n            while head:\n                ret += 1\n                head = head.next\n            return ret\n        \n        def buildTree(left: int, right: int) -> TreeNode:\n            if left > right:\n                return None\n            mid = (left + right + 1) // 2\n            root = TreeNode()\n            root.left = buildTree(left, mid - 1)\n            nonlocal head\n            root.val = head.val\n            head = head.next\n            root.right = buildTree(mid + 1, right)\n            return root\n        \n        length = getLength(head)\n        return buildTree(0, length - 1)\n```\n\n```golang [sol2-Golang]\nvar globalHead *ListNode\n\nfunc sortedListToBST(head *ListNode) *TreeNode {\n    globalHead = head\n    length := getLength(head)\n    return buildTree(0, length - 1)\n}\n\nfunc getLength(head *ListNode) int {\n    ret := 0\n    for ; head != nil; head = head.Next {\n        ret++\n    }\n    return ret\n}\n\nfunc buildTree(left, right int) *TreeNode {\n    if left > right {\n        return nil\n    }\n    mid := (left + right + 1) / 2\n    root := &TreeNode{}\n    root.Left = buildTree(left, mid - 1)\n    root.Val = globalHead.Val\n    globalHead = globalHead.Next\n    root.Right = buildTree(mid + 1, right)\n    return root\n}\n```\n\n```C [sol2-C]\nint getLength(struct ListNode* head) {\n    int ret = 0;\n    while (head != NULL) {\n        ++ret, head = head->next;\n    }\n    return ret;\n}\n\nstruct TreeNode* buildTree(struct ListNode** head, int left, int right) {\n    if (left > right) {\n        return NULL;\n    }\n    int mid = (left + right + 1) / 2;\n    struct TreeNode* root = (struct TreeNode*)malloc(sizeof(struct TreeNode));\n    root->left = buildTree(head, left, mid - 1);\n    root->val = (*head)->val;\n    (*head) = (*head)->next;\n    root->right = buildTree(head, mid + 1, right);\n    return root;\n}\n\nstruct TreeNode* sortedListToBST(struct ListNode* head) {\n    int length = getLength(head);\n    return buildTree(&head, 0, length - 1);\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是链表的长度。\n\n    设长度为 $n$ 的链表构造二叉搜索树的时间为 $T(n)$，递推式为 $T(n) = 2 \\cdot T(n/2) + O(1)$，根据主定理，$T(n) = O(n)$。\n\n- 空间复杂度：$O(\\log n)$，这里只计算除了返回答案之外的空间。平衡二叉树的高度为 $O(\\log n)$，即为递归过程中栈的最大深度，也就是需要的空间。\n\n#### 正确性证明\n\n我们需要证明的是：对于任意的有序链表，用「前言」部分的构造方法得到的二叉搜索树一定是平衡的。显然，如果二叉搜索树的左右子树都是平衡的，并且它们的高度差不超过 $1$，那么该二叉搜索树就是平衡的。\n\n我们使用数学归纳法，设链表的长度为 $n$，对应的二叉搜索树的高度为 $H(n)$：\n\n> 这里规定只包含根节点的二叉搜索树的高度为 $1$。\n\n- 当 $n=1, 2$ 时，对应的二叉搜索树都是平衡的，并且 $H(1) = 1$，$H(2) = 2$；\n\n- 当 $n=3$ 时，对应的二叉搜索树包含一个根节点和左右子树各一个节点，它是平衡的，并且 $H(3) = 2$；\n\n- 假设当 $n < n_0$ 时，对应的二叉搜索树是平衡的，并且对于任意的 $1 \\leq n < n_0 - 1$，都有 $H(n+1) - H(n) \\leq 1$，那么当 $n = n_0$ 时：\n\n    - 如果 $n$ 为奇数，设 $n=2k+3$，那么二叉搜索树的左右子树的大小均为 $k+1$，高度相等，因此二叉搜索树是平衡的，并且有 $H(n)=H(k+1)+1$。而 $n-1 = 2k+2$，对应的二叉搜索树的左右子树的大小为 $k$ 和 $k+1$，即 $H(n-1)=H(k+1)+1$，因此 $H(n)=H(n-1)$；\n\n    - 如果 $n$ 为偶数，设 $n=2k+2$，那么二叉搜索树的左右子树的大小为 $k$ 和 $k+1$，根据假设，高度差 $H(k+1)-H(k) \\leq 1$，因此二叉搜索树是平衡的，并且有 $H(n)=H(k+1)+1$。而 $n-1=2k+1$，对应的二叉搜索树的左右子树的大小均为 $k$，即 $H(n-1)=H(k)+1$，因此 $H(n)-H(n-1)=H(k+1)-H(k) \\leq 1$。\n\n这样我们就证明了任意长度的链表对应的二叉搜索树是平衡的。",
+            "slateValue": "",
+            "slug": "you-xu-lian-biao-zhuan-huan-er-cha-sou-suo-shu-1-3",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "YlfLF7",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 194,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 4,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Tree",
+                    "nameTranslated": "树",
+                    "slug": "tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search Tree",
+                    "nameTranslated": "二叉搜索树",
+                    "slug": "binary-search-tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Linked List",
+                    "nameTranslated": "链表",
+                    "slug": "linked-list",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Binary Tree",
+                    "nameTranslated": "二叉树",
+                    "slug": "binary-tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Divide and Conquer",
+                    "nameTranslated": "分治",
+                    "slug": "divide-and-conquer",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2020-08-17T14:54:45.349553+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "前言 将给定的有序链表转换为二叉搜索树的第一步是确定根节点。由于我们需要构造出平衡的二叉树，因此比较直观的想法是让根节点左子树中的节点个数与右子树中的节点个数尽可能接近。这样一来，左右子树的高度也会非常接近，可以达到高度差绝对值不超过 $1$ 的题目要求。 如何找出这样的一个根节点呢？我们可以找出链表元素的中位数作为根",
+            "topic": {
+                "id": 378582,
+                "subscribed": false,
+                "commentCount": 251,
+                "viewCount": 67757,
+                "post": {
+                    "id": 929148,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 536,
+            "isEditorsPick": false,
+            "hitCount": 143896,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "convert-sorted-list-to-binary-search-tree",
+                "questionFrontendId": "109"
+            },
+            "next": {
+                "slug": "shou-hua-tu-jie-san-chong-jie-fa-jie-zhu-shu-zu-ku",
+                "title": "「手画图解」三种解法逐个吃透 | 109. 有序链表转换二叉搜索树"
+            },
+            "prev": null
+        }
+    }
+}

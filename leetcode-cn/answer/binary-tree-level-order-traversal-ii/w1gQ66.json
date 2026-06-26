@@ -1,0 +1,128 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "w1gQ66",
+            "title": "二叉树的层序遍历 II",
+            "content": "#### 前言\n\n这道题和「[102. 二叉树的层序遍历](https://leetcode.cn/problems/binary-tree-level-order-traversal/)」相似，不同之处在于，第 102 题要求从上到下输出每一层的节点值，而这道题要求从下到上输出每一层的节点值。除了输出顺序不同以外，这两道题的思路是相同的，都可以使用广度优先搜索进行层次遍历。\n\n#### 方法一：广度优先搜索\n\n树的层次遍历可以使用广度优先搜索实现。从根节点开始搜索，每次遍历同一层的全部节点，使用一个列表存储该层的节点值。\n\n如果要求从上到下输出每一层的节点值，做法是很直观的，在遍历完一层节点之后，将存储该层节点值的列表添加到结果列表的尾部。这道题要求从下到上输出每一层的节点值，只要对上述操作稍作修改即可：在遍历完一层节点之后，将存储该层节点值的列表添加到结果列表的头部。\n\n为了降低在结果列表的头部添加一层节点值的列表的时间复杂度，结果列表可以使用链表的结构，在链表头部添加一层节点值的列表的时间复杂度是 $O(1)$。在 Java 中，由于我们需要返回的 `List` 是一个接口，这里可以使用链表实现；而 C++ 或 Python 中，我们需要返回一个 `vector` 或 `list`，它不方便在头部插入元素（会增加时间开销），所以我们可以先用尾部插入的方法得到从上到下的层次遍历列表，然后再进行反转。\n\n```Java [sol1-Java]\nclass Solution {\n    public List<List<Integer>> levelOrderBottom(TreeNode root) {\n        List<List<Integer>> levelOrder = new LinkedList<List<Integer>>();\n        if (root == null) {\n            return levelOrder;\n        }\n        Queue<TreeNode> queue = new LinkedList<TreeNode>();\n        queue.offer(root);\n        while (!queue.isEmpty()) {\n            List<Integer> level = new ArrayList<Integer>();\n            int size = queue.size();\n            for (int i = 0; i < size; i++) {\n                TreeNode node = queue.poll();\n                level.add(node.val);\n                TreeNode left = node.left, right = node.right;\n                if (left != null) {\n                    queue.offer(left);\n                }\n                if (right != null) {\n                    queue.offer(right);\n                }\n            }\n            levelOrder.add(0, level);\n        }\n        return levelOrder;\n    }\n}\n```\n\n```cpp [sol1-C++]\nclass Solution {\npublic:\n    vector<vector<int>> levelOrderBottom(TreeNode* root) {\n        auto levelOrder = vector<vector<int>>();\n        if (!root) {\n            return levelOrder;\n        }\n        queue<TreeNode*> q;\n        q.push(root);\n        while (!q.empty()) {\n            auto level = vector<int>();\n            int size = q.size();\n            for (int i = 0; i < size; ++i) {\n                auto node = q.front();\n                q.pop();\n                level.push_back(node->val);\n                if (node->left) {\n                    q.push(node->left);\n                }\n                if (node->right) {\n                    q.push(node->right);\n                }\n            }\n            levelOrder.push_back(level);\n        }\n        reverse(levelOrder.begin(), levelOrder.end());\n        return levelOrder;\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def levelOrderBottom(self, root: TreeNode) -> List[List[int]]:\n        levelOrder = list()\n        if not root:\n            return levelOrder\n        \n        q = collections.deque([root])\n        while q:\n            level = list()\n            size = len(q)\n            for _ in range(size):\n                node = q.popleft()\n                level.append(node.val)\n                if node.left:\n                    q.append(node.left)\n                if node.right:\n                    q.append(node.right)\n            levelOrder.append(level)\n\n        return levelOrder[::-1]\n```\n\n```C [sol1-C]\nint** levelOrderBottom(struct TreeNode* root, int* returnSize, int** returnColumnSizes) {\n    int** levelOrder = malloc(sizeof(int*) * 2001);\n    *returnColumnSizes = malloc(sizeof(int) * 2001);\n    *returnSize = 0;\n    if (!root) {\n        return levelOrder;\n    }\n    struct TreeNode** q = malloc(sizeof(struct TreeNode*) * 2001);\n    int left = 0, right = 0;\n    q[right++] = root;\n    while (left < right) {\n        int len = right - left;\n        int* level = malloc(sizeof(int) * len);\n        (*returnColumnSizes)[*returnSize] = len;\n        for (int i = 0; i < len; ++i) {\n            struct TreeNode* node = q[left++];\n            level[i] = node->val;\n            if (node->left != NULL) {\n                q[right++] = node->left;\n            }\n            if (node->right != NULL) {\n                q[right++] = node->right;\n            }\n        }\n        levelOrder[(*returnSize)++] = level;\n    }\n    for (int i = 0; 2 * i < *returnSize; ++i) {\n        int* tmp1 = levelOrder[i];\n        levelOrder[i] = levelOrder[(*returnSize) - i - 1];\n        levelOrder[(*returnSize) - i - 1] = tmp1;\n        int tmp2 = (*returnColumnSizes)[i];\n        (*returnColumnSizes)[i] = (*returnColumnSizes)[(*returnSize) - i - 1];\n        (*returnColumnSizes)[(*returnSize) - i - 1] = tmp2;\n    }\n    return levelOrder;\n}\n```\n\n```golang [sol1-Golang]\nfunc levelOrderBottom(root *TreeNode) [][]int {\n    levelOrder := [][]int{}\n    if root == nil {\n        return levelOrder\n    }\n    queue := []*TreeNode{}\n    queue = append(queue, root)\n    for len(queue) > 0 {\n        level := []int{}\n        size := len(queue)\n        for i := 0; i < size; i++ {\n            node := queue[0]\n            queue = queue[1:]\n            level = append(level, node.Val)\n            if node.Left != nil {\n                queue = append(queue, node.Left)\n            }\n            if node.Right != nil {\n                queue = append(queue, node.Right)\n            }\n        }\n        levelOrder = append(levelOrder, level)\n    }\n    for i := 0; i < len(levelOrder) / 2; i++ {\n        levelOrder[i], levelOrder[len(levelOrder) - 1 - i] = levelOrder[len(levelOrder) - 1 - i], levelOrder[i]\n    }\n    return levelOrder\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是二叉树中的节点个数。每个节点访问一次，结果列表使用链表的结构时，在结果列表头部添加一层节点值的列表的时间复杂度是 $O(1)$，因此总时间复杂度是 $O(n)$。\n\n- 空间复杂度：$O(n)$，其中 $n$ 是二叉树中的节点个数。空间复杂度取决于队列开销，队列中的节点个数不会超过 $n$。",
+            "slateValue": "",
+            "slug": "er-cha-shu-de-ceng-ci-bian-li-ii-by-leetcode-solut",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "w1gQ66",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 76,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 5,
+                    "reactionType": "CONFUSED"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Tree",
+                    "nameTranslated": "树",
+                    "slug": "tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Breadth-First Search",
+                    "nameTranslated": "广度优先搜索",
+                    "slug": "breadth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Binary Tree",
+                    "nameTranslated": "二叉树",
+                    "slug": "binary-tree",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2020-09-05T15:24:03.861973+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "前言 这道题和「102. 二叉树的层序遍历」相似，不同之处在于，第 102 题要求从上到下输出每一层的节点值，而这道题要求从下到上输出每一层的节点值。除了输出顺序不同以外，这两道题的思路是相同的，都可以使用广度优先搜索进行层次遍历。 方法一：广度优先搜索 树的层次遍历可以使用广度优先搜索实现。从根节点开始搜索，每次遍历",
+            "topic": {
+                "id": 402560,
+                "subscribed": false,
+                "commentCount": 250,
+                "viewCount": 81880,
+                "post": {
+                    "id": 981497,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 182,
+            "isEditorsPick": false,
+            "hitCount": 155952,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "binary-tree-level-order-traversal-ii",
+                "questionFrontendId": "107"
+            },
+            "next": {
+                "slug": "bfs-wei-shi-yao-yao-yong-dui-lie-yi-ge-s-wmul",
+                "title": "BFS 为什么要用队列？一个视频讲透！（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

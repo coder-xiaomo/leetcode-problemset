@@ -1,0 +1,142 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "H7hBjF",
+            "title": "找到 K 个最接近的元素",
+            "content": "#### 方法一：排序\n\n首先将数组 $\\textit{arr}$ 按照「更接近」的定义进行排序，如果 $a$ 比 $b$ 更接近 $x$，那么 $a$ 将排在 $b$ 前面。排序完成之后，$k$ 个最接近的元素就是数组 $\\textit{arr}$ 的前 $k$ 个元素，将这 $k$ 个元素从小到大进行排序后，直接返回。\n\n```Python [sol1-Python3]\nclass Solution:\n    def findClosestElements(self, arr: List[int], k: int, x: int) -> List[int]:\n        arr.sort(key=lambda v: abs(v - x))\n        return sorted(arr[:k])\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<int> findClosestElements(vector<int>& arr, int k, int x) {\n        sort(arr.begin(), arr.end(), [x](int a, int b) -> bool {\n            return abs(a - x) < abs(b - x) || abs(a - x) == abs(b - x) && a < b;\n        });\n        sort(arr.begin(), arr.begin() + k);\n        return vector<int>(arr.begin(), arr.begin() + k);\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public List<Integer> findClosestElements(int[] arr, int k, int x) {\n        List<Integer> list = new ArrayList<Integer>();\n        for (int num : arr) {\n            list.add(num);\n        }\n        Collections.sort(list, (a, b) -> {\n            if (Math.abs(a - x) != Math.abs(b - x)) {\n                return Math.abs(a - x) - Math.abs(b - x);\n            } else {\n                return a - b;\n            }\n        });\n        List<Integer> ans = list.subList(0, k);\n        Collections.sort(ans);\n        return ans;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public IList<int> FindClosestElements(int[] arr, int k, int x) {\n        Array.Sort(arr, (a, b) => {\n            if (Math.Abs(a - x) != Math.Abs(b - x)) {\n                return Math.Abs(a - x) - Math.Abs(b - x);\n            } else {\n                return a - b;\n            }\n        });\n        int[] closest = arr.Take(k).ToArray();\n        Array.Sort(closest);\n        IList<int> ans = new List<int>();\n        foreach (int num in closest) {\n            ans.Add(num);\n        }\n        return ans;\n    }\n}\n```\n\n```C [sol1-C]\nint g_val;\n\nstatic inline int cmp1(const void *pa, const void *pb) {\n    int a = *(int *)pa;\n    int b = *(int *)pb;\n    if (abs(a - g_val) != abs(b - g_val)) {\n        return abs(a - g_val) - abs(b - g_val);\n    } else {\n        return a - b;\n    }\n}\n\nstatic inline int cmp2(const void *pa, const void *pb) {\n    return *(int *)pa - *(int *)pb;\n}\n\nint* findClosestElements(int* arr, int arrSize, int k, int x, int* returnSize) {\n    g_val = x;\n    qsort(arr, arrSize, sizeof(int), cmp1);\n    qsort(arr, k, sizeof(int), cmp2);\n    int *res = (int *)malloc(sizeof(int) * k);\n    memcpy(res, arr, sizeof(int) * k);\n    *returnSize = k;\n    return res;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar findClosestElements = function(arr, k, x) {\n    const list = [...arr];\n    list.sort((a, b) => {\n        if (Math.abs(a - x) !== Math.abs(b - x)) {\n            return Math.abs(a - x) - Math.abs(b - x);\n        } else {\n            return a - b;\n        }\n    });\n    const ans = list.slice(0, k);\n    ans.sort((a, b) => a - b);\n    return ans;\n};\n```\n\n```go [sol1-Golang]\nfunc findClosestElements(arr []int, k, x int) []int {\n    // 稳定排序，在绝对值相同的情况下，保证更小的数排在前面\n    sort.SliceStable(arr, func(i, j int) bool { return abs(arr[i]-x) < abs(arr[j]-x) })\n    arr = arr[:k]\n    sort.Ints(arr)\n    return arr\n}\n\nfunc abs(x int) int {\n    if x < 0 {\n        return -x\n    }\n    return x\n}\n```\n\n**复杂度分析**\n\n+ 时间复杂度：$O(n \\log n)$，其中 $n$ 是数组 $\\textit{arr}$ 的长度。排序需要 $O(n \\log n)$。\n\n+ 空间复杂度：$O(\\log n)$。返回值不计算时间复杂度。排序需要 $O(\\log n)$ 的栈空间。\n\n#### 方法二：二分查找 + 双指针\n\n假设数组长度为 $n$，注意到数组 $\\textit{arr}$ 已经按照升序排序，我们可以将数组 $\\textit{arr}$ 分成两部分，前一部分所有元素 $[0, \\textit{left}]$ 都小于 $x$，后一部分所有元素 $[\\textit{right}, n - 1]$ 都大于等于 $x$，$\\textit{left}$ 与 $\\textit{right}$ 都可以通过二分查找获得。\n\n$\\textit{left}$ 和 $\\textit{right}$ 指向的元素都是各自部分最接近 $x$ 的元素，因此我们可以通过比较 $\\textit{left}$ 和 $\\textit{right}$ 指向的元素获取整体最接近 $x$ 的元素。如果 $x - \\textit{arr}[\\textit{left}] \\le \\textit{arr}[\\textit{right}] - x$，那么将 $\\textit{left}$ 减一，否则将 $\\textit{right}$ 加一。相应地，如果 $\\textit{left}$ 或 $\\textit{right}$ 已经越界，那么不考虑对应部分的元素。\n\n最后，区间 $[\\textit{left} + 1, \\textit{right} - 1]$ 的元素就是我们所要获得的结果，返回答案既可。 \n\n```Python [sol2-Python3]\nclass Solution:\n    def findClosestElements(self, arr: List[int], k: int, x: int) -> List[int]:\n        right = bisect_left(arr, x)\n        left = right - 1\n        for _ in range(k):\n            if left < 0:\n                right += 1\n            elif right >= len(arr) or x - arr[left] <= arr[right] - x:\n                left -= 1\n            else:\n                right += 1\n        return arr[left + 1: right]\n```\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    vector<int> findClosestElements(vector<int>& arr, int k, int x) {\n        int right = lower_bound(arr.begin(), arr.end(), x) - arr.begin();\n        int left = right - 1;\n        while (k--) {\n            if (left < 0) {\n                right++;\n            } else if (right >= arr.size()) {\n                left--;\n            } else if (x - arr[left] <= arr[right] - x) {\n                left--;\n            } else {\n                right++;\n            }\n        }\n        return vector<int>(arr.begin() + left + 1, arr.begin() + right);\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public List<Integer> findClosestElements(int[] arr, int k, int x) {\n        int right = binarySearch(arr, x);\n        int left = right - 1;\n        while (k-- > 0) {\n            if (left < 0) {\n                right++;\n            } else if (right >= arr.length) {\n                left--;\n            } else if (x - arr[left] <= arr[right] - x) {\n                left--;\n            } else {\n                right++;\n            }\n        }\n        List<Integer> ans = new ArrayList<Integer>();\n        for (int i = left + 1; i < right; i++) {\n            ans.add(arr[i]);\n        }\n        return ans;\n    }\n\n    public int binarySearch(int[] arr, int x) {\n        int low = 0, high = arr.length - 1;\n        while (low < high) {\n            int mid = low + (high - low) / 2;\n            if (arr[mid] >= x) {\n                high = mid;\n            } else {\n                low = mid + 1;\n            }\n        }\n        return low;\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    public IList<int> FindClosestElements(int[] arr, int k, int x) {\n        int right = BinarySearch(arr, x);\n        int left = right - 1;\n        while (k-- > 0) {\n            if (left < 0) {\n                right++;\n            } else if (right >= arr.Length) {\n                left--;\n            } else if (x - arr[left] <= arr[right] - x) {\n                left--;\n            } else {\n                right++;\n            }\n        }\n        IList<int> ans = new List<int>();\n        for (int i = left + 1; i < right; i++) {\n            ans.Add(arr[i]);\n        }\n        return ans;\n    }\n\n    public int BinarySearch(int[] arr, int x) {\n        int low = 0, high = arr.Length - 1;\n        while (low < high) {\n            int mid = low + (high - low) / 2;\n            if (arr[mid] >= x) {\n                high = mid;\n            } else {\n                low = mid + 1;\n            }\n        }\n        return low;\n    }\n}\n```\n\n```C [sol2-C]\nint binarySearch(const int* arr, int arrSize, int x) {\n    int low = 0, high = arrSize - 1;\n    while (low < high) {\n        int mid = low + (high - low) / 2;\n        if (arr[mid] >= x) {\n            high = mid;\n        } else {\n            low = mid + 1;\n        }\n    }\n    return low;\n}\n\nint* findClosestElements(int* arr, int arrSize, int k, int x, int* returnSize) {\n    int right = binarySearch(arr, arrSize, x);\n    int left = right - 1;\n    while (k--) {\n        if (left < 0) {\n            right++;\n        } else if (right >= arrSize) {\n            left--;\n        } else if (x - arr[left] <= arr[right] - x) {\n            left--;\n        } else {\n            right++;\n        }\n    }\n    int *res = (int *)malloc(sizeof(int) * (right - left - 1));\n    memcpy(res, arr + left + 1, sizeof(int) * (right - left - 1));\n    *returnSize = right - left - 1;\n    return res;\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar findClosestElements = function(arr, k, x) {\n    let right = binarySearch(arr, x);\n    let left = right - 1;\n    while (k-- > 0) {\n        if (left < 0) {\n            right++;\n        } else if (right >= arr.length) {\n            left--;\n        } else if (x - arr[left] <= arr[right] - x) {\n            left--;\n        } else {\n            right++;\n        }\n    }\n    const ans = [];\n    for (let i = left + 1; i < right; i++) {\n        ans.push(arr[i]);\n    }\n    return ans;\n}\n\nconst binarySearch = (arr, x) => {\n    let low = 0, high = arr.length - 1;\n    while (low < high) {\n        const mid = low + Math.floor((high - low) / 2);\n        if (arr[mid] >= x) {\n            high = mid;\n        } else {\n            low = mid + 1;\n        }\n    }\n    return low;\n}\n```\n\n```go [sol2-Golang]\nfunc findClosestElements(arr []int, k, x int) []int {\n    right := sort.SearchInts(arr, x)\n    left := right - 1\n    for ; k > 0; k-- {\n        if left < 0 {\n            right++\n        } else if right >= len(arr) || x-arr[left] <= arr[right]-x {\n            left--\n        } else {\n            right++\n        }\n    }\n    return arr[left+1 : right]\n}\n```\n\n**复杂度分析**\n\n+ 时间复杂度：$O(\\log n + k)$，其中 $n$ 是数组 $\\textit{arr}$ 的长度。二分查找需要 $O(\\log n)$，双指针查找需要 $O(k)$。\n\n+ 空间复杂度：$O(1)$。返回值不计入空间复杂度。",
+            "slateValue": "",
+            "slug": "zhao-dao-k-ge-zui-jie-jin-de-yuan-su-by-ekwtd",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "H7hBjF",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 80,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Two Pointers",
+                    "nameTranslated": "双指针",
+                    "slug": "two-pointers",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Sorting",
+                    "nameTranslated": "排序",
+                    "slug": "sorting",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-08-24T02:30:37.370956+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：排序 首先将数组 $\\textit{arr}$ 按照「更接近」的定义进行排序，如果 $a$ 比 $b$ 更接近 $x$，那么 $a$ 将排在 $b$ 前面。排序完成之后，$k$ 个最接近的元素就是数组 $\\textit{arr}$ 的前 $k$ 个元素，将这 $k$ 个元素从小到大进行排序后，直接返回。 Pyt",
+            "topic": {
+                "id": 1771732,
+                "subscribed": false,
+                "commentCount": 140,
+                "viewCount": 20816,
+                "post": {
+                    "id": 3491483,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 154,
+            "isEditorsPick": false,
+            "hitCount": 63802,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "find-k-closest-elements",
+                "questionFrontendId": "658"
+            },
+            "next": {
+                "slug": "pai-chu-fa-shuang-zhi-zhen-er-fen-fa-python-dai-ma",
+                "title": "排除法（双指针）+ 二分法（Java、Python）"
+            },
+            "prev": null
+        }
+    }
+}

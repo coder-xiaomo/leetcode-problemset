@@ -1,0 +1,140 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "l2fzRn",
+            "title": "路径总和 II",
+            "content": "#### 前言\n\n注意到本题的要求是，找到**所有**满足从「根节点」到某个「叶子节点」经过的路径上的节点之和等于目标和的路径。核心思想是对树进行一次遍历，在遍历时记录从根节点到当前节点的路径和，以防止重复计算。\n\n#### 方法一：深度优先搜索\n\n**思路及算法**\n\n我们可以采用深度优先搜索的方式，枚举每一条从根节点到叶子节点的路径。当我们遍历到叶子节点，且此时路径和恰为目标和时，我们就找到了一条满足条件的路径。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<vector<int>> ret;\n    vector<int> path;\n\n    void dfs(TreeNode* root, int targetSum) {\n        if (root == nullptr) {\n            return;\n        }\n        path.emplace_back(root->val);\n        targetSum -= root->val;\n        if (root->left == nullptr && root->right == nullptr && targetSum == 0) {\n            ret.emplace_back(path);\n        }\n        dfs(root->left, targetSum);\n        dfs(root->right, targetSum);\n        path.pop_back();\n    }\n\n    vector<vector<int>> pathSum(TreeNode* root, int targetSum) {\n        dfs(root, targetSum);\n        return ret;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    List<List<Integer>> ret = new LinkedList<List<Integer>>();\n    Deque<Integer> path = new LinkedList<Integer>();\n\n    public List<List<Integer>> pathSum(TreeNode root, int targetSum) {\n        dfs(root, targetSum);\n        return ret;\n    }\n\n    public void dfs(TreeNode root, int targetSum) {\n        if (root == null) {\n            return;\n        }\n        path.offerLast(root.val);\n        targetSum -= root.val;\n        if (root.left == null && root.right == null && targetSum == 0) {\n            ret.add(new LinkedList<Integer>(path));\n        }\n        dfs(root.left, targetSum);\n        dfs(root.right, targetSum);\n        path.pollLast();\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def pathSum(self, root: TreeNode, targetSum: int) -> List[List[int]]:\n        ret = list()\n        path = list()\n        \n        def dfs(root: TreeNode, targetSum: int):\n            if not root:\n                return\n            path.append(root.val)\n            targetSum -= root.val\n            if not root.left and not root.right and targetSum == 0:\n                ret.append(path[:])\n            dfs(root.left, targetSum)\n            dfs(root.right, targetSum)\n            path.pop()\n        \n        dfs(root, targetSum)\n        return ret\n```\n\n```Golang [sol1-Golang]\nfunc pathSum(root *TreeNode, targetSum int) (ans [][]int) {\n    path := []int{}\n    var dfs func(*TreeNode, int)\n    dfs = func(node *TreeNode, left int) {\n        if node == nil {\n            return\n        }\n        left -= node.Val\n        path = append(path, node.Val)\n        defer func() { path = path[:len(path)-1] }()\n        if node.Left == nil && node.Right == nil && left == 0 {\n            ans = append(ans, append([]int(nil), path...))\n            return\n        }\n        dfs(node.Left, left)\n        dfs(node.Right, left)\n    }\n    dfs(root, targetSum)\n    return\n}\n```\n\n```C [sol1-C]\nint** ret;\nint retSize;\nint* retColSize;\n\nint* path;\nint pathSize;\n\nvoid dfs(struct TreeNode* root, int targetSum) {\n    if (root == NULL) {\n        return;\n    }\n    path[pathSize++] = root->val;\n    targetSum -= root->val;\n    if (root->left == NULL && root->right == NULL && targetSum == 0) {\n        int* tmp = malloc(sizeof(int) * pathSize);\n        memcpy(tmp, path, sizeof(int) * pathSize);\n        ret[retSize] = tmp;\n        retColSize[retSize++] = pathSize;\n    }\n    dfs(root->left, targetSum);\n    dfs(root->right, targetSum);\n    pathSize--;\n}\n\nint** pathSum(struct TreeNode* root, int targetSum, int* returnSize, int** returnColumnSizes) {\n    ret = malloc(sizeof(int*) * 2001);\n    retColSize = malloc(sizeof(int) * 2001);\n    path = malloc(sizeof(int) * 2001);\n    retSize = pathSize = 0;\n    dfs(root, targetSum);\n    *returnColumnSizes = retColSize;\n    *returnSize = retSize;\n    return ret;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(N^2)$，其中 $N$ 是树的节点数。在最坏情况下，树的上半部分为链状，下半部分为完全二叉树，并且从根节点到每一个叶子节点的路径都符合题目要求。此时，路径的数目为 $O(N)$，并且每一条路径的节点个数也为 $O(N)$，因此要将这些路径全部添加进答案中，时间复杂度为 $O(N^2)$。 \n  \n- 空间复杂度：$O(N)$，其中 $N$ 是树的节点数。空间复杂度主要取决于栈空间的开销，栈中的元素个数不会超过树的节点数。\n\n#### 方法二：广度优先搜索\n\n**思路及算法**\n\n我们也可以采用广度优先搜索的方式，遍历这棵树。当我们遍历到叶子节点，且此时路径和恰为目标和时，我们就找到了一条满足条件的路径。\n\n为了节省空间，我们使用哈希表记录树中的每一个节点的父节点。每次找到一个满足条件的节点，我们就从该节点出发不断向父节点迭代，即可还原出从根节点到当前节点的路径。\n\n**代码**\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    vector<vector<int>> ret;\n    unordered_map<TreeNode*, TreeNode*> parent;\n\n    void getPath(TreeNode* node) {\n        vector<int> tmp;\n        while (node != nullptr) {\n            tmp.emplace_back(node->val);\n            node = parent[node];\n        }\n        reverse(tmp.begin(), tmp.end());\n        ret.emplace_back(tmp);\n    }\n\n    vector<vector<int>> pathSum(TreeNode* root, int targetSum) {\n        if (root == nullptr) {\n            return ret;\n        }\n\n        queue<TreeNode*> que_node;\n        queue<int> que_sum;\n        que_node.emplace(root);\n        que_sum.emplace(0);\n\n        while (!que_node.empty()) {\n            TreeNode* node = que_node.front();\n            que_node.pop();\n            int rec = que_sum.front() + node->val;\n            que_sum.pop();\n\n            if (node->left == nullptr && node->right == nullptr) {\n                if (rec == targetSum) {\n                    getPath(node);\n                }\n            } else {\n                if (node->left != nullptr) {\n                    parent[node->left] = node;\n                    que_node.emplace(node->left);\n                    que_sum.emplace(rec);\n                }\n                if (node->right != nullptr) {\n                    parent[node->right] = node;\n                    que_node.emplace(node->right);\n                    que_sum.emplace(rec);\n                }\n            }\n        }\n\n        return ret;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    List<List<Integer>> ret = new LinkedList<List<Integer>>();\n    Map<TreeNode, TreeNode> map = new HashMap<TreeNode, TreeNode>();\n\n    public List<List<Integer>> pathSum(TreeNode root, int targetSum) {\n        if (root == null) {\n            return ret;\n        }\n\n        Queue<TreeNode> queueNode = new LinkedList<TreeNode>();\n        Queue<Integer> queueSum = new LinkedList<Integer>();\n        queueNode.offer(root);\n        queueSum.offer(0);\n\n        while (!queueNode.isEmpty()) {\n            TreeNode node = queueNode.poll();\n            int rec = queueSum.poll() + node.val;\n\n            if (node.left == null && node.right == null) {\n                if (rec == targetSum) {\n                    getPath(node);\n                }\n            } else {\n                if (node.left != null) {\n                    map.put(node.left, node);\n                    queueNode.offer(node.left);\n                    queueSum.offer(rec);\n                }\n                if (node.right != null) {\n                    map.put(node.right, node);\n                    queueNode.offer(node.right);\n                    queueSum.offer(rec);\n                }\n            }\n        }\n\n        return ret;\n    }\n\n    public void getPath(TreeNode node) {\n        List<Integer> temp = new LinkedList<Integer>();\n        while (node != null) {\n            temp.add(node.val);\n            node = map.get(node);\n        }\n        Collections.reverse(temp);\n        ret.add(new LinkedList<Integer>(temp));\n    }\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def pathSum(self, root: TreeNode, targetSum: int) -> List[List[int]]:\n        ret = list()\n        parent = collections.defaultdict(lambda: None)\n\n        def getPath(node: TreeNode):\n            tmp = list()\n            while node:\n                tmp.append(node.val)\n                node = parent[node]\n            ret.append(tmp[::-1])\n\n        if not root:\n            return ret\n        \n        que_node = collections.deque([root])\n        que_total = collections.deque([0])\n\n        while que_node:\n            node = que_node.popleft()\n            rec = que_total.popleft() + node.val\n\n            if not node.left and not node.right:\n                if rec == targetSum:\n                    getPath(node)\n            else:\n                if node.left:\n                    parent[node.left] = node\n                    que_node.append(node.left)\n                    que_total.append(rec)\n                if node.right:\n                    parent[node.right] = node\n                    que_node.append(node.right)\n                    que_total.append(rec)\n\n        return ret\n```\n\n```Golang [sol2-Golang]\ntype pair struct {\n    node *TreeNode\n    left int\n}\n\nfunc pathSum(root *TreeNode, targetSum int) (ans [][]int) {\n    if root == nil {\n        return\n    }\n\n    parent := map[*TreeNode]*TreeNode{}\n\n    getPath := func(node *TreeNode) (path []int) {\n        for ; node != nil; node = parent[node] {\n            path = append(path, node.Val)\n        }\n        for i, j := 0, len(path)-1; i < j; i++ {\n            path[i], path[j] = path[j], path[i]\n            j--\n        }\n        return\n    }\n\n    queue := []pair{{root, targetSum}}\n    for len(queue) > 0 {\n        p := queue[0]\n        queue = queue[1:]\n        node := p.node\n        left := p.left - node.Val\n        if node.Left == nil && node.Right == nil {\n            if left == 0 {\n                ans = append(ans, getPath(node))\n            }\n        } else {\n            if node.Left != nil {\n                parent[node.Left] = node\n                queue = append(queue, pair{node.Left, left})\n            }\n            if node.Right != nil {\n                parent[node.Right] = node\n                queue = append(queue, pair{node.Right, left})\n            }\n        }\n    }\n\n    return\n}\n```\n\n```C [sol2-C]\nint** ret;\nint retSize;\nint* retColSize;\n\nint* path;\nint pathSize;\n\ntypedef struct {\n    struct TreeNode* key;\n    struct TreeNode* val;\n    UT_hash_handle hh;\n} hashTable;\n\nhashTable* parent;\n\nvoid insertHashTable(struct TreeNode* x, struct TreeNode* y) {\n    hashTable* rec = malloc(sizeof(hashTable));\n    rec->key = x;\n    rec->val = y;\n    HASH_ADD_PTR(parent, key, rec);\n}\n\nstruct TreeNode* queryHashTable(struct TreeNode* x) {\n    hashTable* rec;\n    HASH_FIND_PTR(parent, &x, rec);\n    return rec->val;\n}\n\nvoid getPath(struct TreeNode* node) {\n    int* tmp = malloc(sizeof(int) * 2001);\n    int tmpSize = 0;\n    while (node != NULL) {\n        tmp[tmpSize++] = node->val;\n        node = queryHashTable(node);\n    }\n    for (int i = 0; i < tmpSize / 2; i++) {\n        int t = tmp[i];\n        tmp[i] = tmp[tmpSize - 1 - i], tmp[tmpSize - 1 - i] = t;\n    }\n    ret[retSize] = tmp;\n    retColSize[retSize++] = tmpSize;\n}\n\nint** pathSum(struct TreeNode* root, int targetSum, int* returnSize, int** returnColumnSizes) {\n    ret = malloc(sizeof(int*) * 2001);\n    retColSize = malloc(sizeof(int) * 2001);\n    path = malloc(sizeof(int) * 2001);\n    retSize = pathSize = 0;\n    parent = NULL;\n    insertHashTable(root, NULL);\n\n    if (root == NULL) {\n        *returnColumnSizes = retColSize;\n        *returnSize = retSize;\n        return ret;\n    }\n\n    struct TreeNode* que_node[10001];\n    int que_sum[10001];\n    int left = 0, right = 0;\n    que_node[right] = root;\n    que_sum[right++] = 0;\n\n    while (left < right) {\n        struct TreeNode* node = que_node[left];\n        int rec = que_sum[left++] + node->val;\n        if (node->left == NULL && node->right == NULL) {\n            if (rec == targetSum) {\n                getPath(node);\n            }\n        } else {\n            if (node->left != NULL) {\n                insertHashTable(node->left, node);\n                que_node[right] = node->left;\n                que_sum[right++] = rec;\n            }\n            if (node->right != NULL) {\n                insertHashTable(node->right, node);\n                que_node[right] = node->right;\n                que_sum[right++] = rec;\n            }\n        }\n    }\n\n    *returnColumnSizes = retColSize;\n    *returnSize = retSize;\n    return ret;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(N^2)$，其中 $N$ 是树的节点数。分析思路与方法一相同。\n  \n- 空间复杂度：$O(N)$，其中 $N$ 是树的节点数。空间复杂度主要取决于哈希表和队列空间的开销，哈希表需要存储除根节点外的每个节点的父节点，队列中的元素个数不会超过树的节点数。",
+            "slateValue": "",
+            "slug": "lu-jing-zong-he-ii-by-leetcode-solution",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "l2fzRn",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 148,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 5,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Tree",
+                    "nameTranslated": "树",
+                    "slug": "tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Depth-First Search",
+                    "nameTranslated": "深度优先搜索",
+                    "slug": "depth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Breadth-First Search",
+                    "nameTranslated": "广度优先搜索",
+                    "slug": "breadth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Binary Tree",
+                    "nameTranslated": "二叉树",
+                    "slug": "binary-tree",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2020-09-25T15:54:15.180190+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "前言 注意到本题的要求是，找到所有满足从「根节点」到某个「叶子节点」经过的路径上的节点之和等于目标和的路径。核心思想是对树进行一次遍历，在遍历时记录从根节点到当前节点的路径和，以防止重复计算。 方法一：深度优先搜索 思路及算法 我们可以采用深度优先搜索的方式，枚举每一条从根节点到叶子节点的路径。当我们遍历到叶子节点，且",
+            "topic": {
+                "id": 427759,
+                "subscribed": false,
+                "commentCount": 484,
+                "viewCount": 102809,
+                "post": {
+                    "id": 1034283,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 411,
+            "isEditorsPick": false,
+            "hitCount": 217196,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "path-sum-ii",
+                "questionFrontendId": "113"
+            },
+            "next": {
+                "slug": "113-lu-jing-zong-he-iihui-su-qing-xi-tu-al1bg",
+                "title": "113. 路径总和 II（回溯，清晰图解）"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,132 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "tGU4cS",
+            "title": "网格中的最小路径代价",
+            "content": "#### 方法一：记忆化搜索\n\n> 为了方便描述，我们将 $\\textit{grid}[0]$ 记为第 $0$ 行。\n\n记 $\\textit{grid}$ 的行数为$m$，列数为 $n$。函数值 $\\textit{dfs}(i, j)$ 为从第 $0$ 行的任意单元格出发，到达第 $i$ 行 $j$ 列的单元格的最小路径代价。当 $i \\gt 0$ 时，可以从第 $i-1$ 行的任一单元格移动单元格 $(i, j)$，因此转移关系为：\n\n$$\n\\textit{dfs}(i, j) =\n\\begin{cases}\n\\textit{grid}[i][j] & i = 0 \\\\\n\\min_{k = 0}^{n - 1} \\{ \\textit{dfs}(i - 1, k) + \\textit{moveCost}[\\textit{grid}[i - 1][k]][j] + \\textit{grid}[i][j] \\} & i \\gt 0\n\\end{cases}\n$$\n\n我们枚举最后一行的所有单元格 $(m - 1, j)$，对 $(m - 1, j)$ 进行深度优先搜索，得到 $\\textit{dfs}(m - 1, j)$，取其中的最小值。\n\n> 深度优先搜索的过程中，会重复计算 $\\textit{dfs}(i, j)$ 的值，我们可以使用 $\\textit{memo}[i][j]$ 记录 $\\textit{dfs}(i, j)$ 的值，避免重复计算。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int minPathCost(vector<vector<int>>& grid, vector<vector<int>>& moveCost) {\n        int m = grid.size(), n = grid[0].size();\n        vector<vector<int>> memo(m, vector<int>(n, -1));\n        function<int(int, int)> dfs = [&](int i, int j) -> int {\n            if (i == 0) {\n                return grid[i][j];\n            }\n            if (memo[i][j] >= 0) {\n                return memo[i][j];\n            }\n            int res = INT_MAX;\n            for (int k = 0; k < n; k++) {\n                res = min(res, dfs(i - 1, k) + moveCost[grid[i - 1][k]][j] + grid[i][j]);\n            }\n            memo[i][j] = res;\n            return res;\n        };\n        int res = INT_MAX;\n        for (int j = 0; j < n; j++) {\n            res = min(res, dfs(m - 1, j));\n        }\n        return res;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int[][] memo;\n    public int dfs(int i, int j, int[][] grid, int[][] moveCost) {\n        if (i == 0) {\n            return grid[i][j];\n        }\n        if (memo[i][j] >= 0) {\n            return memo[i][j];\n        }\n        int res = Integer.MAX_VALUE;\n        for (int k = 0; k < grid[0].length; k++) {\n            res = Math.min(res, dfs(i - 1, k, grid, moveCost) + moveCost[grid[i - 1][k]][j] + grid[i][j]);\n        }\n        memo[i][j] = res;\n        return res;\n    }\n\n    public int minPathCost(int[][] grid, int[][] moveCost) {\n        int m = grid.length, n = grid[0].length;\n        memo = new int[m][n];\n        for (int i = 0; i < m; i++) {\n            for (int j = 0; j < n; j++) {\n                memo[i][j] = -1;\n            }\n        }\n        int res = Integer.MAX_VALUE;\n        for (int j = 0; j < n; j++) {\n            res = Math.min(res, dfs(m - 1, j, grid, moveCost));\n        }\n        return res;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc min(a, b int) int {\n    if a > b {\n        return b\n    }\n    return a\n}\n\nconst Inf = 0x3f3f3f3f\n\nfunc minPathCost(grid [][]int, moveCost [][]int) int {\n    m, n := len(grid), len(grid[0])\n    memo := make([][]int, m)\n    for i := 0; i < m; i++ {\n        memo[i] = make([]int, n)\n        for j := 0; j < n; j++ {\n            memo[i][j] = -1\n        }\n    }\n    var dfs func(int, int)int\n    dfs = func(i, j int) int {\n        if i == 0 {\n            return grid[i][j]\n        }\n        if memo[i][j] >= 0 {\n            return memo[i][j]\n        }\n        res := Inf\n        for k := 0; k < n; k++ {\n            res = min(res, dfs(i - 1, k) + moveCost[grid[i - 1][k]][j] + grid[i][j])\n        }\n        memo[i][j] = res\n        return res\n    }\n    res := Inf\n    for j := 0; j < n; j++ {\n        res = min(res, dfs(m - 1, j))\n    }\n    return res\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def minPathCost(self, grid: List[List[int]], moveCost: List[List[int]]) -> int:\n        @cache\n        def dfs(i: int, j: int) -> int:\n            return grid[i][j] if i == 0 else min(dfs(i - 1, k) + moveCost[grid[i - 1][k]][j] + grid[i][j] for k in range(len(grid[0])))\n        return min(dfs(len(grid) - 1, j) for j in range(len(grid[0])))\n```\n\n```C [sol1-C]\nint min(int a, int b) {\n    return a > b ? b : a;\n}\n\nint **memo = NULL;\n\nint dfs(int i, int j, int **grid, int **moveCost, int n) {\n    if (i == 0) {\n        return grid[i][j];\n    }\n    if (memo[i][j] >= 0) {\n        return memo[i][j];\n    }\n    int res = INT_MAX;\n    for (int k = 0; k < n; k++) {\n        res = min(res, dfs(i - 1, k, grid, moveCost, n) + moveCost[grid[i - 1][k]][j] + grid[i][j]);\n    }\n    memo[i][j] = res;\n    return res;\n}\n\nint minPathCost(int** grid, int gridSize, int* gridColSize, int** moveCost, int moveCostSize, int* moveCostColSize) {\n    int m = gridSize, n = gridColSize[0];\n    memo = (int **)malloc(sizeof(int *) * m);\n    for (int i = 0; i < m; i++) {\n        memo[i] = (int *)malloc(sizeof(int) * n);\n        for (int j = 0; j < n; j++) {\n            memo[i][j] = -1;\n        }\n    }\n    int res = INT_MAX;\n    for (int j = 0; j < n; j++) {\n        res = min(res, dfs(m - 1, j, grid, moveCost, n));\n    }\n    for (int i = 0; i < m; i++) {\n        free(memo[i]);\n    }\n    free(memo);\n    return res;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar minPathCost = function(grid, moveCost) {\n    let m = grid.length, n = grid[0].length;\n    let memo = new Array(m).fill(0).map(() => new Array(n).fill(-1));\n    function dfs(i, j) {\n        if (i == 0) {\n            return grid[i][j];\n        }\n        if (memo[i][j] >= 0) {\n            return memo[i][j];\n        }\n        let res = Infinity;\n        for (let k = 0; k < n; k++) {\n            res = Math.min(res, dfs(i - 1, k) + moveCost[grid[i - 1][k]][j] + grid[i][j]);\n        }\n        memo[i][j] = res;\n        return res;\n    }\n    let res = Infinity;\n    for (let j = 0; j < n; j++) {\n        res = Math.min(res, dfs(m - 1, j));\n    }\n    return res;\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(mn^2)$，其中 $m$ 和 $n$ 分别是数组 $\\textit{grid}$ 的行数和列数。记忆化搜索最多计算 $mn$ 个状态，每个状态需要 $O(n)$。\n\n- 空间复杂度：$O(mn)$。\n\n#### 方法二：动态规划\n\n类似于方法一，我们使用 $\\textit{dp}[i][j]$ 表示从第 $0$ 行的任意单元格出发，到达第 $i$ 行 $j$ 列的单元格的最小路径代价，那么转移方程为：\n\n$$\n\\textit{dp}[i][j] =\n\\begin{cases}\n\\textit{grid}[i][j] & i = 0 \\\\\n\\min_{k = 0}^{n - 1} \\{ \\textit{dp}[i - 1][k] + \\textit{moveCost}[\\textit{grid}[i - 1][k]][j] + \\textit{grid}[i][j] \\} & i \\gt 0\n\\end{cases}\n$$\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    int minPathCost(vector<vector<int>>& grid, vector<vector<int>>& moveCost) {\n        int m = grid.size(), n = grid[0].size();\n        vector<vector<int>> dp(2, vector<int>(n));\n        dp[0] = grid[0];\n        int cur = 0;\n        for (int i = 1; i < m; i++) {\n            int next = 1 - cur;\n            for (int j = 0; j < n; j++) {\n                dp[next][j] = INT_MAX;\n                for (int k = 0; k < n; k++) {\n                    dp[next][j] = min(dp[next][j], dp[cur][k] + moveCost[grid[i - 1][k]][j] + grid[i][j]);\n                }\n            }\n            cur = next;\n        }\n        return *min_element(dp[cur].begin(), dp[cur].end());\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public int minPathCost(int[][] grid, int[][] moveCost) {\n        int m = grid.length, n = grid[0].length;\n        int[][] dp = new int[2][n];\n        dp[0] = grid[0].clone();\n        int cur = 0;\n        for (int i = 1; i < m; i++) {\n            int next = 1 - cur;\n            for (int j = 0; j < n; j++) {\n                dp[next][j] = Integer.MAX_VALUE;\n                for (int k = 0; k < n; k++) {\n                    dp[next][j] = Math.min(dp[next][j], dp[cur][k] + moveCost[grid[i - 1][k]][j] + grid[i][j]);\n                }\n            }\n            cur = next;\n        }\n        return Arrays.stream(dp[cur]).min().getAsInt();\n    }\n}\n```\n\n```Go [sol2-Go]\nconst Inf = 0x3f3f3f3f\n\nfunc min(a, b int) int {\n    if a > b {\n        return b\n    }\n    return a\n}\n\nfunc minPathCost(grid [][]int, moveCost [][]int) int {\n    m, n, cur := len(grid), len(grid[0]), 0\n    dp := [2][]int{\n        make([]int, n), make([]int, n),\n    }\n    copy(dp[0], grid[0])\n    for i := 1; i < m; i++ {\n        next := 1 - cur\n        for j := 0; j < n; j++ {\n            dp[next][j] = Inf\n            for k := 0; k < n; k++ {\n                dp[next][j] = min(dp[next][j], dp[cur][k] + moveCost[grid[i - 1][k]][j] + grid[i][j])\n            }\n        }\n        cur = next\n    }\n    res := Inf\n    for j := 0; j < n; j++ {\n        res = min(res, dp[cur][j])\n    }\n    return res\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def minPathCost(self, grid: List[List[int]], moveCost: List[List[int]]) -> int:\n        m, n = len(grid), len(grid[0])\n        dp = grid[0]\n        for i in range(1, len(grid)):\n            dp = [grid[i][j] + min(dp[k] + moveCost[grid[i - 1][k]][j] for k in range(n)) for j in range(n)]\n        return min(dp)\n```\n\n```C [sol2-C]\nint min(int a, int b) {\n    return a > b ? b : a;\n}\n\nint minPathCost(int** grid, int gridSize, int* gridColSize, int** moveCost, int moveCostSize, int* moveCostColSize) {\n    int m = gridSize, n = gridColSize[0];\n    int *dp[2] = {\n        (int *)malloc(sizeof(int) * n),\n        (int *)malloc(sizeof(int) * n)\n    };\n    for (int j = 0; j < n; j++) {\n        dp[0][j] = grid[0][j];\n    }\n    int cur = 0;\n    for (int i = 1; i < m; i++) {\n        int next = 1 - cur;\n        for (int j = 0; j < n; j++) {\n            dp[next][j] = INT_MAX;\n            for (int k = 0; k < n; k++) {\n                dp[next][j] = min(dp[next][j], dp[cur][k] + moveCost[grid[i - 1][k]][j] + grid[i][j]);\n            }\n        }\n        cur = next;\n    }\n    int res = INT_MAX;\n    for (int j = 0; j < n; j++) {\n        res = min(res, dp[cur][j]);\n    }\n    free(dp[0]);\n    free(dp[1]);\n    return res;\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar minPathCost = function(grid, moveCost) {\n    let m = grid.length, n = grid[0].length;\n    let dp = new Array(2).fill(0).map(() => new Array(n));\n    dp[0] = Array.from(grid[0]);\n    let cur = 0;\n    for (let i = 1; i < m; i++) {\n        let next = 1 - cur;\n        for (let j = 0; j < n; j++) {\n            dp[next][j] = Infinity;\n            for (let k = 0; k < n; k++) {\n                dp[next][j] = Math.min(dp[next][j], dp[cur][k] + moveCost[grid[i - 1][k]][j] + grid[i][j]);\n            }\n        }\n        cur = next;\n    }\n    return Math.min(...dp[cur]);\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(mn^2)$，其中 $m$ 和 $n$ 分别是数组 $\\textit{grid}$ 的行数和列数。\n\n- 空间复杂度：$O(n)$。",
+            "slateValue": "",
+            "slug": "wang-ge-zhong-de-zui-xiao-lu-jing-dai-ji-qqqf",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "tGU4cS",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 6,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Memoization",
+                    "nameTranslated": "记忆化",
+                    "slug": "memoization",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Matrix",
+                    "nameTranslated": "矩阵",
+                    "slug": "matrix",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-11-16T03:52:24.651589+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：记忆化搜索 为了方便描述，我们将 $\\textit{grid}[0]$ 记为第 $0$ 行。 记 $\\textit{grid}$ 的行数为$m$，列数为 $n$。函数值 $\\textit{dfs}(i, j)$ 为从第 $0$ 行的任意单元格出发，到达第 $i$ 行 $j$ 列的单元格的最小路径代价。当 $i ",
+            "topic": {
+                "id": 2529083,
+                "subscribed": false,
+                "commentCount": 30,
+                "viewCount": 523,
+                "post": {
+                    "id": 4704010,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 14,
+            "isEditorsPick": false,
+            "hitCount": 11650,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "minimum-path-cost-in-a-grid",
+                "questionFrontendId": "2304"
+            },
+            "next": {
+                "slug": "jiao-ni-yi-bu-bu-si-kao-dong-tai-gui-hua-bd25",
+                "title": "教你一步步思考动态规划：从记忆化搜索到递推，再到 O(1) 空间！（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

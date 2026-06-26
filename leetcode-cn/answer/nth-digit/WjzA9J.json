@@ -1,0 +1,128 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "WjzA9J",
+            "title": "第 N 位数字",
+            "content": "#### 方法一：二分查找\n\n为了得到无限整数序列中的第 $n$ 位数字，需要知道第 $n$ 位数字是哪一个整数的第几位。如果知道第 $n$ 位数字所在整数是几位数，就能计算得到第 $n$ 位数字是哪一个整数的第几位。\n\n假设第 $n$ 位数字所在整数是 $d$ 位数，则所有位数不超过 $d - 1$ 的整数的位数之和小于 $n$，且所有位数不超过 $d$ 的整数的位数之和大于等于 $n$。由于所有位数不超过 $x$ 的整数的位数之和关于 $x$ 单调递增，因此可以使用二分查找确定上述 $d$ 的值。对于某个 $x$，如果所有位数不超过 $x$ 的整数的位数之和小于 $n$，则 $d > x$，否则 $d \\le x$，以此调整二分查找的上下界。\n\n由于任何整数都至少是一位数，因此 $d$ 的最小值是 $1$。对于 $d$ 的上界，可以通过找规律的方式确定。\n\n- $1$ 位数的范围是 $1$ 到 $9$，共有 $9$ 个数，所有 $1$ 位数的位数之和是 $1 \\times 9 = 9$。\n- $2$ 位数的取值范围是 $10$ 到 $99$，共有 $90$ 个数，所有 $2$ 位数的位数之和是 $2 \\times 90 = 180$。\n- $3$ 位数的取值范围是 $100$ 到 $999$，共有 $900$ 个数，所有 $3$ 位数的位数之和是 $3 \\times 900 = 2700$。\n- ……\n\n推广到一般情形，$x$ 位数的范围是 $10^{x - 1}$ 到 $10^x - 1$，共有 $10^x - 1 - 10^{x - 1} + 1 = 9 \\times 10^{x - 1}$ 个数，所有 $x$ 位数的位数之和是 $x \\times 9 \\times 10^{x - 1}$。\n\n由于 $n$ 的最大值为 $2^{31} - 1$，约为 $2 \\times 10^9$，当 $x = 9$ 时，$x \\times 9 \\times 10^{x - 1} = 8.1 \\times 10^9 > 2^{31} - 1$，因此第 $n$ 位数字所在整数最多是 $9$ 位数，令 $d$ 的上界为 $9$ 即可。\n\n在得到 $d$ 的值之后，可以根据上述规律计算得到所有位数不超过 $d - 1$ 的整数的位数之和，然后得到第 $n$ 位数在所有 $d$ 位数的序列中的下标，为了方便计算，将下标转换成从 $0$ 开始记数。具体而言，用 $\\textit{prevDigits}$ 表示所有位数不超过 $d - 1$ 的整数的位数之和，则第 $n$ 位数在所有 $d$ 位数的序列中的下标是 $\\textit{index} = n - \\textit{prevDigits} - 1$，$\\textit{index}$ 的最小可能取值是 $0$。\n\n得到下标 $\\textit{index}$ 之后，可以得到无限整数序列中的第 $n$ 位数字是第 $\\Big\\lfloor \\dfrac{\\textit{index}}{d} \\Big\\rfloor$ 个 $d$ 位数的第 $\\textit{index} \\bmod d$ 位，注意编号都从 $0$ 开始。\n\n由于最小的 $d$ 位数是 $10^{d - 1}$，因此第 $n$ 位数字所在的整数是 $10^{d - 1} + \\Big\\lfloor \\dfrac{\\textit{index}}{d} \\Big\\rfloor$，该整数的右边第 $d - (\\textit{index} \\bmod d) - 1$ 位（计数从 $0$ 开始）即为无限整数序列中的第 $n$ 位数字。\n\n```Java [sol1-Java]\nclass Solution {\n    public int findNthDigit(int n) {\n        int low = 1, high = 9;\n        while (low < high) {\n            int mid = (high - low) / 2 + low;\n            if (totalDigits(mid) < n) {\n                low = mid + 1;\n            } else {\n                high = mid;\n            }\n        }\n        int d = low;\n        int prevDigits = totalDigits(d - 1);\n        int index = n - prevDigits - 1;\n        int start = (int) Math.pow(10, d - 1);\n        int num = start + index / d;\n        int digitIndex = index % d;\n        int digit = (num / (int) (Math.pow(10, d - digitIndex - 1))) % 10;\n        return digit;\n    }\n\n    public int totalDigits(int length) {\n        int digits = 0;\n        int curLength = 1, curCount = 9;\n        while (curLength <= length) {\n            digits += curLength * curCount;\n            curLength++;\n            curCount *= 10;\n        }\n        return digits;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int FindNthDigit(int n) {\n        int low = 1, high = 9;\n        while (low < high) {\n            int mid = (high - low) / 2 + low;\n            if (TotalDigits(mid) < n) {\n                low = mid + 1;\n            } else {\n                high = mid;\n            }\n        }\n        int d = low;\n        int prevDigits = TotalDigits(d - 1);\n        int index = n - prevDigits - 1;\n        int start = (int) Math.Pow(10, d - 1);\n        int num = start + index / d;\n        int digitIndex = index % d;\n        int digit = (num / (int) (Math.Pow(10, d - digitIndex - 1))) % 10;\n        return digit;\n    }\n\n    public int TotalDigits(int length) {\n        int digits = 0;\n        int curLength = 1, curCount = 9;\n        while (curLength <= length) {\n            digits += curLength * curCount;\n            curLength++;\n            curCount *= 10;\n        }\n        return digits;\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int findNthDigit(int n) {\n        int low = 1, high = 9;\n        while (low < high) {\n            int mid = (high - low) / 2 + low;\n            if (totalDigits(mid) < n) {\n                low = mid + 1;\n            } else {\n                high = mid;\n            }\n        }\n        int d = low;\n        int prevDigits = totalDigits(d - 1);\n        int index = n - prevDigits - 1;\n        int start = (int) pow(10, d - 1);\n        int num = start + index / d;\n        int digitIndex = index % d;\n        int digit = (num / (int) (pow(10, d - digitIndex - 1))) % 10;\n        return digit;\n    }\n\n    int totalDigits(int length) {\n        int digits = 0;\n        int curLength = 1, curCount = 9;\n        while (curLength <= length) {\n            digits += curLength * curCount;\n            curLength++;\n            curCount *= 10;\n        }\n        return digits;\n    }\n};\n```\n\n```JavaScript [sol1-JavaScript]\nvar findNthDigit = function(n) {\n    let low = 1, high = 9;\n    while (low < high) {\n        const mid = Math.floor((high - low) / 2) + low;\n        if (totalDigits(mid) < n) {\n            low = mid + 1;\n        } else {\n            high = mid;\n        }\n    }\n    const d = low;\n    const prevDigits = totalDigits(d - 1);\n    const index = n - prevDigits - 1;\n    const start = Math.floor(Math.pow(10, d - 1));\n    const num = start + Math.floor(index / d);\n    const digitIndex = index % d;\n    const digit = Math.floor(num / Math.floor(Math.pow(10, d - digitIndex - 1))) % 10;\n    return digit;\n};\n\nconst totalDigits = (length) => {\n    let digits = 0;\n    let curLength = 1, curCount = 9;\n    while (curLength <= length) {\n        digits += curLength * curCount;\n        curLength++;\n        curCount *= 10;\n    }\n    return digits;\n}\n```\n\n```go [sol1-Golang]\nfunc totalDigits(length int) (digits int) {\n    for curLength, curCount := 1, 9; curLength <= length; curLength++ {\n        digits += curLength * curCount\n        curCount *= 10\n    }\n    return\n}\n\nfunc findNthDigit(n int) int {\n    d := 1 + sort.Search(8, func(length int) bool {\n        return totalDigits(length+1) >= n\n    })\n    prevDigits := totalDigits(d - 1)\n    index := n - prevDigits - 1\n    start := int(math.Pow10(d - 1))\n    num := start + index/d\n    digitIndex := index % d\n    return num / int(math.Pow10(d-digitIndex-1)) % 10\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def totalDigits(self, length: int) -> int:\n        digits = 0\n        curCount = 9\n        for curLength in range(1, length + 1):\n            digits += curLength * curCount\n            curCount *= 10\n        return digits\n\n    def findNthDigit(self, n: int) -> int:\n        low, high = 1, 9\n        while low < high:\n            mid = (low + high) // 2\n            if self.totalDigits(mid) < n:\n                low = mid + 1\n            else:\n                high = mid\n        d = low\n        prevDigits = self.totalDigits(d - 1)\n        index = n - prevDigits - 1\n        start = 10 ** (d - 1)\n        num = start + index // d\n        digitIndex = index % d\n        return num // 10 ** (d - digitIndex - 1) % 10\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(\\log_{10} n \\times \\log \\log_{10} n)$。用 $D$ 表示位数的上限，则有 $D = O(\\log_{10} n)$。二分查找的执行次数是 $O(\\log D)$，每次执行的时间复杂度是 $O(D)$，因此总时间复杂度是 $O(D \\log D) = O(\\log_{10} n \\times \\log \\log_{10} n)$。\n\n- 空间复杂度：$O(1)$。\n\n#### 方法二：直接计算\n\n方法一使用二分查找得到第 $n$ 位数字所在整数是几位数。也可以不使用二分查找，而是直接根据规律计算。\n\n已知 $x$ 位数共有 $9 \\times 10^{x - 1}$ 个，所有 $x$ 位数的位数之和是 $x \\times 9 \\times 10^{x - 1}$。使用 $d$ 和 $\\textit{count}$ 分别表示当前遍历到的位数和当前位数下的所有整数的位数之和，初始时 $d = 1$，$\\textit{count} = 9$。每次将 $n$ 减去 $d \\times \\textit{count}$，然后将 $d$ 加 $1$，将 $\\textit{count}$ 乘以 $10$，直到 $n \\le d \\times \\textit{count}$，此时的 $d$ 是目标数字所在整数的位数，$n$ 是所有 $d$ 位数中从第一位到目标数字的位数。\n\n为了方便计算目标数字，使用目标数字在所有 $d$ 位数中的下标进行计算，下标从 $0$ 开始计数。令 $\\textit{index} = n - 1$，则 $\\textit{index}$ 即为目标数字在所有 $d$ 位数中的下标，$\\textit{index}$ 的最小可能取值是 $0$。\n\n得到下标 $\\textit{index}$ 之后，即可使用方法一的做法得到无限整数序列中的第 $n$ 位数字。\n\n```Java [sol2-Java]\nclass Solution {\n    public int findNthDigit(int n) {\n        int d = 1, count = 9;\n        while (n > (long) d * count) {\n            n -= d * count;\n            d++;\n            count *= 10;\n        }\n        int index = n - 1;\n        int start = (int) Math.pow(10, d - 1);\n        int num = start + index / d;\n        int digitIndex = index % d;\n        int digit = (num / (int)(Math.pow(10, d - digitIndex - 1))) % 10;\n        return digit;\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    public int FindNthDigit(int n) {\n        int d = 1, count = 9;\n        while (n > (long) d * count) {\n            n -= d * count;\n            d++;\n            count *= 10;\n        }\n        int index = n - 1;\n        int start = (int) Math.Pow(10, d - 1);\n        int num = start + index / d;\n        int digitIndex = index % d;\n        int digit = (num / (int) (Math.Pow(10, d - digitIndex - 1))) % 10;\n        return digit;\n    }\n}\n```\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    int findNthDigit(int n) {\n        int d = 1, count = 9;\n        while (n > (long) d * count) {\n            n -= d * count;\n            d++;\n            count *= 10;\n        }\n        int index = n - 1;\n        int start = (int) pow(10, d - 1);\n        int num = start + index / d;\n        int digitIndex = index % d;\n        int digit = (num / (int) (pow(10, d - digitIndex - 1))) % 10;\n        return digit;\n    }\n};\n```\n\n```JavaScript [sol2-JavaScript]\nvar findNthDigit = function(n) {\n    let d = 1, count = 9;\n    while (n > d * count) {\n        n -= d * count;\n        d++;\n        count *= 10;\n    }\n    const index = n - 1;\n    const start = Math.floor(Math.pow(10, d - 1));\n    const num = start + Math.floor(index / d);\n    const digitIndex = index % d;\n    const digit = Math.floor(num / Math.floor(Math.pow(10, d - digitIndex - 1))) % 10;\n    return digit;\n};\n```\n\n```go [sol2-Golang]\nfunc findNthDigit(n int) int {\n    d := 1\n    for count := 9; n > d*count; count *= 10 {\n        n -= d * count\n        d++\n    }\n    index := n - 1\n    start := int(math.Pow10(d - 1))\n    num := start + index/d\n    digitIndex := index % d\n    return num / int(math.Pow10(d-digitIndex-1)) % 10\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def findNthDigit(self, n: int) -> int:\n        d, count = 1, 9\n        while n > d * count:\n            n -= d * count\n            d += 1\n            count *= 10\n        index = n - 1\n        start = 10 ** (d - 1)\n        num = start + index // d\n        digitIndex = index % d\n        return num // 10 ** (d - digitIndex - 1) % 10\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(\\log_{10} n)$。用 $d$ 表示第 $n$ 位数字所在整数的位数，循环需要遍历 $d$ 次，由于 $d = O(\\log_{10} n)$，因此时间复杂度是 $O(\\log_{10} n)$。\n\n- 空间复杂度：$O(1)$。",
+            "slateValue": "",
+            "slug": "di-n-wei-shu-zi-by-leetcode-solution-mdl2",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "WjzA9J",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 53,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 3,
+                    "reactionType": "CONFUSED"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-11-29T02:59:07.332453+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：二分查找 为了得到无限整数序列中的第 $n$ 位数字，需要知道第 $n$ 位数字是哪一个整数的第几位。如果知道第 $n$ 位数字所在整数是几位数，就能计算得到第 $n$ 位数字是哪一个整数的第几位。 假设第 $n$ 位数字所在整数是 $d$ 位数，则所有位数不超过 $d - 1$ 的整数的位数之和小于 $n$，",
+            "topic": {
+                "id": 1128000,
+                "subscribed": false,
+                "commentCount": 146,
+                "viewCount": 34365,
+                "post": {
+                    "id": 2383058,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 136,
+            "isEditorsPick": false,
+            "hitCount": 70429,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "nth-digit",
+                "questionFrontendId": "400"
+            },
+            "next": {
+                "slug": "400-di-n-wei-shu-zi-qing-xi-tu-jie-by-jy-sz5y",
+                "title": "400. 第 N 位数字（清晰图解）"
+            },
+            "prev": null
+        }
+    }
+}

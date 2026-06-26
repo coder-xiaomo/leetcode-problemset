@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "fCyXcS",
+            "title": "最小的必要团队",
+            "content": "#### 方法一：动态规划\n\n**思路与算法**\n\n题目输入数组 $\\textit{req\\_skills}$ 的长度最大为 $16$，$\\textit{req\\_skills}$ 中的每一项，被选择或者不被选择，总共的组合情况为 $2^{16}$ 种。因此可以通过「状态压缩」来表示一个技能集合。\n\n我们将每一个技能 $\\textit{req\\_skills}[i]$ 映射到一个二进制数的第 $i$ 位。例如：\n- $\\textit{req\\_skills}[0]$ 用 $2^{0} = (1 << 0) = 1$ 来表示。\n- $\\textit{req\\_skills}[1]$ 用 $2^{1} = (1 << 1) = 2$ 来表示。\n\n以此类推，如此一来我们就可以用一个数字来表示一个技能集合。同时两个集合的并集计算，就可以转化为两个整数的或运算。\n\n我们采用自下而上的「动态规划」的思路来解题，用 $\\textit{dp}[i]$ 来表示状态，状态含义是满足技能集合为 $i$ 的最小人数的数组。初始化状态是 $\\textit{dp}[0]$，为空数组，因为如果不需要任何技能，不用任何人就可以完成。\n\n我们首先依次遍历 $\\textit{peoples}$，求出当前这个人所有的技能集合 $\\textit{cur\\_skill}$。然后遍历 $\\textit{dp}$ 表中的结果 $\\textit{dp}[\\textit{prev}]$，其中原来的技能集合用 $\\textit{prev}$ 来表示。设加入当前这个人后新的技能集合是 $\\textit{comb}$，由原来的技能集合和当前技能集合求并集后，可以得到：$\\textit{comb} = \\textit{prev} ~|~ \\textit{cur\\_skill}$。状态转移的规则是，如果 $\\textit{dp}[\\textit{comb}]$ 不存在，或 $\\textit{dp}[\\textit{prev}]$ 的长度加上 $1$ 小于 $\\textit{dp}[\\textit{comb}].\\textit{size}()$，那么我们就需要更新 $\\textit{dp}[\\textit{comb}]$ 为 $\\textit{dp}[\\textit{prev}]$，再将当前人加入到 $\\textit{dp}[\\textit{comb}]$。这里我们更新 $\\textit{dp}[\\textit{comb}]$ 时候，可以采用直接覆盖的方式，因为更新后的结果因为已经包含了当前员工的技能，所以不会再次满足转移规则，而发生重复转移。\n\n最后，所有技能的集合用 $(1 << n) - 1$ 来表示，其中 $n$ 是 $\\textit{req\\_skills}$ 的长度，我们只需要返回最终答案 $\\textit{dp}[(1 << n) - 1]$。\n\n**代码**\n\n```Java [sol1-Java]\nclass Solution {\n    public int[] smallestSufficientTeam(String[] req_skills, List<List<String>> people) {\n        int n = req_skills.length, m = people.size();\n        HashMap<String, Integer> skill_index = new HashMap<>();\n        for (int i = 0; i < n; ++i) {\n            skill_index.put(req_skills[i], i);\n        }\n        List<Integer>[] dp = new List[1 << n];\n        dp[0] = new ArrayList<>();\n        for (int i = 0; i < m; ++i) {\n            int cur_skill = 0;\n            for (String s : people.get(i)) {\n                cur_skill |= 1 << skill_index.get(s);\n            }\n            for (int prev = 0; prev < dp.length; ++prev) {\n                if (dp[prev] == null) {\n                    continue;\n                }\n                int comb = prev | cur_skill;\n                if (dp[comb] == null || dp[prev].size() + 1 < dp[comb].size()) {\n                    dp[comb] = new ArrayList<>(dp[prev]);\n                    dp[comb].add(i);\n                }\n            }\n        }\n        return dp[(1 << n) - 1].stream().mapToInt(i -> i).toArray();\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<int> smallestSufficientTeam(vector<string>& req_skills, vector<vector<string>>& people) {\n        int n = req_skills.size(), m = people.size();\n        unordered_map<string, int> skill_index;\n        for (int i = 0; i < n; ++i) {\n            skill_index[req_skills[i]] = i;\n        }\n        vector<vector<int>> dp(1 << n);\n        for (int i = 0; i < m; ++i) {\n            int cur_skill = 0;\n            for (string& s : people[i]) {\n                cur_skill |= 1 << skill_index[s];\n            }\n            for (int prev = 0; prev < dp.size(); ++prev) {\n                if (prev > 0 && dp[prev].empty()) {\n                    continue;\n                }\n                int comb = prev | cur_skill;\n                if (comb == prev) {\n                    continue;\n                }\n                if (dp[comb].empty() || dp[prev].size() + 1 < dp[comb].size()) {\n                    dp[comb] = dp[prev];\n                    dp[comb].push_back(i);\n                }\n            }\n        }\n        return dp[(1 << n) - 1];\n    }\n};\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int[] SmallestSufficientTeam(string[] req_skills, IList<IList<string>> people) {\n        int n = req_skills.Length, m = people.Count;\n        IDictionary<string, int> skill_index = new Dictionary<string, int>();\n        for (int i = 0; i < n; ++i) {\n            skill_index.Add(req_skills[i], i);\n        }\n        IList<int>[] dp = new IList<int>[1 << n];\n        dp[0] = new List<int>();\n        for (int i = 0; i < m; ++i) {\n            int cur_skill = 0;\n            foreach (string s in people[i]) {\n                cur_skill |= 1 << skill_index[s];\n            }\n            for (int prev = 0; prev < dp.Length; ++prev) {\n                if (dp[prev] == null) {\n                    continue;\n                }\n                int comb = prev | cur_skill;\n                if (dp[comb] == null || dp[prev].Count + 1 < dp[comb].Count) {\n                    dp[comb] = new List<int>(dp[prev]);\n                    dp[comb].Add(i);\n                }\n            }\n        }\n        return dp[(1 << n) - 1].ToArray();\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def smallestSufficientTeam(self, req_skills: List[str], people: List[List[str]]) -> List[int]:\n        n, m = len(req_skills), len(people)\n        skill_index = {v: i for i, v in enumerate(req_skills)}\n        dp = [None] * (1 << n)\n        dp[0] = []\n        for i, p in enumerate(people):\n            cur_skill = 0\n            for s in p:\n                cur_skill |= 1 << skill_index[s]\n            for prev in range(1 << n):\n                if dp[prev] == None:\n                    continue\n                comb = prev | cur_skill\n                if dp[comb] == None or len(dp[comb]) > len(dp[prev]) + 1:\n                    dp[comb] = dp[prev] + [i]\n        return dp[(1 << n) - 1]\n```\n\n```C [sol1-C]\ntypedef struct {\n    char *key;\n    int val;\n    UT_hash_handle hh;\n} HashItem;\n\nHashItem *hashFindItem(HashItem **obj, char *key) {\n    HashItem *pEntry = NULL;\n    HASH_FIND_STR(*obj, key, pEntry);\n    return pEntry;\n}\n\nbool hashAddItem(HashItem **obj, char *key, int val) {\n    if (hashFindItem(obj, key)) {\n        return false;\n    }\n    HashItem *pEntry = (HashItem *)malloc(sizeof(HashItem));\n    pEntry->key = key;\n    pEntry->val = val;\n    HASH_ADD_STR(*obj, key, pEntry);\n    return true;\n}\n\nbool hashSetItem(HashItem **obj, char *key, int val) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        hashAddItem(obj, key, val);\n    } else {\n        pEntry->val = val;\n    }\n    return true;\n}\n\nint hashGetItem(HashItem **obj, char *key, int defaultVal) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        return defaultVal;\n    }\n    return pEntry->val;\n}\n\nvoid hashFree(HashItem **obj) {\n    HashItem *curr = NULL, *tmp = NULL;\n    HASH_ITER(hh, *obj, curr, tmp) {\n        HASH_DEL(*obj, curr);\n        free(curr);\n    }\n}\n\nint* smallestSufficientTeam(char ** req_skills, int req_skillsSize, char *** people, int peopleSize, int* peopleColSize, int* returnSize) {\n    int n = req_skillsSize, m = peopleSize;\n    HashItem *skill_index = NULL;\n    for (int i = 0; i < n; ++i) {\n        hashAddItem(&skill_index, req_skills[i], i);\n    }\n\n    int *dp[1 << n], dpColSize[1 << n];\n    memset(dpColSize, 0, sizeof(dpColSize));\n    for (int i = 0; i < (1 << n); i++) {\n        dp[i] = NULL;\n    }\n    dp[0] = (int *)calloc(m, sizeof(int));\n    for (int i = 0; i < m; ++i) {\n        int cur_skill = 0;\n        for (int j = 0; j < peopleColSize[i]; j++) {\n            cur_skill |= 1 << hashGetItem(&skill_index, people[i][j], 0);\n        }\n        for (int prev = 0; prev < (1 << n); ++prev) {\n            if (dp[prev] == NULL) {\n                continue;\n            }\n            int comb = prev | cur_skill;\n            if (dp[comb] == NULL || dpColSize[prev] + 1 < dpColSize[comb]) {\n                dp[comb] = (int *)calloc(m, sizeof(int));\n                memcpy(dp[comb], dp[prev], sizeof(int) * dpColSize[prev]);\n                dpColSize[comb] = dpColSize[prev];\n                dp[comb][dpColSize[comb]++] = i;\n            }\n        }\n    }\n    for (int i = 0; i < (1 << n) - 1; i++) {\n        if (dp[i]) {\n            free(dp[i]);\n        }\n    }\n    *returnSize = dpColSize[(1 << n) - 1];\n    return dp[(1 << n) - 1];\n}\n```\n\n```Go [sol1-Go]\nfunc smallestSufficientTeam(req_skills []string, people [][]string) []int {\n    n, m := len(req_skills), len(people)\n    skill_index := make(map[string]int)\n    for i, skill := range req_skills {\n        skill_index[skill] = i\n    }\n    dp := make([][]int, 1 << n)\n    dp[0] = []int {}\n    for i := 0; i < m; i++ {\n        cur_skill := 0\n        for _, s := range people[i] {\n            cur_skill |= 1 << skill_index[s]\n        }\n        for prev := 0; prev < len(dp); prev++ {\n            if dp[prev] == nil {\n                continue\n            }\n            comb := prev | cur_skill\n            if dp[comb] == nil || len(dp[prev]) + 1 < len(dp[comb]) {\n                dp[comb] = make([]int, len(dp[prev]))\n                copy(dp[comb], dp[prev])\n                dp[comb] = append(dp[comb], i)\n            }\n        }\n    }\n    return dp[(1 << n) - 1]\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar smallestSufficientTeam = function(req_skills, people) {\n    const n = req_skills.length;\n    const m = people.length;\n    let skillIndex = new Map();\n    for (let i = 0; i < n; i++) {\n        skillIndex.set(req_skills[i], i);\n    }\n    let dp = new Array(1 << n);\n    dp[0] = [];\n    for (let i = 0; i < m; i++) {\n        let cur_skill = 0;\n        for (let s of people[i]) {\n            cur_skill |= 1 << skillIndex.get(s);\n        }\n        for (let prev = 0; prev < dp.length; prev++) {\n            if (dp[prev] === undefined) {\n                continue;\n            }\n            let comb = prev | cur_skill;\n            if (dp[comb] === undefined || dp[prev].length + 1 < dp[comb].length) {\n                dp[comb] = [...dp[prev], i];\n            }\n        }\n    }\n    return dp[(1 << n) - 1];\n};\n```\n\n**复杂度分析**\n\n* 时间复杂度：$O(m^{2} \\times 2^{n})$，其中 $n$ 是 $\\textit{req\\_skills}$ 的长度，$m$ 是 $\\textit{peoples}$ 的长度。\n* 空间复杂度：$O(m \\times 2^{n})$，其中 $n$ 是 $\\textit{req\\_skills}$ 的长度，$m$ 是 $\\textit{peoples}$ 的长度。\n\n\n#### 方法二：动态规划 + 优化\n\n**思路与算法**\n在方法一中，我们用 $\\textit{dp}[i]$ 来表示状态，状态含义是满足技能集合为 $i$ 的最小人数的数组，每一个状态都用数组记录了具体的人员编号。这个过程浪费很多空间去储存结果，也消耗了很多时间去生成数组。\n实际上我们只去要记录下每个状态的产生来源，就可以按序还原每个状态的具体人员编号的数组。\n\n我们用：\n- $\\textit{dp}[i]$ 来表示，满足技能集合为 $i$ 的最小人数。类似方法一中，我们初始化 $\\textit{dp}[0] = 0$，其它 $\\textit{dp}[i]$ 初始为最大值 $m$。\n- $\\textit{prev\\_skill}[i]$ 来表示先前的技能集合，技能集合 $i$ 是从 $\\textit{prev\\_skill}[i]$ 转移来的。\n- $\\textit{prev\\_people}[i]$ 来表示一个最新加入的员工，技能集合 $i$ 是通过加入员工 $\\textit{prev\\_people}[i]$ 而转移来的。\n\n通过这样方式，我们就记录了每一个状态的转移来源。\n\n\n最后，所有技能的集合用 $(1 << n) - 1$ 来表示，其中 $n$ 是 $\\textit{req\\_skills}$ 的长度。当我们要复原一个技能集合 $i$ 的时候，我们可以找到最后一个员工 $\\textit{prev\\_people}[i]$, 把它加入结果中，然后赋值 $i$ 为 $\\textit{prev\\_skill}[i]$。不断重复这个过程，直到 $i = 0$，表示我们已找到需要技能集合的最少员工。\n\n\n**代码**\n```Java [sol2-Java]\nclass Solution {\n    public int[] smallestSufficientTeam(String[] req_skills, List<List<String>> people) {\n        int n = req_skills.length, m = people.size();\n        HashMap<String, Integer> skill_index = new HashMap<>();\n        for (int i = 0; i < n; ++i) {\n            skill_index.put(req_skills[i], i);\n        }\n        int[] dp = new int[1 << n];\n        Arrays.fill(dp, m);\n        dp[0] = 0;\n        int[] prev_skill = new int[1 << n];\n        int[] prev_people = new int[1 << n];\n        for (int i = 0; i < m; i++) {\n            List<String> p = people.get(i);\n            int cur_skill = 0;\n            for (String s : p) {\n                cur_skill |= 1 << skill_index.get(s);\n            }\n            for (int prev = 0; prev < (1 << n); prev++) {\n                int comb = prev | cur_skill;\n                if (dp[comb] > dp[prev] + 1) {\n                    dp[comb] = dp[prev] + 1;\n                    prev_skill[comb] = prev;\n                    prev_people[comb] = i;\n                }\n            }\n        }\n        List<Integer> res = new ArrayList<>();\n        int i = (1 << n) - 1;\n        while (i > 0) {\n            res.add(prev_people[i]);\n            i = prev_skill[i];\n        }\n        return res.stream().mapToInt(j -> j).toArray();\n    }\n}\n```\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    vector<int> smallestSufficientTeam(vector<string>& req_skills, vector<vector<string>>& people) {\n        int n = req_skills.size(), m = people.size();\n        unordered_map<string, int> skill_index;\n        for (int i = 0; i < n; ++i) {\n            skill_index[req_skills[i]] = i;\n        }\n        vector<int> dp(1 << n, m);\n        dp[0] = 0;\n        vector<int> prev_skill(1 << n, 0);\n        vector<int> prev_people(1 << n, 0);\n        for (int i = 0; i < m; ++i) {\n            int cur_skill = 0;\n            for (string& skill : people[i]) {\n                cur_skill |= 1 << skill_index[skill];\n            }\n            for (int prev = 0; prev < (1 << n); prev++) {\n                int comb = prev | cur_skill;\n                if (dp[comb] > dp[prev] + 1) {\n                    dp[comb] = dp[prev] + 1;\n                    prev_skill[comb] = prev;\n                    prev_people[comb] = i;\n                }\n            }\n        }\n        vector<int> res;\n        int i = (1 << n) - 1;\n        while (i > 0) {\n            res.push_back(prev_people[i]);\n            i = prev_skill[i];\n        }\n        return res;\n    }\n};\n\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    public int[] SmallestSufficientTeam(string[] req_skills, IList<IList<string>> people) {\n        int n = req_skills.Length, m = people.Count;\n        IDictionary<string, int> skill_index = new Dictionary<string, int>();\n        for (int i = 0; i < n; ++i) {\n            skill_index.Add(req_skills[i], i);\n        }\n        int[] dp = new int[1 << n];\n        for (int i = 0; i < dp.Length; i++) {\n            dp[i] = m;\n        }\n        dp[0] = 0;\n        int[] prev_skill = new int[1 << n];\n        int[] prev_people = new int[1 << n];\n        for (int i = 0; i < m; ++i) {\n            int cur_skill = 0;\n            foreach (string s in people[i]) {\n                cur_skill |= 1 << skill_index[s];\n            }\n            for (int prev = 0; prev < dp.Length; prev++) {\n                int comb = prev | cur_skill;\n                if (dp[comb] > dp[prev] + 1) {\n                    dp[comb] = dp[prev] + 1;\n                    prev_skill[comb] = prev;\n                    prev_people[comb] = i;\n                }\n            }\n        }\n        List<int> res = new List<int>();\n        int skills = (1 << n) - 1;\n        while (skills > 0) {\n            res.Add(prev_people[skills]);\n            skills = prev_skill[skills];\n        }\n        return res.ToArray();\n    }\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def smallestSufficientTeam(self, req_skills: List[str], people: List[List[str]]) -> List[int]:\n        n, m = len(req_skills), len(people)\n        skill_index = {v: i for i, v in enumerate(req_skills)}\n        dp = [m] * (1 << n)\n        dp[0] = 0\n        prev_skill = [0] * (1 << n)\n        prev_people = [0] * (1 << n)\n        for i, p in enumerate(people):\n            cur_skill = 0\n            for s in p:\n                cur_skill |= 1 << skill_index[s]\n            for prev in range(1 << n):\n                comb = prev | cur_skill\n                if dp[comb] > dp[prev] + 1:\n                    dp[comb] = dp[prev] + 1\n                    prev_skill[comb] = prev\n                    prev_people[comb] = i\n        res = []\n        i = (1 << n) - 1\n        while i > 0:\n            res.append(prev_people[i])\n            i = prev_skill[i]\n        return res\n```\n\n```Go [sol2-Go]\nfunc smallestSufficientTeam(req_skills []string, people [][]string) []int {\n    n, m := len(req_skills), len(people)\n    skill_index := make(map[string]int)\n    for i, skill := range req_skills {\n        skill_index[skill] = i\n    }\n    dp := make([]int, 1 << n)\n    for i := range dp {\n        dp[i] = m\n    }\n    dp[0] = 0\n    prev_skill := make([]int, 1 << n)\n    prev_people := make([]int, 1 << n)\n    for i := 0; i < m; i++ {\n        cur_skill := 0\n        for _, s := range people[i] {\n            cur_skill |= 1 << skill_index[s]\n        }\n        for prev := 0; prev < (1 << n); prev++ {\n            comb := prev | cur_skill\n            if dp[comb] > dp[prev]+1 {\n                dp[comb] = dp[prev] + 1\n                prev_skill[comb] = prev\n                prev_people[comb] = i\n            }\n        }\n    }\n    res := []int{}\n    i := (1 << n) - 1\n    for i > 0 {\n        res = append(res, prev_people[i])\n        i = prev_skill[i]\n    }\n    return res\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar smallestSufficientTeam = function(req_skills, people) {\n    const n = req_skills.length;\n    const m = people.length;\n    let skillIndex = new Map();\n    for (let i = 0; i < n; i++) {\n        skillIndex.set(req_skills[i], i);\n    }\n    let dp = new Array(1 << n).fill(m);\n    dp[0] = 0;\n    let prev_skill = new Array(1 << n);\n    let prev_people = new Array(1 << n);\n    for (let i = 0; i < m; i++) {\n        let cur_skill = 0;\n        for (let s of people[i]) {\n            cur_skill |= 1 << skillIndex.get(s);\n        }\n        for (let prev = 0; prev < (1 << n); prev++) {\n            let comb = prev | cur_skill;\n            if (dp[comb] > dp[prev] + 1) {\n                dp[comb] = dp[prev] + 1;\n                prev_skill[comb] = prev;\n                prev_people[comb] = i;\n            }\n        }\n    }\n    let res = [];\n    let skills = (1 << n) - 1;\n    while (skills > 0) {\n        res.push(prev_people[skills]);\n        skills = prev_skill[skills];\n    }\n    return res;\n};\n```\n\n```C [sol2-C]\ntypedef struct {\n    char *key;\n    int val;\n    UT_hash_handle hh;\n} HashItem; \n\nHashItem *hashFindItem(HashItem **obj, char *key) {\n    HashItem *pEntry = NULL;\n    HASH_FIND_STR(*obj, key, pEntry);\n    return pEntry;\n}\n\nbool hashAddItem(HashItem **obj, char *key, int val) {\n    if (hashFindItem(obj, key)) {\n        return false;\n    }\n    HashItem *pEntry = (HashItem *)malloc(sizeof(HashItem));\n    pEntry->key = key;\n    pEntry->val = val;\n    HASH_ADD_STR(*obj, key, pEntry);\n    return true;\n}\n\nbool hashSetItem(HashItem **obj, char *key, int val) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        hashAddItem(obj, key, val);\n    } else {\n        pEntry->val = val;\n    }\n    return true;\n}\n\nint hashGetItem(HashItem **obj, char *key, int defaultVal) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        return defaultVal;\n    }\n    return pEntry->val;\n}\n\nvoid hashFree(HashItem **obj) {\n    HashItem *curr = NULL, *tmp = NULL;\n    HASH_ITER(hh, *obj, curr, tmp) {\n        HASH_DEL(*obj, curr);  \n        free(curr);             \n    }\n}\n\nint* smallestSufficientTeam(char ** req_skills, int req_skillsSize, char *** people, int peopleSize, int* peopleColSize, int* returnSize) {\n    int n = req_skillsSize, m = peopleSize;\n    HashItem *skill_index = NULL;\n    for (int i = 0; i < n; ++i) {\n        hashAddItem(&skill_index, req_skills[i], i);\n    }\n\n    int dp[1 << n];\n    int prev_skill[1 << n], prev_people[1 << n];\n    memset(prev_skill, 0, sizeof(prev_skill));\n    memset(prev_people, 0, sizeof(prev_people));\n    dp[0] = 0;\n    for (int i = 1; i < (1 << n); i++) {\n        dp[i] = m;\n    }\n    for (int i = 0; i < m; ++i) {\n        int cur_skill = 0;\n        for (int j = 0; j < peopleColSize[i]; j++) {\n            cur_skill |= 1 << hashGetItem(&skill_index, people[i][j], 0);\n        }\n        for (int prev = 0; prev < (1 << n); prev++) {\n            int comb = prev | cur_skill;\n            if (dp[comb] > dp[prev] + 1) {\n                dp[comb] = dp[prev] + 1;\n                prev_skill[comb] = prev;\n                prev_people[comb] = i;\n            }\n        }\n    }\n\n    hashFree(&skill_index);\n    int *res = (int *)calloc(m, sizeof(int));\n    int i = (1 << n) - 1;\n    int pos = 0;\n    while (i > 0) {\n        res[pos++] = prev_people[i];\n        i = prev_skill[i];\n    }\n    *returnSize = pos;\n    return res;\n}\n```\n\n**复杂度分析**\n\n* 时间复杂度：$O(m \\times 2^{n})$，其中 $n$ 是 $\\textit{req\\_skills}$ 的长度，$m$ 是 $\\textit{peoples}$ 的长度。\n* 空间复杂度：$O(2^{n})$，其中 $n$ 是 $\\textit{req\\_skills}$ 的长度。",
+            "slateValue": "",
+            "slug": "zui-xiao-de-bi-yao-tuan-dui-by-leetcode-2mbmz",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "fCyXcS",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 40,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Bit Manipulation",
+                    "nameTranslated": "位运算",
+                    "slug": "bit-manipulation",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Bitmask",
+                    "nameTranslated": "位掩码",
+                    "slug": "bitmask",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-04-07T05:41:21.970919+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 思路与算法 题目输入数组 $\\textit{req_skills}$ 的长度最大为 $16$，$\\textit{req_skills}$ 中的每一项，被选择或者不被选择，总共的组合情况为 $2^{16}$ 种。因此可以通过「状态压缩」来表示一个技能集合。 我们将每一个技能 $\\textit{req_s",
+            "topic": {
+                "id": 2213332,
+                "subscribed": false,
+                "commentCount": 57,
+                "viewCount": 959,
+                "post": {
+                    "id": 4195789,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 32,
+            "isEditorsPick": false,
+            "hitCount": 13207,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "smallest-sufficient-team",
+                "questionFrontendId": "1125"
+            },
+            "next": {
+                "slug": "zhuang-ya-0-1-bei-bao-cha-biao-fa-vs-shu-qode",
+                "title": "状压 0-1 背包，查表法 vs 刷表法（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,136 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "GIxBBT",
+            "title": "两个非重叠子数组的最大和",
+            "content": "#### 方法一：动态规划 + 滑动窗口\n\n**思路与算法**\n\n首先题目给出一个长度为 $n$ 的数组 $\\textit{nums}$。现在我们需要返回两个长度分别为 $\\textit{firstLen}$ 和 $\\textit{secondLen}$ 的非重叠的子数组的最大和，$\\textit{firstLen} + \\textit{secondLen} \\le n$，其中这两段子数组的前后顺序没有要求。\n\n由于两段子数组的前后顺序没有区别，所以现在不妨设长度为 $\\textit{firstLen}$ 的子数组在长度为 $\\textit{secondLen}$ 的子数组前来计算此时的两段子数组的最大和。首先我们用 $\\textit{nums}[i,j]$ 来表示 $\\textit{nums}[i],\\textit{nums}[i+1],\\dots,\\textit{nums}[j-1]$ 这一段子数组，并记 $sum(\\textit{nums}[l, r])$ 表示子数组 $\\textit{nums}[l, r]$ 的和，$\\textit{dp}[i]$ 为 $\\textit{nums}[0,i + 1]$ 中长度为 $\\textit{firstLen}$ 的最大子数组和，若不存在长度为 $\\textit{firstLen}$ 的子数组则为 $0$。那么对于某一段长度为 $\\textit{secondLen}$ 的子数组 $\\textit{nums}[j,j+\\textit{secondLen}]$，$0 \\le j < j + \\textit{secondLen} \\le n$，所以此时的两个数组的最大和为\n\n$$dp[j-1]+sum(\\textit{nums}[j, j + \\textit{secondLen}])$$ \n\n又因为\n\n$$\\textit{dp}[i] = \\max\\{\\textit{dp}[i-1], sum(\\textit{nums}[i+1-\\textit{firstLen}, i+1])\\}$$\n\n由于现在长度为 $\\textit{secondLen}$ 在长度为 $\\textit{firstLen}$ 的后面，所以用两个大小为 $\\textit{firstLen}$ 和 $\\textit{secondLen}$ 的滑动窗口分别从位置 $0$ 和 $\\textit{firstLen}$ 同时开始从左往右滑动，并在过程中维护窗口中的和。因为对于 $\\forall i < \\textit{firstLen} - 1$，有 $\\textit{dp}[i] = 0$，并当 $i = \\textit{firstLen} - 1$ 时为初始第一个窗口的和。那么在两个窗口从左到右移动的过程中，通过移动第一个窗口来更新 $\\textit{dp}$ 值，通过第二个窗口来计算此时的最大和，并记录移动过程中的最大值即可。\n\n同理我们可以得到当 $\\textit{secondLen}$ 的子数组在长度为 $\\textit{firstLen}$ 的子数组前时，两段子数组的最大和，两种情况取较大值即为最终的答案。由于 $\\textit{dp}[i]$ 的求解只与 $\\textit{dp}[i-1]$ 有关，所以在实现的过程中我们可以通过「滚动数组」来进行空间优化。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int help(vector<int>& nums, int firstLen, int secondLen) {\n        int suml = accumulate(nums.begin(), nums.begin() + firstLen, 0);\n        int maxSumL = suml;\n        int sumr = accumulate(nums.begin() + firstLen, nums.begin() + firstLen + secondLen, 0);\n        int res = maxSumL + sumr;\n        for (int i = firstLen + secondLen, j = firstLen; i < nums.size(); ++i, ++j) {\n            suml += nums[j] - nums[j - firstLen];\n            maxSumL = max(maxSumL, suml);\n            sumr += nums[i] - nums[i - secondLen];\n            res = max(res, maxSumL + sumr);\n        }\n        return res;\n    }\n\n    int maxSumTwoNoOverlap(vector<int>& nums, int firstLen, int secondLen) {\n        return max(help(nums, firstLen, secondLen), help(nums, secondLen, firstLen));\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int maxSumTwoNoOverlap(int[] nums, int firstLen, int secondLen) {\n        return Math.max(help(nums, firstLen, secondLen), help(nums, secondLen, firstLen));\n    }\n\n    public int help(int[] nums, int firstLen, int secondLen) {\n        int suml = 0;\n        for (int i = 0; i < firstLen; ++i) {\n            suml += nums[i];\n        }\n        int maxSumL = suml;\n        int sumr = 0;\n        for (int i = firstLen; i < firstLen + secondLen; ++i) {\n            sumr += nums[i];\n        }\n        int res = maxSumL + sumr;\n        for (int i = firstLen + secondLen, j = firstLen; i < nums.length; ++i, ++j) {\n            suml += nums[j] - nums[j - firstLen];\n            maxSumL = Math.max(maxSumL, suml);\n            sumr += nums[i] - nums[i - secondLen];\n            res = Math.max(res, maxSumL + sumr);\n        }\n        return res;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def maxSumTwoNoOverlap(self, nums: List[int], firstLen: int, secondLen: int) -> int:\n        return max(self.help(nums, firstLen, secondLen), self.help(nums, secondLen, firstLen))\n\n    def help(self, nums, firstLen, secondLen):\n        suml = 0\n        for i in range(0, firstLen):\n            suml += nums[i]\n        maxSumL = suml\n        sumr = 0\n        for i in range(firstLen, firstLen + secondLen):\n            sumr += nums[i]\n        res = maxSumL + sumr\n        j = firstLen\n        for i in range(firstLen + secondLen, len(nums)):\n            suml += nums[j] - nums[j - firstLen]\n            maxSumL = max(maxSumL, suml)\n            sumr += nums[i] - nums[i - secondLen]\n            res = max(res, maxSumL + sumr)\n            j += 1\n        return res\n```\n\n```Go [sol1-Go]\nfunc help(nums []int, firstLen int, secondLen int) int {\n    suml := 0\n    for i := 0; i < firstLen; i++ {\n        suml += nums[i]\n    }\n    maxSumL := suml\n    sumr := 0\n    for i := firstLen; i < firstLen+secondLen; i++ {\n        sumr += nums[i]\n    }\n    res := maxSumL + sumr\n    for i, j := firstLen+secondLen, firstLen; i < len(nums); i, j = i + 1, j + 1 {\n        suml += nums[j] - nums[j - firstLen]\n        maxSumL = max(maxSumL, suml)\n        sumr += nums[i] - nums[i - secondLen]\n        res = max(res, maxSumL + sumr)\n    }\n    return res\n}\n\nfunc maxSumTwoNoOverlap(nums []int, firstLen int, secondLen int) int {\n    return max(help(nums, firstLen, secondLen), help(nums, secondLen, firstLen))\n}\n\nfunc max(a int, b int) int {\n    if a > b {\n        return a\n    }\n    return b\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar maxSumTwoNoOverlap = function(nums, firstLen, secondLen) {\n    return Math.max(help(nums, firstLen, secondLen), help(nums, secondLen, firstLen));\n};\n\nfunction help(nums, firstLen, secondLen) {\n    let suml = nums.slice(0, firstLen).reduce((acc, val) => acc + val, 0);\n    let maxSumL = suml;\n    let sumr = nums.slice(firstLen, firstLen + secondLen).reduce((acc, val) => acc + val, 0);\n    let res = maxSumL + sumr;\n    for (let i = firstLen + secondLen, j = firstLen; i < nums.length; i++, j++) {\n        suml += nums[j] - nums[j - firstLen];\n        maxSumL = Math.max(maxSumL, suml);\n        sumr += nums[i] - nums[i - secondLen];\n        res = Math.max(res, maxSumL + sumr);\n    }\n    return res;\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MaxSumTwoNoOverlap(int[] nums, int firstLen, int secondLen) {\n        return Math.Max(Help(nums, firstLen, secondLen), Help(nums, secondLen, firstLen));\n    }\n\n    public int Help(int[] nums, int firstLen, int secondLen) {\n        int suml = 0;\n        for (int i = 0; i < firstLen; ++i) {\n            suml += nums[i];\n        }\n        int maxSumL = suml;\n        int sumr = 0;\n        for (int i = firstLen; i < firstLen + secondLen; ++i) {\n            sumr += nums[i];\n        }\n        int res = maxSumL + sumr;\n        for (int i = firstLen + secondLen, j = firstLen; i < nums.Length; ++i, ++j) {\n            suml += nums[j] - nums[j - firstLen];\n            maxSumL = Math.Max(maxSumL, suml);\n            sumr += nums[i] - nums[i - secondLen];\n            res = Math.Max(res, maxSumL + sumr);\n        }\n        return res;\n    }\n}\n```\n\n```C [sol1-C]\ninline int max(int a, int b) {\n    return a > b ? a : b;\n}\n\nint help(const int* nums, int numsSize, int firstLen, int secondLen) {\n    int suml = 0;\n    for (int i = 0; i < firstLen; i++) {\n        suml += nums[i];\n    }\n    int maxSumL = suml;\n    int sumr = 0;\n    for (int i = firstLen; i < firstLen + secondLen; i++) {\n        sumr += nums[i];\n    }\n    int res = maxSumL + sumr;\n    for (int i = firstLen + secondLen, j = firstLen; i < numsSize; ++i, ++j) {\n        suml += nums[j] - nums[j - firstLen];\n        maxSumL = max(maxSumL, suml);\n        sumr += nums[i] - nums[i - secondLen];\n        res = max(res, maxSumL + sumr);\n    }\n    return res;\n}\n\nint maxSumTwoNoOverlap(int* nums, int numsSize, int firstLen, int secondLen) {\n    return max(help(nums, numsSize, firstLen, secondLen), help(nums, numsSize, secondLen, firstLen));\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 为数组 $\\textit{nums}$ 的长度。\n- 空间复杂度：$O(1)$，仅使用常量空间。",
+            "slateValue": "",
+            "slug": "liang-ge-fei-zhong-die-zi-shu-zu-de-zui-ih3n2",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "GIxBBT",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 54,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Sliding Window",
+                    "nameTranslated": "滑动窗口",
+                    "slug": "sliding-window",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-04-25T02:10:32.099321+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 + 滑动窗口 思路与算法 首先题目给出一个长度为 $n$ 的数组 $\\textit{nums}$。现在我们需要返回两个长度分别为 $\\textit{firstLen}$ 和 $\\textit{secondLen}$ 的非重叠的子数组的最大和，$\\textit{firstLen} + \\textit{s",
+            "topic": {
+                "id": 2244443,
+                "subscribed": false,
+                "commentCount": 67,
+                "viewCount": 1204,
+                "post": {
+                    "id": 4245311,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 51,
+            "isEditorsPick": false,
+            "hitCount": 17760,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "maximum-sum-of-two-non-overlapping-subarrays",
+                "questionFrontendId": "1031"
+            },
+            "next": {
+                "slug": "c-dong-tai-gui-hua-hua-dong-chuang-kou-on-by-black",
+                "title": "C++ 动态规划+滑动窗口 O(n)"
+            },
+            "prev": null
+        }
+    }
+}

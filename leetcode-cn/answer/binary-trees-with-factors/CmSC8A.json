@@ -1,0 +1,132 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "CmSC8A",
+            "title": "带因子的二叉树",
+            "content": "#### 方法一：动态规划 + 双指针\n\n因为每个整数 $\\textit{arr}[i]$ 均大于 $1$，因此每个非叶结点的值都大于它的子结点的值。考虑以 $\\textit{arr}[i]$ 为根结点的带因子的二叉树，那么它的所有子孙结点的值都小于 $\\textit{arr}[i]$。我们将 $\\textit{arr}$ 从小到大进行排序，那么对于以 $\\textit{arr}[i]$ 为根结点的带因子的二叉树，它的子孙结点值的下标只能在区间 $[0, i - 1)$ 中。\n使用 $\\textit{dp}[i]$ 保存以 $\\textit{arr}[i]$ 为根结点的带因子的二叉树数目。我们从区间 $[0, i - 1)$ 内枚举 $\\textit{arr}[i]$ 的子结点，假设存在 $0 \\le \\textit{left} \\le \\textit{right} \\lt i$，使 $\\textit{arr}[\\textit{left}] \\times \\textit{arr}[\\textit{right}] = \\textit{arr}[i]$ 成立，那么 $\\textit{arr}[\\textit{left}]$ 和 $\\textit{arr}[\\textit{right}]$ 可以作为 $\\textit{arr}[i]$ 的两个子结点。同时 $\\textit{arr}[\\textit{left}]$ 和 $\\textit{arr}[\\textit{right}]$ 为根结点的带因子二叉树数目分别为 $\\textit{dp}[\\textit{left}]$ 和 $\\textit{dp}[\\textit{right}]$，不难推导出 $\\textit{arr}[\\textit{left}]$ 和 $\\textit{arr}[\\textit{right}]$ 作为 $\\textit{arr}[i]$ 的两个子结点时，带因子二叉树数目 $s$ 为：\n\n+ $\\textit{left} = \\textit{right}$ 时，$s = \\textit{dp}[\\textit{left}] \\times \\textit{dp}[\\textit{right}]$\n\n+ $\\textit{left} \\ne \\textit{right}$ 时，因为两个子结点可以交换，所以 $s = \\textit{dp}[\\textit{left}] \\times \\textit{dp}[\\textit{right}] \\times 2$\n\n当 $\\textit{arr}[i]$ 没有子结点时，对应 $1$ 个带因子二叉树。因此，状态转移方程为：\n\n$$\n    \\textit{dp}[i] = 1 + \\sum_{(\\textit{left}, \\textit{right}) \\in U} \\textit{dp}[\\textit{left}] \\times \\textit{dp}[\\textit{right}] \\times (1 + f(\\textit{left}, \\textit{right}))\n$$\n\n其中 $(\\textit{left}, \\textit{right}) \\in U$ 表示所有满足 $0 \\le \\textit{left} \\le \\textit{right} \\lt i$ 且 $\\textit{arr}[\\textit{left}] \\times \\textit{arr}[\\textit{right}] = \\textit{arr}[i]$ 的下标对 $(\\textit{left}, \\textit{right})$，而 $f(\\textit{left}, \\textit{right})$ 的取值为当 $\\textit{left} = \\textit{right}$ 时，值为 $0$，否则值为 $1$（因为 $\\textit{left} \\ne \\textit{right}$ 时，两个子结点可以交换）。\n\n> 找出 $(\\textit{left}, \\textit{right}) \\in U$ 的所有 $(\\textit{left}, \\textit{right})$ 可以使用双指针进行查找。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int numFactoredBinaryTrees(vector<int>& arr) {\n        sort(arr.begin(), arr.end());\n        int n = arr.size();\n        vector<long long> dp(n);\n        long long res = 0, mod = 1e9 + 7;\n        for (int i = 0; i < n; i++) {\n            dp[i] = 1;\n            for (int left = 0, right = i - 1; left <= right; left++) {\n                while (right >= left && (long long)arr[left] * arr[right] > arr[i]) {\n                    right--;\n                }\n                if (right >= left && (long long)arr[left] * arr[right] == arr[i]) {\n                    if (right != left) {\n                        dp[i] = (dp[i] + dp[left] * dp[right] * 2) % mod;\n                    } else {\n                        dp[i] = (dp[i] + dp[left] * dp[right]) % mod;\n                    }\n                }\n            }\n            res = (res + dp[i]) % mod;\n        }\n        return res;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int numFactoredBinaryTrees(int[] arr) {\n        Arrays.sort(arr);\n        int n = arr.length;\n        long[] dp = new long[n];\n        long res = 0, mod = 1000000007;\n        for (int i = 0; i < n; i++) {\n            dp[i] = 1;\n            for (int left = 0, right = i - 1; left <= right; left++) {\n                while (right >= left && (long) arr[left] * arr[right] > arr[i]) {\n                    right--;\n                }\n                if (right >= left && (long) arr[left] * arr[right] == arr[i]) {\n                    if (right != left) {\n                        dp[i] = (dp[i] + dp[left] * dp[right] * 2) % mod;\n                    } else {\n                        dp[i] = (dp[i] + dp[left] * dp[right]) % mod;\n                    }\n                }\n            }\n            res = (res + dp[i]) % mod;\n        }\n        return (int) res;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int NumFactoredBinaryTrees(int[] arr) {\n        Array.Sort(arr);\n        int n = arr.Length;\n        long[] dp = new long[n];\n        long res = 0, mod = 1000000007;\n        for (int i = 0; i < n; i++) {\n            dp[i] = 1;\n            for (int left = 0, right = i - 1; left <= right; left++) {\n                while (right >= left && (long) arr[left] * arr[right] > arr[i]) {\n                    right--;\n                }\n                if (right >= left && (long) arr[left] * arr[right] == arr[i]) {\n                    if (right != left) {\n                        dp[i] = (dp[i] + dp[left] * dp[right] * 2) % mod;\n                    } else {\n                        dp[i] = (dp[i] + dp[left] * dp[right]) % mod;\n                    }\n                }\n            }\n            res = (res + dp[i]) % mod;\n        }\n        return (int) res;\n    }\n}\n```\n\n```Go [sol1-Golang]\nfunc numFactoredBinaryTrees(arr []int) int {\n    sort.Ints(arr)\n    dp := make([]int64, len(arr))\n    res, mod := int64(0), int64(1e9 + 7)\n    for i := 0; i < len(arr); i++ {\n        dp[i] = 1\n        for left, right := 0, i - 1; left <= right; left++ {\n            for left <= right && int64(arr[left]) * int64(arr[right]) > int64(arr[i]) {\n                right--\n            }\n            if left <= right && int64(arr[left]) * int64(arr[right]) == int64(arr[i]) {\n                if left == right {\n                    dp[i] = (dp[i] + dp[left] * dp[right]) % mod\n                } else {\n                    dp[i] = (dp[i] + dp[left] * dp[right] * 2) % mod\n                }\n            }\n        }\n        res = (res + dp[i]) % mod\n    }\n    return int(res)\n}\n```\n\n```C [sol1-C]\nint cmp(const void *p1, const void *p2) {\n    return *(int *)p1 - *(int *)p2;\n}\n\nint numFactoredBinaryTrees(int *arr, int arrSize){\n    qsort(arr, arrSize, sizeof(int), cmp);\n    long long *dp = (long long *)malloc(arrSize * sizeof(long long));\n    long long res = 0, mod = 1e9 + 7;\n    for (int i = 0; i < arrSize; i++) {\n        dp[i] = 1;\n        for (int left = 0, right = i - 1; left <= right; left++) {\n            while (left <= right && (long long)arr[left] * arr[right] > arr[i]) {\n                right--;\n            }\n            if (left <= right && (long long)arr[left] * arr[right] == arr[i]) {\n                if (left == right) {\n                    dp[i] = (dp[i] + dp[left] * dp[right]) % mod;\n                } else {\n                    dp[i] = (dp[i] + dp[left] * dp[right] * 2) % mod;\n                }\n            }\n        }\n        res = (res + dp[i]) % mod;\n    }\n    return res;\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def numFactoredBinaryTrees(self, arr: List[int]) -> int:\n        n = len(arr)\n        arr = sorted(arr)\n        dp = [1] * n\n        res, mod = 0, 10**9 + 7\n        for i in range(n):\n            left, right = 0, i - 1\n            while left <= right:\n                while right >= left and arr[left] * arr[right] > arr[i]:\n                    right -= 1\n                if right >= left and arr[left] * arr[right] == arr[i]:\n                    if right != left:\n                        dp[i] = (dp[i] + dp[left] * dp[right] * 2) % mod\n                    else:\n                        dp[i] = (dp[i] + dp[left] * dp[right]) % mod\n                left += 1\n            res = (res + dp[i]) % mod\n        return res\n```\n\n```JavaScript [sol1-JavaScript]\nvar numFactoredBinaryTrees = function(arr) {\n    const n = arr.length;\n    const mod = 1e9 + 7;\n    const dp = new Array(n).fill(1)\n    arr.sort((a, b) => a - b);\n    let res = 0;\n    for (let i = 0; i < n; i++) {\n        for (let left = 0, right = i - 1; left <= right; left++) {\n            while (right >= left && arr[left] * arr[right] > arr[i]) {\n                right--;\n            }\n            if (right >= left && arr[left] * arr[right] == arr[i]) {\n                if (right != left) {\n                    dp[i] = (dp[i] + dp[left] * dp[right] * 2) % mod;\n                } else {\n                    dp[i] = (dp[i] + dp[left] * dp[right]) % mod;\n                }\n            }\n        }\n        res = (res + dp[i]) % mod;\n    }\n    return res;\n};\n```\n\n\n**复杂度分析**\n\n+ 时间复杂度：$O(n^2)$，其中 $n$ 是数组 $\\textit{arr}$ 的长度。双指针找两个子结点需要 $O(n)$，总时间复杂度为 $O(n^2)$。\n\n+ 空间复杂度：$O(n)$。保存动态规划的状态需要 $O(n)$。",
+            "slateValue": "",
+            "slug": "dai-yin-zi-de-er-cha-shu-by-leetcode-sol-0082",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "CmSC8A",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 45,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Two Pointers",
+                    "nameTranslated": "双指针",
+                    "slug": "two-pointers",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-08-28T02:12:42.862167+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 + 双指针 因为每个整数 $\\textit{arr}[i]$ 均大于 $1$，因此每个非叶结点的值都大于它的子结点的值。考虑以 $\\textit{arr}[i]$ 为根结点的带因子的二叉树，那么它的所有子孙结点的值都小于 $\\textit{arr}[i]$。我们将 $\\textit{arr}$ 从小到",
+            "topic": {
+                "id": 2414616,
+                "subscribed": false,
+                "commentCount": 63,
+                "viewCount": 943,
+                "post": {
+                    "id": 4523297,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 39,
+            "isEditorsPick": false,
+            "hitCount": 3891,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "binary-trees-with-factors",
+                "questionFrontendId": "823"
+            },
+            "next": {
+                "slug": "cong-ji-yi-hua-sou-suo-dao-di-tui-jiao-n-nbk6",
+                "title": "从记忆化搜索到递推，教你一步步思考动态规划！（Python/Java/C++/Go/JS）"
+            },
+            "prev": null
+        }
+    }
+}

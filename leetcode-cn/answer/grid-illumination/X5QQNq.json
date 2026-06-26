@@ -1,0 +1,134 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "X5QQNq",
+            "title": "网格照明",
+            "content": "#### 方法一：哈希表\n\n**思路与算法**\n\n将网格转换成一个坐标系，行下标作为 $x$ 坐标，列下标作为 $y$ 坐标。我们使用直线与坐标轴上交点的数值来唯一标识行，列和正/反对角线。相应的规则为：\n\n> 求解通过灯坐标的行直线与 $x$ 轴的交点，将交点的 $x$ 坐标作为通过灯坐标的行的数值。\n> 求解通过灯坐标的列直线与 $y$ 轴的交点，将交点的 $y$ 坐标作为通过灯坐标的列的数值。\n> 求解通过灯坐标的正对角线与 $x$ 轴的交点，将交点的 $x$ 坐标作为通过灯坐标的正对角线的数值。\n> 求解通过灯坐标的反对角线与 $y$ 轴的交点，将交点的 $y$ 坐标作为通过灯坐标的反对角线的数值。\n\n假设一盏灯的坐标为 $(x_i,~y_i)$，那么它所在的行的数值为 $x_i$，列的数值为 $y_i$，正对角线的数值为 $x_i-y_i$，反对角线的数值为 $x_i+y_i$。确定某一直线的唯一数值标识后，我们就可以通过哈希表来记录某一直线所拥有的灯的数目。\n\n遍历 $\\textit{lamps}$，将当前遍历到的灯所在的行，列和正/反对角线拥有灯的数目分别加一。\n\n> 在处理 $\\textit{lamps}$ 时，需要进行去重，因为我们将重复的灯看作同一盏灯。\n\n遍历 $\\textit{queries}$，判断当前查询点所在的行，列和正/反对角线是否有灯，如果有，则置 $1$，即该点在查询时是被照亮的。然后进行关闭操作，查找查询点所在的八近邻点及它本身是否有灯，如果有，将该点所在的行，列和正/反对角线的灯数目分别减一，并且将灯从网格中去掉。\n\n**代码**\n\n```Python [sol1-Python3]\nclass Solution:\n    def gridIllumination(self, n: int, lamps: List[List[int]], queries: List[List[int]]) -> List[int]:\n        points = set()\n        row, col, diagonal, antiDiagonal = Counter(), Counter(), Counter(), Counter()\n        for r, c in lamps:\n            if (r, c) in points:\n                continue\n            points.add((r, c))\n            row[r] += 1\n            col[c] += 1\n            diagonal[r - c] += 1\n            antiDiagonal[r + c] += 1\n\n        ans = [0] * len(queries)\n        for i, (r, c) in enumerate(queries):\n            if row[r] or col[c] or diagonal[r - c] or antiDiagonal[r + c]:\n                ans[i] = 1\n            for x in range(r - 1, r + 2):\n                for y in range(c - 1, c + 2):\n                    if x < 0 or y < 0 or x >= n or y >= n or (x, y) not in points:\n                        continue\n                    points.remove((x, y))\n                    row[x] -= 1\n                    col[y] -= 1\n                    diagonal[x - y] -= 1\n                    antiDiagonal[x + y] -= 1\n        return ans\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<int> gridIllumination(int n, vector<vector<int>> &lamps, vector<vector<int>> &queries) {\n        unordered_map<int, int> row, col, diagonal, antiDiagonal;\n        auto hash_p = [](const pair<int, int> &p) -> size_t {\n            static hash<long long> hash_ll;\n            return hash_ll(p.first + (static_cast<long long>(p.second) << 32));\n        };\n        unordered_set<pair<int, int>, decltype(hash_p)> points(0, hash_p);\n        for (auto &lamp : lamps) {\n            if (points.count({lamp[0], lamp[1]}) > 0) {\n                continue;\n            }\n            points.insert({lamp[0], lamp[1]});\n            row[lamp[0]]++;\n            col[lamp[1]]++;\n            diagonal[lamp[0] - lamp[1]]++;\n            antiDiagonal[lamp[0] + lamp[1]]++;\n        }\n        vector<int> ret(queries.size());\n        for (int i = 0; i < queries.size(); i++) {\n            int r = queries[i][0], c = queries[i][1];\n            if (row.count(r) > 0 && row[r] > 0) {\n                ret[i] = 1;\n            } else if (col.count(c) > 0 && col[c] > 0) {\n                ret[i] = 1;\n            } else if (diagonal.count(r - c) > 0 && diagonal[r - c] > 0) {\n                ret[i] = 1;\n            } else if (antiDiagonal.count(r + c) > 0 && antiDiagonal[r + c] > 0) {\n                ret[i] = 1;\n            }\n            for (int x = r - 1; x <= r + 1; x++) {\n                for (int y = c - 1; y <= c + 1; y++) {\n                    if (x < 0 || y < 0 || x >= n || y >= n) {\n                        continue;\n                    }\n                    auto p = points.find({x, y});\n                    if (p != points.end()) {\n                        points.erase(p);\n                        row[x]--;\n                        col[y]--;\n                        diagonal[x - y]--;\n                        antiDiagonal[x + y]--;\n                    }\n                }\n            }\n        }\n        return ret;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int[] gridIllumination(int n, int[][] lamps, int[][] queries) {\n        Map<Integer, Integer> row = new HashMap<Integer, Integer>();\n        Map<Integer, Integer> col = new HashMap<Integer, Integer>();\n        Map<Integer, Integer> diagonal = new HashMap<Integer, Integer>();\n        Map<Integer, Integer> antiDiagonal = new HashMap<Integer, Integer>();\n        Set<Long> points = new HashSet<Long>();\n        for (int[] lamp : lamps) {\n            if (!points.add(hash(lamp[0], lamp[1]))) {\n                continue;\n            }\n            row.put(lamp[0], row.getOrDefault(lamp[0], 0) + 1);\n            col.put(lamp[1], col.getOrDefault(lamp[1], 0) + 1);\n            diagonal.put(lamp[0] - lamp[1], diagonal.getOrDefault(lamp[0] - lamp[1], 0) + 1);\n            antiDiagonal.put(lamp[0] + lamp[1], antiDiagonal.getOrDefault(lamp[0] + lamp[1], 0) + 1);\n        }\n        int[] ret = new int[queries.length];\n        for (int i = 0; i < queries.length; i++) {\n            int r = queries[i][0], c = queries[i][1];\n            if (row.getOrDefault(r, 0) > 0) {\n                ret[i] = 1;\n            } else if (col.getOrDefault(c, 0) > 0) {\n                ret[i] = 1;\n            } else if (diagonal.getOrDefault(r - c, 0) > 0) {\n                ret[i] = 1;\n            } else if (antiDiagonal.getOrDefault(r + c, 0) > 0) {\n                ret[i] = 1;\n            }\n            for (int x = r - 1; x <= r + 1; x++) {\n                for (int y = c - 1; y <= c + 1; y++) {\n                    if (x < 0 || y < 0 || x >= n || y >= n) {\n                        continue;\n                    }\n                    if (points.remove(hash(x, y))) {\n                        row.put(x, row.get(x) - 1);\n                        if (row.get(x) == 0) {\n                            row.remove(x);\n                        }\n                        col.put(y, col.get(y) - 1);\n                        if (col.get(y) == 0) {\n                            col.remove(y);\n                        }\n                        diagonal.put(x - y, diagonal.get(x - y) - 1);\n                        if (diagonal.get(x - y) == 0) {\n                            diagonal.remove(x - y);\n                        }\n                        antiDiagonal.put(x + y, antiDiagonal.get(x + y) - 1);\n                        if (antiDiagonal.get(x + y) == 0) {\n                            antiDiagonal.remove(x + y);\n                        }\n                    }\n                }\n            }\n        }\n        return ret;\n    }\n\n    public long hash(int x, int y) {\n        return (long) x + ((long) y << 32);\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int[] GridIllumination(int n, int[][] lamps, int[][] queries) {\n        Dictionary<int, int> row = new Dictionary<int, int>();\n        Dictionary<int, int> col = new Dictionary<int, int>();\n        Dictionary<int, int> diagonal = new Dictionary<int, int>();\n        Dictionary<int, int> antiDiagonal = new Dictionary<int, int>();\n        ISet<long> points = new HashSet<long>();\n        foreach (int[] lamp in lamps) {\n            if (!points.Add(Hash(lamp[0], lamp[1]))) {\n                continue;\n            }\n            if (!row.ContainsKey(lamp[0])) {\n                row.Add(lamp[0], 0);\n            }\n            row[lamp[0]]++;\n            if (!col.ContainsKey(lamp[1])) {\n                col.Add(lamp[1], 0);\n            }\n            col[lamp[1]]++;\n            if (!diagonal.ContainsKey(lamp[0] - lamp[1])) {\n                diagonal.Add(lamp[0] - lamp[1], 0);\n            }\n            diagonal[lamp[0] - lamp[1]]++;\n            if (!antiDiagonal.ContainsKey(lamp[0] + lamp[1])) {\n                antiDiagonal.Add(lamp[0] + lamp[1], 0);\n            }\n            antiDiagonal[lamp[0] + lamp[1]]++;\n        }\n        int[] ret = new int[queries.Length];\n        for (int i = 0; i < queries.Length; i++) {\n            int r = queries[i][0], c = queries[i][1];\n            if (row.ContainsKey(r) && row[r] > 0) {\n                ret[i] = 1;\n            } else if (col.ContainsKey(c) && col[c] > 0) {\n                ret[i] = 1;\n            } else if (diagonal.ContainsKey(r - c) && diagonal[r - c] > 0) {\n                ret[i] = 1;\n            } else if (antiDiagonal.ContainsKey(r + c) && antiDiagonal[r + c] > 0) {\n                ret[i] = 1;\n            }\n            for (int x = r - 1; x <= r + 1; x++) {\n                for (int y = c - 1; y <= c + 1; y++) {\n                    if (x < 0 || y < 0 || x >= n || y >= n) {\n                        continue;\n                    }\n                    if (points.Remove(Hash(x, y))) {\n                        row[x]--;\n                        if (row[x] == 0) {\n                            row.Remove(x);\n                        }\n                        col[y]--;\n                        if (col[y] == 0) {\n                            col.Remove(y);\n                        }\n                        diagonal[x - y]--;\n                        if (diagonal[x - y] == 0) {\n                            diagonal.Remove(x - y);\n                        }\n                        antiDiagonal[x + y]--;\n                        if (antiDiagonal[x + y] == 0) {\n                            antiDiagonal.Remove(x + y);\n                        }\n                    }\n                }\n            }\n        }\n        return ret;\n    }\n\n    public long Hash(int x, int y) {\n        return (long) x + ((long) y << 32);\n    }\n}\n```\n\n```C [sol1-C]\ntypedef struct {\n    long long key;\n    int val;\n    UT_hash_handle hh;\n} HashEntry;\n\nstatic inline long long hash(int x, int y) {\n    return (long long) x + ((long long) y << 32);\n}\n\nvoid hashInsert(HashEntry ** obj, long long key) {\n    HashEntry * pEntry = NULL;\n    HASH_FIND(hh, *obj, &key, sizeof(long long), pEntry);\n    if (NULL == pEntry) {\n        pEntry = (HashEntry *)malloc(sizeof(HashEntry));\n        pEntry->key = key;\n        pEntry->val = 1;\n        HASH_ADD(hh, *obj, key, sizeof(long long), pEntry);\n    } else {\n        pEntry->val++;\n    }\n}\n\nvoid hashErase(HashEntry ** obj, long long key) {\n    HashEntry * pEntry = NULL;\n    HASH_FIND(hh, *obj, &key, sizeof(long long), pEntry);\n    if (NULL != pEntry) {\n        pEntry->val -= 1;\n        if (pEntry->val == 0) {\n            HASH_DEL(*obj, pEntry);\n            free(pEntry);\n        }\n    }\n}\n\nvoid hashDelete(HashEntry ** obj, long long key) {\n    HashEntry * pEntry = NULL;\n    HASH_FIND(hh, *obj, &key, sizeof(long long), pEntry);\n    if (NULL != pEntry) {\n        HASH_DEL(*obj, pEntry);\n        free(pEntry);\n    }\n}\n\nbool hashFind(HashEntry ** obj, long long key) {\n    HashEntry * pEntry = NULL;\n    HASH_FIND(hh, *obj, &key, sizeof(long long), pEntry);\n    if (NULL == pEntry) {\n        return false;\n    } else {\n        return true;\n    }\n}\n\nvoid hashFreeAll(HashEntry ** obj) {\n    HashEntry *curr, *next;\n    HASH_ITER(hh, *obj, curr, next) {\n        HASH_DEL(*obj, curr);  \n        free(curr);\n    }\n}\n\nint* gridIllumination(int n, int** lamps, int lampsSize, int* lampsColSize, int** queries, int queriesSize, int* queriesColSize, int* returnSize){\n    HashEntry * row = NULL, * col = NULL;\n    HashEntry * diagonal = NULL, * antiDiagonal = NULL;\n    HashEntry * points = NULL;\n    for (int i = 0; i < lampsSize; i++) {\n        HashEntry * pEntry = NULL;\n        long long p = hash(lamps[i][0], lamps[i][1]);\n        HASH_FIND(hh, points, &p, sizeof(long long), pEntry);\n        if (NULL != pEntry) {\n            continue;\n        }\n        hashInsert(&points, p);\n        hashInsert(&row, (long long)lamps[i][0]);\n        hashInsert(&col, (long long)lamps[i][1]);\n        hashInsert(&diagonal, (long long)(lamps[i][0] - lamps[i][1]));\n        hashInsert(&antiDiagonal, (long long)(lamps[i][0] + lamps[i][1]));\n    }\n\n    int * ret = (int *)malloc(sizeof(int) * queriesSize);\n    memset(ret, 0, sizeof(int) * queriesSize);\n    for (int i = 0; i < queriesSize; i++) {\n        int r = queries[i][0], c = queries[i][1];\n        if (hashFind(&row, (long long)r)) {\n            ret[i] = 1;\n        } else if (hashFind(&col, (long long)c)) {\n            ret[i] = 1;\n        } else if (hashFind(&diagonal, (long long)(r - c))) {\n            ret[i] = 1;\n        } else if (hashFind(&antiDiagonal, (long long)(r + c))) {\n            ret[i] = 1;\n        }\n        for (int x = r - 1; x <= r + 1; x++) {\n            for (int y = c - 1; y <= c + 1; y++) {\n                if (x < 0 || y < 0 || x >= n || y >= n) {\n                    continue;\n                }\n                if (hashFind(&points, hash(x, y))) {\n                    hashDelete(&points, hash(x, y));\n                    hashErase(&row, (long long)x);\n                    hashErase(&col, (long long)y);\n                    hashErase(&diagonal, (long long)(x - y));\n                    hashErase(&antiDiagonal, (long long)(x + y));\n                }\n            }\n        }\n    }\n    hashFreeAll(&points);\n    hashFreeAll(&row);\n    hashFreeAll(&col);\n    hashFreeAll(&diagonal);\n    hashFreeAll(&antiDiagonal);\n    *returnSize = queriesSize;\n    return ret;\n}\n```\n\n```go [sol1-Golang]\nfunc gridIllumination(n int, lamps, queries [][]int) []int {\n    type pair struct{ x, y int }\n    points := map[pair]bool{}\n    row := map[int]int{}\n    col := map[int]int{}\n    diagonal := map[int]int{}\n    antiDiagonal := map[int]int{}\n    for _, lamp := range lamps {\n        r, c := lamp[0], lamp[1]\n        p := pair{r, c}\n        if points[p] {\n            continue\n        }\n        points[p] = true\n        row[r]++\n        col[c]++\n        diagonal[r-c]++\n        antiDiagonal[r+c]++\n    }\n\n    ans := make([]int, len(queries))\n    for i, query := range queries {\n        r, c := query[0], query[1]\n        if row[r] > 0 || col[c] > 0 || diagonal[r-c] > 0 || antiDiagonal[r+c] > 0 {\n            ans[i] = 1\n        }\n        for x := r - 1; x <= r+1; x++ {\n            for y := c - 1; y <= c+1; y++ {\n                if x < 0 || y < 0 || x >= n || y >= n || !points[pair{x, y}] {\n                    continue\n                }\n                delete(points, pair{x, y})\n                row[x]--\n                col[y]--\n                diagonal[x-y]--\n                antiDiagonal[x+y]--\n            }\n        }\n    }\n    return ans\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar gridIllumination = function(n, lamps, queries) {\n    const row = new Map();\n    const col = new Map();\n    const diagonal = new Map();\n    const antiDiagonal = new Map();\n    const points = new Set();\n    for (const lamp of lamps) {\n        if (points.has(hash(lamp[0], lamp[1]))) {\n            continue;\n        }\n        points.add(hash(lamp[0], lamp[1]));\n        row.set(lamp[0], (row.get(lamp[0]) || 0) + 1);\n        col.set(lamp[1], (col.get(lamp[1]) || 0) + 1);\n        diagonal.set(lamp[0] - lamp[1], (diagonal.get(lamp[0] - lamp[1]) || 0) + 1);\n        antiDiagonal.set(lamp[0] + lamp[1], (antiDiagonal.get(lamp[0] + lamp[1]) || 0) + 1);\n    }\n    const ret = new Array(queries.length).fill(0);\n    for (const [i, [r, c]] of queries.entries()) {\n        if (row.get(r) || col.get(c) || diagonal.get(r - c) || antiDiagonal.get(r + c)) {\n            ret[i] = 1;\n        }\n        for (let x = r - 1; x < r + 2; x++) {\n            for (let y = c - 1; y < c + 2; y++) {\n                if (x < 0 || y < 0 || x >= n || y >= n || !points.has(hash(x, y))) {\n                    continue;\n                }\n                points.delete(hash(x, y));\n                row.set(x, row.get(x) - 1);\n                col.set(y, col.get(y) - 1);\n                diagonal.set(x - y, diagonal.get(x - y) - 1);\n                antiDiagonal.set(x + y, antiDiagonal.get(x + y) - 1);\n            }\n        }\n    }\n    return ret;\n}\n\nconst hash = (x, y) => {\n    return x + ',' + y;\n};\n```\n\n**复杂度分析**\n\n* 时间复杂度：$O(l+q)$，其中 $l$ 和 $q$ 分别是 $\\textit{lamps}$ 和 $\\textit{queries}$ 的长度。遍历两个数组的时间复杂度分别为 $O(l)$ 和 $O(q)$。\n\n* 空间复杂度：$O(l)$。保存 $5$ 个哈希表需要 $O(l)$ 的空间，返回值不计入空间复杂度。",
+            "slateValue": "",
+            "slug": "wang-ge-zhao-ming-by-leetcode-solution-7omu",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "X5QQNq",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 37,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 3,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-02-07T03:18:09.643852+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：哈希表 思路与算法 将网格转换成一个坐标系，行下标作为 $x$ 坐标，列下标作为 $y$ 坐标。我们使用直线与坐标轴上交点的数值来唯一标识行，列和正/反对角线。相应的规则为： 求解通过灯坐标的行直线与 $x$ 轴的交点，将交点的 $x$ 坐标作为通过灯坐标的行的数值。 求解通过灯坐标的列直线与 $y$ 轴的交点",
+            "topic": {
+                "id": 1249254,
+                "subscribed": false,
+                "commentCount": 128,
+                "viewCount": 15526,
+                "post": {
+                    "id": 2615752,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 30,
+            "isEditorsPick": false,
+            "hitCount": 27642,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "grid-illumination",
+                "questionFrontendId": "1001"
+            },
+            "next": {
+                "slug": "gong-shui-san-xie-ha-xi-biao-xian-ying-s-s48d",
+                "title": "【宫水三叶】哈希表 + 线映射模拟题"
+            },
+            "prev": null
+        }
+    }
+}

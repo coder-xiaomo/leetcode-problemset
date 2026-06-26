@@ -1,0 +1,134 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "wtEsxj",
+            "title": "对称二叉树",
+            "content": "### 📺 视频题解  \n![101. 对称二叉树.mp4](d45ef3c2-7ecd-4a10-b1f4-1ea3be6ce8c8)\n\n### 📖 文字题解\n#### 方法一：递归\n\n**思路和算法**\n\n如果一个树的左子树与右子树镜像对称，那么这个树是对称的。\n\n![fig1](https://assets.leetcode.cn/solution-static/101/101_fig1.PNG)\n因此，该问题可以转化为：两个树在什么情况下互为镜像？\n\n如果同时满足下面的条件，两个树互为镜像：\n\n+ 它们的两个根结点具有相同的值\n+ 每个树的右子树都与另一个树的左子树镜像对称\n\n![fig2](https://assets.leetcode.cn/solution-static/101/101_fig2.PNG)\n我们可以实现这样一个递归函数，通过「同步移动」两个指针的方法来遍历这棵树，$p$ 指针和 $q$ 指针一开始都指向这棵树的根，随后 $p$ 右移时，$q$ 左移，$p$ 左移时，$q$ 右移。每次检查当前 $p$ 和 $q$ 节点的值是否相等，如果相等再判断左右子树是否对称。\n\n代码如下。\n\n```cpp [sol1-C++]\nclass Solution {\npublic:\n    bool check(TreeNode *p, TreeNode *q) {\n        if (!p && !q) return true;\n        if (!p || !q) return false;\n        return p->val == q->val && check(p->left, q->right) && check(p->right, q->left);\n    }\n\n    bool isSymmetric(TreeNode* root) {\n        return check(root->left, root->right);\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public boolean isSymmetric(TreeNode root) {\n        return check(root.left, root.right);\n    }\n\n    public boolean check(TreeNode p, TreeNode q) {\n        if (p == null && q == null) {\n            return true;\n        }\n        if (p == null || q == null) {\n            return false;\n        }\n        return p.val == q.val && check(p.left, q.right) && check(p.right, q.left);\n    }\n}\n```\n\n```golang [sol1-Golang]\nfunc isSymmetric(root *TreeNode) bool {\n    return check(root.Left, root.Right)\n}\n\nfunc check(p, q *TreeNode) bool {\n    if p == nil && q == nil {\n        return true\n    }\n    if p == nil || q == nil {\n        return false\n    }\n    return p.Val == q.Val && check(p.Left, q.Right) && check(p.Right, q.Left) \n}\n```\n\n```TypeScript [sol1-TypeScript]\nconst check = (p: TreeNode | null, q: TreeNode | null): boolean => {\n    if (!p && !q) return true;\n    if (!p || !q) return false;\n    return p.val === q.val && check(p.left, q.right) && check(p.right, q.left);\n}\nvar isSymmetric = function(root: TreeNode | null): boolean {\n    return check(root.left, root.right);\n};\n```\n\n**复杂度分析**\n\n假设树上一共 $n$ 个节点。\n\n+ 时间复杂度：这里遍历了这棵树，渐进时间复杂度为 $O(n)$。\n+ 空间复杂度：这里的空间复杂度和递归使用的栈空间有关，这里递归层数不超过 $n$，故渐进空间复杂度为 $O(n)$。\n\n\n#### 方法二：迭代\n\n**思路和算法**\n\n「方法一」中我们用递归的方法实现了对称性的判断，那么如何用迭代的方法实现呢？首先我们引入一个队列，这是把递归程序改写成迭代程序的常用方法。初始化时我们把根节点入队两次。每次提取两个结点并比较它们的值（队列中每两个连续的结点应该是相等的，而且它们的子树互为镜像），然后将两个结点的左右子结点按相反的顺序插入队列中。当队列为空时，或者我们检测到树不对称（即从队列中取出两个不相等的连续结点）时，该算法结束。\n\n```cpp [sol2-C++]\nclass Solution {\npublic:\n    bool check(TreeNode *u, TreeNode *v) {\n        queue <TreeNode*> q;\n        q.push(u); q.push(v);\n        while (!q.empty()) {\n            u = q.front(); q.pop();\n            v = q.front(); q.pop();\n            if (!u && !v) continue;\n            if ((!u || !v) || (u->val != v->val)) return false;\n\n            q.push(u->left); \n            q.push(v->right);\n\n            q.push(u->right); \n            q.push(v->left);\n        }\n        return true;\n    }\n\n    bool isSymmetric(TreeNode* root) {\n        return check(root, root);\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public boolean isSymmetric(TreeNode root) {\n        return check(root, root);\n    }\n\n    public boolean check(TreeNode u, TreeNode v) {\n        Queue<TreeNode> q = new LinkedList<TreeNode>();\n        q.offer(u);\n        q.offer(v);\n        while (!q.isEmpty()) {\n            u = q.poll();\n            v = q.poll();\n            if (u == null && v == null) {\n                continue;\n            }\n            if ((u == null || v == null) || (u.val != v.val)) {\n                return false;\n            }\n\n            q.offer(u.left);\n            q.offer(v.right);\n\n            q.offer(u.right);\n            q.offer(v.left);\n        }\n        return true;\n    }\n}\n```\n\n```golang [sol2-Golang]\nfunc isSymmetric(root *TreeNode) bool {\n    u, v := root, root\n    q := []*TreeNode{}\n    q = append(q, u)\n    q = append(q, v)\n    for len(q) > 0 {\n        u, v = q[0], q[1]\n        q = q[2:]\n        if u == nil && v == nil {\n            continue\n        }\n        if u == nil || v == nil {\n            return false\n        }\n        if u.Val != v.Val {\n            return false\n        }\n        q = append(q, u.Left)\n        q = append(q, v.Right)\n\n        q = append(q, u.Right)\n        q = append(q, v.Left)\n    }\n    return true\n}\n```\n\n```TypeScript [sol2-TypeScript]\nconst check = (u: TreeNode | null, v: TreeNode | null): boolean => {\n    const q: (TreeNode | null)[] = [];\n    q.push(u),q.push(v);\n\n    while (q.length) {\n        u = q.shift()!;\n        v = q.shift()!;\n\n        if (!u && !v) continue;\n        if ((!u || !v) || (u.val !== v.val)) return false;\n\n        q.push(u.left); \n        q.push(v.right);\n\n        q.push(u.right); \n        q.push(v.left);\n    }\n    return true;\n}\nvar isSymmetric = function(root: TreeNode | null): boolean {\n    return check(root, root);\n};\n```\n\n**复杂度分析**\n\n+ 时间复杂度：$O(n)$，同「方法一」。\n+ 空间复杂度：这里需要用一个队列来维护节点，每个节点最多进队一次，出队一次，队列中最多不会超过 $n$ 个点，故渐进空间复杂度为 $O(n)$。",
+            "slateValue": "",
+            "slug": "dui-cheng-er-cha-shu-by-leetcode-solution",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "wtEsxj",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 508,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 27,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 16,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Tree",
+                    "nameTranslated": "树",
+                    "slug": "tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Depth-First Search",
+                    "nameTranslated": "深度优先搜索",
+                    "slug": "depth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Breadth-First Search",
+                    "nameTranslated": "广度优先搜索",
+                    "slug": "breadth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Tree",
+                    "nameTranslated": "二叉树",
+                    "slug": "binary-tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-05-30T12:29:43.633647+00:00",
+            "thumbnail": "https://assets.leetcode-cn.com/solution-static/101/101_fig1.PNG",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "📺 视频题解 📖 文字题解 方法一：递归 思路和算法 如果一个树的左子树与右子树镜像对称，那么这个树是对称的。 因此，该问题可以转化为：两个树在什么情况下互为镜像？ 如果同时满足下面的条件，两个树互为镜像： 它们的两个根结点具有相同的值 每个树的右子树都与另一个树的左子树镜像对称 我们可以实现这样一个递归函数，通过「同",
+            "topic": {
+                "id": 268109,
+                "subscribed": false,
+                "commentCount": 967,
+                "viewCount": 250632,
+                "post": {
+                    "id": 687854,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 1518,
+            "isEditorsPick": false,
+            "hitCount": 669639,
+            "videosInfo": [
+                {
+                    "videoId": "3a8bc2e9f6e3443ebaf85a28a0200362",
+                    "coverUrl": "https://video.leetcode.cn/image/cover/7C1CFC8128A34F0CBE8B7C72055BCA9E-6-2.png?auth_key=1782488365-b16161c8136f483a9af24eb2d8407780-0-9533e765cd7dfd1bf7dffede425360f2",
+                    "duration": 294.5494
+                }
+            ],
+            "question": {
+                "titleSlug": "symmetric-tree",
+                "questionFrontendId": "101"
+            },
+            "next": {
+                "slug": "101-dui-cheng-er-cha-shu-fen-zhi-qing-xi-8oba",
+                "title": "101. 对称二叉树（深度优先搜索，清晰图解）"
+            },
+            "prev": null
+        }
+    }
+}

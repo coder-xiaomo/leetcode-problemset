@@ -1,0 +1,146 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "FTNDuk",
+            "title": "二叉搜索树迭代器",
+            "content": "#### 前言\n\n根据二叉搜索树的性质，不难发现，原问题等价于对二叉搜索树进行中序遍历。因此，我们可以采取与「[94. 二叉树的中序遍历](https://leetcode.cn/problems/binary-tree-inorder-traversal)」类似的方法来解决这一问题。\n\n下面基于「[94. 二叉树的中序遍历的官方题解](https://leetcode.cn/problems/binary-tree-inorder-traversal/solution/er-cha-shu-de-zhong-xu-bian-li-by-leetcode-solutio/)」，给出本题的两种解法。读者将不难发现两篇题解的代码存在诸多相似之处。\n\n#### 方法一：扁平化\n\n我们可以直接对二叉搜索树做一次完全的递归遍历，获取中序遍历的全部结果并保存在数组中。随后，我们利用得到的数组本身来实现迭代器。\n\n```C++ [sol1-C++]\nclass BSTIterator {\nprivate:\n    void inorder(TreeNode* root, vector<int>& res) {\n        if (!root) {\n            return;\n        }\n        inorder(root->left, res);\n        res.push_back(root->val);\n        inorder(root->right, res);\n    }\n    vector<int> inorderTraversal(TreeNode* root) {\n        vector<int> res;\n        inorder(root, res);\n        return res;\n    }\n    \n    vector<int> arr;\n    int idx;\npublic:\n    BSTIterator(TreeNode* root): idx(0), arr(inorderTraversal(root)) {}\n    \n    int next() {\n        return arr[idx++];\n    }\n    \n    bool hasNext() {\n        return (idx < arr.size());\n    }\n};\n```\n\n```Java [sol1-Java]\nclass BSTIterator {\n    private int idx;\n    private List<Integer> arr;\n\n    public BSTIterator(TreeNode root) {\n        idx = 0;\n        arr = new ArrayList<Integer>();\n        inorderTraversal(root, arr);\n    }\n\n    public int next() {\n        return arr.get(idx++);\n    }\n\n    public boolean hasNext() {\n        return idx < arr.size();\n    }\n\n    private void inorderTraversal(TreeNode root, List<Integer> arr) {\n        if (root == null) {\n            return;\n        }\n        inorderTraversal(root.left, arr);\n        arr.add(root.val);\n        inorderTraversal(root.right, arr);\n    }\n}\n```\n\n```go [sol1-Golang]\ntype BSTIterator struct {\n    arr []int\n}\n\nfunc Constructor(root *TreeNode) (it BSTIterator) {\n    it.inorder(root)\n    return\n}\n\nfunc (it *BSTIterator) inorder(node *TreeNode) {\n    if node == nil {\n        return\n    }\n    it.inorder(node.Left)\n    it.arr = append(it.arr, node.Val)\n    it.inorder(node.Right)\n}\n\nfunc (it *BSTIterator) Next() int {\n    val := it.arr[0]\n    it.arr = it.arr[1:]\n    return val\n}\n\nfunc (it *BSTIterator) HasNext() bool {\n    return len(it.arr) > 0\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar BSTIterator = function(root) {\n    this.idx = 0;\n    this.arr = [];\n    this.inorderTraversal(root, this.arr);\n};\n\nBSTIterator.prototype.next = function() {\n    return this.arr[this.idx++];\n};\n\nBSTIterator.prototype.hasNext = function() {\n    return this.idx < this.arr.length;\n};\n\nBSTIterator.prototype.inorderTraversal = function(root, arr) {\n    if (!root) {\n        return;\n    }\n    this.inorderTraversal(root.left, arr);\n    arr.push(root.val);\n    this.inorderTraversal(root.right, arr);\n};\n```\n\n```C [sol1-C]\ntypedef struct {\n    int* res;\n    int size;\n    int idx;\n} BSTIterator;\n\nint getTreeSize(struct TreeNode* root) {\n    if (root == NULL) {\n        return 0;\n    }\n    return 1 + getTreeSize(root->left) + getTreeSize(root->right);\n}\n\nvoid inorder(int* ret, int* retSize, struct TreeNode* root) {\n    if (root == NULL) {\n        return;\n    }\n    inorder(ret, retSize, root->left);\n    ret[(*retSize)++] = root->val;\n    inorder(ret, retSize, root->right);\n}\n\nint* inorderTraversal(int* retSize, struct TreeNode* root) {\n    *retSize = 0;\n    int* ret = malloc(sizeof(int) * getTreeSize(root));\n    inorder(ret, retSize, root);\n    return ret;\n}\n\nBSTIterator* bSTIteratorCreate(struct TreeNode* root) {\n    BSTIterator* ret = malloc(sizeof(BSTIterator));\n    ret->res = inorderTraversal(&(ret->size), root);\n    ret->idx = 0;\n    return ret;\n}\n\nint bSTIteratorNext(BSTIterator* obj) {\n    return obj->res[(obj->idx)++];\n}\n\nbool bSTIteratorHasNext(BSTIterator* obj) {\n    return (obj->idx < obj->size);\n}\n\nvoid bSTIteratorFree(BSTIterator* obj) {\n    free(obj->res);\n    free(obj);\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：初始化需要 $O(n)$ 的时间，其中 $n$ 为树中节点的数量。随后每次调用只需要 $O(1)$ 的时间。\n\n- 空间复杂度：$O(n)$，因为需要保存中序遍历的全部结果。\n\n#### 方法二：迭代\n\n除了递归的方法外，我们还可以利用栈这一数据结构，通过迭代的方式对二叉树做中序遍历。此时，我们无需预先计算出中序遍历的全部结果，只需要实时维护当前栈的情况即可。\n\n```C++ [sol2-C++]\nclass BSTIterator {\nprivate:\n    TreeNode* cur;\n    stack<TreeNode*> stk;\npublic:\n    BSTIterator(TreeNode* root): cur(root) {}\n    \n    int next() {\n        while (cur != nullptr) {\n            stk.push(cur);\n            cur = cur->left;\n        }\n        cur = stk.top();\n        stk.pop();\n        int ret = cur->val;\n        cur = cur->right;\n        return ret;\n    }\n    \n    bool hasNext() {\n        return cur != nullptr || !stk.empty();\n    }\n};\n```\n\n```Java [sol2-Java]\nclass BSTIterator {\n    private TreeNode cur;\n    private Deque<TreeNode> stack;\n\n    public BSTIterator(TreeNode root) {\n        cur = root;\n        stack = new LinkedList<TreeNode>();\n    }\n    \n    public int next() {\n        while (cur != null) {\n            stack.push(cur);\n            cur = cur.left;\n        }\n        cur = stack.pop();\n        int ret = cur.val;\n        cur = cur.right;\n        return ret;\n    }\n    \n    public boolean hasNext() {\n        return cur != null || !stack.isEmpty();\n    }\n}\n```\n\n```go [sol2-Golang]\ntype BSTIterator struct {\n    stack []*TreeNode\n    cur   *TreeNode\n}\n\nfunc Constructor(root *TreeNode) BSTIterator {\n    return BSTIterator{cur: root}\n}\n\nfunc (it *BSTIterator) Next() int {\n    for node := it.cur; node != nil; node = node.Left {\n        it.stack = append(it.stack, node)\n    }\n    it.cur, it.stack = it.stack[len(it.stack)-1], it.stack[:len(it.stack)-1]\n    val := it.cur.Val\n    it.cur = it.cur.Right\n    return val\n}\n\nfunc (it *BSTIterator) HasNext() bool {\n    return it.cur != nil || len(it.stack) > 0\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar BSTIterator = function(root) {\n    this.cur = root;\n    this.stack = [];\n};\n\nBSTIterator.prototype.next = function() {\n    while (this.cur) {\n        this.stack.push(this.cur);\n        this.cur = this.cur.left;\n    }\n    this.cur = this.stack.pop();\n    const ret = this.cur.val;\n    this.cur = this.cur.right;\n    return ret;\n};\n\nBSTIterator.prototype.hasNext = function() {\n    return this.cur !== null || this.stack.length;\n};\n```\n\n```C [sol2-C]\ntypedef struct {\n    struct TreeNode* cur;\n    struct StackTreeNode* stk[128];\n    int stkSize;\n} BSTIterator;\n\nBSTIterator* bSTIteratorCreate(struct TreeNode* root) {\n    BSTIterator* ret = malloc(sizeof(BSTIterator));\n    ret->cur = root;\n    ret->stkSize = 0;\n    return ret;\n}\n\nint bSTIteratorNext(BSTIterator* obj) {\n    while (obj->cur != NULL) {\n        obj->stk[(obj->stkSize)++] = obj->cur;\n        obj->cur = obj->cur->left;\n    }\n    obj->cur = obj->stk[--(obj->stkSize)];\n    int ret = obj->cur->val;\n    obj->cur = obj->cur->right;\n    return ret;\n}\n\nbool bSTIteratorHasNext(BSTIterator* obj) {\n    return obj->cur != NULL || obj->stkSize;\n}\n\nvoid bSTIteratorFree(BSTIterator* obj) {\n    free(obj);\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：显然，初始化和调用 $\\text{hasNext()}$ 都只需要 $O(1)$ 的时间。每次调用 $\\text{next()}$ 函数**最坏情况下**需要 $O(n)$ 的时间；但考虑到 $n$ 次调用 $\\text{next()}$ 函数总共会遍历全部的 $n$ 个节点，因此总的时间复杂度为 $O(n)$，因此单次调用平均下来的**均摊复杂度**为 $O(1)$。\n\n- 空间复杂度：$O(n)$，其中 $n$ 是二叉树的节点数量。空间复杂度取决于栈深度，而栈深度在二叉树为一条链的情况下会达到 $O(n)$ 的级别。",
+            "slateValue": "",
+            "slug": "er-cha-sou-suo-shu-die-dai-qi-by-leetcod-4y0y",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "FTNDuk",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 114,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "CONFUSED"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Stack",
+                    "nameTranslated": "栈",
+                    "slug": "stack",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Tree",
+                    "nameTranslated": "树",
+                    "slug": "tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Depth-First Search",
+                    "nameTranslated": "深度优先搜索",
+                    "slug": "depth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Design",
+                    "nameTranslated": "设计",
+                    "slug": "design",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search Tree",
+                    "nameTranslated": "二叉搜索树",
+                    "slug": "binary-search-tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Binary Tree",
+                    "nameTranslated": "二叉树",
+                    "slug": "binary-tree",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2021-03-27T06:43:06.568638+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "前言 根据二叉搜索树的性质，不难发现，原问题等价于对二叉搜索树进行中序遍历。因此，我们可以采取与「94. 二叉树的中序遍历」类似的方法来解决这一问题。 下面基于「94. 二叉树的中序遍历的官方题解」，给出本题的两种解法。读者将不难发现两篇题解的代码存在诸多相似之处。 方法一：扁平化 我们可以直接对二叉搜索树做一次完全的",
+            "topic": {
+                "id": 683126,
+                "subscribed": false,
+                "commentCount": 217,
+                "viewCount": 41658,
+                "post": {
+                    "id": 1539920,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 227,
+            "isEditorsPick": false,
+            "hitCount": 104421,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "binary-search-tree-iterator",
+                "questionFrontendId": "173"
+            },
+            "next": {
+                "slug": "fu-xue-ming-zhu-dan-diao-zhan-die-dai-la-dkrm",
+                "title": "【负雪明烛】单调栈！迭代来自对递归的理解"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,142 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "5AkS65",
+            "title": "TinyURL 的加密与解密",
+            "content": "#### 前言\n\n题目不要求相同的 $\\text{URL}$ 必须加密成同一个 $\\text{TinyURL}$，因此本文的方法不满足相同的 $\\text{URL}$ 加密成同一个 $\\text{TinyURL}$。如果想要实现相同的 $\\text{URL}$ 加密成同一个 $\\text{TinyURL}$，则额外保存一个从 $\\text{URL}$ 到 $\\text{TinyURL}$ 的映射。\n\n#### 方法一：自增\n\n+ $\\text{Encode}$ 函数\n\n    使用自增 $\\textit{id}$ 作为 $\\textit{longUrl}$ 的键，每接收一个 $\\textit{longUrl}$ 都将 $\\textit{id}$ 加一，将键值对 $(\\textit{id}, \\textit{longUrl})$ 插入数据库 $\\textit{dataBase}$，然后返回带有 $\\textit{id}$ 的字符串作为 $\\textit{shorUrl}$。\n\n+ $\\text{Decode}$ 函数\n\n    将 $\\textit{shortUrl}$ 转换成对应的 $\\textit{key}$，然后在数据库 $\\textit{dataBase}$ 中查找 $\\textit{key}$ 对应的 $\\textit{longUrl}$。\n\n```Python [sol1-Python3]\nclass Codec:\n    def __init__(self):\n        self.database = {}\n        self.id = 0\n\n    def encode(self, longUrl: str) -> str:\n        self.id += 1\n        self.database[self.id] = longUrl\n        return \"http://tinyurl.com/\" + str(self.id)\n\n    def decode(self, shortUrl: str) -> str:\n        i = shortUrl.rfind('/')\n        id = int(shortUrl[i + 1:])\n        return self.database[id]\n```\n\n```C++ [sol1-C++]\nclass Solution {\nprivate:\n    unordered_map<int, string> dataBase;\n    int id;\n\npublic:\n    Solution() {\n        id = 0;\n    }\n\n    string encode(string longUrl) {\n        id++;\n        dataBase[id] = longUrl;\n        return string(\"http://tinyurl.com/\") + to_string(id);\n    }\n\n    string decode(string shortUrl) {\n        int p = shortUrl.rfind('/') + 1;\n        int key = stoi(shortUrl.substr(p, int(shortUrl.size()) - p));\n        return dataBase[key];\n    }\n};\n```\n\n```Java [sol1-Java]\npublic class Codec {\n    private Map<Integer, String> dataBase = new HashMap<Integer, String>();\n    private int id;\n\n    public String encode(String longUrl) {\n        id++;\n        dataBase.put(id, longUrl);\n        return \"http://tinyurl.com/\" + id;\n    }\n\n    public String decode(String shortUrl) {\n        int p = shortUrl.lastIndexOf('/') + 1;\n        int key = Integer.parseInt(shortUrl.substring(p));\n        return dataBase.get(key);\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Codec {\n    private Dictionary<int, string> dataBase = new Dictionary<int, string>();\n    private int id;\n\n    public string encode(string longUrl) {\n        id++;\n        if (!dataBase.ContainsKey(id)) {\n            dataBase.Add(id, longUrl);\n        } else {\n            dataBase[id] = longUrl;\n        }\n        return \"http://tinyurl.com/\" + id;\n    }\n\n    public string decode(string shortUrl) {\n        int p = shortUrl.LastIndexOf('/') + 1;\n        int key = int.Parse(shortUrl.Substring(p, shortUrl.Length - p));\n        return dataBase[key];\n    }\n}\n```\n\n```C [sol1-C]\ntypedef struct {\n    int key;\n    char *val;\n    UT_hash_handle hh;\n} HashItem;\n\nHashItem *dataBase = NULL;\nint id = 0;\n\nchar* encode(char* longUrl) {\n    id++;\n    HashItem * pEntry = NULL;\n    HASH_FIND_INT(dataBase, &id, pEntry);\n    if (NULL == pEntry) {\n        pEntry = (HashItem *)malloc(sizeof(HashItem));\n        pEntry->key = id;\n        pEntry->val = longUrl;\n        HASH_ADD_INT(dataBase, key, pEntry);\n    }\n    char *res = (char *)malloc(sizeof(char) * 64);\n    sprintf(res, \"%s%d\", \"http://tinyurl.com/\", id); \n    return res;\n}\n\nchar* decode(char* shortUrl) {\n    char *p = shortUrl;\n    char *last = shortUrl;\n    while (last = strchr(p, '/')) {\n        p = last + 1;\n    }\n    int key = atoi(p);\n    HashItem * pEntry = NULL;\n    HASH_FIND_INT(dataBase, &key, pEntry);\n    if (NULL != pEntry) {\n        return pEntry->val;\n    }\n    return NULL;\n}\n\n```\n\n```JavaScript [sol1-JavaScript]\nvar encode = function(longUrl) {\n    this.dataBase = new Map();\n    this.id = 0;\n    this.id++;\n    this.dataBase.set(this.id, longUrl);\n    return \"http://tinyurl.com/\" + this.id;\n};\n\nvar decode = function(shortUrl) {\n    const p = shortUrl.lastIndexOf('/') + 1;\n    const key = parseInt(shortUrl.substring(p));\n    return this.dataBase.get(key);\n};\n```\n\n```go [sol1-Golang]\ntype Codec struct {\n    dataBase map[int]string\n    id       int\n}\n\nfunc Constructor() Codec {\n    return Codec{map[int]string{}, 0}\n}\n\nfunc (c *Codec) encode(longUrl string) string {\n    c.id++\n    c.dataBase[c.id] = longUrl\n    return \"http://tinyurl.com/\" + strconv.Itoa(c.id)\n}\n\nfunc (c *Codec) decode(shortUrl string) string {\n    i := strings.LastIndexByte(shortUrl, '/')\n    id, _ := strconv.Atoi(shortUrl[i+1:])\n    return c.dataBase[id]\n}\n```\n\n**复杂度分析**\n\n+ 时间复杂度：\n    \n    + $\\text{Encode}$ 函数：$O(n)$，其中 $n$ 是字符串 $\\textit{longUrl}$ 的长度。\n\n    + $\\text{Decode}$ 函数：$O(1)$。我们当 $\\textit{shortUrl}$ 当成有限长度的字符串看待。\n\n+ 空间复杂度：\n\n    + $\\text{Encode}$ 函数：$O(n)$。保存字符串 $\\textit{longUrl}$ 需要 $O(n)$ 的空间。\n\n    + $\\text{Decode}$ 函数：$O(1)$。\n\n#### 方法二：哈希生成\n\n+ $\\text{Encode}$ 函数\n\n    设字符串 $\\textit{longUrl}$ 的长度为 $n$，选择两个合适的质数 $k_1 = 1117$，$k_2 = 10^9 + 7$，使用以下方法来计算 $\\textit{longUrl}$ 的哈希值：\n\n    $$\\text{Hash} ( \\textit{longUrl} ) = \\big ( \\sum^{n-1}_{i=0} \\textit{longUrl}[i] \\times k_1^i \\big ) \\bmod k_2$$\n\n    将哈希值作为 $\\textit{longUrl}$ 的 $\\textit{key}$，将键值对 $(\\textit{key}, \\textit{longUrl})$ 插入数据库 $\\textit{dataBase}$，然后返回带有 $\\textit{key}$ 的字符串作为 $\\textit{shorUrl}$。\n\n    > 发生哈希冲突时，我们采用线性探测再散列的方法，将 $\\textit{key}$ 加一，直到没有冲突。相同的 $\\textit{longUrl}$ 的哈希值相同，因此哈希冲突会频繁发生。为了避免这一点，我们使用一个额外的哈希表记录从 $\\textit{longUrl}$ 到 $\\textit{key}$ 的映射。\n\n+ $\\text{Decode}$ 函数\n\n    将 $\\textit{shortUrl}$ 转换成对应的 $\\textit{key}$，然后在数据库 $\\textit{dataBase}$ 中查找 $\\textit{key}$ 对应的 $\\textit{longUrl}$。\n\n```Python [sol2-Python3]\nK1, K2 = 1117, 10 ** 9 + 7\n\nclass Codec:\n    def __init__(self):\n        self.dataBase = {}\n        self.urlToKey = {}\n\n    def encode(self, longUrl: str) -> str:\n        if longUrl in self.urlToKey:\n            return \"http://tinyurl.com/\" + str(self.urlToKey[longUrl])\n        key, base = 0, 1\n        for c in longUrl:\n            key = (key + ord(c) * base) % K2\n            base = (base * K1) % K2\n        while key in self.dataBase:\n            key = (key + 1) % K2\n        self.dataBase[key] = longUrl\n        self.urlToKey[longUrl] = key\n        return \"http://tinyurl.com/\" + str(key)\n\n    def decode(self, shortUrl: str) -> str:\n        i = shortUrl.rfind('/')\n        key = int(shortUrl[i + 1:])\n        return self.dataBase[key]\n```\n\n```C++ [sol2-C++]\nconst long long k1 = 1117;\nconst long long k2 = 1e9 + 7;\n\nclass Solution {\nprivate:\n    unordered_map<int, string> dataBase;\n    unordered_map<string, int> urlToKey;\n\npublic:\n    Solution() {\n\n    }\n\n    string encode(string longUrl) {\n        if (urlToKey.count(longUrl) > 0) {\n            return string(\"http://tinyurl.com/\") + to_string(urlToKey[longUrl]);\n        }\n        long long key = 0, base = 1;\n        for (auto c : longUrl) {\n            key = (key + c * base) % k2;\n            base = (base * k1) % k2;\n        }\n        while (dataBase.count(key) > 0) {\n            key = (key + 1) % k2;\n        }\n        dataBase[key] = longUrl;\n        urlToKey[longUrl] = key;\n        return string(\"http://tinyurl.com/\") + to_string(key);\n    }\n\n    string decode(string shortUrl) {\n        int p = shortUrl.rfind('/') + 1;\n        int key = stoi(shortUrl.substr(p, int(shortUrl.size()) - p));\n        return dataBase[key];\n    }\n};\n```\n\n```Java [sol2-Java]\npublic class Codec {\n    static final int K1 = 1117;\n    static final int K2 = 1000000007;\n    private Map<Integer, String> dataBase = new HashMap<Integer, String>();\n    private Map<String, Integer> urlToKey = new HashMap<String, Integer>();\n\n    public String encode(String longUrl) {\n        if (urlToKey.containsKey(longUrl)) {\n            return \"http://tinyurl.com/\" + urlToKey.get(longUrl);\n        }\n        int key = 0;\n        long base = 1;\n        for (int i = 0; i < longUrl.length(); i++) {\n            char c = longUrl.charAt(i);\n            key = (int) ((key + (long) c * base) % K2);\n            base = (base * K1) % K2;\n        }\n        while (dataBase.containsKey(key)) {\n            key = (key + 1) % K2;\n        }\n        dataBase.put(key, longUrl);\n        urlToKey.put(longUrl, key);\n        return \"http://tinyurl.com/\" + key;\n    }\n\n    public String decode(String shortUrl) {\n        int p = shortUrl.lastIndexOf('/') + 1;\n        int key = Integer.parseInt(shortUrl.substring(p));\n        return dataBase.get(key);\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class Codec {\n    const int K1 = 1117;\n    const int K2 = 1000000007;\n    private Dictionary<int, string> dataBase = new Dictionary<int, string>();\n    private Dictionary<string, int> urlToKey = new Dictionary<string, int>();\n\n    public string encode(string longUrl) {\n        if (urlToKey.ContainsKey(longUrl)) {\n            return \"http://tinyurl.com/\" + urlToKey[longUrl];\n        }\n        int key = 0;\n        long b = 1;\n        foreach (char c in longUrl) {\n            key = (int) ((key + (long) c * b) % K2);\n            b = (b * K1) % K2;\n        }\n        while (dataBase.ContainsKey(key)) {\n            key = (key + 1) % K2;\n        }\n        dataBase.Add(key, longUrl);\n        urlToKey.Add(longUrl, key);\n        return \"http://tinyurl.com/\" + key;\n    }\n\n    public string decode(string shortUrl) {\n        int p = shortUrl.LastIndexOf('/') + 1;\n        int key = int.Parse(shortUrl.Substring(p, shortUrl.Length - p));\n        return dataBase[key];\n    }\n}\n```\n\n```C [sol2-C]\ntypedef struct {\n    int key;\n    char *val;\n    UT_hash_handle hh;\n} HashDataItem;\n\ntypedef struct {\n    char *key;\n    int val;\n    UT_hash_handle hh;\n} HashTokenItem;\n\nconst long long k1 = 1117;\nconst long long k2 = 1e9 + 7;\nHashDataItem *dataBase = NULL;\nHashTokenItem * urlToKey = NULL;\n\nchar* encode(char* longUrl) {\n    HashTokenItem *pToken = NULL;\n    HASH_FIND_STR(urlToKey, longUrl, pToken);\n    if (NULL != pToken) {\n        char *res = (char *)malloc(sizeof(char) * 64);\n        sprintf(res, \"%s%d\", \"http://tinyurl.com/\", pToken->val); \n        return res;\n    }\n    long long key = 0, base = 1;\n    int len = strlen(longUrl);\n    for (int i = 0; i < len; i++) {\n        char c = longUrl[i];\n        key = (key + c * base) % k2;\n        base = (base * k1) % k2;\n    }\n    HashDataItem * pEntry = NULL;\n    do {\n        pEntry = NULL;\n        HASH_FIND_INT(dataBase, &key, pEntry);\n        if (pEntry) {\n            key = (key + 1) % k2;\n        }\n    } while(pEntry);\n    pEntry = (HashDataItem *)malloc(sizeof(HashDataItem));\n    pEntry->key = key;\n    pEntry->val = longUrl;\n    HASH_ADD_INT(dataBase, key, pEntry);\n    pToken = (HashTokenItem *)malloc(sizeof(HashTokenItem));\n    pToken->key = longUrl;\n    pToken->val = key;\n    HASH_ADD_STR(urlToKey, key, pToken);\n    char *res = (char *)malloc(sizeof(char) * 64);\n    sprintf(res, \"%s%d\", \"http://tinyurl.com/\", key); \n    return res;\n}\n\nchar* decode(char* shortUrl) {\n    char *p = shortUrl;\n    char *last = shortUrl;\n    while (last = strchr(p, '/')) {\n        p = last + 1;\n    }\n    int key = atoi(p);\n    HashDataItem * pEntry = NULL;\n    HASH_FIND_INT(dataBase, &key, pEntry);\n    if (NULL != pEntry) {\n        return pEntry->val;\n    }\n    return NULL;\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar encode = function(longUrl) {\n    const K1 = 1117;\n    const K2 = 1000000007;\n    this.dataBase = new Map();\n    this.urlToKey = new Map();\n\n    if (this.urlToKey.has(longUrl)) {\n            return \"http://tinyurl.com/\" + this.urlToKey.get(longUrl);\n        }\n        let key = 0;\n        let base = 1;\n        for (let i = 0; i < longUrl.length; i++) {\n            const c = longUrl[i];\n            key = (key + c * base) % K2;\n            base = (base * K1) % K2;\n        }\n        while (dataBase.has(key)) {\n            key = (key + 1) % K2;\n        }\n        dataBase.set(key, longUrl);\n        urlToKey.set(longUrl, key);\n        return \"http://tinyurl.com/\" + key;\n};\n\nvar decode = function(shortUrl) {\n    const p = shortUrl.lastIndexOf('/') + 1;\n    const key = parseInt(shortUrl.substring(p));\n    return this.dataBase.get(key);\n};\n```\n\n```go [sol2-Golang]\nconst k1, k2 = 1117, 1e9 + 7\n\ntype Codec struct {\n    dataBase map[int]string\n    urlToKey map[string]int\n}\n\nfunc Constructor() Codec {\n    return Codec{map[int]string{}, map[string]int{}}\n}\n\nfunc (c *Codec) encode(longUrl string) string {\n    if key, ok := c.urlToKey[longUrl]; ok {\n        return \"http://tinyurl.com/\" + strconv.Itoa(key)\n    }\n    key, base := 0, 1\n    for _, c := range longUrl {\n        key = (key + int(c)*base) % k2\n        base = (base * k1) % k2\n    }\n    for c.dataBase[key] != \"\" {\n        key = (key + 1) % k2\n    }\n    c.dataBase[key] = longUrl\n    c.urlToKey[longUrl] = key\n    return \"http://tinyurl.com/\" + strconv.Itoa(key)\n}\n\nfunc (c *Codec) decode(shortUrl string) string {\n    i := strings.LastIndexByte(shortUrl, '/')\n    key, _ := strconv.Atoi(shortUrl[i+1:])\n    return c.dataBase[key]\n}\n```\n\n**复杂度分析**\n\n+ 时间复杂度：\n    \n    + $\\text{Encode}$ 函数：$O(n)$，其中 $n$ 是字符串 $\\textit{longUrl}$ 的长度。在数据量远小于 $10^9 + 7$ 的情况下，发生哈希冲突的可能性十分小。\n\n    + $\\text{Decode}$ 函数：$O(1)$。我们当 $\\textit{shortUrl}$ 当成有限长度的字符串看待。\n\n+ 空间复杂度：\n\n    + $\\text{Encode}$ 函数：$O(n)$。保存字符串 $\\textit{longUrl}$ 需要 $O(n)$ 的空间。\n\n    + $\\text{Decode}$ 函数：$O(1)$。\n\n#### 方法三：随机生成\n\n+ $\\text{Encode}$ 函数\n\n    使用一个随机生成的整数作为 $\\textit{longUrl}$ 的 $\\textit{key}$，如果 $\\textit{key}$ 已经重复，那么不断尝试随机生成整数，直到 $\\textit{key}$ 唯一。将键值对 $(\\textit{key}, \\textit{longUrl})$ 插入数据库 $\\textit{dataBase}$，然后返回带有 $\\textit{key}$ 的字符串作为 $\\textit{shorUrl}$。\n\n+ $\\text{Decode}$ 函数\n\n    将 $\\textit{shortUrl}$ 转换成对应的 $\\textit{key}$，然后在数据库 $\\textit{dataBase}$ 中查找 $\\textit{key}$ 对应的 $\\textit{longUrl}$。\n\n```Python [sol3-Python3]\nclass Codec:\n    def __init__(self):\n        self.dataBase = {}\n\n    def encode(self, longUrl: str) -> str:\n        while True:\n            key = randrange(maxsize)\n            if key not in self.dataBase:\n                self.dataBase[key] = longUrl\n                return \"http://tinyurl.com/\" + str(key)\n\n    def decode(self, shortUrl: str) -> str:\n        i = shortUrl.rfind('/')\n        key = int(shortUrl[i + 1:])\n        return self.dataBase[key]\n```\n\n```C++ [sol3-C++]\nclass Solution {\nprivate:\n    unordered_map<int, string> dataBase;\n\npublic:\n    Solution() {\n        srand(time(0));\n    }\n\n    string encode(string longUrl) {\n        int key;\n        while (true) {\n            key = rand();\n            if (dataBase.count(key) == 0) {\n                break;\n            }\n        }\n        dataBase[key] = longUrl;\n        return string(\"http://tinyurl.com/\") + to_string(key);\n    }\n\n    string decode(string shortUrl) {\n        int p = shortUrl.rfind('/') + 1;\n        int key = stoi(shortUrl.substr(p, int(shortUrl.size()) - p));\n        return dataBase[key];\n    }\n};\n```\n\n```Java [sol3-Java]\npublic class Codec {\n    private Map<Integer, String> dataBase = new HashMap<Integer, String>();\n    private Random random = new Random();\n\n    public String encode(String longUrl) {\n        int key;\n        while (true) {\n            key = random.nextInt();\n            if (!dataBase.containsKey(key)) {\n                break;\n            }\n        }\n        dataBase.put(key, longUrl);\n        return \"http://tinyurl.com/\" + key;\n    }\n\n    public String decode(String shortUrl) {\n        int p = shortUrl.lastIndexOf('/') + 1;\n        int key = Integer.parseInt(shortUrl.substring(p));\n        return dataBase.get(key);\n    }\n}\n```\n\n```C# [sol3-C#]\npublic class Codec {\n    private Dictionary<int, string> dataBase = new Dictionary<int, string>();\n    private Random random = new Random();\n\n    public string encode(string longUrl) {\n        int key;\n        while (true) {\n            key = random.Next();\n            if (!dataBase.ContainsKey(key)) {\n                break;\n            }\n        }\n        dataBase.Add(key, longUrl);\n        return \"http://tinyurl.com/\" + key;\n    }\n\n    public string decode(string shortUrl) {\n        int p = shortUrl.LastIndexOf('/') + 1;\n        int key = int.Parse(shortUrl.Substring(p, shortUrl.Length - p));\n        return dataBase[key];\n    }\n}\n```\n\n```C [sol3-C]\ntypedef struct {\n    int key;\n    char *val;\n    UT_hash_handle hh;\n} HashItem;\n\nHashItem *dataBase = NULL;\n\nchar* encode(char* longUrl) {\n    srand(time(0));\n    int key;\n    HashItem * pEntry = NULL;\n    while (true) {\n        key = rand();\n        pEntry = NULL;\n        HASH_FIND_INT(dataBase, &key, pEntry);\n        if (NULL == pEntry) {\n            break;\n        }\n    }\n    pEntry = (HashItem *)malloc(sizeof(HashItem));\n    pEntry->key = key;\n    pEntry->val = longUrl;\n    HASH_ADD_INT(dataBase, key, pEntry);\n    char *res = (char *)malloc(sizeof(char) * 64);\n    sprintf(res, \"%s%d\", \"http://tinyurl.com/\", key); \n    return res;\n}\n\nchar* decode(char* shortUrl) {\n    char *p = shortUrl;\n    char *last = shortUrl;\n    while (last = strchr(p, '/')) {\n        p = last + 1;\n    }\n    int key = atoi(p);\n    HashItem * pEntry = NULL;\n    HASH_FIND_INT(dataBase, &key, pEntry);\n    if (NULL != pEntry) {\n        return pEntry->val;\n    }\n    return NULL;\n}\n\n```\n\n```JavaScript [sol3-JavaScript]\nvar encode = function(longUrl) {\n    this.dataBase = new Map();\n    let key;\n    while (true) {\n        key = Math.floor(Math.random() * (Number.MAX_SAFE_INTEGER));\n        if (!dataBase.has(key)) {\n            break;\n        }\n    }\n    this.dataBase.set(key, longUrl);\n    return \"http://tinyurl.com/\" + key;\n};\n\nvar decode = function(shortUrl) {\n    const p = shortUrl.lastIndexOf('/') + 1;\n    const key = parseInt(shortUrl.substring(p));\n    return this.dataBase.get(key);\n};\n```\n\n```go [sol3-Golang]\nimport \"math/rand\"\n\ntype Codec map[int]string\n\nfunc Constructor() Codec {\n    return Codec{}\n}\n\nfunc (c Codec) encode(longUrl string) string {\n    for {\n        key := rand.Int()\n        if c[key] == \"\" {\n            c[key] = longUrl\n            return \"http://tinyurl.com/\" + strconv.Itoa(key)\n        }\n    }\n}\n\nfunc (c Codec) decode(shortUrl string) string {\n    i := strings.LastIndexByte(shortUrl, '/')\n    key, _ := strconv.Atoi(shortUrl[i+1:])\n    return c[key]\n}\n```\n\n**复杂度分析**\n\n+ 时间复杂度：\n\n    + $\\text{Encode}$ 函数：$O(n)$，其中 $n$ 是字符串 $\\textit{longUrl}$ 的长度。在数据量远小于 $2^{32}$ 的情况下，随机生成的整数重复的可能性十分小。\n\n    + $\\text{Decode}$ 函数：$O(1)$。我们当 $\\textit{shortUrl}$ 当成有限长度的字符串看待。\n\n+ 空间复杂度：\n\n    + $\\text{Encode}$ 函数：$O(n)$。保存字符串 $\\textit{longUrl}$ 需要 $O(n)$ 的空间。\n\n    + $\\text{Decode}$ 函数：$O(1)$。",
+            "slateValue": "",
+            "slug": "tinyurl-de-jia-mi-yu-jie-mi-by-leetcode-ty5yp",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "5AkS65",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 52,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Design",
+                    "nameTranslated": "设计",
+                    "slug": "design",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Hash Function",
+                    "nameTranslated": "哈希函数",
+                    "slug": "hash-function",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2022-06-28T01:38:45.127207+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "前言 题目不要求相同的 $\\text{URL}$ 必须加密成同一个 $\\text{TinyURL}$，因此本文的方法不满足相同的 $\\text{URL}$ 加密成同一个 $\\text{TinyURL}$。如果想要实现相同的 $\\text{URL}$ 加密成同一个 $\\text{TinyURL}$，则额外保存一个从 $\\",
+            "topic": {
+                "id": 1630074,
+                "subscribed": false,
+                "commentCount": 109,
+                "viewCount": 18493,
+                "post": {
+                    "id": 3258079,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 67,
+            "isEditorsPick": false,
+            "hitCount": 32409,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "encode-and-decode-tinyurl",
+                "questionFrontendId": "535"
+            },
+            "next": {
+                "slug": "by-ac_oier-ca6o",
+                "title": "【宫水三叶】简单哈希表运用模拟题"
+            },
+            "prev": null
+        }
+    }
+}

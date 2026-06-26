@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "DIaZu4",
+            "title": "区间内查询数字的频率",
+            "content": "#### 方法一：哈希表 + 二分查找\n\n**思路与算法**\n\n我们假设数组 $\\textit{arr}$ 的长度为 $n$。对于单次查询，一种朴素的方法是遍历数组下标在闭区间 $[\\textit{left}, \\textit{right}]$ 内的所有数，维护目标数 $\\textit{value}$ 的出现次数，但这样的时间复杂度为 $O(n)$，假设查询总数为 $q$，则总时间复杂度为 $O(nq)$，这样的复杂度无法通过本题。因此我们需要优化单次查询的时间复杂度。\n\n我们可以将单次查询分解为两个部分：\n\n- 第一步，得到目标数 $\\textit{value}$ 在数组 $\\textit{arr}$ 中出现的所有下标；\n\n- 第二步，在这些下标中计算位于闭区间 $[\\textit{left}, \\textit{right}]$ 的下标个数并返回。\n\n对于第一步，由于在本题中数组 $\\textit{arr}$ 在生成后**不会发生改变**，因此我们可以预处理数组中每个数的出现下标，并对于每个数用相应**数组**维护。同时，为了优化查询每个数对应下标的时间复杂度，我们可以用数值为键，对应下标数组为值的**哈希表**来维护。这样，我们可以在 $\\textit{RangeFreqQuery}$ 类初始化时，以 $O(n)$ 的时间复杂度完成哈希表的初始化，并在每次查询时以 $O(1)$ 的时间复杂度查询到该数值对应的（如有）下标数组。\n\n对于第二步，只要我们可以保证下标数组的**有序性**，就可以利用两次二分查找，$O(\\log n)$ 的时间复杂度下计算出位于闭区间 $[\\textit{left}, \\textit{right}]$ 的下标个数。事实上，只需要我们在第一步中提到的初始化过程中，**顺序遍历**数组 $\\textit{arr}$，并始终将新的下标放入对应下标数组的末尾，那么哈希表中所有的下标数组都可以保证有序。\n\n根据上文的分析，我们首先在 $\\textit{RangeFreqQuery}$ 类初始化时建立以数值为键，对应出现下标数组为值的哈希表 $\\textit{occurence}$，随后顺序遍历数组 $\\textit{arr}$，将数值与对应下标加入哈希表。具体地：\n\n- 如果该数值不存在，我们在哈希表 $\\textit{occurence}$ 中建立该数值为键，空数组为值的键值对，并将当前下标加入该空数组末尾；\n\n- 如果该数值存在，我们直接将当前下标加入该数值在 $\\textit{occurence}$ 中对应的下标数组的末尾。\n\n处理每次查询时，我们首先检查目标数 $\\textit{value}$ 是否存在于哈希表中：如果不存在，则出现次数为 $0$；如果存在，则我们通过两次二分查找寻找到数组中**第一个大于等于** $\\textit{left}$ 的位置 $l$ 与**第一个大于** $\\textit{right}$ 的位置 $r$，此时 $r - l$ 即为符合要求的下标个数（子数组中目标数的出现次数），我们返回该数作为答案。\n\n**代码**\n\n```C++ [sol1-C++]\nclass RangeFreqQuery {\nprivate: \n    // 数值为键，出现下标数组为值的哈希表\n    unordered_map<int, vector<int>> occurence;\n    \npublic:\n    RangeFreqQuery(vector<int>& arr) {\n        // 顺序遍历数组初始化哈希表\n        int n = arr.size();\n        for (int i = 0; i < n; ++i){\n            occurence[arr[i]].push_back(i);\n        }\n    }\n    \n    int query(int left, int right, int value) {\n        // 查找对应的出现下标数组，不存在则为空\n        const vector<int>& pos = occurence[value];\n        // 两次二分查找计算子数组内出现次数\n        auto l = lower_bound(pos.begin(), pos.end(), left);\n        auto r = upper_bound(pos.begin(), pos.end(), right);\n        return r - l;\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass RangeFreqQuery:\n\n    def __init__(self, arr: List[int]):\n        # 数值为键，出现下标数组为值的哈希表\n        self.occurence = defaultdict(list)\n        # 顺序遍历数组初始化哈希表\n        n = len(arr)\n        for i in range(n):\n            self.occurence[arr[i]].append(i)\n\n    def query(self, left: int, right: int, value: int) -> int:\n        # 查找对应的出现下标数组，不存在则为空\n        pos = self.occurence[value]\n        # 两次二分查找计算子数组内出现次数\n        l = bisect_left(pos, left)\n        r = bisect_right(pos, right)\n        return r - l\n```\n\n```Java [sol1-Java]\nclass RangeFreqQuery {\n    // 数值为键，出现下标数组为值的哈希表\n    private Map<Integer, List<Integer>> occurrence;\n\n    public RangeFreqQuery(int[] arr) {\n        occurrence = new HashMap<>();\n        // 顺序遍历数组初始化哈希表\n        for (int i = 0; i < arr.length; ++i) {\n            occurrence.putIfAbsent(arr[i], new ArrayList<>());\n            occurrence.get(arr[i]).add(i);\n        }\n    }\n    \n    public int query(int left, int right, int value) {\n        // 查找对应的出现下标数组，不存在则为空\n        List<Integer> pos = occurrence.getOrDefault(value, new ArrayList<>());\n        // 两次二分查找计算子数组内出现次数\n        int l = lowerBound(pos, left);\n        int r = upperBound(pos, right);\n        return r - l;\n    }\n\n    private int lowerBound(List<Integer> pos, int target) {\n        int low = 0, high = pos.size() - 1;\n        while (low <= high) {\n            int mid = low + (high - low) / 2;\n            if (pos.get(mid) < target) {\n                low = mid + 1;\n            } else {\n                high = mid - 1;\n            }\n        }\n        return low;\n    }\n\n    private int upperBound(List<Integer> pos, int target) {\n        int low = 0, high = pos.size() - 1;\n        while (low <= high) {\n            int mid = low + (high - low) / 2;\n            if (pos.get(mid) <= target) {\n                low = mid + 1;\n            } else {\n                high = mid - 1;\n            }\n        }\n        return low;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class RangeFreqQuery {\n    // 数值为键，出现下标数组为值的哈希表\n    private Dictionary<int, List<int>> occurrence;\n\n    public RangeFreqQuery(int[] arr) {\n        occurrence = new Dictionary<int, List<int>>();\n        // 顺序遍历数组初始化哈希表\n        for (int i = 0; i < arr.Length; ++i) {\n            if (!occurrence.ContainsKey(arr[i])) {\n                occurrence[arr[i]] = new List<int>();\n            }\n            occurrence[arr[i]].Add(i);\n        }\n    }\n    \n    public int Query(int left, int right, int value) {\n        // 查找对应的出现下标数组，不存在则为空\n        if (!occurrence.TryGetValue(value, out var pos)) {\n            pos = new List<int>();\n        }\n        // 两次二分查找计算子数组内出现次数\n        int l = LowerBound(pos, left);\n        int r = UpperBound(pos, right);\n        return r - l;\n    }\n\n    private int LowerBound(List<int> pos, int target) {\n        int low = 0, high = pos.Count - 1;\n        while (low <= high) {\n            int mid = low + (high - low) / 2;\n            if (pos[mid] < target) {\n                low = mid + 1;\n            } else {\n                high = mid - 1;\n            }\n        }\n        return low;\n    }\n\n    private int UpperBound(List<int> pos, int target) {\n        int low = 0, high = pos.Count - 1;\n        while (low <= high) {\n            int mid = low + (high - low) / 2;\n            if (pos[mid] <= target) {\n                low = mid + 1;\n            } else {\n                high = mid - 1;\n            }\n        }\n        return low;\n    }\n}\n```\n\n```Go [sol1-Go]\ntype RangeFreqQuery struct {\n    // 数值为键，出现下标数组为值的哈希表\n    occurrence map[int][]int\n}\n\n\nfunc Constructor(arr []int) RangeFreqQuery {\n    occurrence := make(map[int][]int)\n    // 顺序遍历数组初始化哈希表\n\tfor i, v := range arr {\n\t\toccurrence[v] = append(occurrence[v], i)\n\t}\n\treturn RangeFreqQuery{occurrence: occurrence}\n}\n\nfunc (this *RangeFreqQuery) Query(left int, right int, value int) int {\n    // 查找对应的出现下标数组，不存在则为空\n    pos, exists := this.occurrence[value]\n\tif !exists {\n\t\treturn 0\n\t}\n    // 两次二分查找计算子数组内出现次数\n\tl := lowerBound(pos, left)\n\tr := upperBound(pos, right)\n\treturn r - l\n}\n\nfunc lowerBound(pos []int, target int) int {\n\tlow, high := 0, len(pos)-1\n\tfor low <= high {\n\t\tmid := low + (high-low)/2\n\t\tif pos[mid] < target {\n\t\t\tlow = mid + 1\n\t\t} else {\n\t\t\thigh = mid - 1\n\t\t}\n\t}\n\treturn low\n}\n\nfunc upperBound(pos []int, target int) int {\n\tlow, high := 0, len(pos)-1\n\tfor low <= high {\n\t\tmid := low + (high-low)/2\n\t\tif pos[mid] <= target {\n\t\t\tlow = mid + 1\n\t\t} else {\n\t\t\thigh = mid - 1\n\t\t}\n\t}\n\treturn low\n}\n```\n\n```C [sol1-C]\n#define MIN_SIZE 64\n\ntypedef struct {\n    int value;       \n    int *indices;    \n    int size;\n    int capbility;        \n    UT_hash_handle hh;\n} Occurrence;\n\ntypedef struct {\n    Occurrence *occurrence_map;  // 哈希表\n    int \n} RangeFreqQuery;\n\n// 查找下界\nint lower_bound(int* arr, int size, int target) {\n    int low = 0, high = size - 1;\n    while (low <= high) {\n        int mid = low + (high - low) / 2;\n        if (arr[mid] < target) {\n            low = mid + 1;\n        } else {\n            high = mid - 1;\n        }\n    }\n    return low;\n}\n\n// 查找上界\nint upper_bound(int* arr, int size, int target) {\n    int low = 0, high = size - 1;\n    while (low <= high) {\n        int mid = low + (high - low) / 2;\n        if (arr[mid] <= target) {\n            low = mid + 1;\n        } else {\n            high = mid - 1;\n        }\n    }\n    return low;\n}\n\nRangeFreqQuery* rangeFreqQueryCreate(int* arr, int arrSize) {\n    RangeFreqQuery* query = (RangeFreqQuery*)malloc(sizeof(RangeFreqQuery));\n    query->occurrence_map = NULL;\n\n    // 顺序遍历数组初始化哈希表\n    for (int i = 0; i < arrSize; ++i) {\n        int value = arr[i];\n        Occurrence *occ;\n        // 查找是否已有该数字的条目\n        HASH_FIND_INT(query->occurrence_map, &value, occ);\n        if (!occ) {\n            // 如果没有该条目，则创建一个新的\n            occ = (Occurrence*)malloc(sizeof(Occurrence));\n            occ->value = value;\n            occ->size = 0;\n            occ->capbility = MIN_SIZE;\n            occ->indices = (int*)malloc(occ->capbility * sizeof(int));\n            HASH_ADD_INT(query->occurrence_map, value, occ);\n        }\n        // 将当前的下标加入到对应数字的下标数组中\n        if (occ->size >= occ->capbility) {\n            occ->capbility *= 2;\n            occ->indices = (int*)realloc(occ->indices, occ->capbility * sizeof(int));\n        }\n        occ->indices[occ->size] = i;\n        occ->size++;\n    }\n\n    return query;\n}\n\nint rangeFreqQueryQuery(RangeFreqQuery* obj, int left, int right, int value) {\n    Occurrence* occ;\n    HASH_FIND_INT(obj->occurrence_map, &value, occ);\n    if (!occ || occ->size == 0) {\n        return 0;  // 没有该值\n    }\n\n    // 两次二分查找计算子数组内出现次数\n    int l = lower_bound(occ->indices, occ->size, left);\n    int r = upper_bound(occ->indices, occ->size, right);\n    return r - l;\n}\n\nvoid rangeFreqQueryFree(RangeFreqQuery* obj) {\n    Occurrence *current, *tmp;\n    HASH_ITER(hh, obj->occurrence_map, current, tmp) {\n        free(current->indices);\n        HASH_DEL(obj->occurrence_map, current);\n        free(current);\n    }\n    free(obj);\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar RangeFreqQuery = function(arr) {\n    // 数值为键，出现下标数组为值的哈希表\n    this.occurrence = {};\n    // 顺序遍历数组初始化哈希表\n    for (let i = 0; i < arr.length; ++i) {\n        if (!this.occurrence[arr[i]]) {\n            this.occurrence[arr[i]] = [];\n        }\n        this.occurrence[arr[i]].push(i);\n    }\n};\n\nRangeFreqQuery.prototype.query = function(left, right, value) {\n    // 查找对应的出现下标数组，不存在则为空\n    const pos = this.occurrence[value] || [];\n    // 两次二分查找计算子数组内出现次数\n    const l = lowerBound(pos, left);\n    const r = upperBound(pos, right);\n    return r - l;\n};\n\nconst lowerBound = (pos, target) => {\n    let low = 0, high = pos.length - 1;\n    while (low <= high) {\n        const mid = low + Math.floor((high - low) / 2);\n        if (pos[mid] < target) {\n            low = mid + 1;\n        } else {\n            high = mid - 1;\n        }\n    }\n    return low;\n}\n\nconst upperBound = (pos, target) => {\n    let low = 0, high = pos.length - 1;\n    while (low <= high) {\n        const mid = low + Math.floor((high - low) / 2);\n        if (pos[mid] <= target) {\n            low = mid + 1;\n        } else {\n            high = mid - 1;\n        }\n    }\n    return low;\n}\n```\n\n```TypeScript [sol1-TypeScript]\nclass RangeFreqQuery {\n    // 数值为键，出现下标数组为值的哈希表\n    private occurrence: { [key: number]: number[] };\n\n    constructor(arr: number[]) {\n        this.occurrence = {};\n        // 顺序遍历数组初始化哈希表\n        for (let i = 0; i < arr.length; ++i) {\n            if (!this.occurrence[arr[i]]) {\n                this.occurrence[arr[i]] = [];\n            }\n            this.occurrence[arr[i]].push(i);\n        }\n    }\n\n    query(left: number, right: number, value: number): number {\n        // 查找对应的出现下标数组，不存在则为空\n        const pos = this.occurrence[value] || [];\n        // 两次二分查找计算子数组内出现次数\n        const l = this.lowerBound(pos, left);\n        const r = this.upperBound(pos, right);\n        return r - l;\n    }\n\n    private lowerBound(pos: number[], target: number): number {\n        let low = 0, high = pos.length - 1;\n        while (low <= high) {\n            const mid = low + Math.floor((high - low) / 2);\n            if (pos[mid] < target) {\n                low = mid + 1;\n            } else {\n                high = mid - 1;\n            }\n        }\n        return low;\n    }\n\n    private upperBound(pos: number[], target: number): number {\n        let low = 0, high = pos.length - 1;\n        while (low <= high) {\n            const mid = low + Math.floor((high - low) / 2);\n            if (pos[mid] <= target) {\n                low = mid + 1;\n            } else {\n                high = mid - 1;\n            }\n        }\n        return low;\n    }\n}\n```\n\n```Rust [sol1-Rust]\nuse std::collections::HashMap;\n\nstruct RangeFreqQuery {\n    // 数值为键，出现下标数组为值的哈希表\n    occurrence: HashMap<i32, Vec<usize>>,\n}\n\nimpl RangeFreqQuery {\n\n    fn new(arr: Vec<i32>) -> Self {\n        let mut occurrence = HashMap::new();\n        // 顺序遍历数组初始化哈希表\n        for (i, &num) in arr.iter().enumerate() {\n            occurrence.entry(num).or_insert_with(Vec::new).push(i);\n        }\n        RangeFreqQuery { occurrence }\n    }\n    \n    fn query(&self, left: i32, right: i32, value: i32) -> i32 {\n        // 查找对应的出现下标数组，不存在则为空\n        if let Some(pos) = self.occurrence.get(&value) {\n            // 两次二分查找计算子数组内出现次数\n            let l = self.lower_bound(pos, left as usize);\n            let r = self.upper_bound(pos, right as usize);\n            return (r - l) as i32;\n        }\n        0\n    }\n\n    // 查找下界\n    fn lower_bound(&self, pos: &Vec<usize>, target: usize) -> usize {\n        let mut low = 0 as i32;\n        let mut high = pos.len() as i32 - 1;\n        while low <= high {\n            let mid = low + (high - low) as i32 / 2;\n            if pos[mid as usize] < target {\n                low = mid + 1;\n            } else {\n                high = mid - 1;\n            }\n        }\n        low as usize\n    }\n\n    // 查找上界\n    fn upper_bound(&self, pos: &Vec<usize>, target: usize) -> usize {\n        let mut low = 0;\n        let mut high = pos.len() as i32 - 1;\n        while low <= high {\n            let mid = low + (high - low) as i32 / 2;\n            if pos[mid as usize] <= target {\n                low = mid + 1;\n            } else {\n                high = mid - 1;\n            }\n        }\n        low as usize\n    }\n}\n\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n + q \\log n)$，其中 $n$ 为 $\\textit{arr}$ 的长度, $q$ 为调用 $\\textit{query}$ 的次数。初始化哈希表的时间复杂度为 $O(n)$，每次查询的时间复杂度为 $O(\\log n)$。\n\n- 空间复杂度：$O(n)$，即为哈希表的空间开销。",
+            "slateValue": "",
+            "slug": "qu-jian-nei-cha-xun-shu-zi-de-pin-lu-by-wh4ez",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "DIaZu4",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 17,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-11-22T03:25:18.096572+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：哈希表 + 二分查找 思路与算法 我们假设数组 [latex] 的长度为 [latex]。对于单次查询，一种朴素的方法是遍历数组下标在闭区间 [latex] 内的所有数，维护目标数 [latex] 的出现次数，但这样的时间复杂度为 [latex]，假设查询总数为 [latex]，则总时间复杂度为 [latex]",
+            "topic": {
+                "id": 1115337,
+                "subscribed": false,
+                "commentCount": 53,
+                "viewCount": 4560,
+                "post": {
+                    "id": 2358430,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 63,
+            "isEditorsPick": false,
+            "hitCount": 22763,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "range-frequency-queries",
+                "questionFrontendId": "2080"
+            },
+            "next": {
+                "slug": "tong-ji-wei-zhi-er-fen-wei-zhi-by-endles-8l9u",
+                "title": "简洁写法：统计位置+二分查找（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

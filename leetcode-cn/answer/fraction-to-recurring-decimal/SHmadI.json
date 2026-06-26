@@ -1,0 +1,134 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "SHmadI",
+            "title": "分数到小数",
+            "content": "#### 方法一：长除法\n\n题目要求根据给定的分子和分母，将分数转成整数或小数。由于给定的分子和分母的取值范围都是 $[-2^{31}, 2^{31}-1]$，为了防止计算过程中产生溢出，需要将分子和分母转成 $64$ 位整数表示。\n\n将分数转成整数或小数，做法是计算分子和分母相除的结果。可能的结果有三种：整数、有限小数、无限循环小数。\n\n如果分子可以被分母整除，则结果是整数，将分子除以分母的商以字符串的形式返回即可。\n\n如果分子不能被分母整除，则结果是有限小数或无限循环小数，需要通过模拟长除法的方式计算结果。为了方便处理，首先根据分子和分母的正负决定结果的正负（注意此时分子和分母都不为 $0$），然后将分子和分母都转成正数，再计算长除法。\n\n计算长除法时，首先计算结果的整数部分，将以下部分依次拼接到结果中：\n\n1. 如果结果是负数则将负号拼接到结果中，如果结果是正数则跳过这一步；\n\n2. 将整数部分拼接到结果中；\n\n3. 将小数点拼接到结果中。\n\n完成上述拼接之后，根据余数计算小数部分。\n\n计算小数部分时，每次将余数乘以 $10$，然后计算小数的下一位数字，并得到新的余数。重复上述操作直到余数变成 $0$ 或者找到循环节。\n\n- 如果余数变成 $0$，则结果是有限小数，将小数部分拼接到结果中。\n\n- 如果找到循环节，则找到循环节的开始位置和结束位置并加上括号，然后将小数部分拼接到结果中。\n\n如何判断是否找到循环节？注意到对于相同的余数，计算得到的小数的下一位数字一定是相同的，因此如果计算过程中发现某一位的余数在之前已经出现过，则为找到循环节。为了记录每个余数是否已经出现过，需要使用哈希表存储每个余数在小数部分第一次出现的下标。\n\n假设在计算小数部分的第 $i$ 位**之前**，余数为 $\\textit{remainder}_i$，则在计算小数部分的第 $i$ 位**之后**，余数为 $\\textit{remainder}_{i+1}$。\n\n假设存在下标 $j$ 和 $k$，满足 $j \\le k$ 且 $\\textit{remainder}_j = \\textit{remainder}_{k+1}$，则小数部分的第 $k+1$ 位和小数部分的第 $j$ 位相同，因此小数部分的第 $j$ 位到第 $k$ 位是一个循环节。在计算小数部分的第 $k$ 位之后就会发现这个循环节的存在，因此在小数部分的第 $j$ 位之前加上左括号，在小数部分的末尾（即第 $k$ 位之后）加上右括号。\n\n![fig1](https://assets.leetcode.cn/solution-static/166/1.png)\n\n![fig2](https://assets.leetcode.cn/solution-static/166/2.png)\n\n```Java [sol1-Java]\nclass Solution {\n    public String fractionToDecimal(int numerator, int denominator) {\n        long numeratorLong = (long) numerator;\n        long denominatorLong = (long) denominator;\n        if (numeratorLong % denominatorLong == 0) {\n            return String.valueOf(numeratorLong / denominatorLong);\n        }\n\n        StringBuffer sb = new StringBuffer();\n        if (numeratorLong < 0 ^ denominatorLong < 0) {\n            sb.append('-');\n        }\n\n        // 整数部分\n        numeratorLong = Math.abs(numeratorLong);\n        denominatorLong = Math.abs(denominatorLong);\n        long integerPart = numeratorLong / denominatorLong;\n        sb.append(integerPart);\n        sb.append('.');\n\n        // 小数部分\n        StringBuffer fractionPart = new StringBuffer();\n        Map<Long, Integer> remainderIndexMap = new HashMap<Long, Integer>();\n        long remainder = numeratorLong % denominatorLong;\n        int index = 0;\n        while (remainder != 0 && !remainderIndexMap.containsKey(remainder)) {\n            remainderIndexMap.put(remainder, index);\n            remainder *= 10;\n            fractionPart.append(remainder / denominatorLong);\n            remainder %= denominatorLong;\n            index++;\n        }\n        if (remainder != 0) { // 有循环节\n            int insertIndex = remainderIndexMap.get(remainder);\n            fractionPart.insert(insertIndex, '(');\n            fractionPart.append(')');\n        }\n        sb.append(fractionPart.toString());\n\n        return sb.toString();\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public string FractionToDecimal(int numerator, int denominator) {\n        long numeratorLong = (long) numerator;\n        long denominatorLong = (long) denominator;\n        if (numeratorLong % denominatorLong == 0) {\n            return (numeratorLong / denominatorLong).ToString();\n        }\n\n        StringBuilder sb = new StringBuilder();\n        if (numeratorLong < 0 ^ denominatorLong < 0) {\n            sb.Append('-');\n        }\n\n        // 整数部分\n        numeratorLong = Math.Abs(numeratorLong);\n        denominatorLong = Math.Abs(denominatorLong);\n        long integerPart = numeratorLong / denominatorLong;\n        sb.Append(integerPart);\n        sb.Append('.');\n\n        // 小数部分\n        StringBuilder fractionPart = new StringBuilder();\n        Dictionary<long, int> remainderIndexDic = new Dictionary<long, int>();\n        long remainder = numeratorLong % denominatorLong;\n        int index = 0;\n        while (remainder != 0 && !remainderIndexDic.ContainsKey(remainder)) {\n            remainderIndexDic.Add(remainder, index);\n            remainder *= 10;\n            fractionPart.Append(remainder / denominatorLong);\n            remainder %= denominatorLong;\n            index++;\n        }\n        if (remainder != 0) { // 有循环节\n            int insertIndex = remainderIndexDic[remainder];\n            fractionPart.Insert(insertIndex, '(');\n            fractionPart.Append(')');\n        }\n        sb.Append(fractionPart.ToString());\n\n        return sb.ToString();\n    }\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar fractionToDecimal = function(numerator, denominator) {\n    if (numerator % denominator == 0) {\n        return '' + Math.floor(numerator / denominator);\n    }\n\n    const sb = [];\n    if (numerator < 0 ^ denominator < 0) {\n        sb.push('-');\n    }\n\n    // 整数部分\n    numerator = Math.abs(numerator);\n    denominator = Math.abs(denominator);\n    const integerPart = Math.floor(numerator / denominator);\n    sb.push(integerPart);\n    sb.push('.');\n\n    // 小数部分\n    const fractionPart = [];\n    const remainderIndexDic = new Map();\n    let remainder = numerator % denominator;\n    let index = 0;\n    while (remainder !== 0 && !remainderIndexDic.has(remainder)) {\n        remainderIndexDic.set(remainder, index);\n        remainder *= 10;\n        fractionPart.push(Math.floor(remainder / denominator));\n        remainder %= denominator;\n        index++;\n    }\n    if (remainder !== 0) { // 有循环节\n        let insertIndex = remainderIndexDic.get(remainder);\n        fractionPart.splice(insertIndex, 0, '(');\n        fractionPart.push(')');\n    }\n    sb.push(fractionPart.join(''));\n\n    return sb.join('');\n}\n```\n\n```go [sol1-Golang]\nfunc fractionToDecimal(numerator, denominator int) string {\n    if numerator%denominator == 0 {\n        return strconv.Itoa(numerator / denominator)\n    }\n\n    s := []byte{}\n    if numerator < 0 != (denominator < 0) {\n        s = append(s, '-')\n    }\n\n    // 整数部分\n    numerator = abs(numerator)\n    denominator = abs(denominator)\n    integerPart := numerator / denominator\n    s = append(s, strconv.Itoa(integerPart)...)\n    s = append(s, '.')\n\n    // 小数部分\n    indexMap := map[int]int{}\n    remainder := numerator % denominator\n    for remainder != 0 && indexMap[remainder] == 0 {\n        indexMap[remainder] = len(s)\n        remainder *= 10\n        s = append(s, '0'+byte(remainder/denominator))\n        remainder %= denominator\n    }\n    if remainder > 0 { // 有循环节\n        insertIndex := indexMap[remainder]\n        s = append(s[:insertIndex], append([]byte{'('}, s[insertIndex:]...)...)\n        s = append(s, ')')\n    }\n\n    return string(s)\n}\n\nfunc abs(x int) int {\n    if x < 0 {\n        return -x\n    }\n    return x\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    string fractionToDecimal(int numerator, int denominator) {\n        long numeratorLong = numerator;\n        long denominatorLong = denominator;\n        if (numeratorLong % denominatorLong == 0) {\n            return to_string(numeratorLong / denominatorLong);\n        }\n\n        string ans;\n        if (numeratorLong < 0 ^ denominatorLong < 0) {\n            ans.push_back('-');\n        }\n\n        // 整数部分\n        numeratorLong = abs(numeratorLong);\n        denominatorLong = abs(denominatorLong);\n        long integerPart = numeratorLong / denominatorLong;\n        ans += to_string(integerPart);\n        ans.push_back('.');\n\n        // 小数部分\n        string fractionPart;\n        unordered_map<long, int> remainderIndexMap;\n        long remainder = numeratorLong % denominatorLong;\n        int index = 0;\n        while (remainder != 0 && !remainderIndexMap.count(remainder)) {\n            remainderIndexMap[remainder] = index;\n            remainder *= 10;\n            fractionPart += to_string(remainder / denominatorLong);\n            remainder %= denominatorLong;\n            index++;\n        }\n        if (remainder != 0) { // 有循环节\n            int insertIndex = remainderIndexMap[remainder];\n            fractionPart = fractionPart.substr(0,insertIndex) + '(' + fractionPart.substr(insertIndex);\n            fractionPart.push_back(')');\n        }\n        ans += fractionPart;\n\n        return ans;\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def fractionToDecimal(self, numerator: int, denominator: int) -> str:\n        if numerator % denominator == 0:\n            return str(numerator // denominator)\n\n        s = []\n        if (numerator < 0) != (denominator < 0):\n            s.append('-')\n\n        # 整数部分\n        numerator = abs(numerator)\n        denominator = abs(denominator)\n        integerPart = numerator // denominator\n        s.append(str(integerPart))\n        s.append('.')\n\n        # 小数部分\n        indexMap = {}\n        remainder = numerator % denominator\n        while remainder and remainder not in indexMap:\n            indexMap[remainder] = len(s)\n            remainder *= 10\n            s.append(str(remainder // denominator))\n            remainder %= denominator\n        if remainder:  # 有循环节\n            insertIndex = indexMap[remainder]\n            s.insert(insertIndex, '(')\n            s.append(')')\n\n        return ''.join(s)\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(l)$，其中 $l$ 是答案字符串的长度，这道题中 $l \\le 10^4$。对于答案字符串中的每一个字符，计算时间都是 $O(1)$。\n\n- 空间复杂度：$O(l)$，其中 $l$ 是答案字符串的长度，这道题中 $l \\le 10^4$。空间复杂度主要取决于答案字符串和哈希表，哈希表中的每个键值对所对应的下标各不相同，因此键值对的数量不会超过 $l$。",
+            "slateValue": "",
+            "slug": "fen-shu-dao-xiao-shu-by-leetcode-solutio-tqdw",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "SHmadI",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 92,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 3,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-10-02T13:30:29.245791+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：长除法 题目要求根据给定的分子和分母，将分数转成整数或小数。由于给定的分子和分母的取值范围都是 $[-2^{31}, 2^{31}-1]$，为了防止计算过程中产生溢出，需要将分子和分母转成 $64$ 位整数表示。 将分数转成整数或小数，做法是计算分子和分母相除的结果。可能的结果有三种：整数、有限小数、无限循环小",
+            "topic": {
+                "id": 1028368,
+                "subscribed": false,
+                "commentCount": 169,
+                "viewCount": 32060,
+                "post": {
+                    "id": 2192020,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 185,
+            "isEditorsPick": false,
+            "hitCount": 73559,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "fraction-to-recurring-decimal",
+                "questionFrontendId": "166"
+            },
+            "next": {
+                "slug": "mo-ni-chang-chu-fa-pythonjavacgojsrust-b-di8h",
+                "title": "模拟长除法（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

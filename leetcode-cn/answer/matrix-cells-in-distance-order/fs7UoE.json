@@ -1,0 +1,122 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "fs7UoE",
+            "title": "距离顺序排列矩阵单元格",
+            "content": "#### 方法一：直接排序\n\n**思路及解法**\n\n最容易想到的方法是首先存储矩阵内所有的点，然后将其按照哈曼顿距离直接排序。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<vector<int>> allCellsDistOrder(int rows, int cols, int rCenter, int cCenter) {\n        vector<vector<int>> ret;\n        for (int i = 0; i < rows; i++) {\n            for (int j = 0; j < cols; j++) {\n                ret.push_back({i, j});\n            }\n        }\n        sort(ret.begin(), ret.end(), [=](vector<int>& a, vector<int>& b) {\n            return abs(a[0] - rCenter) + abs(a[1] - cCenter) < abs(b[0] - rCenter) + abs(b[1] - cCenter);\n        });\n        return ret;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int[][] allCellsDistOrder(int rows, int cols, int rCenter, int cCenter) {\n        int[][] ret = new int[rows * cols][];\n        for (int i = 0; i < rows; i++) {\n            for (int j = 0; j < cols; j++) {\n                ret[i * cols + j] = new int[]{i, j};\n            }\n        }\n        Arrays.sort(ret, new Comparator<int[]>() {\n            public int compare(int[] a, int[] b) {\n                return (Math.abs(a[0] - rCenter) + Math.abs(a[1] - cCenter)) - (Math.abs(b[0] - rCenter) + Math.abs(b[1] - cCenter));\n            }\n        });\n        return ret;\n    }\n}\n```\n\n```Golang [sol1-Golang]\nfunc allCellsDistOrder(rows, cols, rCenter, cCenter int) [][]int {\n    ans := make([][]int, 0, rows*cols)\n    for i := 0; i < rows; i++ {\n        for j := 0; j < cols; j++ {\n            ans = append(ans, []int{i, j})\n        }\n    }\n    sort.Slice(ans, func(i, j int) bool {\n        a, b := ans[i], ans[j]\n        return abs(a[0]-rCenter)+abs(a[1]-cCenter) < abs(b[0]-rCenter)+abs(b[1]-cCenter)\n    })\n    return ans\n}\n\nfunc abs(x int) int {\n    if x < 0 {\n        return -x\n    }\n    return x\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def allCellsDistOrder(self, rows: int, cols: int, rCenter: int, cCenter: int) -> List[List[int]]:\n        ret = [(i, j) for i in range(rows) for j in range(cols)]\n        ret.sort(key=lambda x: abs(x[0] - rCenter) + abs(x[1] - cCenter))\n        return ret\n```\n\n```C [sol1-C]\nint r0, c0;\n\nint cmp(void* _a, void* _b) {\n    int *a = *(int**)_a, *b = *(int**)_b;\n    return fabs(a[0] - r0) + fabs(a[1] - c0) - fabs(b[0] - r0) - fabs(b[1] - c0);\n}\n\nint** allCellsDistOrder(int rows, int cols, int rCenter, int cCenter, int* returnSize, int** returnColumnSizes) {\n    r0 = rCenter, c0 = cCenter;\n    int** ret = malloc(sizeof(int*) * rows * cols);\n    *returnColumnSizes = malloc(sizeof(int) * rows * cols);\n    for (int i = 0; i < rows * cols; i++) {\n        (*returnColumnSizes)[i] = 2;\n        ret[i] = malloc(sizeof(int) * 2);\n    }\n    *returnSize = 0;\n    for (int i = 0; i < rows; i++) {\n        for (int j = 0; j < cols; j++) {\n            ret[*returnSize][0] = i;\n            ret[*returnSize][1] = j;\n            (*returnSize)++;\n        }\n    }\n    qsort(ret, rows * cols, sizeof(int*), cmp);\n    return ret;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(\\textit{rows} \\times \\textit{cols} \\times \\log(\\textit{rows} \\times \\textit{cols}))$，存储所有点时间复杂度 $O(\\textit{rows} \\times \\textit{cols})$，排序时间复杂度 $O(\\textit{rows} \\times \\textit{cols} \\log(\\textit{rows} \\times \\textit{cols}))$。\n\n- 空间复杂度：$O(\\log(\\textit{rows} \\times \\textit{cols}))$，即为排序需要使用的栈空间，不考虑返回值的空间占用。\n\n#### 方法二：桶排序\n\n**思路及解法**\n\n注意到方法一中排序的时间复杂度太高。实际在枚举所有点时，我们可以直接按照哈曼顿距离分桶。这样我们就可以实现线性的桶排序。\n\n**代码**\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    int dist(int r1, int c1, int r2, int c2) {\n        return abs(r1 - r2) + abs(c1 - c2);\n    }\n\n    vector<vector<int>> allCellsDistOrder(int rows, int cols, int rCenter, int cCenter) {\n        int maxDist = max(rCenter, rows - 1 - rCenter) + max(cCenter, cols - 1 - cCenter);\n        vector<vector<vector<int>>> bucket(maxDist + 1);\n\n        for (int i = 0; i < rows; i++) {\n            for (int j = 0; j < cols; j++) {\n                int d = dist(i, j, rCenter, cCenter);\n                vector<int> tmp = {i, j};\n                bucket[d].push_back(move(tmp));\n            }\n        }\n        vector<vector<int>> ret;\n        for (int i = 0; i <= maxDist; i++) {\n            for (auto &it : bucket[i]) {\n                ret.push_back(it);\n            }\n        }\n        return ret;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public int[][] allCellsDistOrder(int rows, int cols, int rCenter, int cCenter) {\n        int maxDist = Math.max(rCenter, rows - 1 - rCenter) + Math.max(cCenter, cols - 1 - cCenter);\n        List<List<int[]>> bucket = new ArrayList<List<int[]>>();\n        for (int i = 0; i <= maxDist; i++) {\n            bucket.add(new ArrayList<int[]>());\n        }\n\n        for (int i = 0; i < rows; i++) {\n            for (int j = 0; j < cols; j++) {\n                int d = dist(i, j, rCenter, cCenter);\n                bucket.get(d).add(new int[]{i, j});\n            }\n        }\n        int[][] ret = new int[rows * cols][];\n        int index = 0;\n        for (int i = 0; i <= maxDist; i++) {\n            for (int[] it : bucket.get(i)) {\n                ret[index++] = it;\n            }\n        }\n        return ret;\n    }\n\n    public int dist(int r1, int c1, int r2, int c2) {\n        return Math.abs(r1 - r2) + Math.abs(c1 - c2);\n    }\n}\n```\n\n```Golang [sol2-Golang]\nfunc allCellsDistOrder(rows, cols, rCenter, cCenter int) [][]int {\n    maxDist := max(rCenter, rows-1-rCenter) + max(cCenter, cols-1-cCenter)\n    buckets := make([][][]int, maxDist+1)\n\n    for i := 0; i < rows; i++ {\n        for j := 0; j < cols; j++ {\n            dist := abs(i-rCenter) + abs(j-cCenter)\n            buckets[dist] = append(buckets[dist], []int{i, j})\n        }\n    }\n\n    ans := make([][]int, 0, rows*cols)\n    for _, bucket := range buckets {\n        ans = append(ans, bucket...)\n    }\n    return ans\n}\n\nfunc max(a, b int) int {\n    if a > b {\n        return a\n    }\n    return b\n}\n\nfunc abs(x int) int {\n    if x < 0 {\n        return -x\n    }\n    return x\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def allCellsDistOrder(self, rows: int, cols: int, rCenter: int, cCenter: int) -> List[List[int]]:\n        maxDist = max(rCenter, rows - 1 - rCenter) + max(cCenter, cols - 1 - cCenter)\n        bucket = collections.defaultdict(list)\n        dist = lambda r1, c1, r2, c2: abs(r1 - r2) + abs(c1 - c2)\n\n        for i in range(rows):\n            for j in range(cols):\n                bucket[dist(i, j, rCenter, cCenter)].append([i, j])\n\n        ret = list()\n        for i in range(maxDist + 1):\n            ret.extend(bucket[i])\n        \n        return ret\n```\n\n```C [sol2-C]\nint dist(int r1, int c1, int r2, int c2) {\n    return fabs(r1 - r2) + fabs(c1 - c2);\n}\n\nint** allCellsDistOrder(int rows, int cols, int rCenter, int cCenter, int* returnSize, int** returnColumnSizes) {\n    int maxDist = fmax(rCenter, rows - 1 - rCenter) + fmax(cCenter, cols - 1 - cCenter);\n    int* bucket[maxDist + 1][2 * (rows + cols)];\n    int bucketSize[maxDist + 1];\n    memset(bucketSize, 0, sizeof(bucketSize));\n    for (int i = 0; i < rows; i++) {\n        for (int j = 0; j < cols; j++) {\n            int d = dist(i, j, rCenter, cCenter);\n            int* tmp = malloc(sizeof(int) * 2);\n            tmp[0] = i, tmp[1] = j;\n            bucket[d][bucketSize[d]++] = tmp;\n        }\n    }\n\n    int** ret = malloc(sizeof(int*) * rows * cols);\n    *returnColumnSizes = malloc(sizeof(int) * rows * cols);\n    for (int i = 0; i < rows * cols; i++) {\n        (*returnColumnSizes)[i] = 2;\n    }\n    *returnSize = 0;\n    for (int i = 0; i <= maxDist; i++) {\n        for (int j = 0; j < bucketSize[i]; j++) {\n            ret[(*returnSize)++] = bucket[i][j];\n        }\n    }\n    return ret;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(\\textit{rows} \\times \\textit{cols})$，存储所有点时间复杂度 $O(\\textit{rows} \\times \\textit{cols})$，桶排序时间复杂度 $O(\\textit{rows} \\times \\textit{cols})$。\n\n- 空间复杂度：$O(\\textit{rows} \\times \\textit{cols})$，需要存储矩阵内所有点。\n\n#### 方法三：几何法\n\n**思路及解法**\n\n我们也可以直接变换枚举矩阵的顺序，直接按照曼哈顿距离遍历该矩形即可。\n\n注意到曼哈顿距离相同的位置恰好构成一个斜着的正方形边框，因此我们可以从小到大枚举曼哈顿距离，并使用循环来直接枚举该距离对应的边框。我们每次从该正方形边框的上顶点出发，依次经过右顶点、下顶点和左顶点，最后回到上顶点。这样即可完成当前层的遍历。\n\n![fig1](https://assets.leetcode.cn/solution-static/1030/1.png)\n\n注意正方形边框中的部分点不一定落在矩阵中，所以我们需要做好边界判断。\n\n**代码**\n\n```C++ [sol3-C++]\nclass Solution {\npublic:\n    const int dr[4] = {1, 1, -1, -1};\n    const int dc[4] = {1, -1, -1, 1};\n\n    vector<vector<int>> allCellsDistOrder(int rows, int cols, int rCenter, int cCenter) {\n        int maxDist = max(rCenter, rows - 1 - rCenter) + max(cCenter, cols - 1 - cCenter);\n        vector<vector<int>> ret;\n        int row = rCenter, col = cCenter;\n        ret.push_back({row, col});\n        for (int dist = 1; dist <= maxDist; dist++) {\n            row--;\n            for (int i = 0; i < 4; i++) {\n                while ((i % 2 == 0 && row != rCenter) || (i % 2 != 0 && col != cCenter)) {\n                    if (row >= 0 && row < rows && col >= 0 && col < cols) {\n                        ret.push_back({row, col});\n                    }\n                    row += dr[i];\n                    col += dc[i];\n                }\n            }\n        }\n        return ret;\n    }\n};\n```\n\n```Java [sol3-Java]\nclass Solution {\n    int[] dr = {1, 1, -1, -1};\n    int[] dc = {1, -1, -1, 1};\n\n    public int[][] allCellsDistOrder(int rows, int cols, int rCenter, int cCenter) {\n        int maxDist = Math.max(rCenter, rows - 1 - rCenter) + Math.max(cCenter, cols - 1 - cCenter);\n        int[][] ret = new int[rows * cols][];\n        int row = rCenter, col = cCenter;\n        int index = 0;\n        ret[index++] = new int[]{row, col};\n        for (int dist = 1; dist <= maxDist; dist++) {\n            row--;\n            for (int i = 0; i < 4; i++) {\n                while ((i % 2 == 0 && row != rCenter) || (i % 2 != 0 && col != cCenter)) {\n                    if (row >= 0 && row < rows && col >= 0 && col < cols) {\n                        ret[index++] = new int[]{row, col};\n                    }\n                    row += dr[i];\n                    col += dc[i];\n                }\n            }\n        }\n        return ret;\n    }\n}\n```\n\n```Golang [sol3-Golang]\nvar dir4 = [][2]int{{1, 1}, {1, -1}, {-1, -1}, {-1, 1}}\n\nfunc allCellsDistOrder(rows, cols, rCenter, cCenter int) [][]int {\n    ans := make([][]int, 1, rows*cols)\n    ans[0] = []int{rCenter, cCenter}\n    maxDist := max(rCenter, rows-1-rCenter) + max(cCenter, cols-1-cCenter)\n    row, col := rCenter, cCenter\n    for dist := 1; dist <= maxDist; dist++ {\n        row--\n        for i, dir := range dir4 {\n            for i%2 == 0 && row != rCenter || i%2 == 1 && col != cCenter {\n                if 0 <= row && row < rows && 0 <= col && col < cols {\n                    ans = append(ans, []int{row, col})\n                }\n                row += dir[0]\n                col += dir[1]\n            }\n        }\n    }\n    return ans\n}\n\nfunc max(a, b int) int {\n    if a > b {\n        return a\n    }\n    return b\n}\n```\n\n```Python [sol3-Python3]\nclass Solution:\n    def allCellsDistOrder(self, rows: int, cols: int, rCenter: int, cCenter: int) -> List[List[int]]:\n        dirs = [(1, 1), (1, -1), (-1, -1), (-1, 1)]\n        maxDist = max(rCenter, rows - 1 - rCenter) + max(cCenter, cols - 1 - cCenter)\n        row, col = rCenter, cCenter\n        ret = [[row, col]]\n        for dist in range(1, maxDist + 1):\n            row -= 1\n            for i, (dr, dc) in enumerate(dirs):\n                while (i % 2 == 0 and row != rCenter) or (i % 2 != 0 and col != cCenter):\n                    if 0 <= row < rows and 0 <= col < cols:\n                        ret.append([row, col])\n                    row += dr\n                    col += dc\n        return ret\n```\n\n```C [sol3-C]\nconst int dr[4] = {1, 1, -1, -1};\nconst int dc[4] = {1, -1, -1, 1};\n\nint** allCellsDistOrder(int rows, int cols, int rCenter, int cCenter, int* returnSize, int** returnColumnSizes) {\n    int maxDist = fmax(rCenter, rows - 1 - rCenter) + fmax(cCenter, cols - 1 - cCenter);\n\n    int** ret = malloc(sizeof(int*) * rows * cols);\n    *returnColumnSizes = malloc(sizeof(int) * rows * cols);\n    for (int i = 0; i < rows * cols; i++) {\n        (*returnColumnSizes)[i] = 2;\n    }\n\n    int row = rCenter, col = cCenter;\n    *returnSize = 0;\n    int* tmp = malloc(sizeof(int) * 2);\n    tmp[0] = row, tmp[1] = col;\n    ret[(*returnSize)++] = tmp;\n    for (int dist = 1; dist <= maxDist; dist++) {\n        row--;\n        for (int i = 0; i < 4; i++) {\n            while ((i % 2 == 0 && row != rCenter) || (i % 2 != 0 && col != cCenter)) {\n                if (row >= 0 && row < rows && col >= 0 && col < cols) {\n                    int* tmps = malloc(sizeof(int) * 2);\n                    tmps[0] = row, tmps[1] = col;\n                    ret[(*returnSize)++] = tmps;\n                }\n                row += dr[i];\n                col += dc[i];\n            }\n        }\n    }\n    return ret;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O\\big((\\textit{rows}+\\textit{cols})^2\\big)$，我们需要遍历矩阵内所有点，同时也会遍历部分超过矩阵部分的点。在最坏情况下，给定的单元格位于矩阵的一个角，例如 $(0,0)$，此时最大的曼哈顿距离为 $\\textit{rows}+\\textit{cols}-2$，需要遍历的点数为 $2(\\textit{rows}+\\textit{cols}-2)(\\textit{rows}+\\textit{cols}-1)+1$，因此时间复杂度为 $O\\big((\\textit{rows}+\\textit{cols})^2\\big)$。\n\n- 空间复杂度：$O(1)$，不考虑返回值的空间占用。",
+            "slateValue": "",
+            "slug": "ju-chi-shun-xu-pai-lie-ju-zhen-dan-yuan-ge-by-leet",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "fs7UoE",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 41,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 3,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 3,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Geometry",
+                    "nameTranslated": "几何",
+                    "slug": "geometry",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-11-16T15:01:40.966888+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：直接排序 思路及解法 最容易想到的方法是首先存储矩阵内所有的点，然后将其按照哈曼顿距离直接排序。 代码 C++ [sol1-C++] class Solution { public:     vector<vector<int>> allCellsDistOrder(int rows, int cols, in",
+            "topic": {
+                "id": 487123,
+                "subscribed": false,
+                "commentCount": 145,
+                "viewCount": 22401,
+                "post": {
+                    "id": 1156767,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 110,
+            "isEditorsPick": false,
+            "hitCount": 38492,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "matrix-cells-in-distance-order",
+                "questionFrontendId": "1030"
+            },
+            "next": {
+                "slug": "si-chong-jie-fa-shu-zu-pai-xu-tong-pai-xu-bfs-mo-n",
+                "title": "四种解法：数组排序、桶排序、BFS、几何法"
+            },
+            "prev": null
+        }
+    }
+}

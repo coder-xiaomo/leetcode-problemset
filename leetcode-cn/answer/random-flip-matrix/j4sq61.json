@@ -1,0 +1,136 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "j4sq61",
+            "title": "随机翻转矩阵",
+            "content": "#### 题目分析\n\n由于题目中给出的 $m$ 和 $n$ 最大能达到 $10000$，因此我们在维护这个矩阵时，要注意以下两点：\n- 我们不能使用 $O(m \\times n)$ 的空间复杂度来维护这个矩阵，这样会超出空间限制。我们应当找到空间复杂度较低的数据结构来表示这个矩阵；\n- 我们需要尽量少的调用语言内置的 $\\texttt{random}()$ 函数来产生随机数，保证每次 $\\texttt{flip}()$ 操作的时间复杂度尽可能低。\n\n#### 方法一：数组映射\n\n**解题思路**\n\n我们可以考虑将矩阵转换为一个长度为 $m \\times n$ 的一维数组 $\\textit{map}$，对于矩阵中的位置 $(i, j)$，它对应了 $\\textit{map}$ 中的元素 $\\textit{map}[i \\times n + j]$，这样就保证了矩阵和 $map$ 的元素映射。在经过 $m \\times n-k$ 次翻转 $\\texttt{flip}$ 后，我们会修改 $\\textit{map}$ 与矩阵的映射，使得当前矩阵中有 $m \\times n-k$ 个 $1$ 和 $k$ 个 $0$。\n此时我们可以利用数组中元素的交换，使得 $\\textit{map}[0 \\cdots k - 1]$ 映射到矩阵中的 $0$，而 $\\textit{map}[k \\cdots m \\times n - 1]$ 映射到矩阵中的 $1$。这样的好处是，当我们进行下一次翻转操作时，我们只需要在 $[0, k-1)$ 这个区间生成随机数 $x$，并将 $\\textit{map}[x]$ 映射到的矩阵的位置进行翻转即可。\n\n在将 $\\textit{map}[x]$ 进行翻转后，此时矩阵中有 $k - 1$ 个 $0$，所以我们需要保证 $\\textit{map}[0 .. k - 2]$ 都映射到矩阵中的 $0$。由于此时 $\\textit{map}[x]$ 映射到了矩阵中的 $1$，因此我们可以将 $\\textit{map}[x]$ 与 $\\textit{map}[k - 1]$ 的值进行交换，即将这个新翻转的 $1$ 作为 $\\textit{map}[k - 1]$ 的映射，而把原本 $\\textit{map}[k - 1]$ 映射到的 $0$ 交给 $x$。这样我们就保证了在每一次翻转操作后，$\\textit{map}$ 中的前 $k$ 个元素恰好映射到矩阵中的所有 $k$ 个 $0$。\n\n那么我们如何维护这个一维数组 $\\textit{map}$ 呢？我们可以发现，$\\textit{map}$ 中的大部分映射关系是不会改变的，即矩阵中的 $(i, j)$ 映射到 $A[i \\times n + j]$，因此我们可以使用一个 $\\texttt{HashMap}$ 存储那些 $\\textit{map}$ 中那些被修改了的映射。对于一个数 $x$，如果 $x$ 不是 $\\texttt{HashMap}$ 中的一个键，那么它直接映射到最开始的 $(x/n, x \\%n)$；如果 $x$ 是 $\\texttt{HashMap}$ 中的一个键，那么它映射到其在 $\\texttt{HashMap}$ 中对应的值。实际运行中 $\\texttt{HashMap}$ 的大小仅和翻转次数成正比，因为每一次翻转操作我们会交换 $\\textit{map}$ 中两个元素的映射，即最多有两个元素的映射关系被修改。\n\n**代码**\n\n```Java [sol1-Java]\nclass Solution {\n    Map<Integer, Integer> map = new HashMap<>();\n    int m, n, total;\n    Random rand = new Random();\n\n    public Solution(int m, int n) {\n        this.m = m;\n        this.n = n;\n        this.total = m * n;\n    }\n    \n    public int[] flip() {\n        int x = rand.nextInt(total);\n        total--;\n        // 查找位置 x 对应的映射\n        int idx = map.getOrDefault(x, x);\n        // 将位置 x 对应的映射设置为位置 total 对应的映射\n        map.put(x, map.getOrDefault(total, total));\n        return new int[]{idx / n, idx % n};\n    }\n    \n    public void reset() {\n        total = m * n;\n        map.clear();\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    Solution(int m, int n) {\n        this->m = m;\n        this->n = n;\n        this->total = m * n;\n        srand(time(nullptr));\n    }\n    \n    vector<int> flip() {\n        int x = rand() % total;\n        vector<int> ans;\n        total--;   \n        // 查找位置 x 对应的映射\n        if (map.count(x)) {\n            ans = {map[x] / n, map[x] % n};\n        } else {\n            ans = {x / n, x % n};\n        }\n        // 将位置 x 对应的映射设置为位置 total 对应的映射\n        if (map.count(total)) {\n            map[x] = map[total];\n        } else {\n            map[x] = total;\n        }\n        return ans;\n    }\n    \n    void reset() {\n        total = m * n;\n        map.clear();\n    }\nprivate:\n    int m;\n    int n;\n    int total;\n    unordered_map<int, int> map;\n};\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    Dictionary<int, int> dictionary = new Dictionary<int, int>();\n    int m, n, total;\n    Random rand = new Random();\n\n    public Solution(int m, int n) {\n        this.m = m;\n        this.n = n;\n        this.total = m * n;\n    }\n    \n    public int[] Flip() {\n        int x = rand.Next(total);\n        total--;\n        // 查找位置 x 对应的映射\n        int idx = dictionary.ContainsKey(x) ? dictionary[x] : x;\n        // 将位置 x 对应的映射设置为位置 total 对应的映射\n        int value = dictionary.ContainsKey(total) ? dictionary[total] : total;\n        if (dictionary.ContainsKey(x)) {\n            dictionary[x] = value;\n        } else {\n            dictionary.Add(x, value);\n        }\n        return new int[]{idx / n, idx % n};\n    }\n    \n    public void Reset() {\n        total = m * n;\n        dictionary.Clear();\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n\n    def __init__(self, m: int, n: int):\n        self.m = m\n        self.n = n\n        self.total = m * n\n        self.map = {}\n\n    def flip(self) -> List[int]:\n        x = random.randint(0, self.total - 1)\n        self.total -= 1\n        # 查找位置 x 对应的映射\n        idx = self.map.get(x, x)\n        # 将位置 x 对应的映射设置为位置 total 对应的映射\n        self.map[x] = self.map.get(self.total, self.total)\n        return [idx // self.n, idx % self.n]\n        \n    def reset(self) -> None:\n        self.total = self.m * self.n\n        self.map.clear()\n```\n\n```JavaScript [sol1-JavaScript]\nvar Solution = function(m, n) {\n    this.m = m;\n    this.n = n;\n    this.total = m * n;\n    this.map = new Map();\n};\n\nSolution.prototype.flip = function() {\n    const x = Math.floor(Math.random() * this.total);\n    this.total--;\n    // 查找位置 x 对应的映射\n    const idx = this.map.get(x) || x;\n    // 将位置 x 对应的映射设置为位置 total 对应的映射\n    this.map.set(x, this.map.get(this.total) || this.total);\n    return [Math.floor(idx / this.n), idx % this.n];\n};\n\nSolution.prototype.reset = function() {\n    this.total = this.m * this.n;\n    this.map.clear();\n};\n```\n\n```go [sol1-Golang]\ntype Solution struct {\n    m, n, total int\n    mp          map[int]int\n}\n\nfunc Constructor(m, n int) Solution {\n    return Solution{m, n, m * n, map[int]int{}}\n}\n\nfunc (s *Solution) Flip() (ans []int) {\n    x := rand.Intn(s.total)\n    s.total--\n    if y, ok := s.mp[x]; ok { // 查找位置 x 对应的映射\n        ans = []int{y / s.n, y % s.n}\n    } else {\n        ans = []int{x / s.n, x % s.n}\n    }\n    if y, ok := s.mp[s.total]; ok { // 将位置 x 对应的映射设置为位置 total 对应的映射\n        s.mp[x] = y\n    } else {\n        s.mp[x] = s.total\n    }\n    return\n}\n\nfunc (s *Solution) Reset() {\n    s.total = s.m * s.n\n    s.mp = map[int]int{}\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$\\texttt{flip}()$ 操作的时间复杂度为 $O(1)$，$\\texttt{reset}()$ 操作的时间复杂度为 $O(F)$，其中 $F$ 是在上一次 $\\texttt{reset}()$ 之后执行 $\\texttt{flip}()$ 的次数。\n\n- 空间复杂度：$O(F)$，其中 $F$ 代表执行函数 $\\texttt{flip}()$ 的次数。\n\n#### 方法二：分块\n\n**解题思路**\n\n我们可以考虑另一种方法来维护这个一维数组 $\\textit{map}$。假设我们把这 $m \\times n$  个位置放到 $k$ 个桶中，第一个桶对应 $map[0 \\cdots a_{1}]$，第二个桶对应 $\\textit{map}[a_{1} + 1 \\cdots a_{2}]$，以此类推。我们用 $\\textit{cnt}[i]$ 表示第 $i$ 个桶中还剩余的 $0$ 的个数，并给每个桶分配一个集合 $\\texttt{HashSet}$ 存放桶中哪些位置对应的是 $1$（即被翻转过的位置）。\n\n假设当前矩阵中还有 $\\textit{total}$ 个 $0$，我们从 $[1, \\textit{total}]$ 中随机出一个整数 $x$，并遍历所有的桶，根据所有的 $\\textit{cnt}[i]$ 可以找出第 $x$ 个 $0$ 属于哪个桶。假设其属于第 $i$ 个桶，那么 $x$ 应该满足 $\\textit{sum}[i - 1] < x <= \\textit{sum}[i]$，其中 $\\textit{sum}[i]$ 表示前 $i$ 个桶的 $\\textit{cnt}[i]$ 之和，即前 $i$ 个桶中 $0$ 的个数。随后我们令 $y = x - \\textit{sum}[i - 1]$，即我们需要找到第 $i$ 个桶中的第 $y$ 个 $0$。我们可以依次遍历 $[d \\times i + 1 \\cdots d \\times (i+1)]$ 中的数，根据第 $i$ 个桶对应的集合，找出第 $y$ 个 $0$ 的位置。最后我们将这个 $0$ 进行翻转。\n\n由于 $\\textit{map}$ 被分成了 $k$ 个桶，因此每个桶的平均长度为 $\\lfloor \\frac{m \\times n}{k} \\rfloor$。在上述的方法中，遍历所有的桶的时间复杂度为 $O(k)$，而遍历第 $i$ 个桶的时间复杂度为 $O(\\frac{m \\times n}{k})$，因此总时间复杂度为 $O(k +  \\frac{m \\times n}{k})$。根据均值不等式，可以得知在 $k = \\sqrt{m \\times n}$，总的时间复杂度最小。\n​\n**代码**\n\n```Java [sol2-Java]\nclass Solution {\n    int m, n;\n    int total, bucketSize;\n    List<Set<Integer>> buckets = new ArrayList<>();\n    Random rand = new Random();\n\n    public Solution(int m, int n) {\n        this.m = m;\n        this.n = n;\n        this.total = m * n;\n        this.bucketSize = (int) Math.sqrt(total);\n        for (int i = 0; i < total; i += bucketSize) {\n            buckets.add(new HashSet<Integer>());\n        }\n    }\n    \n    public int[] flip() {\n        int x = rand.nextInt(total);\n        int sumZero = 0;\n        int curr = 0;\n        total--;\n\n        for (Set<Integer> bucket : buckets) {\n            if (sumZero + bucketSize - bucket.size() > x) {\n                for (int i = 0; i < bucketSize; ++i) {\n                    if (!bucket.contains(curr + i)) {\n                        if (sumZero == x) {\n                            bucket.add(curr + i);\n                            return new int[]{(curr + i) / n, (curr + i) % n};\n                        } \n                        sumZero++;\n                    }\n                }\n            }\n            curr += bucketSize;\n            sumZero += bucketSize - bucket.size();\n        }\n\n        return null;\n    }\n    \n    public void reset() {\n        total = m * n;\n        for (Set<Integer> bucket : buckets) {\n            bucket.clear();\n        }\n    }\n}\n```\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    Solution(int m, int n) {\n        this->m = m;\n        this->n = n;\n        total = m * n;\n        bucketSize = sqrt(m * n);\n        for (int i = 0; i < total; i += bucketSize) {\n            buckets.push_back({});\n        }\n        srand(time(nullptr));\n    }\n\n    vector<int> flip() {\n        int x = rand() % total;\n        int sumZero = 0;\n        int curr = 0;\n        total--;\n\n        for (auto & bucket : buckets) {\n            if (sumZero + bucketSize - bucket.size() > x) {\n                for (int i = 0; i < bucketSize; ++i) {\n                    if (!bucket.count(curr + i)) {\n                        if (sumZero == x) {\n                            bucket.emplace(curr + i);\n                            return {(curr + i) / n, (curr + i) % n};\n                        } \n                        sumZero++;\n                    }\n                }\n            }\n            curr += bucketSize;\n            sumZero += bucketSize - bucket.size();\n        }\n        \n        return {};\n    }\n\n    void reset() {\n        for (auto & bucket : buckets) {\n            bucket.clear();\n        }\n        total = m * n;\n    }\nprivate:\n    int m;\n    int n;\n    int bucketSize;\n    int total;\n    vector<unordered_set<int>> buckets;\n};\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    int m, n;\n    int total, bucketSize;\n    IList<ISet<int>> buckets = new List<ISet<int>>();\n    Random rand = new Random();\n\n    public Solution(int m, int n) {\n        this.m = m;\n        this.n = n;\n        this.total = m * n;\n        this.bucketSize = (int) Math.Sqrt(total);\n        for (int i = 0; i < total; i += bucketSize) {\n            buckets.Add(new HashSet<int>());\n        }\n    }\n    \n    public int[] Flip() {\n        int x = rand.Next(total);\n        int sumZero = 0;\n        int curr = 0;\n        total--;\n\n        foreach (ISet<int> bucket in buckets) {\n            if (sumZero + bucketSize - bucket.Count > x) {\n                for (int i = 0; i < bucketSize; ++i) {\n                    if (!bucket.Contains(curr + i)) {\n                        if (sumZero == x) {\n                            bucket.Add(curr + i);\n                            return new int[]{(curr + i) / n, (curr + i) % n};\n                        } \n                        sumZero++;\n                    }\n                }\n            }\n            curr += bucketSize;\n            sumZero += bucketSize - bucket.Count;\n        }\n\n        return null;\n    }\n    \n    public void Reset() {\n        total = m * n;\n        foreach (ISet<int> bucket in buckets) {\n            bucket.Clear();\n        }\n    }\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def __init__(self, m: int, n: int):\n        self.m, self.n = m, n\n        self.total = m * n\n        self.bucketSize = math.floor(math.sqrt(m * n))\n        self.buckets = [set() for _ in range(0, self.total, self.bucketSize)]\n\n    def flip(self) -> List[int]:\n        x = random.randint(0, self.total - 1)\n        self.total -= 1\n        sumZero = 0\n        curr = 0\n\n        for i in range(len(self.buckets)):\n            if sumZero + self.bucketSize - len(self.buckets[i]) > x:\n                for j in range(self.bucketSize):\n                    if (curr + j) not in self.buckets[i]:\n                        if sumZero == x:\n                            self.buckets[i].add(curr + j)\n                            return [(curr + j) // self.n, (curr + j) % self.n]\n                        sumZero += 1\n            curr += self.bucketSize\n            sumZero += self.bucketSize - len(self.buckets[i])\n        return []\n        \n    def reset(self) -> None:\n        self.total = self.m * self.n\n        for i in range(len(self.buckets)):\n            self.buckets[i].clear()\n```\n\n```JavaScript [sol2-JavaScript]\nvar Solution = function(m, n) {\n    this.m = m;\n    this.n = n;\n    this.total = m * n;\n    this.bucketSize = Math.floor(Math.sqrt(this.total));\n    this.buckets = [];\n    for (let i = 0; i < this.total; i += this.bucketSize) {\n        this.buckets.push(new Set());\n    }\n};\n\nSolution.prototype.flip = function() {\n    const x = Math.floor(Math.random() * this.total);\n    let sumZero = 0;\n    let curr = 0;\n    this.total--;\n\n    for (const bucket of this.buckets) {\n        if (sumZero + this.bucketSize - bucket.size > x) {\n            for (let i = 0; i < this.bucketSize; ++i) {\n                if (!bucket.has(curr + i)) {\n                    if (sumZero === x) {\n                        bucket.add(curr + i);\n                        return [Math.floor((curr + i) / this.n), (curr + i) % this.n];\n                    } \n                    sumZero++;\n                }\n            }\n        }\n        curr += this.bucketSize;\n        sumZero += this.bucketSize - bucket.size;\n    }\n    return undefined;\n};\n\nSolution.prototype.reset = function() {\n    this.total = this.m * this.n;\n    for (const bucket of this.buckets) {\n        bucket.clear();\n    }\n};\n```\n\n```go [sol2-Golang]\ntype Solution struct {\n    m, n, total, bucketSize int\n    buckets                 []map[int]bool\n}\n\nfunc Constructor(m, n int) Solution {\n    total := m * n\n    bucketSize := int(math.Sqrt(float64(total)))\n    buckets := make([]map[int]bool, (total+bucketSize-1)/bucketSize)\n    for i := range buckets {\n        buckets[i] = map[int]bool{}\n    }\n    return Solution{m, n, total, bucketSize, buckets}\n}\n\nfunc (s *Solution) Flip() []int {\n    x := rand.Intn(s.total)\n    s.total--\n    sumZero, curr := 0, 0\n    for _, bucket := range s.buckets {\n        if sumZero+s.bucketSize-len(bucket) > x {\n            for i := 0; i < s.bucketSize; i++ {\n                if !bucket[curr+i] {\n                    if sumZero == x {\n                        bucket[curr+i] = true\n                        return []int{(curr + i) / s.n, (curr + i) % s.n}\n                    }\n                    sumZero++\n                }\n            }\n        }\n        curr += s.bucketSize\n        sumZero += s.bucketSize - len(bucket)\n    }\n    return nil\n}\n\nfunc (s *Solution) Reset() {\n    s.total = s.m * s.n\n    for i := range s.buckets {\n        s.buckets[i] = map[int]bool{}\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$\\texttt{flip}()$ 操作的时间复杂度为 $O(\\sqrt{m \\times n})$，其中 $m$ 和 $n$ 分别为矩阵的行数和列数；$\\texttt{reset}()$ 操作的时间复杂度为 $O(F)$，其中 $F$ 是在上一次 $\\texttt{reset}()$ 之后执行 $\\texttt{flip}()$ 的次数。\n\n- 空间复杂度：$O(\\sqrt{m \\times n} + F)$，其中 $m$ 和 $n$ 分别为矩阵的行数和列数，$F$ 是执行 $\\texttt{flip}()$ 的次数。",
+            "slateValue": "",
+            "slug": "sui-ji-fan-zhuan-ju-zhen-by-leetcode-sol-pfmr",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "j4sq61",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 57,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Randomized",
+                    "nameTranslated": "随机化",
+                    "slug": "randomized",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2021-11-26T03:23:37.700830+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "题目分析 由于题目中给出的 $m$ 和 $n$ 最大能达到 $10000$，因此我们在维护这个矩阵时，要注意以下两点： - 我们不能使用 $O(m \\times n)$ 的空间复杂度来维护这个矩阵，这样会超出空间限制。我们应当找到空间复杂度较低的数据结构来表示这个矩阵； - 我们需要尽量少的调用语言内置的 $\\text",
+            "topic": {
+                "id": 1123118,
+                "subscribed": false,
+                "commentCount": 128,
+                "viewCount": 15870,
+                "post": {
+                    "id": 2373807,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 75,
+            "isEditorsPick": false,
+            "hitCount": 31344,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "random-flip-matrix",
+                "questionFrontendId": "519"
+            },
+            "next": {
+                "slug": "gong-shui-san-xie-note-bie-pian-yi-ti-sh-e6gi",
+                "title": "【宫水三叶の特别篇】一题双解 :「双指针」&「哈希 swap」"
+            },
+            "prev": null
+        }
+    }
+}

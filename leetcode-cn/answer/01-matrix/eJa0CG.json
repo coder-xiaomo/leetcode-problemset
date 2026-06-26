@@ -1,0 +1,128 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "eJa0CG",
+            "title": "01矩阵",
+            "content": "### 📺 视频题解 \n\n![542. 01矩阵.mp4](dcbd55c3-9bc6-4492-bd3e-a91251c7f23d)\n\n### 📖 文字题解\n#### 方法一：广度优先搜索\n\n**思路**\n\n对于矩阵中的每一个元素，如果它的值为 $0$，那么离它最近的 $0$ 就是它自己。如果它的值为 $1$，那么我们就需要找出离它最近的 $0$，并且返回这个距离值。那么我们如何对于矩阵中的每一个 $1$，都快速地找到离它最近的 $0$ 呢？\n\n我们不妨从一个简化版本的问题开始考虑起。假设这个矩阵中恰好只有**一个** $0$，我们应该怎么做？由于矩阵中只有一个 $0$，那么对于每一个 $1$，离它最近的 $0$ 就是那个唯一的 $0$。如何求出这个距离呢？我们可以想到两种做法：\n\n- 如果 $0$ 在矩阵中的位置是 $(i_0, j_0)$，$1$ 在矩阵中的位置是 $(i_1, j_1)$，那么我们可以直接算出 $0$ 和 $1$ 之间的距离。因为我们从 $1$ 到 $0$ 需要在水平方向走 $|i_0 - i_1|$ 步，竖直方向走 $|j_0 - j_1|$ 步，那么它们之间的距离就为 $|i_0 - i_1| + |j_0 - j_1|$；\n\n- 我们可以从 $0$ 的位置开始进行 **广度优先搜索**。广度优先搜索可以找到从起点到其余所有点的 **最短距离**，因此如果我们从 $0$ 开始搜索，每次搜索到一个 $1$，就可以得到 $0$ 到这个 $1$ 的最短距离，也就离这个 $1$ 最近的 $0$ 的距离了（因为矩阵中只有一个 $0$）。\n\n  举个例子，如果我们的矩阵为：\n\n  ```\n  _ _ _ _\n  _ 0 _ _\n  _ _ _ _\n  _ _ _ _\n  ```\n\n  其中只有一个 $0$，剩余的 $1$ 我们用短横线表示。如果我们从 $0$ 开始进行广度优先搜索，那么结果依次为：\n\n  ```\n  _ _ _ _         _ 1 _ _         2 1 2 _         2 1 2 3         2 1 2 3\n  _ 0 _ _   ==>   1 0 1 _   ==>   1 0 1 2   ==>   1 0 1 2   ==>   1 0 1 2\n  _ _ _ _         _ 1 _ _         2 1 2 _         2 1 2 3         2 1 2 3\n  _ _ _ _         _ _ _ _         _ 2 _ _         3 2 3 _         3 2 3 4\n  ```\n\n  也就是说，在广度优先搜索的每一步中，如果我们从矩阵中的位置 $x$ 搜索到了位置 $y$，并且 $y$ 还没有被搜索过，那么位置 $y$ 离 $0$ 的距离就等于位置 $x$ 离 $0$ 的距离加上 $1$。\n\n对于上面的两种做法，第一种看上去简洁有效，只需要对每一个位置计算就行；第二种需要实现广度优先搜索，会复杂一些。但是，别忘了我们的题目中会有不止一个 $0$，这样一来，如果我们要使用第一种做法，就必须对于每个 $1$ 计算一次它到所有的 $0$ 的距离，再从中取一个最小值，时间复杂度会非常高，无法通过本地。而对于第二种做法，我们可以很有效地处理有多个 $0$ 的情况。\n\n> 事实上，第一种做法也是可以处理多个 $0$ 的情况的，但没有那么直观。感兴趣的读者可以在理解完方法一（即本方法）之后阅读方法二，那里介绍了第一种做法是如何扩展的。\n\n处理的方法很简单：我们在进行广度优先搜索的时候会使用到队列，在只有一个 $0$ 的时候，我们在搜索前会把这个 $0$ 的位置加入队列，才能开始进行搜索；如果有多个 $0$，我们只需要把这些 $0$ 的位置都加入队列就行了。\n\n我们还是举一个例子，在这个例子中，有两个 $0$：\n\n```\n_ _ _ _\n_ 0 _ _\n_ _ 0 _\n_ _ _ _\n```\n\n我们会把这两个 $0$ 的位置都加入初始队列中，随后我们进行广度优先搜索，找到所有距离为 $1$ 的 $1$：\n\n```\n_ 1 _ _\n1 0 1 _\n_ 1 0 1\n_ _ 1 _\n```\n\n接着重复步骤，直到搜索完成：\n\n```\n_ 1 _ _         2 1 2 _         2 1 2 3\n1 0 1 _   ==>   1 0 1 2   ==>   1 0 1 2\n_ 1 0 1         2 1 0 1         2 1 0 1\n_ _ 1 _         _ 2 1 2         3 2 1 2\n```\n\n这样做为什么是正确的呢？\n\n- 我们需要对于每一个 $1$ 找到离它最近的 $0$。如果只有一个 $0$ 的话，我们从这个 $0$ 开始广度优先搜索就可以完成任务了；\n\n- 但在实际的题目中，我们会有不止一个 $0$。我们会想，**要是我们可以把这些 $0$ 看成一个整体好了**。有了这样的想法，我们可以添加一个「超级零」，它与矩阵中所有的 $0$ 相连，这样的话，**任意一个 $1$ 到它最近的 $0$ 的距离，会等于这个 $1$ 到「超级零」的距离减去一**。由于我们只有一个「超级零」，我们就以它为起点进行广度优先搜索。这个「超级零」只和矩阵中的 $0$ 相连，所以在广度优先搜索的第一步中，「超级零」会被弹出队列，而所有的 $0$ 会被加入队列，它们到「超级零」的距离为 $1$。这就等价于：一开始我们就将所有的 $0$ 加入队列，它们的初始距离为 $0$。这样一来，在广度优先搜索的过程中，我们每遇到一个 $1$，就得到了它到「超级零」的距离减去一，也就是 **这个 $1$ 到最近的 $0$ 的距离**。\n\n下图中就展示了我们方法：\n\n![fig1](https://assets.leetcode.cn/solution-static/542/fig1.PNG)\n\n熟悉「最短路」的读者应该知道，我们所说的「超级零」实际上就是一个「超级源点」。在最短路问题中，如果我们要求多个源点出发的最短路时，一般我们都会建立一个「超级源点」连向所有的源点，用「超级源点」到终点的最短路等价多个源点到终点的最短路。\n\n```C++ [sol1-C++]\nclass Solution {\nprivate:\n    static constexpr int dirs[4][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};\n\npublic:\n    vector<vector<int>> updateMatrix(vector<vector<int>>& matrix) {\n        int m = matrix.size(), n = matrix[0].size();\n        vector<vector<int>> dist(m, vector<int>(n));\n        vector<vector<int>> seen(m, vector<int>(n));\n        queue<pair<int, int>> q;\n        // 将所有的 0 添加进初始队列中\n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j) {\n                if (matrix[i][j] == 0) {\n                    q.emplace(i, j);\n                    seen[i][j] = 1;\n                }\n            }\n        }\n\n        // 广度优先搜索\n        while (!q.empty()) {\n            auto [i, j] = q.front();\n            q.pop();\n            for (int d = 0; d < 4; ++d) {\n                int ni = i + dirs[d][0];\n                int nj = j + dirs[d][1];\n                if (ni >= 0 && ni < m && nj >= 0 && nj < n && !seen[ni][nj]) {\n                    dist[ni][nj] = dist[i][j] + 1;\n                    q.emplace(ni, nj);\n                    seen[ni][nj] = 1;\n                }\n            }\n        }\n\n        return dist;\n    }\n};\n```\n```Java [sol1-Java]\nclass Solution {\n    static int[][] dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};\n\n    public int[][] updateMatrix(int[][] matrix) {\n        int m = matrix.length, n = matrix[0].length;\n        int[][] dist = new int[m][n];\n        boolean[][] seen = new boolean[m][n];\n        Queue<int[]> queue = new LinkedList<int[]>();\n        // 将所有的 0 添加进初始队列中\n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j) {\n                if (matrix[i][j] == 0) {\n                    queue.offer(new int[]{i, j});\n                    seen[i][j] = true;\n                }\n            }\n        }\n\n        // 广度优先搜索\n        while (!queue.isEmpty()) {\n            int[] cell = queue.poll();\n            int i = cell[0], j = cell[1];\n            for (int d = 0; d < 4; ++d) {\n                int ni = i + dirs[d][0];\n                int nj = j + dirs[d][1];\n                if (ni >= 0 && ni < m && nj >= 0 && nj < n && !seen[ni][nj]) {\n                    dist[ni][nj] = dist[i][j] + 1;\n                    queue.offer(new int[]{ni, nj});\n                    seen[ni][nj] = true;\n                }\n            }\n        }\n\n        return dist;\n    }\n}\n```\n```Python [sol1-Python3]\nclass Solution:\n    def updateMatrix(self, matrix: List[List[int]]) -> List[List[int]]:\n        m, n = len(matrix), len(matrix[0])\n        dist = [[0] * n for _ in range(m)]\n        zeroes_pos = [(i, j) for i in range(m) for j in range(n) if matrix[i][j] == 0]\n        # 将所有的 0 添加进初始队列中\n        q = collections.deque(zeroes_pos)\n        seen = set(zeroes_pos)\n\n        # 广度优先搜索\n        while q:\n            i, j = q.popleft()\n            for ni, nj in [(i - 1, j), (i + 1, j), (i, j - 1), (i, j + 1)]:\n                if 0 <= ni < m and 0 <= nj < n and (ni, nj) not in seen:\n                    dist[ni][nj] = dist[i][j] + 1\n                    q.append((ni, nj))\n                    seen.add((ni, nj))\n        \n        return dist\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(mn)$，其中 $m$ 为矩阵行数，$n$ 为矩阵列数，即矩阵元素个数。广度优先搜索中每个位置最多只会被加入队列一次，因此只需要 $O(mn)$ 的时间复杂度。\n\n- 空间复杂度：$O(mn)$，其中 $m$ 为矩阵行数，$n$ 为矩阵列数，即矩阵元素个数。除答案数组外，最坏情况下矩阵里所有元素都为 $0$，全部被加入队列中，此时需要 $O(mn)$ 的空间复杂度。\n\n#### 方法二：动态规划\n\n我们回想方法一中的「遗珠」：\n\n> 如果 $0$ 在矩阵中的位置是 $(i_0, j_0)$，$1$ 在矩阵中的位置是 $(i_1, j_1)$，那么我们可以直接算出 $0$ 和 $1$ 之间的距离。因为我们从 $1$ 到 $0$ 需要在水平方向走 $|i_0 - i_1|$ 步，竖直方向走 $|j_0 - j_1|$ 步，那么它们之间的距离就为 $|i_0 - i_1| + |j_0 - j_1|$。\n\n对于矩阵中的任意一个 $1$ 以及一个 $0$，我们如何从这个 $1$ 到达 $0$ 并且距离最短呢？根据上面的做法，我们可以从 $1$ 开始，先在水平方向移动，直到与 $0$ 在同一列，随后再在竖直方向上移动，直到到达 $0$ 的位置。这样一来，从一个固定的 $1$ 走到任意一个 $0$，在距离最短的前提下可能有四种方法：\n\n- 只有 **水平向左移动** 和 **竖直向上移动**；\n\n- 只有 **水平向左移动** 和 **竖直向下移动**；\n\n- 只有 **水平向右移动** 和 **竖直向上移动**；\n\n- 只有 **水平向右移动** 和 **竖直向下移动**。\n\n例如下面这一个矩阵包含四个 $0$。从中心位置的 $1$ 移动到这四个 $0$，就需要使用四种不同的方法：\n\n```\n0 _ _ _ 0\n_ _ _ _ _\n_ _ 1 _ _\n_ _ _ _ _\n0 _ _ _ 0\n```\n\n这样一来，我们就可以使用动态规划解决这个问题了。我们用 $f(i, j)$ 表示位置 $(i, j)$ 到最近的 $0$ 的距离。如果我们只能「水平向左移动」和「竖直向上移动」，那么我们可以向上移动一步，再移动 $f(i - 1, j)$ 步到达某一个 $0$，也可以向左移动一步，再移动 $f(i, j - 1)$ 步到达某一个 $0$。因此我们可以写出如下的状态转移方程：\n\n$$\nf(i, j) = \n\\begin{cases}\n1 + \\min\\big(f(i - 1, j), f(i, j - 1)\\big) &,  \\text{位置 } (i, j) \\text{ 的元素为 } 1 \\\\\n0 &, \\text{位置 } (i, j) \\text{ 的元素为 } 0\n\\end{cases}\n$$\n\n对于另外三种移动方法，我们也可以写出类似的状态转移方程，得到四个 $f(i, j)$ 的值，那么其中最小的值就表示位置 $(i, j)$ 到最近的 $0$ 的距离。\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    vector<vector<int>> updateMatrix(vector<vector<int>>& matrix) {\n        int m = matrix.size(), n = matrix[0].size();\n        // 初始化动态规划的数组，所有的距离值都设置为一个很大的数\n        vector<vector<int>> dist(m, vector<int>(n, INT_MAX / 2));\n        // 如果 (i, j) 的元素为 0，那么距离为 0\n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j) {\n                if (matrix[i][j] == 0) {\n                    dist[i][j] = 0;\n                }\n            }\n        }\n        // 只有 水平向左移动 和 竖直向上移动，注意动态规划的计算顺序\n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j) {\n                if (i - 1 >= 0) {\n                    dist[i][j] = min(dist[i][j], dist[i - 1][j] + 1);\n                }\n                if (j - 1 >= 0) {\n                    dist[i][j] = min(dist[i][j], dist[i][j - 1] + 1);\n                }\n            }\n        }\n        // 只有 水平向左移动 和 竖直向下移动，注意动态规划的计算顺序\n        for (int i = m - 1; i >= 0; --i) {\n            for (int j = 0; j < n; ++j) {\n                if (i + 1 < m) {\n                    dist[i][j] = min(dist[i][j], dist[i + 1][j] + 1);\n                }\n                if (j - 1 >= 0) {\n                    dist[i][j] = min(dist[i][j], dist[i][j - 1] + 1);\n                }\n            }\n        }\n        // 只有 水平向右移动 和 竖直向上移动，注意动态规划的计算顺序\n        for (int i = 0; i < m; ++i) {\n            for (int j = n - 1; j >= 0; --j) {\n                if (i - 1 >= 0) {\n                    dist[i][j] = min(dist[i][j], dist[i - 1][j] + 1);\n                }\n                if (j + 1 < n) {\n                    dist[i][j] = min(dist[i][j], dist[i][j + 1] + 1);\n                }\n            }\n        }\n        // 只有 水平向右移动 和 竖直向下移动，注意动态规划的计算顺序\n        for (int i = m - 1; i >= 0; --i) {\n            for (int j = n - 1; j >= 0; --j) {\n                if (i + 1 < m) {\n                    dist[i][j] = min(dist[i][j], dist[i + 1][j] + 1);\n                }\n                if (j + 1 < n) {\n                    dist[i][j] = min(dist[i][j], dist[i][j + 1] + 1);\n                }\n            }\n        }\n        return dist;\n    }\n};\n```\n```Java [sol2-Java]\nclass Solution {\n    static int[][] dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};\n\n    public int[][] updateMatrix(int[][] matrix) {\n        int m = matrix.length, n = matrix[0].length;\n        // 初始化动态规划的数组，所有的距离值都设置为一个很大的数\n        int[][] dist = new int[m][n];\n        for (int i = 0; i < m; ++i) {\n            Arrays.fill(dist[i], Integer.MAX_VALUE / 2);\n        }\n        // 如果 (i, j) 的元素为 0，那么距离为 0\n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j) {\n                if (matrix[i][j] == 0) {\n                    dist[i][j] = 0;\n                }\n            }\n        }\n        // 只有 水平向左移动 和 竖直向上移动，注意动态规划的计算顺序\n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j) {\n                if (i - 1 >= 0) {\n                    dist[i][j] = Math.min(dist[i][j], dist[i - 1][j] + 1);\n                }\n                if (j - 1 >= 0) {\n                    dist[i][j] = Math.min(dist[i][j], dist[i][j - 1] + 1);\n                }\n            }\n        }\n        // 只有 水平向左移动 和 竖直向下移动，注意动态规划的计算顺序\n        for (int i = m - 1; i >= 0; --i) {\n            for (int j = 0; j < n; ++j) {\n                if (i + 1 < m) {\n                    dist[i][j] = Math.min(dist[i][j], dist[i + 1][j] + 1);\n                }\n                if (j - 1 >= 0) {\n                    dist[i][j] = Math.min(dist[i][j], dist[i][j - 1] + 1);\n                }\n            }\n        }\n        // 只有 水平向右移动 和 竖直向上移动，注意动态规划的计算顺序\n        for (int i = 0; i < m; ++i) {\n            for (int j = n - 1; j >= 0; --j) {\n                if (i - 1 >= 0) {\n                    dist[i][j] = Math.min(dist[i][j], dist[i - 1][j] + 1);\n                }\n                if (j + 1 < n) {\n                    dist[i][j] = Math.min(dist[i][j], dist[i][j + 1] + 1);\n                }\n            }\n        }\n        // 只有 水平向右移动 和 竖直向下移动，注意动态规划的计算顺序\n        for (int i = m - 1; i >= 0; --i) {\n            for (int j = n - 1; j >= 0; --j) {\n                if (i + 1 < m) {\n                    dist[i][j] = Math.min(dist[i][j], dist[i + 1][j] + 1);\n                }\n                if (j + 1 < n) {\n                    dist[i][j] = Math.min(dist[i][j], dist[i][j + 1] + 1);\n                }\n            }\n        }\n        return dist;\n    }\n}\n```\n```Python [sol2-Python3]\nclass Solution:\n    def updateMatrix(self, matrix: List[List[int]]) -> List[List[int]]:\n        m, n = len(matrix), len(matrix[0])\n        # 初始化动态规划的数组，所有的距离值都设置为一个很大的数\n        dist = [[10**9] * n for _ in range(m)]\n        # 如果 (i, j) 的元素为 0，那么距离为 0\n        for i in range(m):\n            for j in range(n):\n                if matrix[i][j] == 0:\n                    dist[i][j] = 0\n        # 只有 水平向左移动 和 竖直向上移动，注意动态规划的计算顺序\n        for i in range(m):\n            for j in range(n):\n                if i - 1 >= 0:\n                    dist[i][j] = min(dist[i][j], dist[i - 1][j] + 1)\n                if j - 1 >= 0:\n                    dist[i][j] = min(dist[i][j], dist[i][j - 1] + 1)\n        # 只有 水平向左移动 和 竖直向下移动，注意动态规划的计算顺序\n        for i in range(m - 1, -1, -1):\n            for j in range(n):\n                if i + 1 < m:\n                    dist[i][j] = min(dist[i][j], dist[i + 1][j] + 1)\n                if j - 1 >= 0:\n                    dist[i][j] = min(dist[i][j], dist[i][j - 1] + 1)\n        # 只有 水平向右移动 和 竖直向上移动，注意动态规划的计算顺序\n        for i in range(m):\n            for j in range(n - 1, -1, -1):\n                if i - 1 >= 0:\n                    dist[i][j] = min(dist[i][j], dist[i - 1][j] + 1)\n                if j + 1 < n:\n                    dist[i][j] = min(dist[i][j], dist[i][j + 1] + 1)\n        # 只有 水平向右移动 和 竖直向下移动，注意动态规划的计算顺序\n        for i in range(m - 1, -1, -1):\n            for j in range(n - 1, -1, -1):\n                if i + 1 < m:\n                    dist[i][j] = min(dist[i][j], dist[i + 1][j] + 1)\n                if j + 1 < n:\n                    dist[i][j] = min(dist[i][j], dist[i][j + 1] + 1)\n        return dist\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(mn)$，其中 $m$ 为矩阵行数，$n$ 为矩阵列数。计算 $\\textit{dist}$ 数组的过程中我们需要遍历四次矩阵，因此时间复杂度为 $O(4mn)=O(mn)$。\n\n- 空间复杂度：$O(1)$，这里我们只计算额外的空间复杂度。除了答案数组以外，我们只需要常数空间存放若干变量。\n\n#### 方法三：动态规划的常数优化\n\n我们发现方法二中的代码有一些重复计算的地方。实际上，我们只需要保留\n\n- 只有 **水平向左移动** 和 **竖直向上移动**；\n\n- 只有 **水平向右移动** 和 **竖直向下移动**。\n\n这两者即可。这里不会给出详细的证明，有兴趣的读者可以自己思考。\n\n```C++ [sol3-C++]\nclass Solution {\npublic:\n    vector<vector<int>> updateMatrix(vector<vector<int>>& matrix) {\n        int m = matrix.size(), n = matrix[0].size();\n        // 初始化动态规划的数组，所有的距离值都设置为一个很大的数\n        vector<vector<int>> dist(m, vector<int>(n, INT_MAX / 2));\n        // 如果 (i, j) 的元素为 0，那么距离为 0\n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j) {\n                if (matrix[i][j] == 0) {\n                    dist[i][j] = 0;\n                }\n            }\n        }\n        // 只有 水平向左移动 和 竖直向上移动，注意动态规划的计算顺序\n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j) {\n                if (i - 1 >= 0) {\n                    dist[i][j] = min(dist[i][j], dist[i - 1][j] + 1);\n                }\n                if (j - 1 >= 0) {\n                    dist[i][j] = min(dist[i][j], dist[i][j - 1] + 1);\n                }\n            }\n        }\n        // 只有 水平向右移动 和 竖直向下移动，注意动态规划的计算顺序\n        for (int i = m - 1; i >= 0; --i) {\n            for (int j = n - 1; j >= 0; --j) {\n                if (i + 1 < m) {\n                    dist[i][j] = min(dist[i][j], dist[i + 1][j] + 1);\n                }\n                if (j + 1 < n) {\n                    dist[i][j] = min(dist[i][j], dist[i][j + 1] + 1);\n                }\n            }\n        }\n        return dist;\n    }\n};\n```\n```Java [sol3-Java]\nclass Solution {\n    static int[][] dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};\n\n    public int[][] updateMatrix(int[][] matrix) {\n        int m = matrix.length, n = matrix[0].length;\n        // 初始化动态规划的数组，所有的距离值都设置为一个很大的数\n        int[][] dist = new int[m][n];\n        for (int i = 0; i < m; ++i) {\n            Arrays.fill(dist[i], Integer.MAX_VALUE / 2);\n        }\n        // 如果 (i, j) 的元素为 0，那么距离为 0\n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j) {\n                if (matrix[i][j] == 0) {\n                    dist[i][j] = 0;\n                }\n            }\n        }\n        // 只有 水平向左移动 和 竖直向上移动，注意动态规划的计算顺序\n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j) {\n                if (i - 1 >= 0) {\n                    dist[i][j] = Math.min(dist[i][j], dist[i - 1][j] + 1);\n                }\n                if (j - 1 >= 0) {\n                    dist[i][j] = Math.min(dist[i][j], dist[i][j - 1] + 1);\n                }\n            }\n        }\n        // 只有 水平向右移动 和 竖直向下移动，注意动态规划的计算顺序\n        for (int i = m - 1; i >= 0; --i) {\n            for (int j = n - 1; j >= 0; --j) {\n                if (i + 1 < m) {\n                    dist[i][j] = Math.min(dist[i][j], dist[i + 1][j] + 1);\n                }\n                if (j + 1 < n) {\n                    dist[i][j] = Math.min(dist[i][j], dist[i][j + 1] + 1);\n                }\n            }\n        }\n        return dist;\n    }\n}\n```\n```Python [sol3-Python3]\nclass Solution:\n    def updateMatrix(self, matrix: List[List[int]]) -> List[List[int]]:\n        m, n = len(matrix), len(matrix[0])\n        # 初始化动态规划的数组，所有的距离值都设置为一个很大的数\n        dist = [[10**9] * n for _ in range(m)]\n        # 如果 (i, j) 的元素为 0，那么距离为 0\n        for i in range(m):\n            for j in range(n):\n                if matrix[i][j] == 0:\n                    dist[i][j] = 0\n        # 只有 水平向左移动 和 竖直向上移动，注意动态规划的计算顺序\n        for i in range(m):\n            for j in range(n):\n                if i - 1 >= 0:\n                    dist[i][j] = min(dist[i][j], dist[i - 1][j] + 1)\n                if j - 1 >= 0:\n                    dist[i][j] = min(dist[i][j], dist[i][j - 1] + 1)\n        # 只有 水平向右移动 和 竖直向下移动，注意动态规划的计算顺序\n        for i in range(m - 1, -1, -1):\n            for j in range(n - 1, -1, -1):\n                if i + 1 < m:\n                    dist[i][j] = min(dist[i][j], dist[i + 1][j] + 1)\n                if j + 1 < n:\n                    dist[i][j] = min(dist[i][j], dist[i][j + 1] + 1)\n        return dist\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(mn)$，其中 $m$ 为矩阵行数，$n$ 为矩阵列数。计算 $\\textit{dist}$ 数组的过程中我们需要遍历两次矩阵，因此时间复杂度为 $O(2mn)=O(mn)$。\n\n- 空间复杂度：$O(1)$，这里我们只计算额外的空间复杂度。除了答案数组以外，我们只需要常数空间存放若干变量。",
+            "slateValue": "",
+            "slug": "01ju-zhen-by-leetcode-solution",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "eJa0CG",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 293,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 31,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 6,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Breadth-First Search",
+                    "nameTranslated": "广度优先搜索",
+                    "slug": "breadth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Matrix",
+                    "nameTranslated": "矩阵",
+                    "slug": "matrix",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-04-14T06:41:19.970799+00:00",
+            "thumbnail": "https://assets.leetcode-cn.com/solution-static/542_fig1.PNG",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "📺 视频题解 📖 文字题解 方法一：广度优先搜索 思路 对于矩阵中的每一个元素，如果它的值为 $0$，那么离它最近的 $0$ 就是它自己。如果它的值为 $1$，那么我们就需要找出离它最近的 $0$，并且返回这个距离值。那么我们如何对于矩阵中的每一个 $1$，都快速地找到离它最近的 $0$ 呢？ 我们不妨从一个简化版本的",
+            "topic": {
+                "id": 202012,
+                "subscribed": false,
+                "commentCount": 284,
+                "viewCount": 86917,
+                "post": {
+                    "id": 549354,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 515,
+            "isEditorsPick": false,
+            "hitCount": 182681,
+            "videosInfo": [
+                {
+                    "videoId": "70ff551c85ee4fbdb89fd458959cfdb4",
+                    "coverUrl": "https://video.leetcode.cn/image/cover/D751015DCF9646D0B894003AD8ABD31F-6-2.png?auth_key=1782487933-d54d0d6411c644339ca47fef9176d38f-0-6adea2578de03fe30abef1b72f4bea4b",
+                    "duration": 1161.8773
+                }
+            ],
+            "question": {
+                "titleSlug": "01-matrix",
+                "questionFrontendId": "542"
+            },
+            "next": {
+                "slug": "2chong-bfs-xiang-jie-dp-bi-xu-miao-dong-by-sweetie",
+                "title": "2种BFS，详解DP， 🤷‍♀️必须秒懂！"
+            },
+            "prev": null
+        }
+    }
+}

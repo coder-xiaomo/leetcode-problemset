@@ -1,0 +1,142 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "1rMKZr",
+            "title": "我的日程安排表 II",
+            "content": "#### 方法一：直接遍历\n\n记录下所有已经预定的课程安排区间与已经预定过两次的课程安排区间，当我们预定新的区间 $[\\textit{start}, \\textit{end})$ 时，此时检查当前已经预定过两次的每个日程安排是否与新日程安排冲突。若不冲突，则可以添加新的日程安排。\n+ 对于两个区间 $[s_1，e_1)$ 和 $[s_2，e_2)$，如果二者没有交集，则此时应当满足 $s_1 \\ge e_2$ 或者 $s_2 \\ge e_1$，这就意味着如果满足 $s_1 < e_2$ 并且 $s_2 < e_1$ 时，则两者会产生差集。\n+ 首先检测新加入的区间 $[\\textit{start}, \\textit{end})$ 是否与已经预定过两次的区间有交集，如果没有冲突，则将新加入的区间与已经预定的区间进行检查，求出新增的预定两次的区间。对于两个区间 $[s_1，e_1)$ 和 $[s_2，e_2)$，则他们之间的交集为 $[\\max(s_1,s_2), \\min(e_1,e_2))$。\n\n```Python [sol1-Python3]\nclass MyCalendarTwo:\n    def __init__(self):\n        self.booked = []\n        self.overlaps = []\n\n    def book(self, start: int, end: int) -> bool:\n        if any(s < end and start < e for s, e in self.overlaps):\n            return False\n        for s, e in self.booked:\n            if s < end and start < e:\n                self.overlaps.append((max(s, start), min(e, end)))\n        self.booked.append((start, end))\n        return True\n```\n\n```C++ [sol1-C++]\nclass MyCalendarTwo {\npublic:\n    MyCalendarTwo() {\n\n    }\n\n    bool book(int start, int end) {\n        for (auto &[l, r] : overlaps) {\n            if (l < end && start < r) {\n                return false;\n            }\n        }\n        for (auto &[l, r] : booked) {\n            if (l < end && start < r) {\n                overlaps.emplace_back(max(l, start), min(r, end));\n            }\n        }\n        booked.emplace_back(start, end);\n        return true;\n    }\nprivate:\n    vector<pair<int, int>> booked;\n    vector<pair<int, int>> overlaps;\n};\n```\n\n```Java [sol1-Java]\nclass MyCalendarTwo {\n    List<int[]> booked;\n    List<int[]> overlaps;\n\n    public MyCalendarTwo() {\n        booked = new ArrayList<int[]>();\n        overlaps = new ArrayList<int[]>();\n    }\n\n    public boolean book(int start, int end) {\n        for (int[] arr : overlaps) {\n            int l = arr[0], r = arr[1];\n            if (l < end && start < r) {\n                return false;\n            }\n        }\n        for (int[] arr : booked) {\n            int l = arr[0], r = arr[1];\n            if (l < end && start < r) {\n                overlaps.add(new int[]{Math.max(l, start), Math.min(r, end)});\n            }\n        }\n        booked.add(new int[]{start, end});\n        return true;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class MyCalendarTwo {\n    List<Tuple<int, int>> booked;\n    List<Tuple<int, int>> overlaps;\n\n    public MyCalendarTwo() {\n        booked = new List<Tuple<int, int>>();\n        overlaps = new List<Tuple<int, int>>();\n    }\n\n    public bool Book(int start, int end) {\n        foreach (Tuple<int, int> tuple in overlaps) {\n            int l = tuple.Item1, r = tuple.Item2;\n            if (l < end && start < r) {\n                return false;\n            }\n        }\n        foreach (Tuple<int, int> tuple in booked) {\n            int l = tuple.Item1, r = tuple.Item2;\n            if (l < end && start < r) {\n                overlaps.Add(new Tuple<int, int>(Math.Max(l, start), Math.Min(r, end)));\n            }\n        }\n        booked.Add(new Tuple<int, int>(start, end));\n        return true;\n    }\n}\n```\n\n```C [sol1-C]\ntypedef struct {\n    int *booked;\n    int bookedSize;\n    int *overlaps;\n    int overlapsSize;\n} MyCalendarTwo;\n\n#define MAX_BOOK_SIZE 1001\n#define MIN(a, b) ((a) < (b) ? (a) : (b))\n#define MAX(a, b) ((a) > (b) ? (a) : (b))\n\nMyCalendarTwo* myCalendarTwoCreate() {\n    MyCalendarTwo *obj = (MyCalendarTwo *)malloc(sizeof(MyCalendarTwo));\n    obj->booked = (int *)malloc(sizeof(int) * 2 * MAX_BOOK_SIZE);\n    obj->overlaps = (int *)malloc(sizeof(int) * 2 * MAX_BOOK_SIZE);\n    obj->bookedSize = 0;\n    obj->overlapsSize = 0;\n    return obj;\n}\n\nbool myCalendarTwoBook(MyCalendarTwo* obj, int start, int end) {\n    for (int i = 0; i < obj->overlapsSize; i++) {\n        int l = obj->overlaps[2 * i];\n        int r = obj->overlaps[2 * i + 1];\n        if (l < end && start < r) {\n            return false;\n        }\n    }\n    for (int i = 0; i < obj->bookedSize; i++) {\n        int l = obj->booked[2 * i];\n        int r = obj->booked[2 * i + 1];\n        if (l < end && start < r) {\n            obj->overlaps[obj->overlapsSize * 2] = MAX(l, start);\n            obj->overlaps[obj->overlapsSize * 2 + 1] = MIN(r, end);\n            obj->overlapsSize++;\n        }\n    }\n    obj->booked[obj->bookedSize * 2] = start;\n    obj->booked[obj->bookedSize * 2 + 1] = end;\n    obj->bookedSize++;\n    return true;\n}\n\nvoid myCalendarTwoFree(MyCalendarTwo* obj) {\n    free(obj->booked);\n    free(obj->overlaps);\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar MyCalendarTwo = function() {\n    this.booked = [];\n    this.overlaps = [];\n};\n\nMyCalendarTwo.prototype.book = function(start, end) {\n    for (const arr of this.overlaps) {\n        let l = arr[0], r = arr[1];\n        if (l < end && start < r) {\n            return false;\n        }\n    }\n    for (const arr of this.booked) {\n        let l = arr[0], r = arr[1];\n        if (l < end && start < r) {\n            this.overlaps.push([Math.max(l, start), Math.min(r, end)]);\n        }\n    }\n    this.booked.push([start, end]);\n    return true;\n};\n```\n\n```go [sol1-Golang]\ntype pair struct{ start, end int }\ntype MyCalendarTwo struct{ booked, overlaps []pair }\n\nfunc Constructor() MyCalendarTwo {\n    return MyCalendarTwo{}\n}\n\nfunc (c *MyCalendarTwo) Book(start, end int) bool {\n    for _, p := range c.overlaps {\n        if p.start < end && start < p.end {\n            return false\n        }\n    }\n    for _, p := range c.booked {\n        if p.start < end && start < p.end {\n            c.overlaps = append(c.overlaps, pair{max(p.start, start), min(p.end, end)})\n        }\n    }\n    c.booked = append(c.booked, pair{start, end})\n    return true\n}\n\nfunc min(a, b int) int {\n    if a > b {\n        return b\n    }\n    return a\n}\n\nfunc max(a, b int) int {\n    if b > a {\n        return b\n    }\n    return a\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n^2)$, 其中 $n$ 表示日程安排的数量。由于每次在进行预定时，都需要遍历所有已经预定的行程安排。\n\n- 空间复杂度：$O(n)$，其中 $n$ 表示日程安排的数量。需要保存所有已经预定的行程。\n\n#### 方法二：差分数组\n\n利用差分数组的思想，每当我们预定一个新的日程安排 $[\\textit{start}, \\textit{end})$，在 $\\textit{start}$ 计数 $\\textit{cnt}[\\textit{start}]$ 加 $1$，表示从 $\\textit{start}$ 预定的数目加 $1$；从 $\\textit{end}$ 计数 $\\textit{cnt}[\\textit{end}]$ 减 $1$，表示从 $\\textit{end}$ 开始预定的数目减 $1$。此时以起点 $x$ 开始的预定的数目 $\\textit{book}_x = \\sum_{y \\le x}\\textit{cnt}[y]$，当我们将 $[\\textit{start}, \\textit{end})$ 加入后，如果发现存在区间的预定数目大于 $2$ 时，此时为非法应去除新加入的区间 $[\\textit{start}, \\textit{end})$。由于本题中 $\\textit{start}, \\textit{end}$ 数量较大，我们利用 $\\texttt{TreeMap}$ 计数即可。\n\n```Python [sol2-Python3]\nfrom sortedcontainers import SortedDict\n\nclass MyCalendarTwo:\n    def __init__(self):\n        self.cnt = SortedDict()\n\n    def book(self, start: int, end: int) -> bool:\n        self.cnt[start] = self.cnt.get(start, 0) + 1\n        self.cnt[end] = self.cnt.get(end, 0) - 1\n        maxBook = 0\n        for c in self.cnt.values():\n            maxBook += c\n            if maxBook > 2:\n                self.cnt[start] = self.cnt.get(start, 0) - 1\n                self.cnt[end] = self.cnt.get(end, 0) + 1\n                return False\n        return True\n```\n\n```C++ [sol2-C++]\nclass MyCalendarTwo {\npublic:\n    MyCalendarTwo() {\n\n    }\n\n    bool book(int start, int end) {\n        int maxBook = 0;\n        cnt[start]++;\n        cnt[end]--;\n        for (auto &[_, freq] : cnt) {\n            maxBook += freq;\n            if (maxBook > 2) {\n                cnt[start]--;\n                cnt[end]++;\n                return false;\n            }\n        }\n        return true;\n    }\nprivate:\n    map<int, int> cnt;\n};\n```\n\n```Java [sol2-Java]\nclass MyCalendarTwo {\n    TreeMap<Integer, Integer> cnt;\n\n    public MyCalendarTwo() {\n        cnt = new TreeMap<Integer, Integer>();\n    }\n\n    public boolean book(int start, int end) {\n        int maxBook = 0;\n        cnt.put(start, cnt.getOrDefault(start, 0) + 1);\n        cnt.put(end, cnt.getOrDefault(end, 0) - 1);\n        for (Map.Entry<Integer, Integer> entry : cnt.entrySet()) {\n            int freq = entry.getValue();\n            maxBook += freq;\n            if (maxBook > 2) {\n                cnt.put(start, cnt.getOrDefault(start, 0) - 1);\n                cnt.put(end, cnt.getOrDefault(end, 0) + 1);\n                return false;\n            }\n        }\n        return true;\n    }\n}\n```\n\n```go [sol2-Golang]\ntype MyCalendarTwo struct {\n    *redblacktree.Tree\n}\n\nfunc Constructor() MyCalendarTwo {\n    return MyCalendarTwo{redblacktree.NewWithIntComparator()}\n}\n\nfunc (c MyCalendarTwo) add(key, value int) {\n    if v, ok := c.Get(key); ok {\n        c.Put(key, v.(int)+value)\n    } else {\n        c.Put(key, value)\n    }\n}\n\nfunc (c MyCalendarTwo) Book(start, end int) bool {\n    c.add(start, 1)\n    c.add(end, -1)\n    maxBook := 0\n    it := c.Iterator()\n    for it.Next() {\n        maxBook += it.Value().(int)\n        if maxBook > 2 {\n            c.add(start, -1)\n            c.add(end, 1)\n            return false\n        }\n    }\n    return true\n}\n```\n\n**复杂度分析**\n\n+ 时间复杂度：$O(n^2)$，其中 $n$ 为日程安排的数量。每次求的最大的预定需要遍历所有的日程安排。\n\n+ 空间复杂度：$O(n)$，其中 $n$ 为日程安排的数量。需要空间存储所有的日程安排计数，需要的空间为 $O(n)$。\n\n#### 方法三：线段树\n\n利用线段树，假设我们开辟了数组 $\\textit{arr}[0,\\cdots, 10^9]$，初始时每个元素的值都为 $0$，对于每次行程预定的区间 $[\\textit{start}, \\textit{end})$ ，则我们将区间中的元素 $\\textit{arr}[\\textit{start},\\cdots,\\textit{end}-1]$ 中的每个元素加 $1$，如果数组 $arr$ 的最大元素大于 $2$ 时，此时则出现某个区间被安排了 $2$ 次上，此时返回 $\\texttt{false}$，同时将数组区间 $\\textit{arr}[\\textit{start},\\cdots,\\textit{end}-1]$ 进行减 $1$ 即可恢复。实际我们不必实际开辟数组 $\\textit{arr}$，可采用动态线段树，懒标记 $\\textit{lazy}$ 标记区间 $[l,r]$ 进行累加的次数，$\\textit{tree}$ 记录区间 $[l,r]$ 的最大值，每次动态更新线段树即可。\n\n```Python [sol3-Python3]\nclass MyCalendarTwo:\n    def __init__(self):\n        self.tree = {}\n\n    def update(self, start: int, end: int, val: int, l: int, r: int, idx: int) -> None:\n        if r < start or end < l:\n            return\n        if start <= l and r <= end:\n            p = self.tree.get(idx, [0, 0])\n            p[0] += val\n            p[1] += val\n            self.tree[idx] = p\n            return\n        mid = (l + r) // 2\n        self.update(start, end, val, l, mid, 2 * idx)\n        self.update(start, end, val, mid + 1, r, 2 * idx + 1)\n        p = self.tree.get(idx, [0, 0])\n        p[0] = p[1] + max(self.tree.get(2 * idx, (0,))[0], self.tree.get(2 * idx + 1, (0,))[0])\n        self.tree[idx] = p\n\n    def book(self, start: int, end: int) -> bool:\n        self.update(start, end - 1, 1, 0, 10 ** 9, 1)\n        if self.tree[1][0] > 2:\n            self.update(start, end - 1, -1, 0, 10 ** 9, 1)\n            return False\n        return True\n```\n\n```C++ [sol3-C++]\nclass MyCalendarTwo {\npublic:\n    MyCalendarTwo() {\n\n    }\n\n    void update(int start, int end, int val, int l, int r, int idx) {\n        if (r < start || end < l) {\n            return;\n        } \n        if (start <= l && r <= end) {\n            tree[idx].first += val;\n            tree[idx].second += val;\n        } else {\n            int mid = (l + r) >> 1;\n            update(start, end, val, l, mid, 2 * idx);\n            update(start, end, val, mid + 1, r, 2 * idx + 1);\n            tree[idx].first = tree[idx].second + max(tree[2 * idx].first, tree[2 * idx + 1].first);\n        }\n    }\n\n    bool book(int start, int end) {            \n        update(start, end - 1, 1, 0, 1e9, 1);\n        if (tree[1].first > 2) {\n            update(start, end - 1, -1, 0, 1e9, 1);\n            return false;\n        }\n        return true;\n    }\nprivate:\n    unordered_map<int, pair<int, int>> tree;\n};\n```\n\n```Java [sol3-Java]\nclass MyCalendarTwo {\n    Map<Integer, int[]> tree;\n\n    public MyCalendarTwo() {\n        tree = new HashMap<Integer, int[]>();\n    }\n\n    public boolean book(int start, int end) {\n        update(start, end - 1, 1, 0, 1000000000, 1);\n        tree.putIfAbsent(1, new int[2]);\n        if (tree.get(1)[0] > 2) {\n            update(start, end - 1, -1, 0, 1000000000, 1);\n            return false;\n        }\n        return true;\n    }\n\n    public void update(int start, int end, int val, int l, int r, int idx) {\n        if (r < start || end < l) {\n            return;\n        } \n        tree.putIfAbsent(idx, new int[2]);\n        if (start <= l && r <= end) {\n            tree.get(idx)[0] += val;\n            tree.get(idx)[1] += val;\n        } else {\n            int mid = (l + r) >> 1;\n            update(start, end, val, l, mid, 2 * idx);\n            update(start, end, val, mid + 1, r, 2 * idx + 1);\n            tree.putIfAbsent(2 * idx, new int[2]);\n            tree.putIfAbsent(2 * idx + 1, new int[2]);\n            tree.get(idx)[0] = tree.get(idx)[1] + Math.max(tree.get(2 * idx)[0], tree.get(2 * idx + 1)[0]);\n        }\n    }\n}\n```\n\n```C# [sol3-C#]\npublic class MyCalendarTwo {\n    Dictionary<int, int[]> tree;\n\n    public MyCalendarTwo() {\n        tree = new Dictionary<int, int[]>();\n    }\n\n    public bool Book(int start, int end) {\n        Update(start, end - 1, 1, 0, 1000000000, 1);\n        if (!tree.ContainsKey(1)) {\n            tree.Add(1, new int[2]);\n        }\n        if (tree[1][0] > 2) {\n            Update(start, end - 1, -1, 0, 1000000000, 1);\n            return false;\n        }\n        return true;\n    }\n\n    public void Update(int start, int end, int val, int l, int r, int idx) {\n        if (r < start || end < l) {\n            return;\n        } \n        if (!tree.ContainsKey(idx)) {\n            tree.Add(idx, new int[2]);\n        }\n        if (start <= l && r <= end) {\n            tree[idx][0] += val;\n            tree[idx][1] += val;\n        } else {\n            int mid = (l + r) >> 1;\n            Update(start, end, val, l, mid, 2 * idx);\n            Update(start, end, val, mid + 1, r, 2 * idx + 1);\n            if (!tree.ContainsKey(2 * idx)) {\n                tree.Add(2 * idx, new int[2]);\n            }\n            if (!tree.ContainsKey(2 * idx + 1)) {\n                tree.Add(2 * idx + 1, new int[2]);\n            }\n            tree[idx][0] = tree[idx][1] + Math.Max(tree[2 * idx][0], tree[2 * idx + 1][0]);\n        }\n    }\n}\n```\n\n```C [sol3-C]\n#define MAX(a, b) ((a) > (b) ? (a) : (b))\n\ntypedef struct HashItem {\n    int key;\n    int maxBook;\n    int lazy;\n    UT_hash_handle hh;\n} HashItem;\n\ntypedef struct {\n    HashItem *tree;\n} MyCalendarTwo;\n\nMyCalendarTwo* myCalendarTwoCreate() {\n    MyCalendarTwo *obj = (MyCalendarTwo *)malloc(sizeof(MyCalendarTwo));\n    obj->tree = NULL;\n    return obj;    \n}\n\nvoid update(MyCalendarTwo* obj, int start, int end, int val, int l, int r, int idx) {\n    if (r < start || end < l) {\n        return;\n    } \n    if (start <= l && r <= end) {\n        HashItem *pEntry = NULL;\n        HASH_FIND_INT(obj->tree, &idx, pEntry);\n        if (pEntry == NULL) {\n            pEntry = (HashItem *)malloc(sizeof(HashItem));\n            pEntry->key = idx;\n            pEntry->maxBook = val;\n            pEntry->lazy = val;\n            HASH_ADD_INT(obj->tree, key, pEntry);\n        } else {\n            pEntry->maxBook += val;\n            pEntry->lazy += val;\n        }\n    } else {\n        int mid = (l + r) >> 1;\n        update(obj, start, end, val, l, mid, 2 * idx);\n        update(obj, start, end, val, mid + 1, r, 2 * idx + 1);\n        int lchid = idx * 2, rchid = idx * 2 + 1;\n        int lmax = 0, rmax = 0;\n        HashItem *pEntry1 = NULL, *pEntry2 = NULL;\n        HASH_FIND_INT(obj->tree, &lchid, pEntry1);\n        HASH_FIND_INT(obj->tree, &rchid, pEntry2);\n        if (pEntry1) {\n            lmax = pEntry1->maxBook;\n        }\n        if (pEntry2) {\n            rmax = pEntry2->maxBook;\n        }\n        HashItem *pEntry = NULL;\n        HASH_FIND_INT(obj->tree, &idx, pEntry);\n        if (pEntry) {\n            pEntry->maxBook = pEntry->lazy + MAX(lmax, rmax);\n        } else {\n            pEntry = (HashItem *)malloc(sizeof(HashItem));\n            pEntry->key = idx;\n            pEntry->maxBook = 1;\n            pEntry->lazy = 0;\n            HASH_ADD_INT(obj->tree, key, pEntry);\n        }\n    }\n}\n\nbool myCalendarTwoBook(MyCalendarTwo* obj, int start, int end) {\n    update(obj, start, end - 1, 1, 0, 1e9, 1);\n    int idx = 1;\n    HashItem *pEntry = NULL;\n    HASH_FIND_INT(obj->tree, &idx, pEntry);\n    if (pEntry->maxBook > 2) {\n        update(obj, start, end - 1, -1, 0, 1e9, 1);\n        return false;\n    }\n    return true;\n}\n\nvoid myCalendarTwoFree(MyCalendarTwo* obj) {\n    struct HashItem *curr,*tmp;\n    HASH_ITER(hh, obj->tree, curr, tmp) {\n        HASH_DEL(obj->tree, curr); \n        free(curr);             \n    } \n    free(obj); \n}\n```\n\n```JavaScript [sol3-JavaScript]\nvar MyCalendarTwo = function() {\n    this.tree = new Map();\n};\n\nMyCalendarTwo.prototype.book = function(start, end) {\n    const update = (start, end, val, l, r, idx) => {\n        if (r < start || end < l) {\n            return;\n        } \n        if (!this.tree.has(idx)) {\n            this.tree.set(idx, [0, 0]);\n        }\n        if (start <= l && r <= end) {\n            this.tree.get(idx)[0] += val;\n            this.tree.get(idx)[1] += val;\n        } else {\n            const mid = (l + r) >> 1;\n            update(start, end, val, l, mid, 2 * idx);\n            update(start, end, val, mid + 1, r, 2 * idx + 1);\n            if (!this.tree.has(2 * idx)) {\n                this.tree.set(2 * idx, [0, 0]);\n            }\n            if (!this.tree.has(2 * idx + 1)) {\n                this.tree.set(2 * idx + 1, [0, 0]);\n            }\n            this.tree.get(idx)[0] = this.tree.get(idx)[1] + Math.max(this.tree.get(2 * idx)[0], this.tree.get(2 * idx + 1)[0]);\n        }\n    }\n    update(start, end - 1, 1, 0, 1000000000, 1);\n    if (!this.tree.has(1)) {\n        this.tree.set(1, [0, 0])\n    }\n    if (this.tree.get(1)[0] > 2) {\n        update(start, end - 1, -1, 0, 1000000000, 1);\n        return false;\n    }\n    return true;\n};\n```\n\n```go [sol3-Golang]\ntype pair struct{ first, second int }\ntype MyCalendarTwo map[int]pair\n\nfunc Constructor() MyCalendarTwo {\n    return MyCalendarTwo{}\n}\n\nfunc (tree MyCalendarTwo) update(start, end, val, l, r, idx int) {\n    if r < start || end < l {\n        return\n    }\n    if start <= l && r <= end {\n        p := tree[idx]\n        p.first += val\n        p.second += val\n        tree[idx] = p\n        return\n    }\n    mid := (l + r) >> 1\n    tree.update(start, end, val, l, mid, 2*idx)\n    tree.update(start, end, val, mid+1, r, 2*idx+1)\n    p := tree[idx]\n    p.first = p.second + max(tree[2*idx].first, tree[2*idx+1].first)\n    tree[idx] = p\n}\n\nfunc (tree MyCalendarTwo) Book(start, end int) bool {\n    tree.update(start, end-1, 1, 0, 1e9, 1)\n    if tree[1].first > 2 {\n        tree.update(start, end-1, -1, 0, 1e9, 1)\n        return false\n    }\n    return true\n}\n\nfunc max(a, b int) int {\n    if b > a {\n        return b\n    }\n    return a\n}\n```\n\n**复杂度分析**\n\n+ 时间复杂度：$O(n \\log C)$，其中 $n$ 为日程安排的数量。由于使用了线段树查询，线段树的最大深度为 $\\log C$, 每次最多会查询 $\\log C$ 个节点，每次求最大的预定需的时间复杂度为 $O(\\log C + \\log C)$，因此时间复杂度为 $O(n \\log C)$，在此 $C$ 取固定值即为 $10^9$。\n\n+ 空间复杂度：$O(n \\log C)$，其中 $n$ 为日程安排的数量。由于该解法采用的为动态线段树，线段树的最大深度为 $\\log C$，每次预定最多会在线段树上增加 $\\log C$ 个节点，因此空间复杂度为 $O(n \\log C)$，在此 $C$ 取固定值即为 $10^9$。",
+            "slateValue": "",
+            "slug": "wo-de-ri-cheng-an-pai-biao-ii-by-leetcod-wo6n",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "1rMKZr",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 77,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 3,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Design",
+                    "nameTranslated": "设计",
+                    "slug": "design",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Segment Tree",
+                    "nameTranslated": "线段树",
+                    "slug": "segment-tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Ordered Set",
+                    "nameTranslated": "有序集合",
+                    "slug": "ordered-set",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-07-18T02:00:31.057262+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：直接遍历 记录下所有已经预定的课程安排区间与已经预定过两次的课程安排区间，当我们预定新的区间 [latex] 时，此时检查当前已经预定过两次的每个日程安排是否与新日程安排冲突。若不冲突，则可以添加新的日程安排。 + 对于两个区间 [latex] 和 [latex]，如果二者没有交集，则此时应当满足 [latex",
+            "topic": {
+                "id": 1678660,
+                "subscribed": false,
+                "commentCount": 116,
+                "viewCount": 17950,
+                "post": {
+                    "id": 3336644,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 140,
+            "isEditorsPick": false,
+            "hitCount": 49443,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "my-calendar-ii",
+                "questionFrontendId": "731"
+            },
+            "next": {
+                "slug": "by-lfool-nodi",
+                "title": "线段树详解「汇总级别整理 🔥🔥🔥」"
+            },
+            "prev": null
+        }
+    }
+}

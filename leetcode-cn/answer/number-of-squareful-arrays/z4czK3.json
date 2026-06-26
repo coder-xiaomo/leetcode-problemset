@@ -1,0 +1,96 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "z4czK3",
+            "title": "平方数组的数目",
+            "content": "#### 方法一：回溯\n\n**思路**\n\n构造一张图，包含所有的边 $i$ 到 $j$ ，如果满足 $A[i] + A[j]$ 是一个完全平方数。我们的目标就是求这张图的所有哈密顿路径，即经过图中所有点仅一次的路径。\n\n**算法**\n\n我们使用 `count` 记录对于每一种值还有多少个节点等待被访问，与一个变量 `todo` 记录还剩多少个节点等待被访问。\n\n对于每一个节点，我们可以访问它的所有邻居节点（从数值的角度来看，从而大大减少复杂度）。\n\n对于每一个节点，我们可以访问它的所有邻居节点（从数值的角度来看，从而大大减少复杂度）。\n\n更多细节请看行内注释。\n\n```java [sol1-Java]\nclass Solution {\n    Map<Integer, Integer> count;\n    Map<Integer, List<Integer>> graph;\n    public int numSquarefulPerms(int[] A) {\n        int N = A.length;\n        count = new HashMap();\n        graph = new HashMap();\n\n        // count.get(v) : 数组 A 中值为 v 的节点数量\n        for (int x: A)\n            count.put(x, count.getOrDefault(x, 0) + 1);\n\n        // graph.get(v) : 在 A 中的值 w 满足 v + w 是完全平方数\n        //                (ie., \"vw\" is an edge)\n        for (int x: count.keySet())\n            graph.put(x, new ArrayList());\n\n        for (int x: count.keySet())\n            for (int y: count.keySet()) {\n                int r = (int) (Math.sqrt(x + y) + 0.5);\n                if (r * r == x + y)\n                    graph.get(x).add(y);\n            }\n\n        // 增加从 x 开始的可行路径数量\n        int ans = 0;\n        for (int x: count.keySet())\n            ans += dfs(x, N - 1);\n        return ans;\n    }\n\n    public int dfs(int x, int todo) {\n        count.put(x, count.get(x) - 1);\n        int ans = 1;\n        if (todo != 0) {\n            ans = 0;\n            for (int y: graph.get(x)) if (count.get(y) != 0) {\n                ans += dfs(y, todo - 1);\n            }\n        }\n        count.put(x, count.get(x) + 1);\n        return ans;\n    }\n}\n```\n\n```python [sol1-Python3]\nclass Solution(object):\n    def numSquarefulPerms(self, A):\n        N = len(A)\n        count = collections.Counter(A)\n\n        graph = {x: [] for x in count}\n        for x in count:\n            for y in count:\n                if int((x+y)**.5 + 0.5) ** 2 == x+y:\n                    graph[x].append(y)\n\n        def dfs(x, todo):\n            count[x] -= 1\n            if todo == 0:\n                ans = 1\n            else:\n                ans = 0\n                for y in graph[x]:\n                    if count[y]:\n                        ans += dfs(y, todo - 1)\n            count[x] += 1\n            return ans\n\n        return sum(dfs(x, len(A) - 1) for x in count)\n```\n\n**复杂度分析**\n\n- 时间复杂度： $O(N^N)$，其中 $N​$ 是 `A` 的长度。更加严格的复杂度界限在本文中不做赘述。 但是明显构造得到的图中不包含三角形，且图的另外一些性质保证了算法的复杂度。\n\n- 空间复杂度： $O(N)$。\n\n---\n\n#### 方法二：动态规划\n\n**思路**\n\n与 _方法一_ 中相似，构造一样的图。因为节点的数量非常少，所以可以使用掩码标记所有已经过点的方式来进行动态规划。\n\n**算法**\n\n我们用同样的方式构造与 _方法一_ 中一样的图。\n\n现在，我们令 `dfs(node, visited)` 等于从 `node` 节点出发访问剩余的节点的可行方法数。这里，`visited` 是一个掩码：`(visited >> i) & 1` 为真，当且仅当第 `i` 个节点已经被访问过了。\n\n这样计算之后，对于 A 中拥有相同值的节点我们会重复计算。考虑这个因素，对于 `A` 中的值 `x`，如果 `A` 中包含 `k` 个值为 `x` 的节点，我们令最终答案除以 `k!`。\n\n```java [sol2-Java]\nclass Solution {\n    int N;\n    Map<Integer, List<Integer>> graph;\n    Integer[][] memo;\n\n    public int numSquarefulPerms(int[] A) {\n        N = A.length;\n        graph = new HashMap();\n        memo = new Integer[N][1 << N];\n\n        for (int i = 0; i < N; ++i)\n            graph.put(i, new ArrayList());\n\n        for (int i = 0; i < N; ++i)\n            for (int j = i+1; j < N; ++j) {\n                int r = (int) (Math.sqrt(A[i] + A[j]) + 0.5);\n                if (r * r == A[i] + A[j]) {\n                    graph.get(i).add(j);\n                    graph.get(j).add(i);\n                }\n            }\n\n\n        int[] factorial = new int[20];\n        factorial[0] = 1;\n        for (int i = 1; i < 20; ++i)\n            factorial[i] = i * factorial[i-1];\n\n        int ans = 0;\n        for (int i = 0; i < N; ++i)\n            ans += dfs(i, 1 << i);\n\n        Map<Integer, Integer> count = new HashMap();\n        for (int x: A)\n            count.put(x, count.getOrDefault(x, 0) + 1);\n        for (int v: count.values())\n            ans /= factorial[v];\n\n        return ans;\n    }\n\n    public int dfs(int node, int visited) {\n        if (visited == (1 << N) - 1)\n            return 1;\n        if (memo[node][visited] != null)\n            return memo[node][visited];\n\n        int ans = 0;\n        for (int nei: graph.get(node))\n            if (((visited >> nei) & 1) == 0)\n                ans += dfs(nei, visited | (1 << nei));\n        memo[node][visited] = ans;\n        return ans;\n    }\n}\n```\n\n```python [sol2-Python3]\nfrom functools import lru_cache\n\nclass Solution:\n    def numSquarefulPerms(self, A):\n        N = len(A)\n\n        def edge(x, y):\n            r = math.sqrt(x+y)\n            return int(r + 0.5) ** 2 == x+y\n\n        graph = [[] for _ in range(len(A))]\n        for i, x in enumerate(A):\n            for j in range(i):\n                if edge(x, A[j]):\n                    graph[i].append(j)\n                    graph[j].append(i)\n\n        # find num of hamiltonian paths in graph\n\n        @lru_cache(None)\n        def dfs(node, visited):\n            if visited == (1 << N) - 1:\n                return 1\n\n            ans = 0\n            for nei in graph[node]:\n                if (visited >> nei) & 1 == 0:\n                    ans += dfs(nei, visited | (1 << nei))\n            return ans\n\n        ans = sum(dfs(i, 1<<i) for i in range(N))\n        count = collections.Counter(A)\n        for v in count.values():\n            ans //= math.factorial(v)\n        return ans\n```\n\n**复杂度分析**\n\n- 时间复杂度： $O(N 2^N)$，其中 $N$ 是 `A` 的长度。\n\n- 空间复杂度： $O(N 2^N)$。",
+            "slateValue": "",
+            "slug": "ping-fang-shu-zu-de-shu-mu-by-leetcode-s-i7yi",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "z4czK3",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 0,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Backtracking",
+                    "nameTranslated": "回溯",
+                    "slug": "backtracking",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2026-04-03T04:36:58.453882+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：回溯 思路 构造一张图，包含所有的边 [latex] 到 [latex] ，如果满足 [latex] 是一个完全平方数。我们的目标就是求这张图的所有哈密顿路径，即经过图中所有点仅一次的路径。 算法 我们使用 count 记录对于每一种值还有多少个节点等待被访问，与一个变量 todo 记录还剩多少个节点等待被访问",
+            "topic": {
+                "id": 3943960,
+                "subscribed": false,
+                "commentCount": 0,
+                "viewCount": 0,
+                "post": {
+                    "id": 7188983,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 0,
+            "isEditorsPick": false,
+            "hitCount": 116,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "number-of-squareful-arrays",
+                "questionFrontendId": "996"
+            },
+            "next": {
+                "slug": "xiang-lin-xiang-guan-zhuang-ya-dpji-yi-h-nf7z",
+                "title": "相邻相关状压 DP：记忆化搜索 -> 递推（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

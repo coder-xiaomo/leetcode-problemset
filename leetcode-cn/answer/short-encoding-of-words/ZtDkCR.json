@@ -1,0 +1,122 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "ZtDkCR",
+            "title": "单词的压缩编码",
+            "content": "#### 预备知识\n\n- [字典树](https://baike.baidu.com/item/%E5%AD%97%E5%85%B8%E6%A0%91)\n\n#### 方法一：存储后缀\n\n**思路**\n\n如果单词 `X` 是 `Y` 的后缀，那么单词 `X` 就不需要考虑了，因为编码 `Y` 的时候就同时将 `X` 编码了。例如，如果 `words` 中同时有 `\"me\"` 和 `\"time\"`，我们就可以在不改变答案的情况下不考虑 `\"me\"`。\n\n如果单词 `Y` 不在任何别的单词 `X` 的后缀中出现，那么 `Y` 一定是编码字符串的一部分。\n\n因此，目标就是保留所有**不是其他单词后缀**的单词，最后的结果就是这些单词长度加一的总和，因为每个单词编码后后面还需要跟一个 `#` 符号。\n\n![fig1](https://assets.leetcode.cn/solution-static/820/1.gif)\n\n**算法**\n\n由数据范围可知一个单词最多含有 $7$ 个后缀，所以我们可以枚举单词所有的后缀。对于每个后缀，如果其存在 `words` 列表中，我们就将其从列表中删除。为了高效删除，我们将 `words` 用哈希集合来存储。\n\n```Java [sol1-Java]\nclass Solution {\n    public int minimumLengthEncoding(String[] words) {\n        Set<String> good = new HashSet<String>(Arrays.asList(words));\n        for (String word: words) {\n            for (int k = 1; k < word.length(); ++k) {\n                good.remove(word.substring(k));\n            }\n        }\n\n        int ans = 0;\n        for (String word: good) {\n            ans += word.length() + 1;\n        }\n        return ans;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def minimumLengthEncoding(self, words: List[str]) -> int:\n        good = set(words)\n        for word in words:\n            for k in range(1, len(word)):\n                good.discard(word[k:])\n\n        return sum(len(word) + 1 for word in good)\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int minimumLengthEncoding(vector<string>& words) {\n        unordered_set<string> good(words.begin(), words.end());\n        for (const string& word: words) {\n            for (int k = 1; k < word.size(); ++k) {\n                good.erase(word.substr(k));\n            }\n        }\n\n        int ans = 0;\n        for (const string& word: good) {\n            ans += word.size() + 1;\n        }\n        return ans;\n    }\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(\\sum w_i^2)$，其中 $w_i$ 是 `words[i]` 的长度。每个单词有 $w_i$ 个后缀，对于每个后缀，查询其是否在集合中时需要进行 $O(w_i)$ 的哈希值计算。\n\n- 空间复杂度：$O(\\sum w_i)$，存储单词的空间开销。\n\n#### 方法二：字典树\n\n**思路**\n\n如方法一所说，目标就是保留所有**不是其他单词后缀**的单词。\n\n**算法**\n\n去找到是否不同的单词具有相同的后缀，我们可以将其反序之后插入字典树中。例如，我们有 `\"time\"` 和 `\"me\"`，可以将 `\"emit\"` 和 `\"em\"` 插入字典树中。\n\n![fig2](https://assets.leetcode.cn/solution-static/820/2.jpg)\n\n然后，字典树的叶子节点（没有孩子的节点）就代表没有后缀的单词，统计叶子节点代表的单词长度加一的和即为我们要的答案。\n\n```Java [sol2-Java]\nclass Solution {\n    public int minimumLengthEncoding(String[] words) {\n        TrieNode trie = new TrieNode();\n        Map<TrieNode, Integer> nodes = new HashMap<TrieNode, Integer>();\n\n        for (int i = 0; i < words.length; ++i) {\n            String word = words[i];\n            TrieNode cur = trie;\n            for (int j = word.length() - 1; j >= 0; --j) {\n                cur = cur.get(word.charAt(j));\n            }\n            nodes.put(cur, i);\n        }\n\n        int ans = 0;\n        for (TrieNode node: nodes.keySet()) {\n            if (node.count == 0) {\n                ans += words[nodes.get(node)].length() + 1;\n            }\n        }\n        return ans;\n\n    }\n}\n\nclass TrieNode {\n    TrieNode[] children;\n    int count;\n\n    TrieNode() {\n        children = new TrieNode[26];\n        count = 0;\n    }\n\n    public TrieNode get(char c) {\n        if (children[c - 'a'] == null) {\n            children[c - 'a'] = new TrieNode();\n            count++;\n        }\n        return children[c - 'a'];\n    }\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def minimumLengthEncoding(self, words: List[str]) -> int:\n        words = list(set(words)) #remove duplicates\n        #Trie is a nested dictionary with nodes created\n        # when fetched entries are missing\n        Trie = lambda: collections.defaultdict(Trie)\n        trie = Trie()\n\n        #reduce(..., S, trie) is trie[S[0]][S[1]][S[2]][...][S[S.length - 1]]\n        nodes = [reduce(dict.__getitem__, word[::-1], trie)\n                 for word in words]\n\n        #Add word to the answer if it's node has no neighbors\n        return sum(len(word) + 1\n                   for i, word in enumerate(words)\n                   if len(nodes[i]) == 0)\n```\n\n```C++ [sol2-C++]\nclass TrieNode{\n    TrieNode* children[26];\npublic:\n    int count;\n    TrieNode() {\n        for (int i = 0; i < 26; ++i) children[i] = NULL;\n        count = 0;\n    }\n    TrieNode* get(char c) {\n        if (children[c - 'a'] == NULL) {\n            children[c - 'a'] = new TrieNode();\n            count++;\n        }\n        return children[c - 'a'];\n    }\n};\nclass Solution {\npublic:\n    int minimumLengthEncoding(vector<string>& words) {\n        TrieNode* trie = new TrieNode();\n        unordered_map<TrieNode*, int> nodes;\n\n        for (int i = 0; i < (int)words.size(); ++i) {\n            string word = words[i];\n            TrieNode* cur = trie;\n            for (int j = word.length() - 1; j >= 0; --j)\n                cur = cur->get(word[j]);\n            nodes[cur] = i;\n        }\n\n        int ans = 0;\n        for (auto& [node, idx] : nodes) {\n            if (node->count == 0) {\n                ans += words[idx].length() + 1;\n            }\n        }\n        return ans;\n    }\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(\\sum w_i)$，其中 $w_i$ 是 `words[i]` 的长度。对于每个单词中的每个字母，只需要进行常数次操作。\n\n- 空间复杂度：$O(S \\times \\sum w_i)$，字典树的空间开销，其中 $S$ 为字符集大小。",
+            "slateValue": "",
+            "slug": "dan-ci-de-ya-suo-bian-ma-by-leetcode-solution",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "ZtDkCR",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 98,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 4,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Trie",
+                    "nameTranslated": "字典树",
+                    "slug": "trie",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-03-27T08:33:29.263711+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "预备知识 字典树 方法一：存储后缀 思路 如果单词 X 是 Y 的后缀，那么单词 X 就不需要考虑了，因为编码 Y 的时候就同时将 X 编码了。例如，如果 words 中同时有 \"me\" 和 \"time\"，我们就可以在不改变答案的情况下不考虑 \"me\"。 如果单词 Y 不在任何别的单词 X 的后缀中出现，那么 Y 一定",
+            "topic": {
+                "id": 173709,
+                "subscribed": false,
+                "commentCount": 155,
+                "viewCount": 43389,
+                "post": {
+                    "id": 485833,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 204,
+            "isEditorsPick": false,
+            "hitCount": 77908,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "short-encoding-of-words",
+                "questionFrontendId": "820"
+            },
+            "next": {
+                "slug": "99-java-trie-tu-xie-gong-lue-bao-jiao-bao-hui-by-s",
+                "title": "99% Trie 吐血攻略，包教包会"
+            },
+            "prev": null
+        }
+    }
+}

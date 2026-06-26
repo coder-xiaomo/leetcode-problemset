@@ -1,0 +1,134 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "hcOo3J",
+            "title": "不相交的线",
+            "content": "#### 方法一：动态规划\n\n给定两个数组 $\\textit{nums}_1$ 和 $\\textit{nums}_2$，当 $\\textit{nums}_1[i]=\\textit{nums}_2[j]$ 时，可以用一条直线连接 $\\textit{nums}_1[i]$ 和 $\\textit{nums}_2[j]$。假设一共绘制了 $k$ 条互不相交的直线，其中第 $x$ 条直线连接 $\\textit{nums}_1[i_x]$ 和 $\\textit{nums}_2[j_x]$，则对于任意 $1 \\le x \\le k$ 都有 $\\textit{nums}_1[i_x]=\\textit{nums}_2[j_x]$，其中 $i_1<i_2<\\ldots<i_k$，$j_1<j_2<\\ldots<j_k$。\n\n上述 $k$ 条互不相交的直线分别连接了数组 $\\textit{nums}_1$ 和 $\\textit{nums}_2$ 的 $k$ 对相等的元素，而且这 $k$ 对相等的元素在两个数组中的相对顺序是一致的，因此，这 $k$ 对相等的元素组成的序列即为数组 $\\textit{nums}_1$ 和 $\\textit{nums}_2$ 的公共子序列。要计算可以绘制的最大连线数，即为计算数组 $\\textit{nums}_1$ 和 $\\textit{nums}_2$ 的最长公共子序列的长度。最长公共子序列问题是典型的二维动态规划问题。\n\n假设数组 $\\textit{nums}_1$ 和 $\\textit{nums}_2$ 的长度分别为 $m$ 和 $n$，创建 $m+1$ 行 $n+1$ 列的二维数组 $\\textit{dp}$，其中 $\\textit{dp}[i][j]$ 表示 $\\textit{nums}_1[0:i]$ 和 $\\textit{nums}_2[0:j]$ 的最长公共子序列的长度。\n\n> 上述表示中，$\\textit{nums}_1[0:i]$ 表示数组 $\\textit{nums}_1$ 的长度为 $i$ 的前缀，$\\textit{nums}_2[0:j]$ 表示数组 $\\textit{nums}_2$ 的长度为 $j$ 的前缀。\n\n考虑动态规划的边界情况：\n\n- 当 $i=0$ 时，$\\textit{nums}_1[0:i]$ 为空，空数组和任何数组的最长公共子序列的长度都是 $0$，因此对任意 $0 \\le j \\le n$，有 $\\textit{dp}[0][j]=0$；\n\n- 当 $j=0$ 时，$\\textit{nums}_2[0:j]$ 为空，同理可得，对任意 $0 \\le i \\le m$，有 $\\textit{dp}[i][0]=0$。\n\n因此动态规划的边界情况是：当 $i=0$ 或 $j=0$ 时，$\\textit{dp}[i][j]=0$。\n\n当 $i>0$ 且 $j>0$ 时，考虑 $\\textit{dp}[i][j]$ 的计算：\n\n- 当 $\\textit{nums}_1[i-1]=\\textit{nums}_2[j-1]$ 时，将这两个相同的元素称为公共元素，考虑 $\\textit{nums}_1[0:i-1]$ 和 $\\textit{nums}_2[0:j-1]$ 的最长公共子序列，再增加一个元素（即公共元素）即可得到 $\\textit{nums}_1[0:i]$ 和 $\\textit{nums}_2[0:j]$ 的最长公共子序列，因此 $\\textit{dp}[i][j]=\\textit{dp}[i-1][j-1]+1$。\n\n- 当 $\\textit{nums}_1[i-1] \\ne \\textit{nums}_2[j-1]$ 时，考虑以下两项：\n\n   - $\\textit{nums}_1[0:i-1]$ 和 $\\textit{nums}_2[0:j]$ 的最长公共子序列；\n\n   - $\\textit{nums}_1[0:i]$ 和 $\\textit{nums}_2[0:j-1]$ 的最长公共子序列。\n\n   要得到 $\\textit{nums}_1[0:i]$ 和 $\\textit{nums}_2[0:j]$ 的最长公共子序列，应取两项中的长度较大的一项，因此 $\\textit{dp}[i][j]=\\max(\\textit{dp}[i-1][j],\\textit{dp}[i][j-1])$。\n\n由此可以得到如下状态转移方程：\n\n$$\n\\textit{dp}[i][j] = \\begin{cases}\n\\textit{dp}[i-1][j-1]+1, & \\textit{nums}_1[i-1]=\\textit{nums}_2[j-1] \\\\\n\\max(\\textit{dp}[i-1][j],\\textit{dp}[i][j-1]), & \\textit{nums}_1[i-1] \\ne \\textit{nums}_2[j-1]\n\\end{cases}\n$$\n\n最终计算得到 $\\textit{dp}[m][n]$ 即为数组 $\\textit{nums}_1$ 和 $\\textit{nums}_2$ 的最长公共子序列的长度，即可以绘制的最大连线数。\n\n![fig1](https://assets.leetcode.cn/solution-static/1035/1.png){:width=\"80%\"}\n\n```Java [sol1-Java]\nclass Solution {\n    public int maxUncrossedLines(int[] nums1, int[] nums2) {\n        int m = nums1.length, n = nums2.length;\n        int[][] dp = new int[m + 1][n + 1];\n        for (int i = 1; i <= m; i++) {\n            int num1 = nums1[i - 1];\n            for (int j = 1; j <= n; j++) {\n                int num2 = nums2[j - 1];\n                if (num1 == num2) {\n                    dp[i][j] = dp[i - 1][j - 1] + 1;\n                } else {\n                    dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);\n                }\n            }\n        }\n        return dp[m][n];\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MaxUncrossedLines(int[] nums1, int[] nums2) {\n        int m = nums1.Length, n = nums2.Length;\n        int[,] dp = new int[m + 1, n + 1];\n        for (int i = 1; i <= m; i++) {\n            int num1 = nums1[i - 1];\n            for (int j = 1; j <= n; j++) {\n                int num2 = nums2[j - 1];\n                if (num1 == num2) {\n                    dp[i, j] = dp[i - 1, j - 1] + 1;\n                } else {\n                    dp[i, j] = Math.Max(dp[i - 1, j], dp[i, j - 1]);\n                }\n            }\n        }\n        return dp[m, n];\n    }\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar maxUncrossedLines = function(nums1, nums2) {\n    const m = nums1.length, n = nums2.length;\n    const dp = new Array(m + 1).fill(0).map(() => new Array(n + 1).fill(0));\n    for (let i = 1; i <= m; i++) {\n        const num1 = nums1[i - 1];\n        for (let j = 1; j <= n; j++) {\n            const num2 = nums2[j - 1];\n            if (num1 === num2) {\n                dp[i][j] = dp[i - 1][j - 1] + 1;\n            } else {\n                dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);\n            }\n        }\n    }\n    return dp[m][n];\n};\n```\n\n```go [sol1-Golang]\nfunc maxUncrossedLines(nums1, nums2 []int) int {\n    m, n := len(nums1), len(nums2)\n    dp := make([][]int, m+1)\n    for i := range dp {\n        dp[i] = make([]int, n+1)\n    }\n    for i, v := range nums1 {\n        for j, w := range nums2 {\n            if v == w {\n                dp[i+1][j+1] = dp[i][j] + 1\n            } else {\n                dp[i+1][j+1] = max(dp[i][j+1], dp[i+1][j])\n            }\n        }\n    }\n    return dp[m][n]\n}\n\nfunc max(a, b int) int {\n    if a > b {\n        return a\n    }\n    return b\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def maxUncrossedLines(self, nums1: List[int], nums2: List[int]) -> int:\n        m, n = len(nums1), len(nums2)\n        dp = [[0] * (n + 1) for _ in range(m + 1)]\n\n        for i, num1 in enumerate(nums1):\n            for j, num2 in enumerate(nums2):\n                if num1 == num2:\n                    dp[i + 1][j + 1] = dp[i][j] + 1\n                else:\n                    dp[i + 1][j + 1] = max(dp[i][j + 1], dp[i + 1][j])\n        \n        return dp[m][n]\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int maxUncrossedLines(vector<int>& nums1, vector<int>& nums2) {\n        int m = nums1.size(), n = nums2.size();\n        vector<vector<int>> dp(m + 1, vector<int>(n + 1));\n        for (int i = 1; i <= m; i++) {\n            int num1 = nums1[i - 1];\n            for (int j = 1; j <= n; j++) {\n                int num2 = nums2[j - 1];\n                if (num1 == num2) {\n                    dp[i][j] = dp[i - 1][j - 1] + 1;\n                } else {\n                    dp[i][j] = max(dp[i - 1][j], dp[i][j - 1]);\n                }\n            }\n        }\n        return dp[m][n];\n    }\n};\n```\n\n```C [sol1-C]\nint maxUncrossedLines(int* nums1, int nums1Size, int* nums2, int nums2Size) {\n    int m = nums1Size, n = nums2Size;\n    int dp[m + 1][n + 1];\n    memset(dp, 0, sizeof(dp));\n    for (int i = 1; i <= m; i++) {\n        int num1 = nums1[i - 1];\n        for (int j = 1; j <= n; j++) {\n            int num2 = nums2[j - 1];\n            if (num1 == num2) {\n                dp[i][j] = dp[i - 1][j - 1] + 1;\n            } else {\n                dp[i][j] = fmax(dp[i - 1][j], dp[i][j - 1]);\n            }\n        }\n    }\n    return dp[m][n];\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(mn)$，其中 $m$ 和 $n$ 分别是数组 $\\textit{nums}_1$ 和 $\\textit{nums}_2$ 的长度。二维数组 $\\textit{dp}$ 有 $m+1$ 行和 $n+1$ 列，需要对 $\\textit{dp}$ 中的每个元素进行计算。\n\n- 空间复杂度：$O(mn)$，其中 $m$ 和 $n$ 分别是数组 $\\textit{nums}_1$ 和 $\\textit{nums}_2$ 的长度。创建了 $m+1$ 行 $n+1$ 列的二维数组 $\\textit{dp}$。\n",
+            "slateValue": "",
+            "slug": "bu-xiang-jiao-de-xian-by-leetcode-soluti-6tqz",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "hcOo3J",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 80,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 8,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-05-20T16:05:24.724373+00:00",
+            "thumbnail": "https://assets.leetcode-cn.com/solution-static/1035/1.png",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划给定两个数组 nums1\\textit{nums}_1nums1​ 和 nums2\\textit{nums}_2nums2​，当 nums1[i]=nums2[j]\\textit{nums}_1[i]=\\textit{nums}_2[j]nums1​[i]=nums2​[j] 时，可以用一条直线连接 n",
+            "topic": {
+                "id": 787955,
+                "subscribed": false,
+                "commentCount": 167,
+                "viewCount": 31989,
+                "post": {
+                    "id": 1737133,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 176,
+            "isEditorsPick": false,
+            "hitCount": 69385,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "uncrossed-lines",
+                "questionFrontendId": "1035"
+            },
+            "next": {
+                "slug": "jiao-ni-yi-bu-bu-si-kao-dpcong-ji-yi-hua-ahzh",
+                "title": "教你一步步思考 DP：从记忆化搜索到递推到空间优化！（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

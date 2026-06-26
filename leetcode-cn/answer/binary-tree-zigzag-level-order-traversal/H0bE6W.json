@@ -1,0 +1,134 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "H0bE6W",
+            "title": "二叉树的锯齿形层序遍历",
+            "content": "### 📺 视频题解  \n![103. 二叉树的锯齿形层序遍历.mp4](7bceca28-6f60-4f58-b52c-b59d3d7b8b91)\n\n### 📖 文字题解\n#### 方法一：广度优先遍历\n\n此题是「[102. 二叉树的层序遍历](https://leetcode.cn/problems/binary-tree-level-order-traversal/)」的变种，最后输出的要求有所变化，要求我们按层数的奇偶来决定每一层的输出顺序。规定二叉树的根节点为第 $0$ 层，如果当前层数是偶数，**从左至右**输出当前层的节点值，否则，**从右至左**输出当前层的节点值。\n\n我们依然可以沿用第 102 题的思想，修改广度优先搜索，对树进行逐层遍历，用队列维护当前层的所有元素，当队列不为空的时候，求得当前队列的长度 $\\textit{size}$，每次从队列中取出 $\\textit{size}$ 个元素进行拓展，然后进行下一次迭代。\n\n为了满足题目要求的**返回值**为「先从左往右，再从右往左」交替输出的锯齿形，我们可以利用「双端队列」的数据结构来维护当前层节点值输出的顺序。\n\n双端队列是一个可以在队列任意一端插入元素的队列。在广度优先搜索遍历当前层节点拓展下一层节点的时候我们仍然从左往右按顺序拓展，但是对当前层节点的存储我们维护一个变量 $\\textit{isOrderLeft}$ 记录是从左至右还是从右至左的：\n\n- 如果从左至右，我们每次将被遍历到的元素插入至双端队列的末尾。\n\n- 如果从右至左，我们每次将被遍历到的元素插入至双端队列的头部。\n\n当遍历结束的时候我们就得到了答案数组。\n\n<![ppt1](https://assets.leetcode.cn/solution-static/103/1.png),![ppt2](https://assets.leetcode.cn/solution-static/103/2.png),![ppt3](https://assets.leetcode.cn/solution-static/103/3.png),![ppt4](https://assets.leetcode.cn/solution-static/103/4.png),![ppt5](https://assets.leetcode.cn/solution-static/103/5.png),![ppt6](https://assets.leetcode.cn/solution-static/103/6.png),![ppt7](https://assets.leetcode.cn/solution-static/103/7.png),![ppt8](https://assets.leetcode.cn/solution-static/103/8.png),![ppt9](https://assets.leetcode.cn/solution-static/103/9.png),![ppt10](https://assets.leetcode.cn/solution-static/103/10.png),![ppt11](https://assets.leetcode.cn/solution-static/103/11.png),![ppt12](https://assets.leetcode.cn/solution-static/103/12.png)>\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<vector<int>> zigzagLevelOrder(TreeNode* root) {\n        vector<vector<int>> ans;\n        if (!root) {\n            return ans;\n        }\n\n        queue<TreeNode*> nodeQueue;\n        nodeQueue.push(root);\n        bool isOrderLeft = true;\n\n        while (!nodeQueue.empty()) {\n            deque<int> levelList;\n            int size = nodeQueue.size();\n            for (int i = 0; i < size; ++i) {\n                auto node = nodeQueue.front();\n                nodeQueue.pop();\n                if (isOrderLeft) {\n                    levelList.push_back(node->val);\n                } else {\n                    levelList.push_front(node->val);\n                }\n                if (node->left) {\n                    nodeQueue.push(node->left);\n                }\n                if (node->right) {\n                    nodeQueue.push(node->right);\n                }\n            }\n            ans.emplace_back(vector<int>{levelList.begin(), levelList.end()});\n            isOrderLeft = !isOrderLeft;\n        }\n\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public List<List<Integer>> zigzagLevelOrder(TreeNode root) {\n        List<List<Integer>> ans = new LinkedList<List<Integer>>();\n        if (root == null) {\n            return ans;\n        }\n\n        Queue<TreeNode> nodeQueue = new ArrayDeque<TreeNode>();\n        nodeQueue.offer(root);\n        boolean isOrderLeft = true;\n\n        while (!nodeQueue.isEmpty()) {\n            Deque<Integer> levelList = new LinkedList<Integer>();\n            int size = nodeQueue.size();\n            for (int i = 0; i < size; ++i) {\n                TreeNode curNode = nodeQueue.poll();\n                if (isOrderLeft) {\n                    levelList.offerLast(curNode.val);\n                } else {\n                    levelList.offerFirst(curNode.val);\n                }\n                if (curNode.left != null) {\n                    nodeQueue.offer(curNode.left);\n                }\n                if (curNode.right != null) {\n                    nodeQueue.offer(curNode.right);\n                }\n            }\n            ans.add(new LinkedList<Integer>(levelList));\n            isOrderLeft = !isOrderLeft;\n        }\n\n        return ans;\n    }\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar zigzagLevelOrder = function(root) {\n    if (!root) {\n        return [];\n    }\n\n    const ans = [];\n    const nodeQueue = [root];\n\n    let isOrderLeft = true;\n\n    while (nodeQueue.length) {\n        let levelList = [];\n        const size = nodeQueue.length;\n        for (let i = 0; i < size; ++i) {\n            const node = nodeQueue.shift();\n            if (isOrderLeft) {\n                levelList.push(node.val);\n            } else {\n                levelList.unshift(node.val);\n            }\n            if (node.left !== null) {\n                nodeQueue.push(node.left);\n            }\n            if (node.right !== null) {\n                nodeQueue.push(node.right);\n            }\n        }            \n        ans.push(levelList);\n        isOrderLeft = !isOrderLeft;\n    }\n\n    return ans;\n};\n```\n\n```Go [sol1-Golang]\nfunc zigzagLevelOrder(root *TreeNode) (ans [][]int) {\n    if root == nil {\n        return\n    }\n    queue := []*TreeNode{root}\n    for level := 0; len(queue) > 0; level++ {\n        vals := []int{}\n        q := queue\n        queue = nil\n        for _, node := range q {\n            vals = append(vals, node.Val)\n            if node.Left != nil {\n                queue = append(queue, node.Left)\n            }\n            if node.Right != nil {\n                queue = append(queue, node.Right)\n            }\n        }\n        // 本质上和层序遍历一样，我们只需要把奇数层的元素翻转即可\n        if level%2 == 1 {\n            for i, n := 0, len(vals); i < n/2; i++ {\n                vals[i], vals[n-1-i] = vals[n-1-i], vals[i]\n            }\n        }\n        ans = append(ans, vals)\n    }\n    return\n}\n```\n\n```C [sol1-C]\n#define N 2000\n\nint** zigzagLevelOrder(struct TreeNode* root, int* returnSize, int** returnColumnSizes) {\n    *returnSize = 0;\n    if (root == NULL) {\n        return NULL;\n    }\n    int** ans = malloc(sizeof(int*) * N);\n    *returnColumnSizes = malloc(sizeof(int) * N);\n    struct TreeNode* nodeQueue[N];\n    int left = 0, right = 0;\n    nodeQueue[right++] = root;\n    bool isOrderLeft = true;\n\n    while (left < right) {\n        int levelList[N * 2];\n        int front = N, rear = N;\n        int size = right - left;\n        for (int i = 0; i < size; ++i) {\n            struct TreeNode* node = nodeQueue[left++];\n            if (isOrderLeft) {\n                levelList[rear++] = node->val;\n            } else {\n                levelList[--front] = node->val;\n            }\n            if (node->left) {\n                nodeQueue[right++] = node->left;\n            }\n            if (node->right) {\n                nodeQueue[right++] = node->right;\n            }\n        }\n        int* tmp = malloc(sizeof(int) * (rear - front));\n        for (int i = 0; i < rear - front; i++) {\n            tmp[i] = levelList[i + front];\n        }\n        ans[*returnSize] = tmp;\n        (*returnColumnSizes)[*returnSize] = rear - front;\n        (*returnSize)++;\n        isOrderLeft = !isOrderLeft;\n    }\n    return ans;\n} \n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(N)$，其中 $N$ 为二叉树的节点数。每个节点会且仅会被遍历一次。\n\n- 空间复杂度：$O(N)$。我们需要维护存储节点的队列和存储节点值的双端队列，空间复杂度为 $O(N)$。",
+            "slateValue": "",
+            "slug": "er-cha-shu-de-ju-chi-xing-ceng-xu-bian-l-qsun",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "H0bE6W",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 163,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 9,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 8,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Tree",
+                    "nameTranslated": "树",
+                    "slug": "tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Breadth-First Search",
+                    "nameTranslated": "广度优先搜索",
+                    "slug": "breadth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Tree",
+                    "nameTranslated": "二叉树",
+                    "slug": "binary-tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-12-21T15:28:10.216755+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "📺 视频题解 📖 文字题解 方法一：广度优先遍历 此题是「102. 二叉树的层序遍历」的变种，最后输出的要求有所变化，要求我们按层数的奇偶来决定每一层的输出顺序。规定二叉树的根节点为第 $0$ 层，如果当前层数是偶数，从左至右输出当前层的节点值，否则，从右至左输出当前层的节点值。 我们依然可以沿用第 102 题的思想，",
+            "topic": {
+                "id": 530400,
+                "subscribed": false,
+                "commentCount": 376,
+                "viewCount": 105243,
+                "post": {
+                    "id": 1245814,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 363,
+            "isEditorsPick": false,
+            "hitCount": 240084,
+            "videosInfo": [
+                {
+                    "videoId": "2e623b7a12f644c48b045dc36c2fe9fb",
+                    "coverUrl": "https://video.leetcode.cn/image/cover/5ABF65407B2C44F6A255073FAA4841B3-6-2.png?auth_key=1782488363-97a5a467fcf04951916c3e621c6fe3e4-0-48316f3880dff3a96ccf448e4b1f096d",
+                    "duration": 303.4667
+                }
+            ],
+            "question": {
+                "titleSlug": "binary-tree-zigzag-level-order-traversal",
+                "questionFrontendId": "103"
+            },
+            "next": {
+                "slug": "103-er-cha-shu-de-ju-chi-xing-ceng-xu-bi-qz2q",
+                "title": "103. 二叉树的锯齿形层序遍历（广度优先遍历，清晰图解）"
+            },
+            "prev": null
+        }
+    }
+}

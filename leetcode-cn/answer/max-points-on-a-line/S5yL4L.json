@@ -1,0 +1,134 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "S5yL4L",
+            "title": "直线上最多的点数",
+            "content": "#### 方法一：哈希表\n\n**思路及解法**\n\n我们可以考虑枚举所有的点，假设直线经过该点时，该直线所能经过的最多的点数。\n\n假设我们当前枚举到点 $i$，如果直线同时经过另外两个不同的点 $j$ 和 $k$，那么可以发现点 $i$ 和点 $j$ 所连直线的斜率恰等于点 $i$ 和点 $k$ 所连直线的斜率。\n\n于是我们可以统计其他所有点与点 $i$ 所连直线的斜率，出现次数最多的斜率即为经过点数最多的直线的斜率，其经过的点数为该斜率出现的次数加一（点 $i$ 自身也要被统计）。\n\n**如何记录斜率**\n\n需要注意的是，浮点数类型可能因为精度不够而无法足够精确地表示每一个斜率，因此我们需要换一种方法来记录斜率。\n\n一般情况下，斜率可以表示为 $\\textit{slope} = \\dfrac{\\Delta y}{\\Delta x}$ 的形式，因此我们可以用分子和分母组成的二元组来代表斜率。但注意到存在形如 $\\dfrac{1}{2}=\\dfrac{2}{4}$ 这样两个二元组不同，但实际上两分数的值相同的情况，所以我们需要将分数 $\\dfrac{\\Delta y}{\\Delta x}$ 化简为最简分数的形式。\n\n将分子和分母同时除以二者绝对值的最大公约数，可得二元组 $\\Big(\\dfrac{\\Delta x}{\\gcd(|\\Delta x|,|\\Delta y|)},\\dfrac{\\Delta y}{\\gcd(|\\Delta x|,|\\Delta y|)}\\Big)$。令 $\\textit{mx}=\\dfrac{\\Delta x}{\\gcd(|\\Delta x|,|\\Delta y|)}$，$\\textit{my}=\\dfrac{\\Delta y}{\\gcd(|\\Delta x|,|\\Delta y|)}$，则上述化简后的二元组为 $(\\textit{mx},\\textit{my})$。\n\n此外，因为分子分母可能存在负数，为了防止出现形如 $\\dfrac{-1}{2}=\\dfrac{1}{-2}$ 的情况，我们还需要规定分子为非负整数，如果 $\\textit{my}$ 为负数，我们将二元组中两个数同时取相反数即可。\n\n特别地，考虑到 $\\textit{mx}$ 和 $\\textit{my}$ 两数其中有一个为 $0$ 的情况（因为题目中不存在重复的点，因此不存在两数均为 $0$ 的情况），此时两数不存在数学意义上的最大公约数，因此我们直接特判这两种情况。当 $\\textit{mx}$ 为 $0$ 时，我们令 $\\textit{my}=1$；当 $\\textit{my}$ 为 $0$ 时，我们令 $\\textit{mx}=1$ 即可。\n\n经过上述操作之后，即可得到最终的二元组 $(\\textit{mx},\\textit{my})$。在本题中，因为点的横纵坐标取值范围均为 $[-10^4, 10^4]$，所以斜率 $\\textit{slope} = \\dfrac{\\textit{my}}{\\textit{mx}}$ 中，$\\textit{mx}$ 落在区间 $[- 2 \\times 10^4, 2 \\times 10^4]$ 内，$\\textit{my}$ 落在区间 $[0, 2 \\times 10^4]$ 内。注意到 $32$ 位整数的范围远超这两个区间，因此我们可以用单个 $32$ 位整型变量来表示这两个整数。具体地，我们令 $\\textit{val} = \\textit{my} + (2 \\times 10^4 + 1) \\times \\textit{mx}$ 即可。\n\n**优化**\n\n最后我们再加四个小优化：\n\n- 在点的总数量小于等于 $2$ 的情况下，我们总可以用一条直线将所有点串联，此时我们直接返回点的总数量即可；\n- 当我们枚举到点 $i$ 时，我们只需要考虑编号大于 $i$ 的点到点 $i$ 的斜率，因为如果直线同时经过编号小于点 $i$ 的点 $j$，那么当我们枚举到 $j$ 时就已经考虑过该直线了；\n- 当我们找到一条直线经过了图中超过半数的点时，我们即可以确定该直线即为经过最多点的直线；\n- 当我们枚举到点 $i$（假设编号从 $0$ 开始）时，我们至多只能找到 $n-i$ 个点共线。假设此前找到的共线的点的数量的最大值为 $k$，如果有 $k \\geq n-i$，那么此时我们即可停止枚举，因为不可能再找到更大的答案了。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int gcd(int a, int b) {\n        return b ? gcd(b, a % b) : a;\n    }\n\n    int maxPoints(vector<vector<int>>& points) {\n        int n = points.size();\n        if (n <= 2) {\n            return n;\n        }\n        int ret = 0;\n        for (int i = 0; i < n; i++) {\n            if (ret >= n - i || ret > n / 2) {\n                break;\n            }\n            unordered_map<int, int> mp;\n            for (int j = i + 1; j < n; j++) {\n                int x = points[i][0] - points[j][0];\n                int y = points[i][1] - points[j][1];\n                if (x == 0) {\n                    y = 1;\n                } else if (y == 0) {\n                    x = 1;\n                } else {\n                    if (y < 0) {\n                        x = -x;\n                        y = -y;\n                    }\n                    int gcdXY = gcd(abs(x), abs(y));\n                    x /= gcdXY, y /= gcdXY;\n                }\n                mp[y + x * 20001]++;\n            }\n            int maxn = 0;\n            for (auto& [_, num] : mp) {\n                maxn = max(maxn, num + 1);\n            }\n            ret = max(ret, maxn);\n        }\n        return ret;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int maxPoints(int[][] points) {\n        int n = points.length;\n        if (n <= 2) {\n            return n;\n        }\n        int ret = 0;\n        for (int i = 0; i < n; i++) {\n            if (ret >= n - i || ret > n / 2) {\n                break;\n            }\n            Map<Integer, Integer> map = new HashMap<Integer, Integer>();\n            for (int j = i + 1; j < n; j++) {\n                int x = points[i][0] - points[j][0];\n                int y = points[i][1] - points[j][1];\n                if (x == 0) {\n                    y = 1;\n                } else if (y == 0) {\n                    x = 1;\n                } else {\n                    if (y < 0) {\n                        x = -x;\n                        y = -y;\n                    }\n                    int gcdXY = gcd(Math.abs(x), Math.abs(y));\n                    x /= gcdXY;\n                    y /= gcdXY;\n                }\n                int key = y + x * 20001;\n                map.put(key, map.getOrDefault(key, 0) + 1);\n            }\n            int maxn = 0;\n            for (Map.Entry<Integer, Integer> entry: map.entrySet()) {\n                int num = entry.getValue();\n                maxn = Math.max(maxn, num + 1);\n            }\n            ret = Math.max(ret, maxn);\n        }\n        return ret;\n    }\n\n    public int gcd(int a, int b) {\n        return b != 0 ? gcd(b, a % b) : a;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MaxPoints(int[][] points) {\n        int n = points.Length;\n        if (n <= 2) {\n            return n;\n        }\n        int ret = 0;\n        for (int i = 0; i < n; i++) {\n            if (ret >= n - i || ret > n / 2) {\n                break;\n            }\n            Dictionary<int, int> dictionary = new Dictionary<int, int>();\n            for (int j = i + 1; j < n; j++) {\n                int x = points[i][0] - points[j][0];\n                int y = points[i][1] - points[j][1];\n                if (x == 0) {\n                    y = 1;\n                } else if (y == 0) {\n                    x = 1;\n                } else {\n                    if (y < 0) {\n                        x = -x;\n                        y = -y;\n                    }\n                    int gcdXY = gcd(Math.Abs(x), Math.Abs(y));\n                    x /= gcdXY;\n                    y /= gcdXY;\n                }\n                int key = y + x * 20001;\n                if (!dictionary.ContainsKey(key)) {\n                    dictionary.Add(key, 1);\n                } else {\n                    dictionary[key]++;\n                }\n            }\n            int maxn = 0;\n            foreach (int num in dictionary.Values) {\n                maxn = Math.Max(maxn, num + 1);\n            }\n            ret = Math.Max(ret, maxn);\n        }\n        return ret;\n    }\n\n    public int gcd(int a, int b) {\n        return b != 0 ? gcd(b, a % b) : a;\n    }\n}\n```\n\n```go [sol1-Golang]\nfunc maxPoints(points [][]int) (ans int) {\n    n := len(points)\n    if n <= 2 {\n        return n\n    }\n    for i, p := range points {\n        if ans >= n-i || ans > n/2 {\n            break\n        }\n        cnt := map[int]int{}\n        for _, q := range points[i+1:] {\n            x, y := p[0]-q[0], p[1]-q[1]\n            if x == 0 {\n                y = 1\n            } else if y == 0 {\n                x = 1\n            } else {\n                if y < 0 {\n                    x, y = -x, -y\n                }\n                g := gcd(abs(x), abs(y))\n                x /= g\n                y /= g\n            }\n            cnt[y+x*20001]++\n        }\n        for _, c := range cnt {\n            ans = max(ans, c+1)\n        }\n    }\n    return\n}\n\nfunc gcd(a, b int) int {\n    for a != 0 {\n        a, b = b%a, a\n    }\n    return b\n}\n\nfunc abs(x int) int {\n    if x < 0 {\n        return -x\n    }\n    return x\n}\n\nfunc max(a, b int) int {\n    if a > b {\n        return a\n    }\n    return b\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar maxPoints = function(points) {\n    const n = points.length;\n    if (n <= 2) {\n        return n;\n    }\n    let ret = 0;\n    for (let i = 0; i < n; i++) {\n        if (ret >= n - i || ret > n / 2) {\n            break;\n        }\n        const map = new Map();\n        for (let j = i + 1; j < n; j++) {\n            let x = points[i][0] - points[j][0];\n            let y = points[i][1] - points[j][1];\n            if (x === 0) {\n                y = 1;\n            } else if (y === 0) {\n                x = 1;\n            } else {\n                if (y < 0) {\n                    x = -x;\n                    y = -y;\n                }\n                const gcdXY = gcd(Math.abs(x), Math.abs(y));\n                x /= gcdXY;\n                y /= gcdXY;\n            }\n            const key = y + x * 20001;\n            map.set(key, (map.get(key) || 0)+ 1);\n        }\n        let maxn = 0;\n        for (const num of map.values()) {\n            maxn = Math.max(maxn, num + 1);\n        }\n        ret = Math.max(ret, maxn);\n    }\n    return ret;\n};\n\nconst gcd = (a, b) => {\n    return b != 0 ? gcd(b, a % b) : a;\n}\n```\n\n```C [sol1-C]\n\nstruct HashTable {\n    int key, val;\n    UT_hash_handle hh;\n};\n\nint gcd(int a, int b) {\n    return b ? gcd(b, a % b) : a;\n}\n\nint maxPoints(int** points, int pointsSize, int* pointsColSize) {\n    int n = pointsSize;\n    if (n <= 2) {\n        return n;\n    }\n    int ret = 0;\n    for (int i = 0; i < n; i++) {\n        if (ret >= n - i || ret > n / 2) {\n            break;\n        }\n        struct HashTable* hashTable = NULL;\n        for (int j = i + 1; j < n; j++) {\n            int x = points[i][0] - points[j][0];\n            int y = points[i][1] - points[j][1];\n            if (x == 0) {\n                y = 1;\n            } else if (y == 0) {\n                x = 1;\n            } else {\n                if (y < 0) {\n                    x = -x;\n                    y = -y;\n                }\n                int gcdXY = gcd(abs(x), abs(y));\n                x /= gcdXY, y /= gcdXY;\n            }\n            struct HashTable* tmp;\n            int val = y + x * 20010;\n            HASH_FIND_INT(hashTable, &val, tmp);\n            if (tmp == NULL) {\n                tmp = malloc(sizeof(struct HashTable));\n                tmp->key = val;\n                tmp->val = 1;\n                HASH_ADD_INT(hashTable, key, tmp);\n            } else {\n                tmp->val++;\n            }\n        }\n        int maxn = 0;\n        struct HashTable *iter, *tmp;\n        HASH_ITER(hh, hashTable, iter, tmp) {\n            maxn = fmax(maxn, iter->val + 1);\n            HASH_DEL(hashTable, iter);\n            free(iter);\n        }\n        ret = fmax(ret, maxn);\n    }\n    return ret;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n^2 \\times \\log m)$，其中 $n$ 为点的数量，$m$ 为横纵坐标差的最大值。最坏情况下我们需要枚举所有 $n$ 个点，枚举单个点过程中需要进行 $O(n)$ 次最大公约数计算，单次最大公约数计算的时间复杂度是 $O(\\log m)$，因此总时间复杂度为 $O(n^2 \\times \\log m)$。\n\n- 空间复杂度：$O(n)$，其中 $n$ 为点的数量。主要为哈希表的开销。",
+            "slateValue": "",
+            "slug": "zhi-xian-shang-zui-duo-de-dian-shu-by-le-tq8f",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "S5yL4L",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 113,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 4,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 3,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Geometry",
+                    "nameTranslated": "几何",
+                    "slug": "geometry",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-06-23T15:23:07.159489+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：哈希表 思路及解法 我们可以考虑枚举所有的点，假设直线经过该点时，该直线所能经过的最多的点数。 假设我们当前枚举到点 $i$，如果直线同时经过另外两个不同的点 $j$ 和 $k$，那么可以发现点 $i$ 和点 $j$ 所连直线的斜率恰等于点 $i$ 和点 $k$ 所连直线的斜率。 于是我们可以统计其他所有点与点",
+            "topic": {
+                "id": 842114,
+                "subscribed": false,
+                "commentCount": 360,
+                "viewCount": 48780,
+                "post": {
+                    "id": 1839594,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 295,
+            "isEditorsPick": false,
+            "hitCount": 125410,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "max-points-on-a-line",
+                "questionFrontendId": "149"
+            },
+            "next": {
+                "slug": "bao-li-mei-ju-pythonjavacgojsrust-by-end-ggzu",
+                "title": "暴力枚举（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

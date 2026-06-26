@@ -1,0 +1,122 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "1V5eM6",
+            "title": "数组中的第K个最大元素",
+            "content": "### 📺 视频题解  \n![215. 数组中的第K个最大元素.mp4](9c5f6d66-f7ed-4d98-a8f4-5629eb8ed376)\n\n### 📖 文字题解\n\n#### 前言\n\n+ 约定：假设这里数组的长度为 $n$。\n\n+ 题目分析：本题希望我们返回数组排序之后的倒数第 $k$ 个位置。\n\n#### 方法一：基于快速排序的选择方法\n\n**思路和算法**\n\n我们可以用快速排序来解决这个问题，先对原数组排序，再返回倒数第 $k$ 个位置，这样平均时间复杂度是 $O(n \\log n)$，但其实我们可以做的更快。\n\n首先我们来回顾一下快速排序，这是一个典型的分治算法。我们对数组 $a[l \\cdots r]$ 做快速排序的过程是（参考《算法导论》）：\n\n+ **分解：** 将数组 $a[l \\cdots r]$ 「划分」成两个子数组 $a[l \\cdots q - 1]$、$a[q + 1 \\cdots r]$，使得 $a[l \\cdots q - 1]$ 中的每个元素小于等于 $a[q]$，且 $a[q]$ 小于等于 $a[q + 1 \\cdots r]$ 中的每个元素。其中，计算下标 $q$ 也是「划分」过程的一部分。\n+ **解决：** 通过递归调用快速排序，对子数组 $a[l \\cdots q - 1]$ 和 $a[q + 1 \\cdots r]$ 进行排序。\n+ **合并：** 因为子数组都是原址排序的，所以不需要进行合并操作，$a[l \\cdots r]$ 已经有序。\n+ 上文中提到的 **「划分」** 过程是：从子数组 $a[l \\cdots r]$ 中选择任意一个元素 $x$ 作为主元，**调整子数组的元素使得左边的元素都小于等于它，右边的元素都大于等于它，** $x$ 的最终位置就是 $q$。\n\n由此可以发现每次经过「划分」操作后，我们一定可以确定一个元素的最终位置，即 $x$ 的最终位置为 $q$，并且保证 $a[l \\cdots q - 1]$ 中的每个元素小于等于 $a[q]$，且 $a[q]$ 小于等于 $a[q + 1 \\cdots r]$ 中的每个元素。**所以只要某次划分的 $q$ 为倒数第 $k$ 个下标的时候，我们就已经找到了答案。** 我们只关心这一点，至于 $a[l \\cdots q - 1]$ 和 $a[q+1 \\cdots r]$ 是否是有序的，我们不关心。\n\n因此我们可以改进快速排序算法来解决这个问题：在分解的过程当中，我们会对子数组进行划分，如果划分得到的 $q$ 正好就是我们需要的下标，就直接返回 $a[q]$；否则，如果 $q$ 比目标下标小，就递归右子区间，否则递归左子区间。这样就可以把原来递归两个区间变成只递归一个区间，提高了时间效率。这就是「快速选择」算法。\n\n我们知道快速排序的性能和「划分」出的子数组的长度密切相关。直观地理解如果每次规模为 $n$ 的问题我们都划分成 $1$ 和 $n - 1$，每次递归的时候又向 $n - 1$ 的集合中递归，这种情况是最坏的，时间代价是 $O(n ^ 2)$。我们可以引入随机化来加速这个过程，它的时间代价的期望是 $O(n)$，证明过程可以参考「《算法导论》9.2：期望为线性的选择算法」。需要注意的是，这个时间复杂度只有在 **随机数据** 下才成立，而对于精心构造的数据则可能表现不佳。因此我们这里并没有真正地使用随机数，而是使用双指针的方法，这种方法能够较好地应对各种数据。\n\n**代码**\n\n```cpp [sol1-C++]\nclass Solution {\npublic:\n    int quickselect(vector<int> &nums, int l, int r, int k) {\n        if (l == r)\n            return nums[k];\n        int partition = nums[l], i = l - 1, j = r + 1;\n        while (i < j) {\n            do i++; while (nums[i] < partition);\n            do j--; while (nums[j] > partition);\n            if (i < j)\n                swap(nums[i], nums[j]);\n        }\n        if (k <= j)return quickselect(nums, l, j, k);\n        else return quickselect(nums, j + 1, r, k);\n    }\n\n    int findKthLargest(vector<int> &nums, int k) {\n        int n = nums.size();\n        return quickselect(nums, 0, n - 1, n - k);\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    int quickselect(int[] nums, int l, int r, int k) {\n        if (l == r) return nums[k];\n        int x = nums[l], i = l - 1, j = r + 1;\n        while (i < j) {\n            do i++; while (nums[i] < x);\n            do j--; while (nums[j] > x);\n            if (i < j){\n                int tmp = nums[i];\n                nums[i] = nums[j];\n                nums[j] = tmp;\n            }\n        }\n        if (k <= j) return quickselect(nums, l, j, k);\n        else return quickselect(nums, j + 1, r, k);\n    }\n    public int findKthLargest(int[] _nums, int k) {\n        int n = _nums.length;\n        return quickselect(_nums, 0, n - 1, n - k);\n    }\n}\n```\n\n```C [sol1-C]\nint quickselect(int *nums, int l, int r, int k) {\n    if (l == r)\n        return nums[k];\n    int partition = nums[l], i = l - 1, j = r + 1;\n    while (i < j) {\n        do i++; while (nums[i] < partition);\n        do j--; while (nums[j] > partition);\n        if (i < j) {\n            int tmp = nums[i];\n            nums[i] = nums[j];\n            nums[j] = tmp;\n        }\n    }\n    if (k <= j)return quickselect(nums, l, j, k);\n    else return quickselect(nums, j + 1, r, k);\n}\n\nint findKthLargest(int *nums, int numsSize, int k) {\n    return quickselect(nums, 0, numsSize - 1, numsSize - k);\n}\n```\n\n```golang [sol1-Golang]\nfunc findKthLargest(nums []int, k int) int {\n    n := len(nums)\n    return quickselect(nums, 0, n - 1, n - k)\n}\n\nfunc quickselect(nums []int, l, r, k int) int{\n    if (l == r){\n        return nums[k]\n    }\n    partition := nums[l]\n    i := l - 1\n    j := r + 1\n    for (i < j) {\n        for i++;nums[i]<partition;i++{}\n        for j--;nums[j]>partition;j--{}\n        if (i < j) {\n            nums[i],nums[j]=nums[j],nums[i]\n        }\n    }\n    if (k <= j){\n        return quickselect(nums, l, j, k)\n    }else{\n        return quickselect(nums, j + 1, r, k)\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，如上文所述，证明过程可以参考「《算法导论》9.2：期望为线性的选择算法」。\n- 空间复杂度：$O(\\log n)$，递归使用栈空间的空间代价的期望为 $O(\\log n)$。\n\n#### 方法二：基于堆排序的选择方法\n\n**思路和算法**\n\n我们也可以使用堆排序来解决这个问题——建立一个大根堆，做 $k - 1$ 次删除操作后堆顶元素就是我们要找的答案。在很多语言中，都有优先队列或者堆的的容器可以直接使用，但是在面试中，面试官更倾向于让更面试者自己实现一个堆。所以建议读者掌握这里大根堆的实现方法，在这道题中尤其要搞懂「建堆」、「调整」和「删除」的过程。\n\n**友情提醒：「堆排」在很多大公司的面试中都很常见，不了解的同学建议参考《算法导论》或者大家的数据结构教材，一定要学会这个知识点哦！^_^**\n\n<![fig1](https://assets.leetcode.cn/solution-static/215/1.png),![fig2](https://assets.leetcode.cn/solution-static/215/2.png),![fig3](https://assets.leetcode.cn/solution-static/215/3.png),![fig4](https://assets.leetcode.cn/solution-static/215/4.png),![fig5](https://assets.leetcode.cn/solution-static/215/5.png),![fig6](https://assets.leetcode.cn/solution-static/215/6.png),![fig7](https://assets.leetcode.cn/solution-static/215/7.png),![fig8](https://assets.leetcode.cn/solution-static/215/8.png),![fig9](https://assets.leetcode.cn/solution-static/215/9.png),![fig10](https://assets.leetcode.cn/solution-static/215/10.png),![fig11](https://assets.leetcode.cn/solution-static/215/11.png),![fig12](https://assets.leetcode.cn/solution-static/215/12.png),![fig13](https://assets.leetcode.cn/solution-static/215/13.png),![fig14](https://assets.leetcode.cn/solution-static/215/14.png),![fig15](https://assets.leetcode.cn/solution-static/215/15.png),![fig16](https://assets.leetcode.cn/solution-static/215/16.png),![fig17](https://assets.leetcode.cn/solution-static/215/17.png),![fig18](https://assets.leetcode.cn/solution-static/215/18.png),![fig19](https://assets.leetcode.cn/solution-static/215/19.png),![fig20](https://assets.leetcode.cn/solution-static/215/20.png)>\n\n**代码**\n\n```cpp [sol2-C++]\nclass Solution {\npublic:\n    void maxHeapify(vector<int>& a, int i, int heapSize) {\n        int l = i * 2 + 1, r = i * 2 + 2, largest = i;\n        if (l < heapSize && a[l] > a[largest]) {\n            largest = l;\n        } \n        if (r < heapSize && a[r] > a[largest]) {\n            largest = r;\n        }\n        if (largest != i) {\n            swap(a[i], a[largest]);\n            maxHeapify(a, largest, heapSize);\n        }\n    }\n\n    void buildMaxHeap(vector<int>& a, int heapSize) {\n        for (int i = heapSize / 2 - 1; i >= 0; --i) {\n            maxHeapify(a, i, heapSize);\n        } \n    }\n\n    int findKthLargest(vector<int>& nums, int k) {\n        int heapSize = nums.size();\n        buildMaxHeap(nums, heapSize);\n        for (int i = nums.size() - 1; i >= nums.size() - k + 1; --i) {\n            swap(nums[0], nums[i]);\n            --heapSize;\n            maxHeapify(nums, 0, heapSize);\n        }\n        return nums[0];\n    }\n};\n```\n```Java [sol2-Java]\nclass Solution {\n    public int findKthLargest(int[] nums, int k) {\n        int heapSize = nums.length;\n        buildMaxHeap(nums, heapSize);\n        for (int i = nums.length - 1; i >= nums.length - k + 1; --i) {\n            swap(nums, 0, i);\n            --heapSize;\n            maxHeapify(nums, 0, heapSize);\n        }\n        return nums[0];\n    }\n\n    public void buildMaxHeap(int[] a, int heapSize) {\n        for (int i = heapSize / 2 - 1; i >= 0; --i) {\n            maxHeapify(a, i, heapSize);\n        } \n    }\n\n    public void maxHeapify(int[] a, int i, int heapSize) {\n        int l = i * 2 + 1, r = i * 2 + 2, largest = i;\n        if (l < heapSize && a[l] > a[largest]) {\n            largest = l;\n        } \n        if (r < heapSize && a[r] > a[largest]) {\n            largest = r;\n        }\n        if (largest != i) {\n            swap(a, i, largest);\n            maxHeapify(a, largest, heapSize);\n        }\n    }\n\n    public void swap(int[] a, int i, int j) {\n        int temp = a[i];\n        a[i] = a[j];\n        a[j] = temp;\n    }\n}\n```\n\n```C [sol2-C]\nvoid maxHeapify(int* a, int i, int heapSize) {\n    int l = i * 2 + 1, r = i * 2 + 2, largest = i;\n    if (l < heapSize && a[l] > a[largest]) {\n        largest = l;\n    }\n    if (r < heapSize && a[r] > a[largest]) {\n        largest = r;\n    }\n    if (largest != i) {\n        int t = a[i];\n        a[i] = a[largest], a[largest] = t;\n        maxHeapify(a, largest, heapSize);\n    }\n}\n\nvoid buildMaxHeap(int* a, int heapSize) {\n    for (int i = heapSize / 2 - 1; i >= 0; --i) {\n        maxHeapify(a, i, heapSize);\n    }\n}\n\nint findKthLargest(int* nums, int numsSize, int k) {\n    int heapSize = numsSize;\n    buildMaxHeap(nums, heapSize);\n    for (int i = numsSize - 1; i >= numsSize - k + 1; --i) {\n        int t = nums[0];\n        nums[0] = nums[i], nums[i] = t;\n        --heapSize;\n        maxHeapify(nums, 0, heapSize);\n    }\n    return nums[0];\n}\n```\n\n```golang [sol2-Golang]\nfunc findKthLargest(nums []int, k int) int {\n    heapSize := len(nums)\n    buildMaxHeap(nums, heapSize)\n    for i := len(nums) - 1; i >= len(nums) - k + 1; i-- {\n        nums[0], nums[i] = nums[i], nums[0]\n        heapSize--\n        maxHeapify(nums, 0, heapSize)\n    }\n    return nums[0]\n}\n\nfunc buildMaxHeap(a []int, heapSize int) {\n    for i := heapSize / 2 - 1; i >= 0; i-- {\n        maxHeapify(a, i, heapSize)\n    }\n}\n\nfunc maxHeapify(a []int, i, heapSize int) {\n    l, r, largest := i * 2 + 1, i * 2 + 2, i\n    if l < heapSize && a[l] > a[largest] {\n        largest = l\n    }\n    if r < heapSize && a[r] > a[largest] {\n        largest = r\n    }\n    if largest != i {\n        a[i], a[largest] = a[largest], a[i]\n        maxHeapify(a, largest, heapSize)\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log n)$，建堆的时间代价是 $O(n)$，删除的总代价是 $O(k \\log n)$，因为 $k < n$，故渐进时间复杂为 $O(n + k \\log n) = O(n \\log n)$。\n- 空间复杂度：$O(\\log n)$，即递归使用栈空间的空间代价。",
+            "slateValue": "",
+            "slug": "shu-zu-zhong-de-di-kge-zui-da-yuan-su-by-leetcod-2",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "1V5eM6",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 751,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 30,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 22,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Sorting",
+                    "nameTranslated": "排序",
+                    "slug": "sorting",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Heap (Priority Queue)",
+                    "nameTranslated": "堆（优先队列）",
+                    "slug": "heap-priority-queue",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2020-06-28T13:19:29.840121+00:00",
+            "thumbnail": "https://pic.leetcode.cn/1668597391-InhefY-image.png",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "📺 视频题解 📖 文字题解 前言 约定：假设这里数组的长度为 [latex]。 题目分析：本题希望我们返回数组排序之后的倒数第 [latex] 个位置。 方法一：基于快速排序的选择方法 思路和算法 我们可以用快速排序来解决这个问题，先对原数组排序，再返回倒数第 [latex] 个位置，这样平均时间复杂度是 [latex",
+            "topic": {
+                "id": 307351,
+                "subscribed": false,
+                "commentCount": 1531,
+                "viewCount": 377112,
+                "post": {
+                    "id": 772842,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 3618,
+            "isEditorsPick": false,
+            "hitCount": 1284048,
+            "videosInfo": [
+                {
+                    "videoId": "179e944d16f94dd1aa22830e3c5cf5df",
+                    "coverUrl": "https://video.leetcode.cn/image/cover/C08AB6E1C42B41549E4A2442AB5B762B-6-2.png?auth_key=1782488250-13835c270ada48e48d4ccf9873d9ed84-0-e9f3ec98bdbd44911c7a729fb468e7e2",
+                    "duration": 526.1867
+                }
+            ],
+            "question": {
+                "titleSlug": "kth-largest-element-in-an-array",
+                "questionFrontendId": "215"
+            },
+            "next": {
+                "slug": "215-shu-zu-zhong-de-di-k-ge-zui-da-yuan-d786p",
+                "title": "215. 数组中的第 K 个最大元素（分治，清晰图解）"
+            },
+            "prev": null
+        }
+    }
+}

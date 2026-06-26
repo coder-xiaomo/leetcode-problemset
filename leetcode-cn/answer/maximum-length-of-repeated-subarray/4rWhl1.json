@@ -1,0 +1,140 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "4rWhl1",
+            "title": "最长重复子数组",
+            "content": "#### 写在前面\n\n本题要求我们计算两个数组的最长公共子数组。需要注意到数组长度不超过 $1000$，且子数组在原数组中连续。\n\n容易想到一个暴力解法，即枚举数组 `A` 中的起始位置 `i` 与数组 `B` 中的起始位置 `j`，然后计算 `A[i:]` 与 `B[j:]` 的最长公共前缀 `k`。最终答案即为所有的最长公共前缀的最大值。\n\n> 这里借用了 `Python` 表示数组的方法，`A[i:]` 表示数组 `A` 中索引 `i` 到数组末尾的范围对应的子数组。\n\n这个过程的伪代码如下：\n\n```\nans = 0\nfor i in [0 .. A.length - 1]\n    for j in [0 .. B.length - 1]\n        k = 0\n        while (A[i+k] == B[j+k]) do   # and i+k < A.length etc.\n            k += 1\n        end while\n        ans = max(ans, k)\n    end for\nend for\n```\n\n虽然该暴力解法的最坏时间复杂度为 $O(n^3)$，但通过观察该暴力解法，我们可以提出几个时间复杂度更优秀的解法。\n\n#### 方法一：动态规划\n\n**思路及算法**\n\n暴力解法的过程中，我们发现最坏情况下对于任意 `i` 与 `j` ，`A[i]` 与 `B[j]` 比较了 $\\min(i + 1, j + 1)$ 次。这也是导致了该暴力解法时间复杂度过高的根本原因。\n\n不妨设 `A` 数组为 `[1, 2, 3]`，`B` 两数组为为 `[1, 2, 4]` ，那么在暴力解法中 `A[2]` 与 `B[2]` 被比较了三次。这三次比较分别是我们计算 `A[0:]` 与 `B[0:]` 最长公共前缀、 `A[1:]` 与 `B[1:]` 最长公共前缀以及 `A[2:]` 与 `B[2:]` 最长公共前缀时产生的。\n\n我们希望优化这一过程，使得任意一对 `A[i]` 和 `B[j]` 都只被比较一次。这样我们自然而然想到利用这一次的比较结果。如果 `A[i] == B[j]`，那么我们知道 `A[i:]` 与 `B[j:]` 的最长公共前缀为 `A[i + 1:]` 与 `B[j + 1:]` 的最长公共前缀的长度加一，否则我们知道 `A[i:]` 与 `B[j:]` 的最长公共前缀为零。\n\n这样我们就可以提出动态规划的解法：令 `dp[i][j]` 表示 `A[i:]` 和 `B[j:]` 的最长公共前缀，那么答案即为所有 `dp[i][j]` 中的最大值。如果 `A[i] == B[j]`，那么 `dp[i][j] = dp[i + 1][j + 1] + 1`，否则 `dp[i][j] = 0`。\n\n> 这里借用了 `Python` 表示数组的方法，`A[i:]` 表示数组 `A` 中索引 `i` 到数组末尾的范围对应的子数组。\n\n考虑到这里 `dp[i][j]` 的值从 `dp[i + 1][j + 1]` 转移得到，所以我们需要倒过来，首先计算 `dp[len(A) - 1][len(B) - 1]`，最后计算 `dp[0][0]`。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int findLength(vector<int>& A, vector<int>& B) {\n        int n = A.size(), m = B.size();\n        vector<vector<int>> dp(n + 1, vector<int>(m + 1, 0));\n        int ans = 0;\n        for (int i = n - 1; i >= 0; i--) {\n            for (int j = m - 1; j >= 0; j--) {\n                dp[i][j] = A[i] == B[j] ? dp[i + 1][j + 1] + 1 : 0;\n                ans = max(ans, dp[i][j]);\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int findLength(int[] A, int[] B) {\n        int n = A.length, m = B.length;\n        int[][] dp = new int[n + 1][m + 1];\n        int ans = 0;\n        for (int i = n - 1; i >= 0; i--) {\n            for (int j = m - 1; j >= 0; j--) {\n                dp[i][j] = A[i] == B[j] ? dp[i + 1][j + 1] + 1 : 0;\n                ans = Math.max(ans, dp[i][j]);\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def findLength(self, A: List[int], B: List[int]) -> int:\n        n, m = len(A), len(B)\n        dp = [[0] * (m + 1) for _ in range(n + 1)]\n        ans = 0\n        for i in range(n - 1, -1, -1):\n            for j in range(m - 1, -1, -1):\n                dp[i][j] = dp[i + 1][j + 1] + 1 if A[i] == B[j] else 0\n                ans = max(ans, dp[i][j])\n        return ans\n```\n\n```golang [sol1-Golang]\nfunc findLength(A []int, B []int) int {\n    n, m := len(A), len(B)\n    dp := make([][]int, n + 1)\n    for i := 0; i < len(dp); i++ {\n        dp[i] = make([]int, m + 1)\n    }\n    ans := 0\n    for i := n - 1; i >= 0; i-- {\n        for j := m - 1; j >= 0; j-- {\n            if A[i] == B[j] {\n                dp[i][j] = dp[i + 1][j + 1] + 1\n            } else {\n                dp[i][j] = 0\n            }\n            if ans < dp[i][j] {\n                ans = dp[i][j]\n            }\n        }\n    }\n    return ans\n}\n```\n\n```C [sol1-C]\nint findLength(int* A, int ASize, int* B, int BSize) {\n    int dp[ASize + 1][BSize + 1];\n    memset(dp, 0, sizeof(dp));\n    int ans = 0;\n    for (int i = ASize - 1; i >= 0; i--) {\n        for (int j = BSize - 1; j >= 0; j--) {\n            dp[i][j] = A[i] == B[j] ? dp[i + 1][j + 1] + 1 : 0;\n            ans = fmax(ans, dp[i][j]);\n        }\n    }\n    return ans;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度： $O(N \\times M)$。\n\n- 空间复杂度： $O(N \\times M)$。\n\n> `N` 表示数组 `A` 的长度，`M` 表示数组 `B` 的长度。\n>\n> 空间复杂度还可以再优化，利用滚动数组可以优化到 $O(\\min(N,M))$。\n\n#### 方法二：滑动窗口\n\n**思路及算法**\n\n我们注意到之所以两位置会比较多次，是因为重复子数组在两个数组中的位置可能不同。以 `A = [3, 6, 1, 2, 4]`, `B = [7, 1, 2, 9]` 为例，它们的最长重复子数组是 `[1, 2]`，在 `A` 与 `B` 中的开始位置不同。\n\n但如果我们知道了开始位置，我们就可以根据它们将 `A` 和 `B` 进行「对齐」，即：\n\n```\nA = [3, 6, 1, 2, 4]\nB =    [7, 1, 2, 9]\n           ↑  ↑\n```\n\n此时，最长重复子数组在 `A` 和 `B` 中的开始位置相同，我们就可以对这两个数组进行一次遍历，得到子数组的长度，伪代码如下：\n\n```\nans = 0\nlen = min(A.length, B.length)\nk = 0\nfor i in [0 .. len - 1] do\n    if (A[i] == B[i]) then\n        k = k + 1\n    else\n        k = 0\n    end if\n    ans = max(ans, k)\nend for\n```\n\n>   注意这里指定了 `A[i]` 对齐 `B[i]`，在实际代码实现中会通过指定初始位置 `addA` 与 `addB` 的方式来对齐，因此表达式会略有差别。\n\n我们可以枚举 `A` 和 `B` 所有的对齐方式。对齐的方式有两类：第一类为 `A` 不变，`B` 的首元素与 `A` 中的某个元素对齐；第二类为 `B` 不变，`A` 的首元素与 `B` 中的某个元素对齐。对于每一种对齐方式，我们计算它们相对位置相同的重复子数组即可。\n\n![fig1](https://assets.leetcode.cn/solution-static/718/718_fig1.gif)\n\n**代码**\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    int maxLength(vector<int>& A, vector<int>& B, int addA, int addB, int len) {\n        int ret = 0, k = 0;\n        for (int i = 0; i < len; i++) {\n            if (A[addA + i] == B[addB + i]) {\n                k++;\n            } else {\n                k = 0;\n            }\n            ret = max(ret, k);\n        }\n        return ret;\n    }\n    int findLength(vector<int>& A, vector<int>& B) {\n        int n = A.size(), m = B.size();\n        int ret = 0;\n        for (int i = 0; i < n; i++) {\n            int len = min(m, n - i);\n            int maxlen = maxLength(A, B, i, 0, len);\n            ret = max(ret, maxlen);\n        }\n        for (int i = 0; i < m; i++) {\n            int len = min(n, m - i);\n            int maxlen = maxLength(A, B, 0, i, len);\n            ret = max(ret, maxlen);\n        }\n        return ret;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public int findLength(int[] A, int[] B) {\n        int n = A.length, m = B.length;\n        int ret = 0;\n        for (int i = 0; i < n; i++) {\n            int len = Math.min(m, n - i);\n            int maxlen = maxLength(A, B, i, 0, len);\n            ret = Math.max(ret, maxlen);\n        }\n        for (int i = 0; i < m; i++) {\n            int len = Math.min(n, m - i);\n            int maxlen = maxLength(A, B, 0, i, len);\n            ret = Math.max(ret, maxlen);\n        }\n        return ret;\n    }\n\n    public int maxLength(int[] A, int[] B, int addA, int addB, int len) {\n        int ret = 0, k = 0;\n        for (int i = 0; i < len; i++) {\n            if (A[addA + i] == B[addB + i]) {\n                k++;\n            } else {\n                k = 0;\n            }\n            ret = Math.max(ret, k);\n        }\n        return ret;\n    }\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def findLength(self, A: List[int], B: List[int]) -> int:\n        def maxLength(addA: int, addB: int, length: int) -> int:\n            ret = k = 0\n            for i in range(length):\n                if A[addA + i] == B[addB + i]:\n                    k += 1\n                    ret = max(ret, k)\n                else:\n                    k = 0\n            return ret\n        \n        n, m = len(A), len(B)\n        ret = 0\n        for i in range(n):\n            length = min(m, n - i)\n            ret = max(ret, maxLength(i, 0, length))\n        for i in range(m):\n            length = min(n, m - i)\n            ret = max(ret, maxLength(0, i, length))\n        return ret\n```\n\n```golang [sol2-Golang]\nfunc findLength(A []int, B []int) int {\n    n, m := len(A), len(B)\n    ret := 0\n    for i := 0; i < n; i++ {\n        len := min(m, n - i)\n        maxLen := maxLength(A, B, i, 0, len)\n        ret = max(ret, maxLen)\n    }\n    for i := 0; i < m; i++ {\n        len := min(n, m - i)\n        maxLen := maxLength(A, B, 0, i, len)\n        ret = max(ret, maxLen)        \n    }\n    return ret\n}\n\nfunc maxLength(A, B []int, addA, addB, len int) int {\n    ret, k := 0, 0\n    for i := 0; i < len; i++ {\n        if A[addA + i] == B[addB + i] {\n            k++\n        } else {\n            k = 0\n        }\n        ret = max(ret, k)\n    }\n    return ret\n}\n\nfunc max(x, y int) int {\n    if x > y {\n        return x\n    }\n    return y\n}\n\nfunc min(x, y int) int {\n    if x < y {\n        return x\n    }\n    return y\n}\n```\n\n```C [sol2-C]\nint maxLength(int* A, int* B, int addA, int addB, int len) {\n    int ret = 0, k = 0;\n    for (int i = 0; i < len; i++) {\n        if (A[addA + i] == B[addB + i]) {\n            k++;\n        } else {\n            k = 0;\n        }\n        ret = fmax(ret, k);\n    }\n    return ret;\n}\n\nint findLength(int* A, int ASize, int* B, int BSize) {\n    int ret = 0;\n    for (int i = 0; i < ASize; i++) {\n        int len = fmin(BSize, ASize - i);\n        int maxlen = maxLength(A, B, i, 0, len);\n        ret = fmax(ret, maxlen);\n    }\n    for (int i = 0; i < BSize; i++) {\n        int len = fmin(ASize, BSize - i);\n        int maxlen = maxLength(A, B, 0, i, len);\n        ret = fmax(ret, maxlen);\n    }\n    return ret;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度： $O((N + M) \\times \\min(N, M))$。\n\n- 空间复杂度： $O(1)$。\n\n> `N` 表示数组 `A` 的长度，`M` 表示数组 `B` 的长度。\n\n#### 方法三：二分查找 + 哈希\n\n**思路及算法**\n\n如果数组 `A` 和 `B` 有一个长度为 `k` 的公共子数组，那么它们一定有长度为 `j <= k` 的公共子数组。这样我们可以通过二分查找的方法找到最大的 `k`。\n\n而为了优化时间复杂度，在二分查找的每一步中，我们可以考虑使用哈希的方法来判断数组 `A` 和 `B` 中是否存在相同特定长度的子数组。\n\n注意到序列内元素值小于 $100$ ，我们使用 Rabin-Karp 算法来对序列进行哈希。具体地，我们制定一个素数 `base`，那么序列 `S` 的哈希值为：\n\n$$\n\\mathrm{hash}(S) = \\sum_{i=0}^{|S|-1} \\textit{base}^{|S|-(i+1)} \\times S[i]\n$$\n\n形象地说，就是把 `S` 看成一个类似 `base` 进制的数（左侧为高位，右侧为低位），它的十进制值就是这个它的哈希值。由于这个值一般会非常大，因此会将它对另一个素数 `mod` 取模。\n\n当我们要在一个序列 `S​` 中算出所有长度为 `len` 的子序列的哈希值时，我们可以用类似滑动窗口的方法，在线性时间内得到这些子序列的哈希值。例如，如果我们当前得到了 `S[0:len]` 的哈希值，希望算出 `S[1:len+1]` 的哈希值时，有下面这个公式：\n\n$$\n\\mathrm{hash}(S[1:len+1]) = (\\mathrm{hash}(S[0:len]) - \\textit{base}^{len-1} \\times S[0]) \\times \\textit{base} + S[len]\n$$\n\n>   这里借用了 `Python` 表示数组的方法，`A[i:j]` 表示数组 `A` 中索引 `i` 到索引 `j - 1` 的范围对应的子数组。\n>\n>   公式的含义为，删去最高位 `S[0]`，其余位自动进一，并补上最低位 `S[len]`。\n\n在二分查找的每一步中，我们使用哈希表分别存储这两个数组的所有长度为 `len` 的子数组的哈希值，将它们的哈希值进行比对，如果两序列存在相同的哈希值，则认为两序列存在相同的子数组。为了防止哈希碰撞，我们也可以在发现两个子数组的哈希值相等时，进一步校验它们本身是否确实相同，以确保正确性。但该方法在本题中很难发生哈希碰撞，因此略去进一步校验的部分。\n\n**代码**\n\n```C++ [sol3-C++]\nclass Solution {\npublic:\n    const int mod = 1000000009;\n    const int base = 113;\n    \n    // 使用快速幂计算 x^n % mod 的值\n    long long qPow(long long x, long long n) {\n        long long ret = 1;\n        while (n) {\n            if (n & 1) {\n                ret = ret * x % mod;\n            }\n            x = x * x % mod;\n            n >>= 1;\n        }\n        return ret;\n    }\n\n    bool check(vector<int>& A, vector<int>& B, int len) {\n        long long hashA = 0;\n        for (int i = 0; i < len; i++) {\n            hashA = (hashA * base + A[i]) % mod;\n        }\n        unordered_set<long long> bucketA;\n        bucketA.insert(hashA);\n        long long mult = qPow(base, len - 1);\n        for (int i = len; i < A.size(); i++) {\n            hashA = ((hashA - A[i - len] * mult % mod + mod) % mod * base + A[i]) % mod;\n            bucketA.insert(hashA);\n        }\n        long long hashB = 0;\n        for (int i = 0; i < len; i++) {\n            hashB = (hashB * base + B[i]) % mod;\n        }\n        if (bucketA.count(hashB)) {\n            return true;\n        }\n        for (int i = len; i < B.size(); i++) {\n            hashB = ((hashB - B[i - len] * mult % mod + mod) % mod * base + B[i]) % mod;\n            if (bucketA.count(hashB)) {\n                return true;\n            }\n        }\n        return false;\n    }\n\n    int findLength(vector<int>& A, vector<int>& B) {\n        int left = 1, right = min(A.size(), B.size()) + 1;\n        while (left < right) {\n            int mid = (left + right) >> 1;\n            if (check(A, B, mid)) {\n                left = mid + 1;\n            } else {\n                right = mid;\n            }\n        }\n        return left - 1;\n    }\n};\n```\n\n```Java [sol3-Java]\nclass Solution {\n    int mod = 1000000009;\n    int base = 113;\n\n    public int findLength(int[] A, int[] B) {\n        int left = 1, right = Math.min(A.length, B.length) + 1;\n        while (left < right) {\n            int mid = (left + right) >> 1;\n            if (check(A, B, mid)) {\n                left = mid + 1;\n            } else {\n                right = mid;\n            }\n        }\n        return left - 1;\n    }\n\n    public boolean check(int[] A, int[] B, int len) {\n        long hashA = 0;\n        for (int i = 0; i < len; i++) {\n            hashA = (hashA * base + A[i]) % mod;\n        }\n        Set<Long> bucketA = new HashSet<Long>();\n        bucketA.add(hashA);\n        long mult = qPow(base, len - 1);\n        for (int i = len; i < A.length; i++) {\n            hashA = ((hashA - A[i - len] * mult % mod + mod) % mod * base + A[i]) % mod;\n            bucketA.add(hashA);\n        }\n        long hashB = 0;\n        for (int i = 0; i < len; i++) {\n            hashB = (hashB * base + B[i]) % mod;\n        }\n        if (bucketA.contains(hashB)) {\n            return true;\n        }\n        for (int i = len; i < B.length; i++) {\n            hashB = ((hashB - B[i - len] * mult % mod + mod) % mod * base + B[i]) % mod;\n            if (bucketA.contains(hashB)) {\n                return true;\n            }\n        }\n        return false;\n    }\n    \n    // 使用快速幂计算 x^n % mod 的值\n    public long qPow(long x, long n) {\n        long ret = 1;\n        while (n != 0) {\n            if ((n & 1) != 0) {\n                ret = ret * x % mod;\n            }\n            x = x * x % mod;\n            n >>= 1;\n        }\n        return ret;\n    }\n}\n```\n\n```Python [sol3-Python3]\nclass Solution:\n    def findLength(self, A: List[int], B: List[int]) -> int:\n        base, mod = 113, 10**9 + 9\n\n        def check(length: int) -> bool:\n            hashA = 0\n            for i in range(length):\n                hashA = (hashA * base + A[i]) % mod\n            bucketA = {hashA}\n            mult = pow(base, length - 1, mod)\n            for i in range(length, len(A)):\n                hashA = ((hashA - A[i - length] * mult) * base + A[i]) % mod\n                bucketA.add(hashA)\n            \n            hashB = 0\n            for i in range(length):\n                hashB = (hashB * base + B[i]) % mod\n            if hashB in bucketA:\n                return True\n            for i in range(length, len(B)):\n                hashB = ((hashB - B[i - length] * mult) * base + B[i]) % mod\n                if hashB in bucketA:\n                    return True\n\n            return False\n\n        left, right = 0, min(len(A), len(B))\n        ans = 0\n        while left <= right:\n            mid = (left + right) // 2\n            if check(mid):\n                ans = mid\n                left = mid + 1\n            else:\n                right = mid - 1\n        return ans\n```\n\n```golang [sol3-Golang]\nconst (\n    base, mod = 113, 1000000009\n)\n\nfunc findLength(A []int, B []int) int {\n    check := func(length int) bool {\n        hashA := 0\n        for i := 0; i < length; i++ {\n            hashA = (hashA * base + A[i]) % mod\n        }\n        bucketA := map[int]bool{hashA: true}\n        mult := qPow(base, length - 1)\n        for i := length; i < len(A); i++ {\n            hashA = ((hashA - A[i - length] * mult % mod + mod) % mod * base + A[i]) % mod\n            bucketA[hashA] = true\n        }\n\n        hashB := 0\n        for i := 0; i < length; i++ {\n            hashB = (hashB * base + B[i]) % mod\n        }\n        if bucketA[hashB] {\n            return true\n        }\n        for i := length; i < len(B); i++ {\n            hashB = ((hashB - B[i - length] * mult % mod + mod) % mod * base + B[i]) % mod\n            if bucketA[hashB] {\n                return true\n            }\n        }\n        return false\n    }\n\n    left, right := 1, min(len(A), len(B)) + 1\n    for left < right {\n        mid := (left + right) >> 1\n        if check(mid) {\n            left = mid + 1\n        } else {\n            right = mid\n        }\n    }\n    return left - 1\n}\n    \nfunc qPow(x, n int) int {\n    ret := 1\n    for n != 0 {\n        if n & 1 != 0 {\n            ret = ret * x % mod\n        }\n        x = x * x % mod\n        n >>= 1\n    }\n    return ret\n}\n\nfunc min(x, y int) int {\n    if x < y {\n        return x\n    }\n    return y\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O\\big((M+N) \\log{(\\min(M, N))}\\big)$。\n  \n- 空间复杂度：$O(N)$。\n\n> `N` 表示数组 `A` 的长度，`M` 表示数组 `B` 的长度。二分查找为对数时间复杂度，计算哈希值的时间复杂度为 $O(M+N)$，哈希检测的时间复杂度为 $O(1)$。",
+            "slateValue": "",
+            "slug": "zui-chang-zhong-fu-zi-shu-zu-by-leetcode-solution",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "4rWhl1",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 260,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 8,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 4,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Sliding Window",
+                    "nameTranslated": "滑动窗口",
+                    "slug": "sliding-window",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2020-06-30T12:43:53.961078+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "写在前面 本题要求我们计算两个数组的最长公共子数组。需要注意到数组长度不超过 $1000$，且子数组在原数组中连续。 容易想到一个暴力解法，即枚举数组 A 中的起始位置 i 与数组 B 中的起始位置 j，然后计算 A[i:] 与 B[j:] 的最长公共前缀 k。最终答案即为所有的最长公共前缀的最大值。 这里借用了 Py",
+            "topic": {
+                "id": 310099,
+                "subscribed": false,
+                "commentCount": 271,
+                "viewCount": 91757,
+                "post": {
+                    "id": 778870,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 709,
+            "isEditorsPick": false,
+            "hitCount": 216026,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "maximum-length-of-repeated-subarray",
+                "questionFrontendId": "718"
+            },
+            "next": {
+                "slug": "wu-li-jie-fa-by-stg-2",
+                "title": "滑动窗口解法"
+            },
+            "prev": null
+        }
+    }
+}

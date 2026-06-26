@@ -1,0 +1,146 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "vx9xS4",
+            "title": "矩阵中的最长递增路径",
+            "content": "#### 方法一：记忆化深度优先搜索\n\n将矩阵看成一个有向图，每个单元格对应图中的一个节点，如果相邻的两个单元格的值不相等，则在相邻的两个单元格之间存在一条从较小值指向较大值的有向边。问题转化成在有向图中寻找最长路径。\n\n深度优先搜索是非常直观的方法。从一个单元格开始进行深度优先搜索，即可找到从该单元格开始的最长递增路径。对每个单元格分别进行深度优先搜索之后，即可得到矩阵中的最长递增路径的长度。\n\n但是如果使用朴素深度优先搜索，时间复杂度是指数级，会超出时间限制，因此必须加以优化。\n\n朴素深度优先搜索的时间复杂度过高的原因是进行了大量的重复计算，同一个单元格会被访问多次，每次访问都要重新计算。由于同一个单元格对应的最长递增路径的长度是固定不变的，因此可以使用记忆化的方法进行优化。用矩阵 $\\textit{memo}$ 作为缓存矩阵，已经计算过的单元格的结果存储到缓存矩阵中。\n\n使用记忆化深度优先搜索，当访问到一个单元格 $(i,j)$ 时，如果 $\\textit{memo}[i][j] \\neq 0$，说明该单元格的结果已经计算过，则直接从缓存中读取结果，如果 $\\textit{memo}[i][j]=0$，说明该单元格的结果尚未被计算过，则进行搜索，并将计算得到的结果存入缓存中。\n\n遍历完矩阵中的所有单元格之后，即可得到矩阵中的最长递增路径的长度。\n\n```Java [sol1-Java]\nclass Solution {\n    public int[][] dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};\n    public int rows, columns;\n\n    public int longestIncreasingPath(int[][] matrix) {\n        if (matrix == null || matrix.length == 0 || matrix[0].length == 0) {\n            return 0;\n        }\n        rows = matrix.length;\n        columns = matrix[0].length;\n        int[][] memo = new int[rows][columns];\n        int ans = 0;\n        for (int i = 0; i < rows; ++i) {\n            for (int j = 0; j < columns; ++j) {\n                ans = Math.max(ans, dfs(matrix, i, j, memo));\n            }\n        }\n        return ans;\n    }\n\n    public int dfs(int[][] matrix, int row, int column, int[][] memo) {\n        if (memo[row][column] != 0) {\n            return memo[row][column];\n        }\n        ++memo[row][column];\n        for (int[] dir : dirs) {\n            int newRow = row + dir[0], newColumn = column + dir[1];\n            if (newRow >= 0 && newRow < rows && newColumn >= 0 && newColumn < columns && matrix[newRow][newColumn] > matrix[row][column]) {\n                memo[row][column] = Math.max(memo[row][column], dfs(matrix, newRow, newColumn, memo) + 1);\n            }\n        }\n        return memo[row][column];\n    }\n}\n```\n\n```cpp [sol1-C++]\nclass Solution {\npublic:\n    static constexpr int dirs[4][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};\n    int rows, columns;\n\n    int longestIncreasingPath(vector< vector<int> > &matrix) {\n        if (matrix.size() == 0 || matrix[0].size() == 0) {\n            return 0;\n        }\n        rows = matrix.size();\n        columns = matrix[0].size();\n        auto memo = vector< vector<int> > (rows, vector <int> (columns));\n        int ans = 0;\n        for (int i = 0; i < rows; ++i) {\n            for (int j = 0; j < columns; ++j) {\n                ans = max(ans, dfs(matrix, i, j, memo));\n            }\n        }\n        return ans;\n    }\n\n    int dfs(vector< vector<int> > &matrix, int row, int column, vector< vector<int> > &memo) {\n        if (memo[row][column] != 0) {\n            return memo[row][column];\n        }\n        ++memo[row][column];\n        for (int i = 0; i < 4; ++i) {\n            int newRow = row + dirs[i][0], newColumn = column + dirs[i][1];\n            if (newRow >= 0 && newRow < rows && newColumn >= 0 && newColumn < columns && matrix[newRow][newColumn] > matrix[row][column]) {\n                memo[row][column] = max(memo[row][column], dfs(matrix, newRow, newColumn, memo) + 1);\n            }\n        }\n        return memo[row][column];\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    \n    DIRS = [(-1, 0), (1, 0), (0, -1), (0, 1)]\n\n    def longestIncreasingPath(self, matrix: List[List[int]]) -> int:\n        if not matrix:\n            return 0\n        \n        @lru_cache(None)\n        def dfs(row: int, column: int) -> int:\n            best = 1\n            for dx, dy in Solution.DIRS:\n                newRow, newColumn = row + dx, column + dy\n                if 0 <= newRow < rows and 0 <= newColumn < columns and matrix[newRow][newColumn] > matrix[row][column]:\n                    best = max(best, dfs(newRow, newColumn) + 1)\n            return best\n\n        ans = 0\n        rows, columns = len(matrix), len(matrix[0])\n        for i in range(rows):\n            for j in range(columns):\n                ans = max(ans, dfs(i, j))\n        return ans\n```\n\n```C [sol1-C]\nconst int dirs[4][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};\nint rows, columns;\n\nint longestIncreasingPath(int** matrix, int matrixSize, int* matrixColSize) {\n    if (matrixSize == 0 || matrixColSize[0] == 0) {\n        return 0;\n    }\n    rows = matrixSize;\n    columns = matrixColSize[0];\n\n    int** memo = (int**)malloc(sizeof(int*) * rows);\n    for (int i = 0; i < rows; i++) {\n        memo[i] = (int*)malloc(sizeof(int) * columns);\n        memset(memo[i], 0, sizeof(int) * columns);\n    }\n    int ans = 0;\n    for (int i = 0; i < rows; ++i) {\n        for (int j = 0; j < columns; ++j) {\n            ans = fmax(ans, dfs(matrix, i, j, memo));\n        }\n    }\n    free(memo);\n    return ans;\n}\n\nint dfs(int** matrix, int row, int column, int** memo) {\n    if (memo[row][column] != 0) {\n        return memo[row][column];\n    }\n    ++memo[row][column];\n    for (int i = 0; i < 4; ++i) {\n        int newRow = row + dirs[i][0], newColumn = column + dirs[i][1];\n        if (newRow >= 0 && newRow < rows && newColumn >= 0 && newColumn < columns && matrix[newRow][newColumn] > matrix[row][column]) {\n            memo[row][column] = fmax(memo[row][column], dfs(matrix, newRow, newColumn, memo) + 1);\n        }\n    }\n    return memo[row][column];\n}\n```\n\n```golang [sol1-Golang]\nvar (\n    dirs = [][]int{[]int{-1, 0}, []int{1, 0}, []int{0, -1}, []int{0, 1}}\n    rows, columns int\n)\n\nfunc longestIncreasingPath(matrix [][]int) int {\n    if len(matrix) == 0 || len(matrix[0]) == 0 {\n        return 0\n    }\n    rows, columns = len(matrix), len(matrix[0])\n    memo := make([][]int, rows)\n    for i := 0; i < rows; i++ {\n        memo[i] = make([]int, columns)\n    }\n    ans := 0\n    for i := 0; i < rows; i++ {\n        for j := 0; j < columns; j++ {\n            ans = max(ans, dfs(matrix, i, j, memo))\n        }\n    }\n    return ans\n}\n\nfunc dfs(matrix [][]int, row, column int, memo [][]int) int {\n    if memo[row][column] != 0 {\n        return memo[row][column]\n    }\n    memo[row][column]++\n    for _, dir := range dirs {\n        newRow, newColumn := row + dir[0], column + dir[1]\n        if newRow >= 0 && newRow < rows && newColumn >= 0 && newColumn < columns && matrix[newRow][newColumn] > matrix[row][column] {\n            memo[row][column] = max(memo[row][column], dfs(matrix, newRow, newColumn, memo) + 1)\n        }\n    }\n    return memo[row][column]\n}\n\nfunc max(x, y int) int {\n    if x > y {\n        return x\n    }\n    return y\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(mn)$，其中 $m$ 和 $n$ 分别是矩阵的行数和列数。深度优先搜索的时间复杂度是 $O(V+E)$，其中 $V$ 是节点数，$E$ 是边数。在矩阵中，$O(V)=O(mn)$，$O(E)\\approx O(4mn) = O(mn)$。\n\n- 空间复杂度：$O(mn)$，其中 $m$ 和 $n$ 分别是矩阵的行数和列数。空间复杂度主要取决于缓存和递归调用深度，缓存的空间复杂度是 $O(mn)$，递归调用深度不会超过 $mn$。\n\n#### 方法二：拓扑排序\n\n从方法一可以看到，每个单元格对应的最长递增路径的结果只和相邻单元格的结果有关，那么是否可以使用动态规划求解？\n\n根据方法一的分析，动态规划的状态定义和状态转移方程都很容易得到。方法一中使用的缓存矩阵 $\\textit{memo}$ 即为状态值，状态转移方程如下：\n\n$$\n\\begin{aligned}\n& \\textit{memo}[i][j] = \\max\\{\\textit{memo}[x][y]\\} + 1 \\\\\n& 其中~(x, y)~与~(i, j)~在矩阵中相邻，并且~\\textit{matrix}[x][y] > \\textit{matrix}[i][j]\n\\end{aligned}\n$$\n\n动态规划除了状态定义和状态转移方程，还需要考虑边界情况。这里的边界情况是什么呢？\n\n如果一个单元格的值比它的所有相邻单元格的值都要大，那么这个单元格对应的最长递增路径是 $1$，这就是边界条件。这个边界条件并不直观，而是需要根据矩阵中的每个单元格的值找到作为边界条件的单元格。\n\n仍然使用方法一的思想，将矩阵看成一个有向图，计算每个单元格对应的出度，即有多少条边从该单元格出发。对于作为边界条件的单元格，该单元格的值比所有的相邻单元格的值都要大，因此作为边界条件的单元格的出度都是 $0$。\n\n基于出度的概念，可以使用拓扑排序求解。从所有出度为 $0$ 的单元格开始广度优先搜索，每一轮搜索都会遍历当前层的所有单元格，更新其余单元格的出度，并将出度变为 $0$ 的单元格加入下一层搜索。当搜索结束时，搜索的总层数即为矩阵中的最长递增路径的长度。\n\n```Java [sol2-Java]\nclass Solution {\n    public int[][] dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};\n    public int rows, columns;\n\n    public int longestIncreasingPath(int[][] matrix) {\n        if (matrix == null || matrix.length == 0 || matrix[0].length == 0) {\n            return 0;\n        }\n        rows = matrix.length;\n        columns = matrix[0].length;\n        int[][] outdegrees = new int[rows][columns];\n        for (int i = 0; i < rows; ++i) {\n            for (int j = 0; j < columns; ++j) {\n                for (int[] dir : dirs) {\n                    int newRow = i + dir[0], newColumn = j + dir[1];\n                    if (newRow >= 0 && newRow < rows && newColumn >= 0 && newColumn < columns && matrix[newRow][newColumn] > matrix[i][j]) {\n                        ++outdegrees[i][j];\n                    }\n                }\n            }\n        }\n        Queue<int[]> queue = new LinkedList<int[]>();\n        for (int i = 0; i < rows; ++i) {\n            for (int j = 0; j < columns; ++j) {\n                if (outdegrees[i][j] == 0) {\n                    queue.offer(new int[]{i, j});\n                }\n            }\n        }\n        int ans = 0;\n        while (!queue.isEmpty()) {\n            ++ans;\n            int size = queue.size();\n            for (int i = 0; i < size; ++i) {\n                int[] cell = queue.poll();\n                int row = cell[0], column = cell[1];\n                for (int[] dir : dirs) {\n                    int newRow = row + dir[0], newColumn = column + dir[1];\n                    if (newRow >= 0 && newRow < rows && newColumn >= 0 && newColumn < columns && matrix[newRow][newColumn] < matrix[row][column]) {\n                        --outdegrees[newRow][newColumn];\n                        if (outdegrees[newRow][newColumn] == 0) {\n                            queue.offer(new int[]{newRow, newColumn});\n                        }\n                    }\n                }\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```cpp [sol2-C++]\nclass Solution {\npublic:\n    static constexpr int dirs[4][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};\n    int rows, columns;\n\n    int longestIncreasingPath(vector< vector<int> > &matrix) {\n        if (matrix.size() == 0 || matrix[0].size() == 0) {\n            return 0;\n        }\n        rows = matrix.size();\n        columns = matrix[0].size();\n        auto outdegrees = vector< vector<int> > (rows, vector <int> (columns));\n        for (int i = 0; i < rows; ++i) {\n            for (int j = 0; j < columns; ++j) {\n                for (int k = 0; k < 4; ++k) {\n                    int newRow = i + dirs[k][0], newColumn = j + dirs[k][1];\n                    if (newRow >= 0 && newRow < rows && newColumn >= 0 && newColumn < columns && matrix[newRow][newColumn] > matrix[i][j]) {\n                        ++outdegrees[i][j];\n                    }\n                }\n            }\n        }\n        queue < pair<int, int> > q;\n        for (int i = 0; i < rows; ++i) {\n            for (int j = 0; j < columns; ++j) {\n                if (outdegrees[i][j] == 0) {\n                    q.push({i, j});\n                }\n            }\n        }\n        int ans = 0;\n        while (!q.empty()) {\n            ++ans;\n            int size = q.size();\n            for (int i = 0; i < size; ++i) {\n                auto cell = q.front(); q.pop();\n                int row = cell.first, column = cell.second;\n                for (int k = 0; k < 4; ++k) {\n                    int newRow = row + dirs[k][0], newColumn = column + dirs[k][1];\n                    if (newRow >= 0 && newRow < rows && newColumn >= 0 && newColumn < columns && matrix[newRow][newColumn] < matrix[row][column]) {\n                        --outdegrees[newRow][newColumn];\n                        if (outdegrees[newRow][newColumn] == 0) {\n                            q.push({newRow, newColumn});\n                        }\n                    }\n                }\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```Python [sol2-Python3]\nclass Solution:\n\n    DIRS = [(-1, 0), (1, 0), (0, -1), (0, 1)]\n\n    def longestIncreasingPath(self, matrix: List[List[int]]) -> int:\n        if not matrix:\n            return 0\n        \n        rows, columns = len(matrix), len(matrix[0])\n        outdegrees = [[0] * columns for _ in range(rows)]\n        queue = collections.deque()\n        for i in range(rows):\n            for j in range(columns):\n                for dx, dy in Solution.DIRS:\n                    newRow, newColumn = i + dx, j + dy\n                    if 0 <= newRow < rows and 0 <= newColumn < columns and matrix[newRow][newColumn] > matrix[i][j]:\n                        outdegrees[i][j] += 1\n                if outdegrees[i][j] == 0:\n                    queue.append((i, j))\n\n        ans = 0\n        while queue:\n            ans += 1\n            size = len(queue)\n            for _ in range(size):\n                row, column = queue.popleft()\n                for dx, dy in Solution.DIRS:\n                    newRow, newColumn = row + dx, column + dy\n                    if 0 <= newRow < rows and 0 <= newColumn < columns and matrix[newRow][newColumn] < matrix[row][column]:\n                        outdegrees[newRow][newColumn] -= 1\n                        if outdegrees[newRow][newColumn] == 0:\n                            queue.append((newRow, newColumn))\n        \n        return ans\n```\n\n```C [sol2-C]\nconst int dirs[4][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};\nint rows, columns;\n\ntypedef struct point {\n    int x, y;\n} point;\n\nint longestIncreasingPath(int** matrix, int matrixSize, int* matrixColSize) {\n    if (matrixSize == 0 || matrixColSize[0] == 0) {\n        return 0;\n    }\n    rows = matrixSize;\n    columns = matrixColSize[0];\n\n    int** outdegrees = (int**)malloc(sizeof(int*) * rows);\n    for (int i = 0; i < rows; i++) {\n        outdegrees[i] = (int*)malloc(sizeof(int) * columns);\n        memset(outdegrees[i], 0, sizeof(int) * columns);\n    }\n    for (int i = 0; i < rows; ++i) {\n        for (int j = 0; j < columns; ++j) {\n            for (int k = 0; k < 4; ++k) {\n                int newRow = i + dirs[k][0], newColumn = j + dirs[k][1];\n                if (newRow >= 0 && newRow < rows && newColumn >= 0 && newColumn < columns && matrix[newRow][newColumn] > matrix[i][j]) {\n                    ++outdegrees[i][j];\n                }\n            }\n        }\n    }\n\n    point* q = (point*)malloc(sizeof(point) * rows * columns);\n    int l = 0, r = 0;\n    for (int i = 0; i < rows; ++i) {\n        for (int j = 0; j < columns; ++j) {\n            if (outdegrees[i][j] == 0) {\n                q[r++] = (point){i, j};\n            }\n        }\n    }\n    int ans = 0;\n    while (l < r) {\n        ++ans;\n        int size = r - l;\n        for (int i = 0; i < size; ++i) {\n            point cell = q[l++];\n            int row = cell.x, column = cell.y;\n            for (int k = 0; k < 4; ++k) {\n                int newRow = row + dirs[k][0], newColumn = column + dirs[k][1];\n                if (newRow >= 0 && newRow < rows && newColumn >= 0 && newColumn < columns && matrix[newRow][newColumn] < matrix[row][column]) {\n                    --outdegrees[newRow][newColumn];\n                    if (outdegrees[newRow][newColumn] == 0) {\n                        q[r++] = (point){newRow, newColumn};\n                    }\n                }\n            }\n        }\n    }\n    return ans;\n}\n```\n\n```golang [sol2-Golang]\nvar (\n    dirs = [][]int{[]int{-1, 0}, []int{1, 0}, []int{0, -1}, []int{0, 1}}\n    rows, columns int\n)\n\nfunc longestIncreasingPath(matrix [][]int) int {\n    if len(matrix) == 0 || len(matrix[0]) == 0 {\n        return 0\n    }\n    rows, columns = len(matrix), len(matrix[0])\n    outdegrees := make([][]int, rows)\n    for i := 0; i < rows; i++ {\n        outdegrees[i] = make([]int, columns)\n    }\n    for i := 0; i < rows; i++ {\n        for j := 0; j < columns; j++ {\n            for _, dir := range dirs {\n                newRow, newColumn := i + dir[0], j + dir[1]\n                if newRow >= 0 && newRow < rows && newColumn >= 0 && newColumn < columns && matrix[newRow][newColumn] > matrix[i][j] {\n                    outdegrees[i][j]++\n                }\n            }\n        }\n    }\n\n    queue := [][]int{}\n    for i := 0; i < rows; i++ {\n        for j := 0; j < columns; j++ {\n            if outdegrees[i][j] == 0 {\n                queue = append(queue, []int{i, j})\n            }\n        }\n    }\n    ans := 0\n    for len(queue) != 0 {\n        ans++\n        size := len(queue)\n        for i := 0; i < size; i++ {\n            cell := queue[0]\n            queue = queue[1:]\n            row, column := cell[0], cell[1]\n            for _, dir := range dirs {\n                newRow, newColumn := row + dir[0], column + dir[1]\n                if newRow >= 0 && newRow < rows && newColumn >= 0 && newColumn < columns && matrix[newRow][newColumn] < matrix[row][column] {\n                    outdegrees[newRow][newColumn]--\n                    if outdegrees[newRow][newColumn] == 0 {\n                        queue = append(queue, []int{newRow, newColumn})\n                    }\n                }\n            }\n        }\n    }\n    return ans\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(mn)$，其中 $m$ 和 $n$ 分别是矩阵的行数和列数。拓扑排序的时间复杂度是 $O(V+E)$，其中 $V$ 是节点数，$E$ 是边数。在矩阵中，$O(V)=O(mn)$，$O(E)\\approx O(4mn) = O(mn)$。\n\n- 空间复杂度：$O(mn)$，其中 $m$ 和 $n$ 分别是矩阵的行数和列数。空间复杂度主要取决于队列，队列中的元素个数不会超过 $mn$。\n\n#### 思考题\n\n为了让大家更好地理解这道题，小编出了四道思考题，欢迎感兴趣的同学在评论区互动哦。\n\n+ 「方法一」中使用了记忆化存储和深度优先搜索，这里的深度优先搜索可以替换成广度优先搜索吗？\n\n+ 「方法二」中基于拓扑排序对排序后的有向无环图做了层次遍历，如果没有拓扑排序直接进行广度优先搜索会发生什么？\n\n+ 「方法二」中如果不使用拓扑排序，而是直接按照矩阵中元素的值**从大到小**进行排序，并依此顺序进行状态转移，那么可以得到正确的答案吗？如果是**从小到大**进行排序呢？\n\n+ 「变式」给定一个整数矩阵，找出符合以下条件的路径的数量：这个路径是严格递增的，且它的长度至少是 $3$。矩阵的边长最大为 $10^3$，答案对 $10^9 + 7$ 取模。其他条件和题目相同。**思考：是否可以借鉴这道题的方法？**",
+            "slateValue": "",
+            "slug": "ju-zhen-zhong-de-zui-chang-di-zeng-lu-jing-by-le-2",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "vx9xS4",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 185,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 8,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 3,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Depth-First Search",
+                    "nameTranslated": "深度优先搜索",
+                    "slug": "depth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Breadth-First Search",
+                    "nameTranslated": "广度优先搜索",
+                    "slug": "breadth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Graph",
+                    "nameTranslated": "图",
+                    "slug": "graph",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Topological Sort",
+                    "nameTranslated": "拓扑排序",
+                    "slug": "topological-sort",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Memoization",
+                    "nameTranslated": "记忆化",
+                    "slug": "memoization",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-07-25T13:56:26.828897+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：记忆化深度优先搜索 将矩阵看成一个有向图，每个单元格对应图中的一个节点，如果相邻的两个单元格的值不相等，则在相邻的两个单元格之间存在一条从较小值指向较大值的有向边。问题转化成在有向图中寻找最长路径。 深度优先搜索是非常直观的方法。从一个单元格开始进行深度优先搜索，即可找到从该单元格开始的最长递增路径。对每个单元",
+            "topic": {
+                "id": 346614,
+                "subscribed": false,
+                "commentCount": 302,
+                "viewCount": 65677,
+                "post": {
+                    "id": 858879,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": true,
+            "favoriteCount": 497,
+            "isEditorsPick": false,
+            "hitCount": 139635,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "longest-increasing-path-in-a-matrix",
+                "questionFrontendId": "329"
+            },
+            "next": {
+                "slug": "ji-ge-wen-da-kan-dong-shen-du-sou-suo-ji-yi-hua-sh",
+                "title": "几个问答看懂深度搜索+记忆化思路, 时间击败 99%"
+            },
+            "prev": null
+        }
+    }
+}

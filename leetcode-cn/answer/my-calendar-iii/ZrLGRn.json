@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "ZrLGRn",
+            "title": "我的日程安排表 III",
+            "content": "#### 方法一：差分数组\n\n**思路与算法**\n\n可以参考「[731. 我的日程安排表 II](https://leetcode.cn/problems/my-calendar-ii/)」的解法二，我们可以采用同样的思路即可。利用差分数组的思想，每当我们预定一个新的日程安排 $[\\textit{start}, \\textit{end})$，在 $\\textit{start}$ 计数 $\\textit{cnt}[\\textit{start}]$ 加 $1$，表示从 $\\textit{start}$ 预定的数目加 $1$；从 $\\textit{end}$ 计数 $\\textit{cnt}[\\textit{end}]$ 减 $1$，表示从 $\\textit{end}$ 开始预定的数目减 $1$。此时以起点 $x$ 开始的预定的数目 $\\textit{book}_x = \\sum_{y \\le x}\\textit{cnt}[y]$，我们对计数进行累加依次求出最大的预定数目即可。由于本题中 $\\textit{start}, \\textit{end}$ 数量较大，我们利用 $\\texttt{TreeMap}$ 计数即可。\n\n**代码**\n\n```Python [sol1-Python3]\nfrom sortedcontainers import SortedDict\n\nclass MyCalendarThree:\n    def __init__(self):\n        self.d = SortedDict()\n\n    def book(self, start: int, end: int) -> int:\n        self.d[start] = self.d.setdefault(start, 0) + 1\n        self.d[end] = self.d.setdefault(end, 0) - 1\n\n        ans = maxBook = 0\n        for freq in self.d.values():\n            maxBook += freq\n            ans = max(ans, maxBook)\n        return ans\n```\n\n```Java [sol1-Java]\nclass MyCalendarThree {\n    private TreeMap<Integer, Integer> cnt;\n\n    public MyCalendarThree() {\n        cnt = new TreeMap<Integer, Integer>();\n    }\n    \n    public int book(int start, int end) {\n        int ans = 0;\n        int maxBook = 0;\n        cnt.put(start, cnt.getOrDefault(start, 0) + 1);\n        cnt.put(end, cnt.getOrDefault(end, 0) - 1);\n        for (Map.Entry<Integer, Integer> entry : cnt.entrySet()) {\n            int freq = entry.getValue();\n            maxBook += freq;\n            ans = Math.max(maxBook, ans);\n        }\n        return ans;\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass MyCalendarThree {\npublic:\n    MyCalendarThree() {\n        \n    }\n    \n    int book(int start, int end) {\n        int ans = 0;\n        int maxBook = 0;\n        cnt[start]++;\n        cnt[end]--;\n        for (auto &[_, freq] : cnt) {\n            maxBook += freq;\n            ans = max(maxBook, ans);\n        }\n        return ans;\n    }\nprivate:\n    map<int, int> cnt;\n};\n```\n\n```go [sol1-Golang]\ntype MyCalendarThree struct {\n    *redblacktree.Tree\n}\n\nfunc Constructor() MyCalendarThree {\n    return MyCalendarThree{redblacktree.NewWithIntComparator()}\n}\n\nfunc (t MyCalendarThree) add(x, delta int) {\n    if val, ok := t.Get(x); ok {\n        delta += val.(int)\n    }\n    t.Put(x, delta)\n}\n\nfunc (t MyCalendarThree) Book(start, end int) (ans int) {\n    t.add(start, 1)\n    t.add(end, -1)\n\n    maxBook := 0\n    for it := t.Iterator(); it.Next(); {\n        maxBook += it.Value().(int)\n        if maxBook > ans {\n            ans = maxBook\n        }\n    }\n    return\n}\n```\n\n**复杂度分析**\n\n+ 时间复杂度：$O(n^2)$，其中 $n$ 为日程安排的数量。每次求的最大的预定需要遍历所有的日程安排。\n\n+ 空间复杂度：$O(n)$，其中 $n$ 为日程安排的数量。需要空间存储所有的日程安排计数，需要的空间为 $O(n)$。\n\n#### 方法二：线段树\n\n**思路与算法**\n\n利用线段树，假设我们开辟了数组 $\\textit{arr}[0,\\cdots, 10^9]$，初始时每个元素的值都为 $0$，对于每次行程预定的区间 $[\\textit{start}, \\textit{end})$ ，则我们将区间中的元素 $\\textit{arr}[\\textit{start},\\cdots,\\textit{end}-1]$ 中的每个元素加 $1$，最终只需要求出数组 $arr$ 的最大元素即可。实际我们不必实际开辟数组 $\\textit{arr}$，可采用动态线段树，懒标记 $\\textit{lazy}$ 标记区间 $[l,r]$ 进行累加的次数，$\\textit{tree}$ 记录区间 $[l,r]$ 的最大值，最终返回区间 $[0,10^9]$ 中的最大元素即可。\n\n**代码**\n\n```Python [sol2-Python3]\nclass MyCalendarThree:\n    def __init__(self):\n        self.tree = defaultdict(int)\n        self.lazy = defaultdict(int)\n\n    def update(self, start: int, end: int, l: int, r: int, idx: int):\n        if r < start or end < l:\n            return\n        if start <= l and r <= end:\n            self.tree[idx] += 1\n            self.lazy[idx] += 1\n        else:\n            mid = (l + r) // 2\n            self.update(start, end, l, mid, idx * 2)\n            self.update(start, end, mid + 1, r, idx * 2 + 1)\n            self.tree[idx] = self.lazy[idx] + max(self.tree[idx * 2], self.tree[idx * 2 + 1])\n\n    def book(self, start: int, end: int) -> int:\n        self.update(start, end - 1, 0, 10 ** 9, 1)\n        return self.tree[1]\n```\n\n```Java [sol2-Java]\nclass MyCalendarThree {\n    private Map<Integer, Integer> tree;\n    private Map<Integer, Integer> lazy;\n\n    public MyCalendarThree() {\n        tree = new HashMap<Integer, Integer>();\n        lazy = new HashMap<Integer, Integer>();\n    }\n    \n    public int book(int start, int end) {\n        update(start, end - 1, 0, 1000000000, 1);\n        return tree.getOrDefault(1, 0);\n    }\n\n    public void update(int start, int end, int l, int r, int idx) {\n        if (r < start || end < l) {\n            return;\n        } \n        if (start <= l && r <= end) {\n            tree.put(idx, tree.getOrDefault(idx, 0) + 1);\n            lazy.put(idx, lazy.getOrDefault(idx, 0) + 1);\n        } else {\n            int mid = (l + r) >> 1;\n            update(start, end, l, mid, 2 * idx);\n            update(start, end, mid + 1, r, 2 * idx + 1);\n            tree.put(idx, lazy.getOrDefault(idx, 0) + Math.max(tree.getOrDefault(2 * idx, 0), tree.getOrDefault(2 * idx + 1, 0)));\n        }\n    }\n}\n```\n\n```C++ [sol2-C++]\nclass MyCalendarThree {\npublic:\n    unordered_map<int, pair<int, int>> tree;\n\n    MyCalendarThree() {\n\n    }\n    \n    void update(int start, int end, int l, int r, int idx) {\n        if (r < start || end < l) {\n            return;\n        } \n        if (start <= l && r <= end) {\n            tree[idx].first++;\n            tree[idx].second++;\n        } else {\n            int mid = (l + r) >> 1;\n            update(start, end, l, mid, 2 * idx);\n            update(start, end, mid + 1, r, 2 * idx + 1);\n            tree[idx].first = tree[idx].second + max(tree[2 * idx].first, tree[2 * idx + 1].first);\n        }\n    }\n\n    int book(int start, int end) {            \n        update(start, end - 1, 0, 1e9, 1);\n        return tree[1].first;\n    }\n};\n```\n\n```C# [sol2-C#]\npublic class MyCalendarThree {\n    private Dictionary<int, int[]> tree;\n\n    public MyCalendarThree() {\n        tree = new Dictionary<int, int[]>();\n    }\n    \n    public int Book(int start, int end) {\n        Update(start, end - 1, 0, 1000000000, 1);\n        return tree[1][0];\n    }\n\n    public void Update(int start, int end, int l, int r, int idx) {\n        if (r < start || end < l) {\n            return;\n        } \n        if (start <= l && r <= end) {\n            if (!tree.ContainsKey(idx)) {\n                tree.Add(idx, new int[2]);\n            }\n            tree[idx][0]++;\n            tree[idx][1]++;\n        } else {\n            int mid = (l + r) >> 1;\n            Update(start, end, l, mid, 2 * idx);\n            Update(start, end, mid + 1, r, 2 * idx + 1);\n            if (!tree.ContainsKey(idx)) {\n                tree.Add(idx, new int[2]);\n            }\n            if (!tree.ContainsKey(2 * idx)) {\n                tree.Add(2 * idx, new int[2]);\n            }\n            if (!tree.ContainsKey(2 * idx + 1)) {\n                tree.Add(2 * idx + 1, new int[2]);\n            }\n            tree[idx][0] = tree[idx][1] + Math.Max(tree[2 * idx][0], tree[2 * idx + 1][0]);\n        }\n    }\n}\n```\n\n```C [sol2-C]\n#define MAX(a, b) ((a) > (b) ? (a) : (b))\n\ntypedef struct HashItem {\n    int key;\n    int maxBook;\n    int lazy;\n    UT_hash_handle hh;\n} HashItem;\n\ntypedef struct {\n    HashItem *tree;\n} MyCalendarThree;\n\n\nMyCalendarThree* myCalendarThreeCreate() {\n    MyCalendarThree *obj = (MyCalendarThree *)malloc(sizeof(MyCalendarThree));\n    obj->tree = NULL;\n    return obj;\n}\n\nvoid update(MyCalendarThree* obj, int start, int end, int l, int r, int idx) {\n    if (r < start || end < l) {\n        return;\n    } \n    if (start <= l && r <= end) {\n        HashItem *pEntry = NULL;\n        HASH_FIND_INT(obj->tree, &idx, pEntry);\n        if (pEntry == NULL) {\n            pEntry = (HashItem *)malloc(sizeof(HashItem));\n            pEntry->key = idx;\n            pEntry->maxBook = 1;\n            pEntry->lazy = 1;\n            HASH_ADD_INT(obj->tree, key, pEntry);\n        } else {\n            pEntry->maxBook++;\n            pEntry->lazy++;\n        }\n    } else {\n        int mid = (l + r) >> 1;\n        update(obj, start, end, l, mid, 2 * idx);\n        update(obj, start, end, mid + 1, r, 2 * idx + 1);\n        int lchid = idx * 2, rchid = idx * 2 + 1;\n        int lmax = 0, rmax = 0;\n        HashItem *pEntry1 = NULL, *pEntry2 = NULL;\n        HASH_FIND_INT(obj->tree, &lchid, pEntry1);\n        HASH_FIND_INT(obj->tree, &rchid, pEntry2);\n        if (pEntry1) {\n            lmax = pEntry1->maxBook;\n        }\n        if (pEntry2) {\n            rmax = pEntry2->maxBook;\n        }\n        HashItem *pEntry = NULL;\n        HASH_FIND_INT(obj->tree, &idx, pEntry);\n        if (pEntry) {\n            pEntry->maxBook = pEntry->lazy + MAX(lmax, rmax);\n        } else {\n            pEntry = (HashItem *)malloc(sizeof(HashItem));\n            pEntry->key = idx;\n            pEntry->maxBook = 1;\n            pEntry->lazy = 0;\n            HASH_ADD_INT(obj->tree, key, pEntry);\n        }\n    }\n}\n\nint myCalendarThreeBook(MyCalendarThree* obj, int start, int end) {\n    update(obj, start, end - 1, 0, 1e9, 1);\n    int idx = 1;\n    HashItem *pEntry = NULL;\n    HASH_FIND_INT(obj->tree, &idx, pEntry);\n    if (pEntry) {\n        return pEntry->maxBook;\n    }\n    return 0;\n}\n\nvoid myCalendarThreeFree(MyCalendarThree* obj) {\n    struct HashItem *curr,*tmp;\n    HASH_ITER(hh, obj->tree, curr, tmp) {\n        HASH_DEL(obj->tree, curr); \n        free(curr);             \n    } \n    free(obj); \n}\n```\n\n```go [sol2-Golang]\ntype pair struct{ num, lazy int }\n\ntype MyCalendarThree map[int]pair\n\nfunc Constructor() MyCalendarThree {\n    return MyCalendarThree{}\n}\n\nfunc (t MyCalendarThree) update(start, end, l, r, idx int) {\n    if r < start || end < l {\n        return\n    }\n    if start <= l && r <= end {\n        p := t[idx]\n        p.num++\n        p.lazy++\n        t[idx] = p\n    } else {\n        mid := (l + r) / 2\n        t.update(start, end, l, mid, idx*2)\n        t.update(start, end, mid+1, r, idx*2+1)\n        p := t[idx]\n        p.num = p.lazy + max(t[idx*2].num, t[idx*2+1].num)\n        t[idx] = p\n    }\n}\n\nfunc (t MyCalendarThree) Book(start, end int) int {\n    t.update(start, end-1, 0, 1e9, 1)\n    return t[1].num\n}\n\nfunc max(a, b int) int {\n    if b > a {\n        return b\n    }\n    return a\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar MyCalendarThree = function() {\n    this.tree = new Map();\n    this.lazy = new Map();\n};\n\nMyCalendarThree.prototype.book = function(start, end) {\n    this.update(start, end - 1, 0, 1000000000, 1);\n    return this.tree.get(1) || 0;\n};\n\nMyCalendarThree.prototype.update = function(start, end, l, r, idx) {\n    if (r < start || end < l) {\n        return;\n    } \n    if (start <= l && r <= end) {\n        this.tree.set(idx, (this.tree.get(idx) || 0) + 1);\n        this.lazy.set(idx, (this.lazy.get(idx) || 0) + 1);\n    } else {\n        const mid = (l + r) >> 1;\n        this.update(start, end, l, mid, 2 * idx);\n        this.update(start, end, mid + 1, r, 2 * idx + 1);\n        this.tree.set(idx, (this.lazy.get(idx) || 0) + Math.max((this.tree.get(2 * idx) || 0), (this.tree.get(2 * idx + 1) || 0)));\n    }\n}\n```\n\n**复杂度分析**\n\n+ 时间复杂度：$O(n \\log C)$，其中 $n$ 为日程安排的数量。由于使用了线段树查询，线段树的最大深度为 $\\log C$，每次最多会查询 $\\log C$ 个节点，每次求最大的预定需的时间复杂度为 $O(\\log C + \\log C)$，因此时间复杂度为 $O(n \\log C)$，在此 $C$ 取固定值即为 $10^9$。\n\n+ 空间复杂度：$O(n \\log C)$，其中 $n$ 为日程安排的数量。由于该解法采用的为动态线段树，线段树的最大深度为 $\\log C$，每次预定最多会在线段树上增加 $\\log C$ 个节点，因此空间复杂度为 $O(n \\log C)$，在此 $C$ 取固定值即为 $10^9$。",
+            "slateValue": "",
+            "slug": "wo-de-ri-cheng-an-pai-biao-iii-by-leetco-9rif",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "ZrLGRn",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 66,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Design",
+                    "nameTranslated": "设计",
+                    "slug": "design",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Segment Tree",
+                    "nameTranslated": "线段树",
+                    "slug": "segment-tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Ordered Set",
+                    "nameTranslated": "有序集合",
+                    "slug": "ordered-set",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-06-04T00:44:23.399853+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：差分数组 思路与算法 可以参考「731. 我的日程安排表 II」的解法二，我们可以采用同样的思路即可。利用差分数组的思想，每当我们预定一个新的日程安排 $[\\textit{start}, \\textit{end})$，在 $\\textit{start}$ 计数 $\\textit{cnt}[\\textit{sta",
+            "topic": {
+                "id": 1534312,
+                "subscribed": false,
+                "commentCount": 107,
+                "viewCount": 18200,
+                "post": {
+                    "id": 3129249,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 98,
+            "isEditorsPick": false,
+            "hitCount": 47220,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "my-calendar-iii",
+                "questionFrontendId": "732"
+            },
+            "next": {
+                "slug": "xian-duan-shu-by-xiaohu9527-rfzj",
+                "title": "线段树 -- 新手篇"
+            },
+            "prev": null
+        }
+    }
+}

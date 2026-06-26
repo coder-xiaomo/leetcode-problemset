@@ -1,0 +1,134 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "btNXJr",
+            "title": "环形数组是否存在循环",
+            "content": "#### 方法一：快慢指针\n\n**思路及算法**\n\n我们可以将环形数组理解为图中的 $n$ 个点，$\\text{nums}[i]$ 表示 $i$ 号点向 $(i + \\text{nums}[i]) \\bmod n$ 号点连有一条单向边。\n\n注意到这张图中的每个点有且仅有一条出边，这样我们从某一个点出发，沿着单向边不断移动，最终必然会进入一个环中。而依据题目要求，我们要检查图中是否存在一个所有单向边方向一致的环。我们可以使用在无向图中找环的一个经典算法：快慢指针来解决本题，参考题解「[141. 环形链表](https://leetcode.cn/problems/linked-list-cycle/solution/huan-xing-lian-biao-by-leetcode-solution/)」。\n\n具体地，我们检查每一个节点，令快慢指针从当前点出发，快指针每次移动两步，慢指针每次移动一步，期间每移动一次，我们都需要检查当前单向边的方向是否与初始方向是否一致，如果不一致，我们即可停止遍历，因为当前路径必然不满足条件。为了降低时间复杂度，我们可以标记每一个点是否访问过，过程中如果我们的下一个节点为已经访问过的节点，则可以停止遍历。\n\n在实际代码中，我们无需新建一个数组记录每个点的访问情况，而只需要将原数组的对应元素置零即可（题目保证原数组中元素不为零）。遍历过程中，如果快慢指针相遇，或者移动方向改变，那么我们就停止遍历，并将快慢指针经过的点均置零即可。\n\n特别地，当 $\\text{nums}[i]$ 为 $n$ 的整倍数时，$i$ 的后继节点即为 $i$ 本身，此时循环长度 $k=1$，不符合题目要求，因此我们需要跳过这种情况。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    bool circularArrayLoop(vector<int>& nums) {\n        int n = nums.size();\n        auto next = [&](int cur) {\n            return ((cur + nums[cur]) % n + n) % n; // 保证返回值在 [0,n) 中\n        };\n\n        for (int i = 0; i < n; i++) {\n            if (!nums[i]) {\n                continue;\n            }\n            int slow = i, fast = next(i);\n            // 判断非零且方向相同\n            while (nums[slow] * nums[fast] > 0 && nums[slow] * nums[next(fast)] > 0) {\n                if (slow == fast) {\n                    if (slow != next(slow)) {\n                        return true;\n                    } else {\n                        break;\n                    }\n                }\n                slow = next(slow);\n                fast = next(next(fast));\n            }\n            int add = i;\n            while (nums[add] * nums[next(add)] > 0) {\n                int tmp = add;\n                add = next(add);\n                nums[tmp] = 0;\n            }\n        }\n        return false;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public boolean circularArrayLoop(int[] nums) {\n        int n = nums.length;\n        for (int i = 0; i < n; i++) {\n            if (nums[i] == 0) {\n                continue;\n            }\n            int slow = i, fast = next(nums, i);\n            // 判断非零且方向相同\n            while (nums[slow] * nums[fast] > 0 && nums[slow] * nums[next(nums, fast)] > 0) {\n                if (slow == fast) {\n                    if (slow != next(nums, slow)) {\n                        return true;\n                    } else {\n                        break;\n                    }\n                }\n                slow = next(nums, slow);\n                fast = next(nums, next(nums, fast));\n            }\n            int add = i;\n            while (nums[add] * nums[next(nums, add)] > 0) {\n                int tmp = add;\n                add = next(nums, add);\n                nums[tmp] = 0;\n            }\n        }\n        return false;\n    }\n\n    public int next(int[] nums, int cur) {\n        int n = nums.length;\n        return ((cur + nums[cur]) % n + n) % n; // 保证返回值在 [0,n) 中\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public bool CircularArrayLoop(int[] nums) {\n        int n = nums.Length;\n        for (int i = 0; i < n; i++) {\n            if (nums[i] == 0) {\n                continue;\n            }\n            int slow = i, fast = Next(nums, i);\n            // 判断非零且方向相同\n            while (nums[slow] * nums[fast] > 0 && nums[slow] * nums[Next(nums, fast)] > 0) {\n                if (slow == fast) {\n                    if (slow != Next(nums, slow)) {\n                        return true;\n                    } else {\n                        break;\n                    }\n                }\n                slow = Next(nums, slow);\n                fast = Next(nums, Next(nums, fast));\n            }\n            int add = i;\n            while (nums[add] * nums[Next(nums, add)] > 0) {\n                int tmp = add;\n                add = Next(nums, add);\n                nums[tmp] = 0;\n            }\n        }\n        return false;\n    }\n\n    public int Next(int[] nums, int cur) {\n        int n = nums.Length;\n        return ((cur + nums[cur]) % n + n) % n; // 保证返回值在 [0,n) 中\n    }\n}\n```\n\n```go [sol1-Golang]\nfunc circularArrayLoop(nums []int) bool {\n    n := len(nums)\n    next := func(cur int) int {\n        return ((cur+nums[cur])%n + n) % n // 保证返回值在 [0,n) 中\n    }\n\n    for i, num := range nums {\n        if num == 0 {\n            continue\n        }\n        slow, fast := i, next(i)\n        // 判断非零且方向相同\n        for nums[slow]*nums[fast] > 0 && nums[slow]*nums[next(fast)] > 0 {\n            if slow == fast {\n                if slow == next(slow) {\n                    break\n                }\n                return true\n            }\n            slow = next(slow)\n            fast = next(next(fast))\n        }\n        add := i\n        for nums[add]*nums[next(add)] > 0 {\n            tmp := add\n            add = next(add)\n            nums[tmp] = 0\n        }\n    }\n    return false\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def circularArrayLoop(self, nums: List[int]) -> bool:\n        n = len(nums)\n\n        def next(cur: int) -> int:\n            return (cur + nums[cur]) % n  # 保证返回值在 [0,n) 中\n\n        for i, num in enumerate(nums):\n            if num == 0:\n                continue\n            slow, fast = i, next(i)\n            # 判断非零且方向相同\n            while nums[slow] * nums[fast] > 0 and nums[slow] * nums[next(fast)] > 0:\n                if slow == fast:\n                    if slow == next(slow):\n                        break\n                    return True\n                slow = next(slow)\n                fast = next(next(fast))\n            add = i\n            while nums[add] * nums[next(add)] > 0:\n                tmp = add\n                add = next(add)\n                nums[tmp] = 0\n        return False\n```\n\n```C [sol1-C]\nint next(int* nums, int numsSize, int cur) {\n    return ((cur + nums[cur]) % numsSize + numsSize) % numsSize;  // 保证返回值在 [0,n) 中\n}\n\nbool circularArrayLoop(int* nums, int numsSize) {\n    for (int i = 0; i < numsSize; i++) {\n        if (!nums[i]) {\n            continue;\n        }\n        int slow = i, fast = next(nums, numsSize, i);\n        // 判断非零且方向相同\n        while (nums[slow] * nums[fast] > 0 && nums[slow] * nums[next(nums, numsSize, fast)] > 0) {\n            if (slow == fast) {\n                if (slow != next(nums, numsSize, slow)) {\n                    return true;\n                } else {\n                    break;\n                }\n            }\n            slow = next(nums, numsSize, slow);\n            fast = next(nums, numsSize, next(nums, numsSize, fast));\n        }\n        int add = i;\n        while (nums[add] * nums[next(nums, numsSize, add)] > 0) {\n            int tmp = add;\n            add = next(nums, numsSize, add);\n            nums[tmp] = 0;\n        }\n    }\n    return false;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar circularArrayLoop = function(nums) {\n    const n = nums.length;\n    for (let i = 0; i < n; i++) {\n        if (nums[i] === 0) {\n            continue;\n        }\n        let slow = i, fast = next(nums, i);\n        // 判断非零且方向相同\n        while (nums[slow] * nums[fast] > 0 && nums[slow] * nums[next(nums, fast)] > 0) {\n            if (slow === fast) {\n                if (slow !== next(nums, slow)) {\n                    return true;\n                } else {\n                    break;\n                }\n            }\n            slow = next(nums, slow);\n            fast = next(nums, next(nums, fast));\n        }\n        let add = i;\n        while (nums[add] * nums[next(nums, add)] > 0) {\n            const tmp = add;\n            add = next(nums, add);\n            nums[tmp] = 0;\n        }\n    }\n    return false;\n}\n\nconst next = (nums, cur) => {\n    const n = nums.length;\n    return ((cur + nums[cur]) % n + n) % n; // 保证返回值在 [0,n) 中\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是环形数组的长度。我们至多遍历每个点四次，其中快指针两次，慢指针一次，置零标记一次。\n\n- 空间复杂度：$O(1)$。我们只需要常数的空间保存若干变量。",
+            "slateValue": "",
+            "slug": "huan-xing-shu-zu-shi-fou-cun-zai-xun-hua-0ay2",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "btNXJr",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 64,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 4,
+                    "reactionType": "CONFUSED"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Two Pointers",
+                    "nameTranslated": "双指针",
+                    "slug": "two-pointers",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-08-06T15:00:56.723262+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：快慢指针 思路及算法 我们可以将环形数组理解为图中的 $n$ 个点，$\\text{nums}[i]$ 表示 $i$ 号点向 $(i + \\text{nums}[i]) \\bmod n$ 号点连有一条单向边。 注意到这张图中的每个点有且仅有一条出边，这样我们从某一个点出发，沿着单向边不断移动，最终必然会进入一个环",
+            "topic": {
+                "id": 920039,
+                "subscribed": false,
+                "commentCount": 165,
+                "viewCount": 19629,
+                "post": {
+                    "id": 1986754,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 98,
+            "isEditorsPick": false,
+            "hitCount": 43349,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "circular-array-loop",
+                "questionFrontendId": "457"
+            },
+            "next": {
+                "slug": "gong-shui-san-xie-yi-ti-shuang-jie-mo-ni-ag05",
+                "title": "【宫水三叶】一题三解 :「朴素模拟」&「遍历标记（含优化）」"
+            },
+            "prev": null
+        }
+    }
+}

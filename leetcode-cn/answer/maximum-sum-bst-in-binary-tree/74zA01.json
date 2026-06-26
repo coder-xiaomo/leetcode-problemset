@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "74zA01",
+            "title": "二叉搜索子树的最大键值和",
+            "content": "#### 方法一：递归\n\n**思路与算法**\n\n题目给定的是一颗二叉树，并不保证是二叉搜索树。因此，我们需要去独立判断每个子树是否是一个二叉搜索树。以 $\\textit{root}$ 为根的子树是一颗二叉搜索树当且仅当以下条件满足：\n\n1. 左子树为空，或者左子树是一颗二叉搜索树并且左子树的最大值小于 $\\textit{root.val}$；\n2. 右子树为空，或者右子树是一颗二叉搜索树并且右子树的最小值大于 $\\textit{root.val}$。\n\n我们用一个结构体来描述一个子树的基本情况，它应当包含以下元素：\n\n1. $\\textit{isBST}$，表示该子树是否为二叉搜索树；\n2. $\\textit{minValue}$，表示该子树中的最小值；\n3. $\\textit{maxValue}$，表示该子树中的最大值；\n4. $\\textit{sumValue}$，表示该子树中所有节点的键值之和，用于求解答案。\n\n在判断以 $\\textit{root}$ 为根的子树是否是二叉搜索树时，首先递归判断它的左子树是否是二叉搜索树，然后递归判断它的右子树是否是二叉搜索树。用 $\\textit{left}$ 和 $\\textit{right}$ 分别表示左子树和右子树的基本信息。当且仅当以下条件都满足时，以 $\\textit{root}$ 为根的子树是二叉搜索树：\n\n1. $\\textit{left.isBST}$ 为真；\n2. $\\textit{right.isBST}$ 为真；\n3. $\\textit{left.maxValue} \\lt \\textit{root.val}$；\n4. $\\textit{right.minValue} \\gt \\textit{root.val}$。\n\n为了方便编写代码，对于空子树我们用 $-\\infin$ 来表示最大值，用 $\\infin$ 来表示最小值，并且将 $\\textit{isBST}$ 设置为真，$\\textit{sumValue}$ 设置为 $0$。这样在父节点判断时，不论是其左子树为空还是右子树为空，都不会影响到条件判断。\n\n在确定以 $\\textit{root}$ 为根的子树是二叉搜索树之后，设置其基本信息：\n1. $\\textit{isBST}$ 设置为真；\n2. $\\textit{minValue}$ 设置为 $\\textit{left.minValue}$ 与 $\\textit{root.val}$ 的最小值（因为当 $\\textit{left}$ 为空子树时，$\\textit{left.minValue} = \\infin$）；\n3. $\\textit{maxValue}$ 设置为 $\\textit{right.maxValue}$ 与 $\\textit{root.val}$ 的最大值（原因同第 $2$ 条）；\n4. $\\textit{sumValue}$ 设置为 $\\textit{left.sumValue}$ 与 $\\textit{right.sumValue}$ 之和。\n\n同时，用 $\\textit{sumValue}$ 更新题目答案，取所有二叉搜索树中的最大值。\n\n值得一提的是，本题需要把所有节点都遍历一次，因为每个子树都有成为二叉搜索树的可能。即便我们可以根据某个节点的左子树不是二叉搜索树就可以确定该子树不是二叉搜索树，我们也需要去遍历该结点的右子树。因为其右子树及其子树仍有成为二叉搜索树的可能。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    static constexpr int inf = 0x3f3f3f3f;\n    int res;\n    struct SubTree {\n        bool isBST;\n        int minValue;\n        int maxValue;\n        int sumValue;\n        SubTree(bool isBST, int minValue, int maxValue, int sumValue) : isBST(isBST), minValue(minValue), maxValue(maxValue), sumValue(sumValue) {}\n    };\n\n    SubTree dfs(TreeNode* root) {\n        if (root == nullptr) {\n            return SubTree(true, inf, -inf, 0);\n        }\n        auto left = dfs(root->left);\n        auto right = dfs(root->right);\n\n        if (left.isBST && right.isBST &&\n                root->val > left.maxValue && \n                root->val < right.minValue) {\n            int sum = root->val + left.sumValue + right.sumValue;\n            res = max(res, sum);\n            return SubTree(true, min(left.minValue, root->val), \n                           max(root->val, right.maxValue), sum);\n        } else {\n            return SubTree(false, 0, 0, 0);\n        }\n    }\n\n    int maxSumBST(TreeNode* root) {\n        res = 0;\n        dfs(root);\n        return res;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    static final int INF = 0x3f3f3f3f;\n    int res;\n\n    class SubTree {\n        boolean isBST;\n        int minValue;\n        int maxValue;\n        int sumValue;\n\n        SubTree(boolean isBST, int minValue, int maxValue, int sumValue) {\n            this.isBST = isBST;\n            this.minValue = minValue;\n            this.maxValue = maxValue;\n            this.sumValue = sumValue;\n        }\n    }\n\n    public int maxSumBST(TreeNode root) {\n        res = 0;\n        dfs(root);\n        return res;\n    }\n\n    public SubTree dfs(TreeNode root) {\n        if (root == null) {\n            return new SubTree(true, INF, -INF, 0);\n        }\n        SubTree left = dfs(root.left);\n        SubTree right = dfs(root.right);\n\n        if (left.isBST && right.isBST && root.val > left.maxValue && root.val < right.minValue) {\n            int sum = root.val + left.sumValue + right.sumValue;\n            res = Math.max(res, sum);\n            return new SubTree(true, Math.min(left.minValue, root.val), Math.max(root.val, right.maxValue), sum);\n        } else {\n            return new SubTree(false, 0, 0, 0);\n        }\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass SubTree:\n    def __init__(self, is_bst, min_value, max_value, sum_value):\n        self.is_bst = is_bst\n        self.min_value = min_value\n        self.max_value = max_value\n        self.sum_value = sum_value\n\nclass Solution:\n    INF = 0x3f3f3f3f\n\n    def maxSumBST(self, root: Optional[TreeNode]) -> int:\n        self.res = 0\n        self.dfs(root)\n        return self.res\n\n    def dfs(self, root):\n        if root is None:\n            return SubTree(True, self.INF, -self.INF, 0)\n\n        left = self.dfs(root.left)\n        right = self.dfs(root.right)\n\n        if left.is_bst and right.is_bst and root.val > left.max_value and root.val < right.min_value:\n            sum = root.val + left.sum_value + right.sum_value\n            self.res = max(self.res, sum)\n            return SubTree(True, min(left.min_value, root.val), max(root.val, right.max_value), sum)\n        else:\n            return SubTree(False, 0, 0, 0)\n```\n\n```Go [sol1-Go]\nconst INF = 0x3f3f3f3f\ntype SubTree struct {\n    IsBST bool\n    MinVal int\n    MaxVal int\n    SumVal int\n}\nvar res int\n\nfunc maxSumBST(root *TreeNode) int {\n    res = 0\n    dfs(root)\n    return res\n}\n\nfunc max(a int, b int) int {\n    if a > b {\n        return a\n    }\n    return b\n}\n\nfunc min(a int, b int) int {\n    if a < b {\n        return a\n    }\n    return b\n}\n\nfunc dfs(root *TreeNode) *SubTree {\n    if root == nil {\n        return &SubTree{true, INF, -INF, 0}\n    }\n    left := dfs(root.Left)\n    right := dfs(root.Right)\n\n    if left.IsBST && right.IsBST && root.Val > left.MaxVal && root.Val < right.MinVal {\n        sum := root.Val + left.SumVal + right.SumVal\n        res = max(res, sum)\n        return &SubTree{true, min(left.MinVal, root.Val), max(root.Val, right.MaxVal), sum}\n    } else {\n        return &SubTree{false, 0, 0, 0}\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    const int INF = 0x3f3f3f3f;\n    int res;\n\n    public class SubTree {\n        public bool isBST;\n        public int minValue;\n        public int maxValue;\n        public int sumValue;\n\n        public SubTree(bool isBST, int minValue, int maxValue, int sumValue) {\n            this.isBST = isBST;\n            this.minValue = minValue;\n            this.maxValue = maxValue;\n            this.sumValue = sumValue;\n        }\n    }\n\n    public int MaxSumBST(TreeNode root) {\n        res = 0;\n        DFS(root);\n        return res;\n    }\n\n    public SubTree DFS(TreeNode root) {\n        if (root == null) {\n            return new SubTree(true, INF, -INF, 0);\n        }\n        SubTree left = DFS(root.left);\n        SubTree right = DFS(root.right);\n\n        if (left.isBST && right.isBST && root.val > left.maxValue && root.val < right.minValue) {\n            int sum = root.val + left.sumValue + right.sumValue;\n            res = Math.Max(res, sum);\n            return new SubTree(true, Math.Min(left.minValue, root.val), Math.Max(root.val, right.maxValue), sum);\n        } else {\n            return new SubTree(false, 0, 0, 0);\n        }\n    }\n}\n```\n\n```C [sol1-C]\n#define MAX(a, b) ((a) > (b) ? (a) : (b))\n#define MIN(a, b) ((a) < (b) ? (a) : (b))\n\nconst int INF = 0x3f3f3f3f;\n\ntypedef struct SubTree {\n    bool isBST;\n    int minValue;\n    int maxValue;\n    int sumValue;\n} SubTree;\n\nSubTree *createSubTree(bool isBST, int minValue,int maxValue, int sumValue) {\n    SubTree *obj = (SubTree *)malloc(sizeof(SubTree));\n    obj->isBST = isBST;\n    obj->minValue = minValue;\n    obj->maxValue = maxValue;\n    obj->sumValue = sumValue;\n    return obj;\n}\n\nSubTree* dfs(struct TreeNode* root, int *res) {\n    if (root == NULL) {\n        return createSubTree(true, INF, -INF, 0);\n    }\n    SubTree *left = dfs(root->left, res);\n    SubTree *right = dfs(root->right, res);\n    SubTree *ret = NULL;\n\n    if (left->isBST && right->isBST &&\n          root->val > left->maxValue &&\n          root->val < right->minValue) {\n        int sum = root->val + left->sumValue + right->sumValue;\n        *res = MAX(*res, sum);\n        ret = createSubTree(true, MIN(left->minValue, root->val), \\\n                            MAX(root->val, right->maxValue), sum);\n    } else {\n        ret = createSubTree(false, 0, 0, 0);\n    }\n    free(left);\n    free(right);\n    return ret;\n}\n\nint maxSumBST(struct TreeNode* root){\n    int res = 0;\n    SubTree *obj = dfs(root, &res);\n    free(obj);\n    return res;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nconst INF = 0x3f3f3f3f;\nvar maxSumBST = function(root) {\n    const dfs = (root) => {\n        if (!root) {\n            return new SubTree(true, INF, -INF, 0);\n        }\n        let left = dfs(root.left);\n        let right = dfs(root.right);\n\n        if (left.isBST && right.isBST && root.val > left.maxValue && root.val < right.minValue) {\n            const sum = root.val + left.sumValue + right.sumValue;\n            res = Math.max(res, sum);\n            return new SubTree(true, Math.min(left.minValue, root.val), Math.max(root.val, right.maxValue), sum);\n        } else {\n            return new SubTree(false, 0, 0, 0);\n        }\n    }\n    let res = 0;\n    dfs(root);\n    return res;\n};\n\nclass SubTree {\n    constructor(isBST, minValue, maxValue, sumValue) {\n        this.isBST = isBST;\n        this.minValue = minValue;\n        this.maxValue = maxValue;\n        this.sumValue = sumValue;\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是树中节点的个数。每个节点只需遍历一次，遍历一次的复杂度为 $O(1)$，因此总体复杂度为 $O(n)$。\n\n- 空间复杂度：$O(n)$，其中 $n$ 是树中节点的个数。在二叉树退化成链的情况下，递归所需要的栈空间为 $O(n)$。",
+            "slateValue": "",
+            "slug": "er-cha-sou-suo-zi-shu-de-zui-da-jian-zhi-lii4",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "74zA01",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 42,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Tree",
+                    "nameTranslated": "树",
+                    "slug": "tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Depth-First Search",
+                    "nameTranslated": "深度优先搜索",
+                    "slug": "depth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search Tree",
+                    "nameTranslated": "二叉搜索树",
+                    "slug": "binary-search-tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Tree",
+                    "nameTranslated": "二叉树",
+                    "slug": "binary-tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-05-19T06:52:20.751310+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：递归 思路与算法 题目给定的是一颗二叉树，并不保证是二叉搜索树。因此，我们需要去独立判断每个子树是否是一个二叉搜索树。以 $\\textit{root}$ 为根的子树是一颗二叉搜索树当且仅当以下条件满足： 左子树为空，或者左子树是一颗二叉搜索树并且左子树的最大值小于 $\\textit{root.val}$； 右子",
+            "topic": {
+                "id": 2276045,
+                "subscribed": false,
+                "commentCount": 42,
+                "viewCount": 755,
+                "post": {
+                    "id": 4297457,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 38,
+            "isEditorsPick": false,
+            "hitCount": 10812,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "maximum-sum-bst-in-binary-tree",
+                "questionFrontendId": "1373"
+            },
+            "next": {
+                "slug": "hou-xu-bian-li-pythonjavacgo-by-endlessc-gll3",
+                "title": "后序遍历（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

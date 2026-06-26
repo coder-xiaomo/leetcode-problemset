@@ -1,0 +1,152 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "9aawHJ",
+            "title": "一和零",
+            "content": "#### 方法一：动态规划\n\n这道题和经典的背包问题非常相似，但是和经典的背包问题只有一种容量不同，这道题有两种容量，即选取的字符串子集中的 $0$ 和 $1$ 的数量上限。\n\n经典的背包问题可以使用二维动态规划求解，两个维度分别是物品和容量。这道题有两种容量，因此需要使用三维动态规划求解，三个维度分别是字符串、$0$ 的容量和 $1$ 的容量。\n\n定义三维数组 $\\textit{dp}$，其中 $\\textit{dp}[i][j][k]$ 表示在前 $i$ 个字符串中，使用 $j$ 个 $0$ 和 $k$ 个 $1$ 的情况下最多可以得到的字符串数量。假设数组 $\\textit{str}$ 的长度为 $l$，则最终答案为 $\\textit{dp}[l][m][n]$。\n\n当没有任何字符串可以使用时，可以得到的字符串数量只能是 $0$，因此动态规划的边界条件是：当 $i=0$ 时，对任意 $0 \\le j \\le m$ 和 $0 \\le k \\le n$，都有 $\\textit{dp}[i][j][k]=0$。\n\n当 $1 \\le i \\le l$ 时，对于 $\\textit{strs}$ 中的第 $i$ 个字符串（计数从 $1$ 开始），首先遍历该字符串得到其中的 $0$ 和 $1$ 的数量，分别记为 $\\textit{zeros}$ 和 $\\textit{ones}$，然后对于 $0 \\le j \\le m$ 和 $0 \\le k \\le n$，计算 $\\textit{dp}[i][j][k]$ 的值。\n\n当 $0$ 和 $1$ 的容量分别是 $j$ 和 $k$ 时，考虑以下两种情况：\n\n- 如果 $j < \\textit{zeros}$ 或 $k < \\textit{ones}$，则不能选第 $i$ 个字符串，此时有 $\\textit{dp}[i][j][k] = \\textit{dp}[i - 1][j][k]$；\n\n- 如果 $j \\ge \\textit{zeros}$ 且 $k \\ge \\textit{ones}$，则如果不选第 $i$ 个字符串，有 $\\textit{dp}[i][j][k] = \\textit{dp}[i - 1][j][k]$，如果选第 $i$ 个字符串，有 $\\textit{dp}[i][j][k] = \\textit{dp}[i - 1][j - \\textit{zeros}][k - \\textit{ones}] + 1$，$\\textit{dp}[i][j][k]$ 的值应取上面两项中的最大值。\n\n因此状态转移方程如下：\n\n$$\n\\textit{dp}[i][j][k]=\\begin{cases}\n\\textit{dp}[i - 1][j][k], & j<\\textit{zeros} ~~ | ~~ k<\\textit{ones} \\\\\n\\max(\\textit{dp}[i - 1][j][k], \\textit{dp}[i - 1][j - \\textit{zeros}][k - \\textit{ones}] + 1), & j \\ge \\textit{zeros} ~ \\& ~ k \\ge \\textit{ones}\n\\end{cases}\n$$\n\n最终得到 $\\textit{dp}[l][m][n]$ 的值即为答案。\n\n由此可以得到空间复杂度为 $O(lmn)$ 的实现。\n\n```Java [sol1-Java]\nclass Solution {\n    public int findMaxForm(String[] strs, int m, int n) {\n        int length = strs.length;\n        int[][][] dp = new int[length + 1][m + 1][n + 1];\n        for (int i = 1; i <= length; i++) {\n            int[] zerosOnes = getZerosOnes(strs[i - 1]);\n            int zeros = zerosOnes[0], ones = zerosOnes[1];\n            for (int j = 0; j <= m; j++) {\n                for (int k = 0; k <= n; k++) {\n                    dp[i][j][k] = dp[i - 1][j][k];\n                    if (j >= zeros && k >= ones) {\n                        dp[i][j][k] = Math.max(dp[i][j][k], dp[i - 1][j - zeros][k - ones] + 1);\n                    }\n                }\n            }\n        }\n        return dp[length][m][n];\n    }\n\n    public int[] getZerosOnes(String str) {\n        int[] zerosOnes = new int[2];\n        int length = str.length();\n        for (int i = 0; i < length; i++) {\n            zerosOnes[str.charAt(i) - '0']++;\n        }\n        return zerosOnes;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int FindMaxForm(string[] strs, int m, int n) {\n        int length = strs.Length;\n        int[,,] dp = new int[length + 1, m + 1, n + 1];\n        for (int i = 1; i <= length; i++) {\n            int[] zerosOnes = GetZerosOnes(strs[i - 1]);\n            int zeros = zerosOnes[0], ones = zerosOnes[1];\n            for (int j = 0; j <= m; j++) {\n                for (int k = 0; k <= n; k++) {\n                    dp[i, j, k] = dp[i - 1, j, k];\n                    if (j >= zeros && k >= ones) {\n                        dp[i, j, k] = Math.Max(dp[i, j, k], dp[i - 1, j - zeros, k - ones] + 1);\n                    }\n                }\n            }\n        }\n        return dp[length, m, n];\n    }\n\n    public int[] GetZerosOnes(string str) {\n        int[] zerosOnes = new int[2];\n        int length = str.Length;\n        for (int i = 0; i < length; i++) {\n            zerosOnes[str[i] - '0']++;\n        }\n        return zerosOnes;\n    }\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar findMaxForm = function(strs, m, n) {\n    const length = strs.length;\n    const dp = new Array(length + 1).fill(0).map(() => new Array(m + 1).fill(0).map(() => new Array(n + 1).fill(0)));\n    for (let i = 1; i <= length; i++) {\n        const zerosOnes = getZerosOnes(strs[i - 1]);\n        let zeros = zerosOnes[0], ones = zerosOnes[1];\n        for (let j = 0; j <= m; j++) {\n            for (let k = 0; k <= n; k++) {\n                dp[i][j][k] = dp[i - 1][j][k];\n                if (j >= zeros && k >= ones) {\n                    dp[i][j][k] = Math.max(dp[i][j][k], dp[i - 1][j - zeros][k - ones] + 1);\n                }\n            }\n        }\n    }\n    return dp[length][m][n];\n};\n\nconst getZerosOnes = (str) => {\n    const zerosOnes = new Array(2).fill(0);\n    const length = str.length;\n    for (let i = 0; i < length; i++) {\n        zerosOnes[str[i].charCodeAt() - '0'.charCodeAt()]++;\n    }\n    return zerosOnes;\n\n}\n```\n\n```go [sol1-Golang]\nfunc findMaxForm(strs []string, m, n int) int {\n    length := len(strs)\n    dp := make([][][]int, length+1)\n    for i := range dp {\n        dp[i] = make([][]int, m+1)\n        for j := range dp[i] {\n            dp[i][j] = make([]int, n+1)\n        }\n    }\n    for i, s := range strs {\n        zeros := strings.Count(s, \"0\")\n        ones := len(s) - zeros\n        for j := 0; j <= m; j++ {\n            for k := 0; k <= n; k++ {\n                dp[i+1][j][k] = dp[i][j][k]\n                if j >= zeros && k >= ones {\n                    dp[i+1][j][k] = max(dp[i+1][j][k], dp[i][j-zeros][k-ones]+1)\n                }\n            }\n        }\n    }\n    return dp[length][m][n]\n}\n\nfunc max(a, b int) int {\n    if a > b {\n        return a\n    }\n    return b\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<int> getZerosOnes(string& str) {\n        vector<int> zerosOnes(2);\n        int length = str.length();\n        for (int i = 0; i < length; i++) {\n            zerosOnes[str[i] - '0']++;\n        }\n        return zerosOnes;\n    }\n\n    int findMaxForm(vector<string>& strs, int m, int n) {\n        int length = strs.size();\n        vector<vector<vector<int>>> dp(length + 1, vector<vector<int>>(m + 1, vector<int>(n + 1)));\n        for (int i = 1; i <= length; i++) {\n            vector<int>&& zerosOnes = getZerosOnes(strs[i - 1]);\n            int zeros = zerosOnes[0], ones = zerosOnes[1];\n            for (int j = 0; j <= m; j++) {\n                for (int k = 0; k <= n; k++) {\n                    dp[i][j][k] = dp[i - 1][j][k];\n                    if (j >= zeros && k >= ones) {\n                        dp[i][j][k] = max(dp[i][j][k], dp[i - 1][j - zeros][k - ones] + 1);\n                    }\n                }\n            }\n        }\n        return dp[length][m][n];\n    }\n};\n```\n\n```C [sol1-C]\nvoid getZerosOnes(int* zerosOnes, char* str) {\n    int length = strlen(str);\n    for (int i = 0; i < length; i++) {\n        zerosOnes[str[i] - '0']++;\n    }\n}\n\nint findMaxForm(char** strs, int strsSize, int m, int n) {\n    int length = strsSize;\n    int dp[length + 1][m + 1][n + 1];\n    memset(dp, 0, sizeof(dp));\n    for (int i = 1; i <= length; i++) {\n        int zerosOnes[2];\n        memset(zerosOnes, 0, sizeof(zerosOnes));\n        getZerosOnes(zerosOnes, strs[i - 1]);\n        int zeros = zerosOnes[0], ones = zerosOnes[1];\n        for (int j = 0; j <= m; j++) {\n            for (int k = 0; k <= n; k++) {\n                dp[i][j][k] = dp[i - 1][j][k];\n                if (j >= zeros && k >= ones) {\n                    dp[i][j][k] = fmax(dp[i][j][k], dp[i - 1][j - zeros][k - ones] + 1);\n                }\n            }\n        }\n    }\n    return dp[length][m][n];\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def findMaxForm(self, strs: List[str], m: int, n: int) -> int:\n        length = len(strs)\n        dp = [[[0] * (n + 1) for _ in range(m + 1)] for __ in range(length + 1)]\n\n        def getZerosOnes(s: str) -> tuple[int, int]:\n            zeros = ones = 0\n            for c in s:\n                if c == '0':\n                    zeros += 1\n                else:\n                    ones += 1\n            return zeros, ones\n\n        for i in range(1, length + 1):\n            zeros, ones = getZerosOnes(strs[i - 1])\n            for j in range(m + 1):\n                for k in range(n + 1):\n                    dp[i][j][k] = dp[i - 1][j][k]\n                    if j >= zeros and k >= ones:\n                        dp[i][j][k] = max(dp[i][j][k], dp[i - 1][j - zeros][k - ones] + 1)\n\n        return dp[length][m][n]\n```\n\n```TypeScript [sol1-TypeScript]\nfunction findMaxForm(strs: string[], m: number, n: number): number {\n    const length = strs.length;\n    const dp: number[][][] = Array.from({length: length + 1}, () => \n        Array.from({length: m + 1}, () => \n            new Array(n + 1).fill(0)\n        )\n    );\n    \n    for (let i = 1; i <= length; i++) {\n        const [zeros, ones] = getZerosOnes(strs[i - 1]);\n        for (let j = 0; j <= m; j++) {\n            for (let k = 0; k <= n; k++) {\n                dp[i][j][k] = dp[i - 1][j][k];\n                if (j >= zeros && k >= ones) {\n                    dp[i][j][k] = Math.max(dp[i][j][k], dp[i - 1][j - zeros][k - ones] + 1);\n                }\n            }\n        }\n    }\n    \n    return dp[length][m][n];\n};\n\nfunction getZerosOnes(str: string): [number, number] {\n    let zeros = 0, ones = 0;\n    for (const c of str) {\n        if (c === '0') {\n            zeros++;\n        } else {\n            ones++;\n        }\n    }\n    return [zeros, ones];\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn find_max_form(strs: Vec<String>, m: i32, n: i32) -> i32 {\n        let length = strs.len();\n        let m = m as usize;\n        let n = n as usize;\n        let mut dp = vec![vec![vec![0; n + 1]; m + 1]; length + 1];\n        \n        for i in 1..=length {\n            let (zeros, ones) = Self::get_zeros_ones(&strs[i - 1]);\n            let zeros = zeros as usize;\n            let ones = ones as usize;\n            for j in 0..=m {\n                for k in 0..=n {\n                    dp[i][j][k] = dp[i - 1][j][k];\n                    if j >= zeros && k >= ones {\n                        dp[i][j][k] = dp[i][j][k].max(dp[i - 1][j - zeros][k - ones] + 1);\n                    }\n                }\n            }\n        }\n        \n        dp[length][m][n]\n    }\n    \n    fn get_zeros_ones(s: &str) -> (i32, i32) {\n        let mut zeros = 0;\n        let mut ones = 0;\n        for c in s.chars() {\n            if c == '0' {\n                zeros += 1;\n            } else {\n                ones += 1;\n            }\n        }\n        (zeros, ones)\n    }\n}\n```\n\n由于 $\\textit{dp}[i][][]$ 的每个元素值的计算只和 $\\textit{dp}[i-1][][]$ 的元素值有关，因此可以使用滚动数组的方式，去掉 $\\textit{dp}$ 的第一个维度，将空间复杂度优化到 $O(mn)$。\n\n实现时，内层循环需采用倒序遍历的方式，这种方式保证转移来的是 $\\textit{dp}[i-1][][]$ 中的元素值。\n\n```Java [sol2-Java]\nclass Solution {\n    public int findMaxForm(String[] strs, int m, int n) {\n        int[][] dp = new int[m + 1][n + 1];\n        int length = strs.length;\n        for (int i = 0; i < length; i++) {\n            int[] zerosOnes = getZerosOnes(strs[i]);\n            int zeros = zerosOnes[0], ones = zerosOnes[1];\n            for (int j = m; j >= zeros; j--) {\n                for (int k = n; k >= ones; k--) {\n                    dp[j][k] = Math.max(dp[j][k], dp[j - zeros][k - ones] + 1);\n                }\n            }\n        }\n        return dp[m][n];\n    }\n\n    public int[] getZerosOnes(String str) {\n        int[] zerosOnes = new int[2];\n        int length = str.length();\n        for (int i = 0; i < length; i++) {\n            zerosOnes[str.charAt(i) - '0']++;\n        }\n        return zerosOnes;\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    public int FindMaxForm(string[] strs, int m, int n) {\n        int[,] dp = new int[m + 1, n + 1];\n        int length = strs.Length;\n        for (int i = 0; i < length; i++) {\n            int[] zerosOnes = GetZerosOnes(strs[i]);\n            int zeros = zerosOnes[0], ones = zerosOnes[1];\n            for (int j = m; j >= zeros; j--) {\n                for (int k = n; k >= ones; k--) {\n                    dp[j, k] = Math.Max(dp[j, k], dp[j - zeros, k - ones] + 1);\n                }\n            }\n        }\n        return dp[m, n];\n    }\n\n    public int[] GetZerosOnes(string str) {\n        int[] zerosOnes = new int[2];\n        int length = str.Length;\n        for (int i = 0; i < length; i++) {\n            zerosOnes[str[i] - '0']++;\n        }\n        return zerosOnes;\n    }\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar findMaxForm = function(strs, m, n) {\n    const dp = new Array(m + 1).fill(0).map(() => new Array(n + 1).fill(0));\n    const length = strs.length;\n    for (let i = 0; i < length; i++) {\n        const zerosOnes = getZerosOnes(strs[i]);\n        const zeros = zerosOnes[0], ones = zerosOnes[1];\n        for (let j = m; j >= zeros; j--) {\n            for (let k = n; k >= ones; k--) {\n                dp[j][k] = Math.max(dp[j][k], dp[j - zeros][k - ones] + 1);\n            }\n        }\n    }\n    return dp[m][n];\n};\n\nconst getZerosOnes = (str) => {\n    const zerosOnes = new Array(2).fill(0);\n    const length = str.length;\n    for (let i = 0; i < length; i++) {\n        zerosOnes[str[i].charCodeAt() - '0'.charCodeAt()]++;\n    }\n    return zerosOnes;\n}\n```\n\n```go [sol2-Golang]\nfunc findMaxForm(strs []string, m, n int) int {\n    dp := make([][]int, m+1)\n    for i := range dp {\n        dp[i] = make([]int, n+1)\n    }\n    for _, s := range strs {\n        zeros := strings.Count(s, \"0\")\n        ones := len(s) - zeros\n        for j := m; j >= zeros; j-- {\n            for k := n; k >= ones; k-- {\n                dp[j][k] = max(dp[j][k], dp[j-zeros][k-ones]+1)\n            }\n        }\n    }\n    return dp[m][n]\n}\n\nfunc max(a, b int) int {\n    if a > b {\n        return a\n    }\n    return b\n}\n```\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    vector<int> getZerosOnes(string& str) {\n        vector<int> zerosOnes(2);\n        int length = str.length();\n        for (int i = 0; i < length; i++) {\n            zerosOnes[str[i] - '0']++;\n        }\n        return zerosOnes;\n    }\n\n    int findMaxForm(vector<string>& strs, int m, int n) {\n        int length = strs.size();\n        vector<vector<int>> dp(m + 1, vector<int>(n + 1));\n        for (int i = 0; i < length; i++) {\n            vector<int>&& zerosOnes = getZerosOnes(strs[i]);\n            int zeros = zerosOnes[0], ones = zerosOnes[1];\n            for (int j = m; j >= zeros; j--) {\n                for (int k = n; k >= ones; k--) {\n                    dp[j][k] = max(dp[j][k], dp[j - zeros][k - ones] + 1);\n                }\n            }\n        }\n        return dp[m][n];\n    }\n};\n```\n\n```C [sol2-C]\nvoid getZerosOnes(int* zerosOnes, char* str) {\n    int length = strlen(str);\n    for (int i = 0; i < length; i++) {\n        zerosOnes[str[i] - '0']++;\n    }\n}\n\nint findMaxForm(char** strs, int strsSize, int m, int n) {\n    int length = strsSize;\n    int dp[m + 1][n + 1];\n    memset(dp, 0, sizeof(dp));\n    for (int i = 0; i < length; i++) {\n        int zerosOnes[2];\n        memset(zerosOnes, 0, sizeof(zerosOnes));\n        getZerosOnes(zerosOnes, strs[i]);\n        int zeros = zerosOnes[0], ones = zerosOnes[1];\n        for (int j = m; j >= zeros; j--) {\n            for (int k = n; k >= ones; k--) {\n                dp[j][k] = fmax(dp[j][k], dp[j - zeros][k - ones] + 1);\n            }\n        }\n    }\n    return dp[m][n];\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def findMaxForm(self, strs: List[str], m: int, n: int) -> int:\n        def getZerosOnes(s: str) -> tuple[int, int]:\n            zeros = ones = 0\n            for c in s:\n                if c == '0':\n                    zeros += 1\n                else:\n                    ones += 1\n            return zeros, ones\n\n        dp = [[0] * (n + 1) for _ in range(m + 1)]\n        for s in strs:\n            zeros, ones = getZerosOnes(s)\n            for j in range(m, zeros - 1, -1):\n                for k in range(n, ones - 1, -1):\n                    dp[j][k] = max(dp[j][k], dp[j - zeros][k - ones] + 1)\n\n        return dp[m][n]\n```\n\n```TypeScript [sol2-TypeScript]\nfunction findMaxForm(strs: string[], m: number, n: number): number {\n    const dp: number[][] = Array.from({length: m + 1}, () => new Array(n + 1).fill(0));\n        \n    for (const s of strs) {\n        const [zeros, ones] = getZerosOnes(s);\n        for (let j = m; j >= zeros; j--) {\n            for (let k = n; k >= ones; k--) {\n                dp[j][k] = Math.max(dp[j][k], dp[j - zeros][k - ones] + 1);\n            }\n        }\n    }\n    \n    return dp[m][n];\n};\n\nfunction getZerosOnes(str: string): [number, number] {\n    let zeros = 0, ones = 0;\n    for (const c of str) {\n        if (c === '0') {\n            zeros++;\n        } else {\n            ones++;\n        }\n    }\n    return [zeros, ones];\n}\n```\n\n```Rust [sol2-Rust]\nimpl Solution {\n    pub fn find_max_form(strs: Vec<String>, m: i32, n: i32) -> i32 {\n        let m = m as usize;\n        let n = n as usize;\n        let mut dp = vec![vec![0; n + 1]; m + 1];\n        \n        for s in strs {\n            let (zeros, ones) = Self::get_zeros_ones(&s);\n            let zeros = zeros as usize;\n            let ones = ones as usize;\n            for j in (zeros..=m).rev() {\n                for k in (ones..=n).rev() {\n                    dp[j][k] = dp[j][k].max(dp[j - zeros][k - ones] + 1);\n                }\n            }\n        }\n        \n        dp[m][n]\n    }\n    \n    fn get_zeros_ones(s: &str) -> (i32, i32) {\n        let mut zeros = 0;\n        let mut ones = 0;\n        for c in s.chars() {\n            if c == '0' {\n                zeros += 1;\n            } else {\n                ones += 1;\n            }\n        }\n        (zeros, ones)\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(lmn + L)$，其中 $l$ 是数组 $\\textit{strs}$ 的长度，$m$ 和 $n$ 分别是 $0$ 和 $1$ 的容量，$L$ 是数组 $\\textit{strs}$ 中的所有字符串的长度之和。\n   动态规划需要计算的状态总数是 $O(lmn)$，每个状态的值需要 $O(1)$ 的时间计算。\n   对于数组 $\\textit{strs}$ 中的每个字符串，都要遍历字符串得到其中的 $0$ 和 $1$ 的数量，因此需要 $O(L)$ 的时间遍历所有的字符串。\n   总时间复杂度是 $O(lmn + L)$。\n\n- 空间复杂度：$O(mn)$，其中 $m$ 和 $n$ 分别是 $0$ 和 $1$ 的容量。使用空间优化的实现，需要创建 $m+1$ 行 $n+1$ 列的二维数组 $\\textit{dp}$。",
+            "slateValue": "",
+            "slug": "yi-he-ling-by-leetcode-solution-u2z2",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "9aawHJ",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 142,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 3,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-06-05T15:32:10.258106+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 这道题和经典的背包问题非常相似，但是和经典的背包问题只有一种容量不同，这道题有两种容量，即选取的字符串子集中的 [latex] 和 [latex] 的数量上限。 经典的背包问题可以使用二维动态规划求解，两个维度分别是物品和容量。这道题有两种容量，因此需要使用三维动态规划求解，三个维度分别是字符串、[l",
+            "topic": {
+                "id": 814806,
+                "subscribed": false,
+                "commentCount": 369,
+                "viewCount": 50762,
+                "post": {
+                    "id": 1788566,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 300,
+            "isEditorsPick": false,
+            "hitCount": 135477,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "ones-and-zeroes",
+                "questionFrontendId": "474"
+            },
+            "next": {
+                "slug": "yi-bu-bu-si-kao-cong-ji-yi-hua-sou-suo-d-lqio",
+                "title": "一步步思考：从记忆化搜索到递推到空间优化！（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

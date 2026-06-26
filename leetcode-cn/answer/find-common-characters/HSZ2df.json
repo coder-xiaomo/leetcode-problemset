@@ -1,0 +1,128 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "HSZ2df",
+            "title": "查找常用字符",
+            "content": "#### 方法一：计数\n\n**思路与算法**\n\n根据题目的要求，如果字符 $c$ 在所有字符串中均出现了 $k$ 次及以上，那么最终答案中需要包含 $k$ 个 $c$。因此，我们可以使用 $\\textit{minfreq}[c]$ 存储字符 $c$ 在所有字符串中出现次数的最小值。\n\n我们可以依次遍历每一个字符串。当我们遍历到字符串 $s$ 时，我们使用 $\\textit{freq}[c]$ 统计 $s$ 中每一个字符 $c$ 出现的次数。在统计完成之后，我们再将每一个 $\\textit{minfreq}[c]$ 更新为其本身与 $\\textit{freq}[c]$ 的较小值。这样一来，当我们遍历完所有字符串后，$\\textit{minfreq}[c]$ 就存储了字符 $c$ 在所有字符串中出现次数的最小值。\n\n由于题目保证了所有的字符均为小写字母，因此我们可以用长度为 $26$ 的数组分别表示 $\\textit{minfreq}$ 以及 $\\textit{freq}$。\n\n在构造最终的答案时，我们遍历所有的小写字母 $c$，并将 $\\textit{minfreq}[c]$ 个 $c$ 添加进答案数组即可。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<string> commonChars(vector<string>& words) {\n        vector<int> minfreq(26, INT_MAX);\n        vector<int> freq(26);\n        for (const string& word: words) {\n            fill(freq.begin(), freq.end(), 0);\n            for (char ch: word) {\n                ++freq[ch - 'a'];\n            }\n            for (int i = 0; i < 26; ++i) {\n                minfreq[i] = min(minfreq[i], freq[i]);\n            }\n        }\n\n        vector<string> ans;\n        for (int i = 0; i < 26; ++i) {\n            for (int j = 0; j < minfreq[i]; ++j) {\n                ans.emplace_back(1, i + 'a');\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public List<String> commonChars(String[] words) {\n        int[] minfreq = new int[26];\n        Arrays.fill(minfreq, Integer.MAX_VALUE);\n        for (String word : words) {\n            int[] freq = new int[26];\n            int length = word.length();\n            for (int i = 0; i < length; ++i) {\n                char ch = word.charAt(i);\n                ++freq[ch - 'a'];\n            }\n            for (int i = 0; i < 26; ++i) {\n                minfreq[i] = Math.min(minfreq[i], freq[i]);\n            }\n        }\n\n        List<String> ans = new ArrayList<String>();\n        for (int i = 0; i < 26; ++i) {\n            for (int j = 0; j < minfreq[i]; ++j) {\n                ans.add(String.valueOf((char) (i + 'a')));\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def commonChars(self, words: List[str]) -> List[str]:\n        minfreq = [float(\"inf\")] * 26\n        for word in words:\n            freq = [0] * 26\n            for ch in word:\n                freq[ord(ch) - ord(\"a\")] += 1\n            for i in range(26):\n                minfreq[i] = min(minfreq[i], freq[i])\n        \n        ans = list()\n        for i in range(26):\n            ans.extend([chr(i + ord(\"a\"))] * minfreq[i])\n        return ans\n```\n\n```Golang [sol1-Golang]\nfunc commonChars(words []string) (ans []string) {\n    minFreq := [26]int{}\n    for i := range minFreq {\n        minFreq[i] = math.MaxInt64\n    }\n    for _, word := range words {\n        freq := [26]int{}\n        for _, b := range word {\n            freq[b-'a']++\n        }\n        for i, f := range freq[:] {\n            if f < minFreq[i] {\n                minFreq[i] = f\n            }\n        }\n    }\n    for i := byte(0); i < 26; i++ {\n        for j := 0; j < minFreq[i]; j++ {\n            ans = append(ans, string('a'+i))\n        }\n    }\n    return\n}\n```\n\n```C [sol1-C]\nchar** commonChars(char** words, int wordsSize, int* returnSize) {\n    int minfreq[26], freq[26];\n    for (int i = 0; i < 26; ++i) {\n        minfreq[i] = INT_MAX;\n        freq[i] = 0;\n    }\n    for (int i = 0; i < wordsSize; ++i) {\n        memset(freq, 0, sizeof(freq));\n        int n = strlen(words[i]);\n        for (int j = 0; j < n; ++j) {\n            ++freq[words[i][j] - 'a'];\n        }\n        for (int j = 0; j < 26; ++j) {\n            minfreq[j] = fmin(minfreq[j], freq[j]);\n        }\n    }\n\n    int sum = 0;\n    for (int i = 0; i < 26; ++i) {\n        sum += minfreq[i];\n    }\n\n    char** ans = malloc(sizeof(char*) * sum);\n    *returnSize = 0;\n    for (int i = 0; i < 26; ++i) {\n        for (int j = 0; j < minfreq[i]; ++j) {\n            ans[*returnSize] = malloc(sizeof(char) * 2);\n            ans[*returnSize][0] = i + 'a';\n            ans[*returnSize][1] = 0;\n            (*returnSize)++;\n        }\n    }\n    return ans;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n(m+|\\Sigma|))$，其中 $n$ 是数组 $A$ 的长度（即字符串的数目），$m$ 是字符串的平均长度，$\\Sigma$ 为字符集，在本题中字符集为所有小写字母，$|\\Sigma|=26$。\n\n    - 遍历所有字符串并计算 $\\textit{freq}$ 的时间复杂度为 $O(nm)$；\n    - 使用 $\\textit{freq}$ 更新 $\\textit{minfreq}$ 的时间复杂度为 $O(n|\\Sigma|)$；\n    - 由于最终答案包含的字符个数不会超过最短的字符串长度，因此构造最终答案的时间复杂度为 $O(m+|\\Sigma|)$。这一项在渐进意义上小于前二者，可以忽略。\n\n- 空间复杂度：$O(|\\Sigma|)$，这里只计算存储答案之外的空间。我们使用了数组 $\\textit{freq}$ 和 $\\textit{minfreq}$，它们的长度均为 $|\\Sigma|$。",
+            "slateValue": "",
+            "slug": "cha-zhao-chang-yong-zi-fu-by-leetcode-solution",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "HSZ2df",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 26,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 0,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-10-13T12:42:27.590357+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：计数 思路与算法 根据题目的要求，如果字符 $c$ 在所有字符串中均出现了 $k$ 次及以上，那么最终答案中需要包含 $k$ 个 $c$。因此，我们可以使用 $\\textit{minfreq}[c]$ 存储字符 $c$ 在所有字符串中出现次数的最小值。 我们可以依次遍历每一个字符串。当我们遍历到字符串 $s$ ",
+            "topic": {
+                "id": 445468,
+                "subscribed": false,
+                "commentCount": 188,
+                "viewCount": 37140,
+                "post": {
+                    "id": 1071624,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 94,
+            "isEditorsPick": false,
+            "hitCount": 70909,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "find-common-characters",
+                "questionFrontendId": "1002"
+            },
+            "next": {
+                "slug": "1002-cha-zhao-chang-yong-zi-fu-ha-xi-fa-jing-dian-",
+                "title": "「代码随想录」带你搞定哈希表！1002. 查找常用字符:【哈希法经典应用】详解"
+            },
+            "prev": null
+        }
+    }
+}

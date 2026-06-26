@@ -1,0 +1,130 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "gfILB9",
+            "title": "不同的子序列 II",
+            "content": "#### 方法一：动态规划\n\n**思路与算法**\n\n我们用 $f[i]$ 表示以 $s[i]$ 为最后一个字符的子序列的数目。\n\n- 如果子序列中只有 $s[i]$ 这一个字符，那么有一种方案；\n\n- 如果子序列中至少有两个字符，那么我们可以枚举倒数第二个字符来进行状态转移。容易想到的是：倒数第二个字符可以选择 $s[0], s[1], \\cdots, s[i-1]$ 中的某一个，这样就可以得到如下的状态转移方程：\n\n    $$\n    f[i] = f[0] + f[1] + \\cdots f[i-1]\n    $$\n\n    然而这样做会产生重复计数。如果 $s[j_0]$ 和 $s[j_1]$ 这两个字符不相同，那么 $f[j_0]$ 和 $f[j_1]$ 对应的子序列是两个不相交的集合；但如果 $s[j_0]$ 和 $s[j_1]$ 这两个字符相同，那么 $f[j_0]$ 和 $f[j_1]$ 对应的子序列会包含重复的项。最简单的一个重复项就是只含有一个字符的子序列 $s[j_0]$ 或者 $s[j_1]$ 本身。\n\n    那么我们该如何防止重复计数呢？可以发现，如果 $j_0<j_1$，那么 $f[j_0]$ 一定是 $f[j_1]$ 的一个真子集。这是因为：\n\n    > 每一个以 $s[j_0]$ 为最后一个字符的子序列，都可以把这个字符改成完全相同的 $s[j_1]$，计入到 $f[j_1]$ 中。\n\n    因此，对于每一种字符，我们只需要找到其最后一次出现的位置（并且在位置 $i$ 之前），并将对应的 $f$ 值累加进 $f[i]$ 即可。由于本题中字符串只包含小写字母，我们可以用 $\\textit{last}[k]$ 记录第 $k~(0 \\leq k < 26)$ 个小写字母最后一次出现的位置。如果它还没有出现过，那么 $\\textit{last}[k] = -1$。这样我们就可以写出正确的状态转移方程：\n\n    $$\n    f[i] = \\sum_{0\\leq k<26,~ \\textit{last}[k] \\neq -1} f[\\textit{last}[k]]\n    $$\n\n将这两种情况合并在一起，最终的状态转移方程即为：\n\n$$\nf[i] = 1 + \\sum_{0\\leq k<26,~ \\textit{last}[k] \\neq -1} f[\\textit{last}[k]]\n$$\n\n在计算完 $f[i]$ 后，我们需要记得更新对应的 $\\textit{last}$ 项。最终的答案即为：\n\n$$\n\\sum_{0\\leq k<26,~ \\textit{last}[k] \\neq -1} f[\\textit{last}[k]]\n$$\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int distinctSubseqII(string s) {\n        vector<int> last(26, -1);\n        \n        int n = s.size();\n        vector<int> f(n, 1);\n        for (int i = 0; i < n; ++i) {\n            for (int j = 0; j < 26; ++j) {\n                if (last[j] != -1) {\n                    f[i] = (f[i] + f[last[j]]) % mod;\n                }\n            }\n            last[s[i] - 'a'] = i;\n        }\n        \n        int ans = 0;\n        for (int i = 0; i < 26; ++i) {\n            if (last[i] != -1) {\n                ans = (ans + f[last[i]]) % mod;\n            }\n        }\n        return ans;\n    }\n\nprivate:\n    static constexpr int mod = 1000000007;\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int distinctSubseqII(String s) {\n        final int MOD = 1000000007;\n        int[] last = new int[26];\n        Arrays.fill(last, -1);\n\n        int n = s.length();\n        int[] f = new int[n];\n        Arrays.fill(f, 1);\n        for (int i = 0; i < n; ++i) {\n            for (int j = 0; j < 26; ++j) {\n                if (last[j] != -1) {\n                    f[i] = (f[i] + f[last[j]]) % MOD;\n                }\n            }\n            last[s.charAt(i) - 'a'] = i;\n        }\n\n        int ans = 0;\n        for (int i = 0; i < 26; ++i) {\n            if (last[i] != -1) {\n                ans = (ans + f[last[i]]) % MOD;\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int DistinctSubseqII(string s) {\n        const int MOD = 1000000007;\n        int[] last = new int[26];\n        Array.Fill(last, -1);\n\n        int n = s.Length;\n        int[] f = new int[n];\n        Array.Fill(f, 1);\n        for (int i = 0; i < n; ++i) {\n            for (int j = 0; j < 26; ++j) {\n                if (last[j] != -1) {\n                    f[i] = (f[i] + f[last[j]]) % MOD;\n                }\n            }\n            last[s[i] - 'a'] = i;\n        }\n\n        int ans = 0;\n        for (int i = 0; i < 26; ++i) {\n            if (last[i] != -1) {\n                ans = (ans + f[last[i]]) % MOD;\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def distinctSubseqII(self, s: str) -> int:\n        mod = 10**9 + 7\n        last = [-1] * 26\n\n        n = len(s)\n        f = [1] * n\n        for i, ch in enumerate(s):\n            for j in range(26):\n                if last[j] != -1:\n                    f[i] = (f[i] + f[last[j]]) % mod\n            last[ord(s[i]) - ord(\"a\")] = i\n        \n        ans = 0\n        for i in range(26):\n            if last[i] != -1:\n                ans = (ans + f[last[i]]) % mod\n        return ans\n```\n\n```C [sol1-C]\nconst int mod = 1e9 + 7;\n\nint distinctSubseqII(char * s) {\n    int n = strlen(s);\n    int last[26], f[n];\n    for (int i = 0; i < 26; i++) {\n        last[i] = -1;\n    }\n    for (int i = 0; i < n; i++) {\n        f[i] = 1;\n    }\n    for (int i = 0; i < n; ++i) {\n        for (int j = 0; j < 26; ++j) {\n            if (last[j] != -1) {\n                f[i] = (f[i] + f[last[j]]) % mod;\n            }\n        }\n        last[s[i] - 'a'] = i;\n    }\n    int ans = 0;\n    for (int i = 0; i < 26; ++i) {\n        if (last[i] != -1) {\n            ans = (ans + f[last[i]]) % mod;\n        }\n    }\n    return ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar distinctSubseqII = function(s) {\n    const MOD = 1000000007;\n    const last = new Array(26).fill(-1);\n\n    const n = s.length;\n    const f = new Array(n).fill(1);\n    for (let i = 0; i < n; ++i) {\n        for (let j = 0; j < 26; ++j) {\n            if (last[j] !== -1) {\n                f[i] = (f[i] + f[last[j]]) % MOD;\n            }\n        }\n        last[s[i].charCodeAt() - 'a'.charCodeAt()] = i;\n    }\n\n    let ans = 0;\n    for (let i = 0; i < 26; ++i) {\n        if (last[i] !== -1) {\n            ans = (ans + f[last[i]]) % MOD;\n        }\n    }\n    return ans;\n};\n```\n\n```go [sol1-Golang]\nfunc distinctSubseqII(s string) (ans int) {\n    const mod int = 1e9 + 7\n    last := make([]int, 26)\n    for i := range last {\n        last[i] = -1\n    }\n    n := len(s)\n    f := make([]int, n)\n    for i := range f {\n        f[i] = 1\n    }\n    for i, c := range s {\n        for _, j := range last {\n            if j != -1 {\n                f[i] = (f[i] + f[j]) % mod\n            }\n        }\n        last[c-'a'] = i\n    }\n    for _, i := range last {\n        if i != -1 {\n            ans = (ans + f[i]) % mod\n        }\n    }\n    return\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n|\\Sigma|)$，其中 $n$ 是字符串 $s$ 的长度，$\\Sigma$ 是字符集，在本题中 $|\\Sigma|=26$。即为动态规划需要的时间。\n\n- 空间复杂度：$O(n + |\\Sigma|)$。即为数组 $f$ 和 $\\textit{last}$ 需要的空间。\n\n#### 方法二：优化的动态规划\n\n**思路与算法**\n\n观察方法一中的状态转移方程：\n\n$$\nf[i] = 1 + \\sum_{0\\leq k<26,~ \\textit{last}[k] \\neq -1} f[\\textit{last}[k]]\n$$\n\n我们可以考虑使用一个长度为 $|\\Sigma|=26$ 的数组 $g$ 来进行动态规划，其中 $g[k]$ 就表示上述状态转移方程中的 $f[\\textit{last}[k]]$。记 $o_i$ 表示 $s[i]$ 是第 $o_i$ 个字母，我们可以在遍历到 $s[i]$ 时，更新 $g[o_i]$ 的值为：\n\n$$\ng[o_i] = 1 + \\sum_{0 \\leq k < 26} g[k]\n$$\n\n即可。当 $\\textit{last}[k] = -1$ 时我们无需进行转移，那么只要将数组 $g$ 的初始值设为 $0$，在累加时就可以达到相同的效果。\n\n**代码**\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    int distinctSubseqII(string s) {\n        vector<int> g(26, 0);\n        int n = s.size();\n        for (int i = 0; i < n; ++i) {\n            int total = 1;\n            for (int j = 0; j < 26; ++j) {\n                total = (total + g[j]) % mod;\n            }\n            g[s[i] - 'a'] = total;\n        }\n        \n        int ans = 0;\n        for (int i = 0; i < 26; ++i) {\n            ans = (ans + g[i]) % mod;\n        }\n        return ans;\n    }\n\nprivate:\n    static constexpr int mod = 1000000007;\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public int distinctSubseqII(String s) {\n        final int MOD = 1000000007;\n        int[] g = new int[26];\n        int n = s.length();\n        for (int i = 0; i < n; ++i) {\n            int total = 1;\n            for (int j = 0; j < 26; ++j) {\n                total = (total + g[j]) % MOD;\n            }\n            g[s.charAt(i) - 'a'] = total;\n        }\n\n        int ans = 0;\n        for (int i = 0; i < 26; ++i) {\n            ans = (ans + g[i]) % MOD;\n        }\n        return ans;\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    public int DistinctSubseqII(string s) {\n        const int MOD = 1000000007;\n        int[] g = new int[26];\n        int n = s.Length;\n        for (int i = 0; i < n; ++i) {\n            int total = 1;\n            for (int j = 0; j < 26; ++j) {\n                total = (total + g[j]) % MOD;\n            }\n            g[s[i] - 'a'] = total;\n        }\n\n        int ans = 0;\n        for (int i = 0; i < 26; ++i) {\n            ans = (ans + g[i]) % MOD;\n        }\n        return ans;\n    }\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def distinctSubseqII(self, s: str) -> int:\n        mod = 10**9 + 7\n\n        g = [0] * 26\n        for i, ch in enumerate(s):\n            total = (1 + sum(g)) % mod\n            g[ord(s[i]) - ord(\"a\")] = total\n        \n        return sum(g) % mod\n```\n\n```C [sol2-C]\nconst int mod = 1e9 + 7;\n\nint distinctSubseqII(char * s) {\n    int n = strlen(s);\n    int g[26];\n    memset(g, 0, sizeof(g));\n    for (int i = 0; i < n; ++i) {\n        int total = 1;\n        for (int j = 0; j < 26; ++j) {\n            total = (total + g[j]) % mod;\n        }\n        g[s[i] - 'a'] = total;\n    }\n    \n    int ans = 0;\n    for (int i = 0; i < 26; ++i) {\n        ans = (ans + g[i]) % mod;\n    }\n    return ans;\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar distinctSubseqII = function(s) {\n    const MOD = 1000000007;\n    const g = new Array(26).fill(0);\n    const n = s.length;\n    for (let i = 0; i < n; ++i) {\n        let total = 1;\n        for (let j = 0; j < 26; ++j) {\n            total = (total + g[j]) % MOD;\n        }\n        g[s[i].charCodeAt() - 'a'.charCodeAt()] = total;\n    }\n\n    let ans = 0;\n    for (let i = 0; i < 26; ++i) {\n        ans = (ans + g[i]) % MOD;\n    }\n    return ans;\n};\n```\n\n```go [sol2-Golang]\nfunc distinctSubseqII(s string) (ans int) {\n    const mod int = 1e9 + 7\n    g := make([]int, 26)\n    for _, c := range s {\n        total := 1\n        for _, v := range g {\n            total = (total + v) % mod\n        }\n        g[c-'a'] = total\n    }\n    for _, v := range g {\n        ans = (ans + v) % mod\n    }\n    return\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n|\\Sigma|)$，其中 $n$ 是字符串 $s$ 的长度，$\\Sigma$ 是字符集，在本题中 $|\\Sigma|=26$。即为动态规划需要的时间。\n\n- 空间复杂度：$O(|\\Sigma|)$。即为数组 $g$ 和 $\\textit{last}$ 需要的空间。\n\n#### 方法三：继续优化的动态规划\n\n**思路与算法**\n\n观察方法二中的状态转移方程：\n\n$$\ng[o_i] = 1 + \\sum_{0 \\leq k < 26} g[k]\n$$\n\n由于我们的答案是数组 $g$ 的和，而遍历 $s[i]$ 后只有 $g[o_i]$ 的值发生了变化。因此我们可以使用一个变量 $\\textit{total}$ 直接维护数组 $g$ 的和，每次将 $g[o_i]$ 的值更新为 $1 + \\textit{total}$，再将 $\\textit{total}$ 的值增加 $g[o_i]$ 的变化量即可。\n\n**代码**\n\n```C++ [sol3-C++]\nclass Solution {\npublic:\n    int distinctSubseqII(string s) {\n        vector<int> g(26, 0);\n        int n = s.size(), total = 0;\n        for (int i = 0; i < n; ++i) {\n            int oi = s[i] - 'a';\n            int prev = g[oi];\n            g[oi] = (total + 1) % mod;\n            total = ((total + g[oi] - prev) % mod + mod) % mod;\n        }\n        return total;\n    }\n\nprivate:\n    static constexpr int mod = 1000000007;\n};\n```\n\n```Java [sol3-Java]\nclass Solution {\n    public int distinctSubseqII(String s) {\n        final int MOD = 1000000007;\n        int[] g = new int[26];\n        int n = s.length(), total = 0;\n        for (int i = 0; i < n; ++i) {\n            int oi = s.charAt(i) - 'a';\n            int prev = g[oi];\n            g[oi] = (total + 1) % MOD;\n            total = ((total + g[oi] - prev) % MOD + MOD) % MOD;\n        }\n        return total;\n    }\n}\n```\n\n```C# [sol3-C#]\npublic class Solution {\n    public int DistinctSubseqII(string s) {\n        const int MOD = 1000000007;\n        int[] g = new int[26];\n        int n = s.Length, total = 0;\n        for (int i = 0; i < n; ++i) {\n            int oi = s[i] - 'a';\n            int prev = g[oi];\n            g[oi] = (total + 1) % MOD;\n            total = ((total + g[oi] - prev) % MOD + MOD) % MOD;\n        }\n        return total;\n    }\n}\n```\n\n```Python [sol3-Python3]\nclass Solution:\n    def distinctSubseqII(self, s: str) -> int:\n        mod = 10**9 + 7\n\n        g = [0] * 26\n        total = 0\n        for i, ch in enumerate(s):\n            oi = ord(s[i]) - ord(\"a\")\n            g[oi], total = (total + 1) % mod, (total * 2 + 1 - g[oi]) % mod\n        \n        return total\n```\n\n```C [sol3-C]\nconst int mod = 1e9 + 7;\n\nint distinctSubseqII(char * s) {\n    int g[26];\n    memset(g, 0, sizeof(g));\n    int n = strlen(s), total = 0;\n    for (int i = 0; i < n; ++i) {\n        int oi = s[i] - 'a';\n        int prev = g[oi];\n        g[oi] = (total + 1) % mod;\n        total = ((total + g[oi] - prev) % mod + mod) % mod;\n    }\n    return total;\n}\n```\n\n```JavaScript [sol3-JavaScript]\nvar distinctSubseqII = function(s) {\n    const MOD = 1000000007;\n    const g = new Array(26).fill(0);\n    let n = s.length, total = 0;\n    for (let i = 0; i < n; ++i) {\n        let oi = s[i].charCodeAt() - 'a'.charCodeAt();\n        let prev = g[oi];\n        g[oi] = (total + 1) % MOD;\n        total = ((total + g[oi] - prev) % MOD + MOD) % MOD;\n    }\n    return total;\n};\n```\n\n```go [sol3-Golang]\nfunc distinctSubseqII(s string) (total int) {\n    const mod int = 1e9 + 7\n    g := make([]int, 26)\n    for _, c := range s {\n        oi := c - 'a'\n        prev := g[oi]\n        g[oi] = (total + 1) % mod\n        total = ((total+g[oi]-prev)%mod + mod) % mod\n    }\n    return\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n + |\\Sigma|)$。其中 $n$ 是字符串 $s$ 的长度，$\\Sigma$ 是字符集，在本题中 $|\\Sigma|=26$。初始化需要的时间为 $O(|\\Sigma|)$，动态规划需要的时间的为 $O(n)$。\n\n- 空间复杂度：$O(|\\Sigma|)$。即为数组 $g$ 需要的空间。",
+            "slateValue": "",
+            "slug": "bu-tong-de-zi-xu-lie-ii-by-leetcode-solu-k2h5",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "gfILB9",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 74,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 3,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-10-13T01:46:59.734359+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 思路与算法 我们用 $f[i]$ 表示以 $s[i]$ 为最后一个字符的子序列的数目。 如果子序列中只有 $s[i]$ 这一个字符，那么有一种方案； 如果子序列中至少有两个字符，那么我们可以枚举倒数第二个字符来进行状态转移。容易想到的是：倒数第二个字符可以选择 $s[0], s[1], \\cdots,",
+            "topic": {
+                "id": 1888523,
+                "subscribed": false,
+                "commentCount": 60,
+                "viewCount": 15421,
+                "post": {
+                    "id": 3682394,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 131,
+            "isEditorsPick": false,
+            "hitCount": 32029,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "distinct-subsequences-ii",
+                "questionFrontendId": "940"
+            },
+            "next": {
+                "slug": "xi-fen-wen-ti-fu-za-du-you-hua-pythonjav-1ihu",
+                "title": "细分问题 + 复杂度优化（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

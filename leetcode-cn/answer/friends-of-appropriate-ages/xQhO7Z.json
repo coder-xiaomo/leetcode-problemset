@@ -1,0 +1,158 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "xQhO7Z",
+            "title": "适龄的朋友",
+            "content": "#### 方法一：排序 + 双指针\n\n**思路与算法**\n\n观察题目中给定的三个条件：\n\n1. $\\textit{ages}[y] \\leq 0.5 \\times \\textit{ages}[x] + 7$\n\n2. $\\textit{ages}[y] > \\textit{ages}[x]$\n\n3. $\\textit{ages}[y] > 100 \\wedge \\textit{ages}[x] < 100$\n\n可以发现，条件 $3$ 是蕴含在条件 $2$ 中的，即如果满足条件 $3$ 那么一定满足条件 $2$。因此，我们当条件 $1$ 和 $2$ 均不满足时，用户 $x$ 就会向用户 $y$ 发送好友请求，也就是用户 $y$ 需要满足：\n\n$$\n0.5 \\times \\textit{ages}[x] + 7 < \\textit{ages}[y] \\leq \\textit{ages}[x]\n$$\n\n当 $\\textit{ages}[x] \\leq 14$ 时，不存在满足要求的 $\\textit{ages}[y]$。因此我们只需要考虑 $\\textit{ages}[x] \\geq 15$ 的情况，此时满足要求的 $\\textit{ages}[y]$ 的范围为 $\\big( 0.5 \\times \\textit{ages}[x] + 7, \\textit{ages}[x] \\big]$。\n\n当 $\\textit{ages}[x]$ 增加时，上述区间的左右边界均单调递增，因此如果我们将数组 $\\textit{ages}$ 进行升序排序，那么就可以在遍历 $\\textit{ages}[x]$ 的同时，使用两个指针 $\\textit{left}$ 和 $\\textit{right}$ 维护满足要求的 $\\textit{ages}[y]$ 的左右边界。当 $x$ 向后移动一个位置时：\n\n- 如果左边界指针 $\\textit{left}$ 指向的元素不满足 $\\textit{ages}[\\textit{left}] > 0.5 \\times \\textit{ages}[x] + 7$，那么就将左边界向后移动一个位置；\n\n- 如果右边界指针 $\\textit{right}$ 指向的下一个元素满足 $\\textit{ages}[\\textit{right} + 1] \\leq \\textit{ages}[x]$，那么就将右边界向后移动一个位置。\n\n这样一来，$[\\textit{left}, \\textit{right}]$ 就是满足年龄要求的 $y$ 的下标。需要注意的是，$x$ 本身一定在 $[\\textit{left}, \\textit{right}]$ 区间内，因此 $x$ 发送的好友请求数，即为 $[\\textit{left}, \\textit{right}]$ 区间的长度减去 $1$。\n\n我们将每一个 $x$ 对应的 $[\\textit{left}, \\textit{right}]$ 区间长度减去 $1$ 进行累加，就可以得到最终的答案。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int numFriendRequests(vector<int>& ages) {\n        int n = ages.size();\n        sort(ages.begin(), ages.end());\n        int left = 0, right = 0, ans = 0;\n        for (int age: ages) {\n            if (age < 15) {\n                continue;\n            }\n            while (ages[left] <= 0.5 * age + 7) {\n                ++left;\n            }\n            while (right + 1 < n && ages[right + 1] <= age) {\n                ++right;\n            }\n            ans += right - left;\n        }\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int numFriendRequests(int[] ages) {\n        int n = ages.length;\n        Arrays.sort(ages);\n        int left = 0, right = 0, ans = 0;\n        for (int age : ages) {\n            if (age < 15) {\n                continue;\n            }\n            while (ages[left] <= 0.5 * age + 7) {\n                ++left;\n            }\n            while (right + 1 < n && ages[right + 1] <= age) {\n                ++right;\n            }\n            ans += right - left;\n        }\n        return ans;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int NumFriendRequests(int[] ages) {\n        int n = ages.Length;\n        Array.Sort(ages);\n        int left = 0, right = 0, ans = 0;\n        foreach (int age in ages) {\n            if (age < 15) {\n                continue;\n            }\n            while (ages[left] <= 0.5 * age + 7) {\n                ++left;\n            }\n            while (right + 1 < n && ages[right + 1] <= age) {\n                ++right;\n            }\n            ans += right - left;\n        }\n        return ans;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def numFriendRequests(self, ages: List[int]) -> int:\n        n = len(ages)\n        ages.sort()\n        left = right = ans = 0\n        for age in ages:\n            if age < 15:\n                continue\n            while ages[left] <= 0.5 * age + 7:\n                left += 1\n            while right + 1 < n and ages[right + 1] <= age:\n                right += 1\n            ans += right - left\n        return ans\n```\n\n```go [sol1-Golang]\nfunc numFriendRequests(ages []int) (ans int) {\n    sort.Ints(ages)\n    left, right := 0, 0\n    for _, age := range ages {\n        if age < 15 {\n            continue\n        }\n        for ages[left]*2 <= age+14 {\n            left++\n        }\n        for right+1 < len(ages) && ages[right+1] <= age {\n            right++\n        }\n        ans += right - left\n    }\n    return\n}\n```\n\n```C [sol1-C]\nstatic int cmp(const void * pa, const void * pb) {\n    return *(int *)pa - *(int *)pb;\n}\n\nint numFriendRequests(int* ages, int agesSize){\n    qsort(ages, agesSize, sizeof(int), cmp);\n    int left = 0, right = 0, ans = 0;\n    for (int i = 0; i < agesSize; ++i) {\n        if (ages[i] < 15) {\n            continue;\n        }\n        while (ages[left] <= 0.5 * ages[i] + 7) {\n            ++left;\n        }\n        while (right + 1 < agesSize && ages[right + 1] <= ages[i]) {\n            ++right;\n        }\n        ans += right - left;\n    }\n    return ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar numFriendRequests = function(ages) {\n    const n = ages.length;\n    ages.sort((a, b) => a - b);\n    let left = 0, right = 0, ans = 0;\n    for (const age of ages) {\n        if (age < 15) {\n            continue;\n        }\n        while (ages[left] <= 0.5 * age + 7) {\n            ++left;\n        }\n        while (right + 1 < n && ages[right + 1] <= age) {\n            ++right;\n        }\n        ans += right - left;\n    }\n    return ans;\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log n)$。排序需要的时间为 $O(n \\log n)$，遍历所有的 $\\textit{ages}[x]$ 以及使用双指针维护答案区间的时间复杂度为 $O(n)$。\n\n- 空间复杂度：$O(\\log n)$，即为排序需要使用的栈空间。\n\n#### 方法二：计数排序 + 前缀和\n\n**思路与算法**\n\n注意到题目中给定的年龄在 $[1, 120]$ 的范围内，因此我们可以使用计数排序代替普通的排序。\n\n记 $\\textit{cnt}[\\textit{age}]$ 表示年龄为 $\\textit{age}$ 的用户数，那么每一个年龄为 $\\textit{age}~(\\textit{age} \\geq 15)$ 的用户发送好友的请求数量即为：\n\n$$\n\\left( \\sum_{i=\\lfloor 0.5 \\times \\textit{age} + 8 \\rfloor}^\\textit{age} \\textit{cnt}[i] \\right) - 1\n$$\n\n这里的 $\\lfloor \\cdot \\rfloor$ 表示向下取整，$-1$ 表示减去自身，与方法一相同。\n\n为了快速计算上式，我们可以使用数组 $\\textit{pre}$ 存储数组 $\\textit{cnt}$ 的前缀和，即：\n\n$$\n\\textit{pre}[\\textit{age}] = \\sum_{i=1}^\\textit{age} \\textit{cnt}[i]\n$$\n\n这样一来，上式就可以简化为：\n\n$$\n(\\textit{pre}[\\textit{age}] - \\textit{pre}[\\lfloor 0.5 \\times \\textit{age} + 7 \\rfloor]) - 1\n$$\n\n我们就可以在 $O(1)$ 的时间内计算出一个年龄为 $\\textit{age}$ 的用户发送好友的请求数量，将其乘以 $\\textit{cnt}[\\textit{age}]$ 并累加就可以得到最终的答案。\n\n**代码**\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    int numFriendRequests(vector<int>& ages) {\n        vector<int> cnt(121);\n        for (int age: ages) {\n            ++cnt[age];\n        }\n        vector<int> pre(121);\n        for (int i = 1; i <= 120; ++i) {\n            pre[i] = pre[i - 1] + cnt[i];\n        }\n        int ans = 0;\n        for (int i = 15; i <= 120; ++i) {\n            if (cnt[i]) {\n                int bound = i * 0.5 + 8;\n                ans += cnt[i] * (pre[i] - pre[bound - 1] - 1);\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public int numFriendRequests(int[] ages) {\n        int[] cnt = new int[121];\n        for (int age : ages) {\n            ++cnt[age];\n        }\n        int[] pre = new int[121];\n        for (int i = 1; i <= 120; ++i) {\n            pre[i] = pre[i - 1] + cnt[i];\n        }\n        int ans = 0;\n        for (int i = 15; i <= 120; ++i) {\n            if (cnt[i] > 0) {\n                int bound = (int) (i * 0.5 + 8);\n                ans += cnt[i] * (pre[i] - pre[bound - 1] - 1);\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    public int NumFriendRequests(int[] ages) {\n        int[] cnt = new int[121];\n        foreach (int age in ages) {\n            ++cnt[age];\n        }\n        int[] pre = new int[121];\n        for (int i = 1; i <= 120; ++i) {\n            pre[i] = pre[i - 1] + cnt[i];\n        }\n        int ans = 0;\n        for (int i = 15; i <= 120; ++i) {\n            if (cnt[i] > 0) {\n                int bound = (int) (i * 0.5 + 8);\n                ans += cnt[i] * (pre[i] - pre[bound - 1] - 1);\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def numFriendRequests(self, ages: List[int]) -> int:\n        cnt = [0] * 121\n        for age in ages:\n            cnt[age] += 1\n        pre = [0] * 121\n        for i in range(1, 121):\n            pre[i] = pre[i - 1] + cnt[i]\n        \n        ans = 0\n        for i in range(15, 121):\n            if cnt[i] > 0:\n                bound = int(i * 0.5 + 8)\n                ans += cnt[i] * (pre[i] - pre[bound - 1] - 1)\n        return ans\n```\n\n```go [sol2-Golang]\nfunc numFriendRequests(ages []int) (ans int) {\n    const mx = 121\n    var cnt, pre [mx]int\n    for _, age := range ages {\n        cnt[age]++\n    }\n    for i := 1; i < mx; i++ {\n        pre[i] = pre[i-1] + cnt[i]\n    }\n    for i := 15; i < mx; i++ {\n        if cnt[i] > 0 {\n            bound := i/2 + 8\n            ans += cnt[i] * (pre[i] - pre[bound-1] - 1)\n        }\n    }\n    return\n}\n```\n\n```C [sol2-C]\nint numFriendRequests(int* ages, int agesSize){\n    int * cnt = (int *)malloc(sizeof(int) * 121);\n    int * pre = (int *)malloc(sizeof(int) * 121);\n    memset(cnt, 0, sizeof(int) * 121);\n    memset(pre, 0, sizeof(int) * 121);\n    for (int i = 0; i < agesSize; ++i) {\n        ++cnt[ages[i]];\n    }\n    for (int i = 1; i <= 120; ++i) {\n        pre[i] = pre[i - 1] + cnt[i];\n    }\n    int ans = 0;\n    for (int i = 15; i <= 120; ++i) {\n        if (cnt[i]) {\n            int bound = i * 0.5 + 8;\n            ans += cnt[i] * (pre[i] - pre[bound - 1] - 1);\n        }\n    }\n    free(cnt);\n    free(pre);\n    return ans;\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar numFriendRequests = function(ages) {\n    const cnt = new Array(121).fill(0);\n    for (const age of ages) {\n        ++cnt[age];\n    }\n    const pre = new Array(121).fill(0);\n    for (let i = 1; i <= 120; ++i) {\n        pre[i] = pre[i - 1] + cnt[i];\n    }\n    let ans = 0;\n    for (let i = 15; i <= 120; ++i) {\n        if (cnt[i] > 0) {\n            const bound = Math.floor(i * 0.5 + 8);\n            ans += cnt[i] * (pre[i] - pre[bound - 1] - 1);\n        }\n    }\n    return ans;\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n + C)$，其中 $C$ 是用户年龄的范围，本题中 $C = 120$。计数排序需要 $O(n)$ 的时间，计算前缀和以及统计答案需要 $O(C)$ 的时间。\n\n- 空间复杂度：$O(C)$，即为计数排序以及前缀和数组需要使用的空间。",
+            "slateValue": "",
+            "slug": "gua-ling-de-peng-you-by-leetcode-solutio-v7yk",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "xQhO7Z",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 95,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 3,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Two Pointers",
+                    "nameTranslated": "双指针",
+                    "slug": "two-pointers",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Counting Sort",
+                    "nameTranslated": "计数排序",
+                    "slug": "counting-sort",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Prefix Sum",
+                    "nameTranslated": "前缀和",
+                    "slug": "prefix-sum",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Sorting",
+                    "nameTranslated": "排序",
+                    "slug": "sorting",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-12-24T03:25:02.648769+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：排序 + 双指针 思路与算法 观察题目中给定的三个条件： $\\textit{ages}[y] \\leq 0.5 \\times \\textit{ages}[x] + 7$ $\\textit{ages}[y] > \\textit{ages}[x]$ $\\textit{ages}[y] > 100 \\wedge \\t",
+            "topic": {
+                "id": 1174365,
+                "subscribed": false,
+                "commentCount": 136,
+                "viewCount": 20921,
+                "post": {
+                    "id": 2472618,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 97,
+            "isEditorsPick": false,
+            "hitCount": 51198,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "friends-of-appropriate-ages",
+                "questionFrontendId": "825"
+            },
+            "next": {
+                "slug": "ji-shu-hua-dong-chuang-kou-pythonjavaccg-jfya",
+                "title": "计数+滑动窗口（Python/Java/C++/C/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

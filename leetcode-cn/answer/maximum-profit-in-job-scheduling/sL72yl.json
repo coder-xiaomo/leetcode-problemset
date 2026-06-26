@@ -1,0 +1,142 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "sL72yl",
+            "title": "规划兼职工作",
+            "content": "#### 方法一：动态规划 + 二分查找\n\n由题意知，兼职工作由开始时间 $\\textit{startTime}$，结束时间 $\\textit{endTime}$ 和预计报酬 $\\textit{profit}$ 三种属性表示。我们首先将兼职工作按结束时间 $\\textit{endTime}$ 从小到大进行排序。使用 $\\textit{dp}[i]$ 表示前 $i$ 份兼职工作可以获得的最大报酬，即区间 $[0, i - 1]$ 的所有兼职工作可以获得的最大报酬。初始时 $\\textit{dp}[0] = 0$，表示没有兼职工作时报酬为 $0$。那么对于 $i \\gt 0$，根据第 $i - 1$ 份兼职工作是否被选择，我们有以下转移方程：\n\n$$\\textit{dp}[i] = \\max(\\textit{dp}[i - 1], \\textit{dp}[k] + \\textit{profit}[i - 1])$$\n\n其中 $k$ 表示满足结束时间小于等于第 $i - 1$ 份工作开始时间的兼职工作数量（因为兼职工作是按照结束时间从小到大进行排序的，所以选择第 $i-1$ 份兼职工作后，我们只能继续选择前 $k$ 份兼职工作），可以通过二分查找获得。\n\n```Python [sol1-Python3]\nclass Solution:\n    def jobScheduling(self, startTime: List[int], endTime: List[int], profit: List[int]) -> int:\n        n = len(startTime)\n        jobs = sorted(zip(startTime, endTime, profit), key=lambda p: p[1])\n        dp = [0] * (n + 1)\n        for i in range(1, n + 1):\n            k = bisect_right(jobs, jobs[i - 1][0], hi=i, key=lambda p: p[1])\n            dp[i] = max(dp[i - 1], dp[k] + jobs[i - 1][2])\n        return dp[n]\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int jobScheduling(vector<int> &startTime, vector<int> &endTime, vector<int> &profit) {\n        int n = startTime.size();\n        vector<vector<int>> jobs(n);\n        for (int i = 0; i < n; i++) {\n            jobs[i] = {startTime[i], endTime[i], profit[i]};\n        }\n        sort(jobs.begin(), jobs.end(), [](const vector<int> &job1, const vector<int> &job2) -> bool {\n            return job1[1] < job2[1];\n        });\n        vector<int> dp(n + 1);\n        for (int i = 1; i <= n; i++) {\n            int k = upper_bound(jobs.begin(), jobs.begin() + i - 1, jobs[i - 1][0], [&](int st, const vector<int> &job) -> bool {\n                return st < job[1];\n            }) - jobs.begin();\n            dp[i] = max(dp[i - 1], dp[k] + jobs[i - 1][2]);\n        }\n        return dp[n];\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int jobScheduling(int[] startTime, int[] endTime, int[] profit) {\n        int n = startTime.length;\n        int[][] jobs = new int[n][];\n        for (int i = 0; i < n; i++) {\n            jobs[i] = new int[]{startTime[i], endTime[i], profit[i]};\n        }\n        Arrays.sort(jobs, (a, b) -> a[1] - b[1]);\n        int[] dp = new int[n + 1];\n        for (int i = 1; i <= n; i++) {\n            int k = binarySearch(jobs, i - 1, jobs[i - 1][0]);\n            dp[i] = Math.max(dp[i - 1], dp[k] + jobs[i - 1][2]);\n        }\n        return dp[n];\n    }\n\n    public int binarySearch(int[][] jobs, int right, int target) {\n        int left = 0;\n        while (left < right) {\n            int mid = left + (right - left) / 2;\n            if (jobs[mid][1] > target) {\n                right = mid;\n            } else {\n                left = mid + 1;\n            }\n        }\n        return left;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int JobScheduling(int[] startTime, int[] endTime, int[] profit) {\n        int n = startTime.Length;\n        int[][] jobs = new int[n][];\n        for (int i = 0; i < n; i++) {\n            jobs[i] = new int[]{startTime[i], endTime[i], profit[i]};\n        }\n        Array.Sort(jobs, (a, b) => a[1] - b[1]);\n        int[] dp = new int[n + 1];\n        for (int i = 1; i <= n; i++) {\n            int k = BinarySearch(jobs, i - 1, jobs[i - 1][0]);\n            dp[i] = Math.Max(dp[i - 1], dp[k] + jobs[i - 1][2]);\n        }\n        return dp[n];\n    }\n\n    public int BinarySearch(int[][] jobs, int right, int target) {\n        int left = 0;\n        while (left < right) {\n            int mid = left + (right - left) / 2;\n            if (jobs[mid][1] > target) {\n                right = mid;\n            } else {\n                left = mid + 1;\n            }\n        }\n        return left;\n    }\n}\n```\n\n```C [sol1-C]\n#define MAX(a, b) ((a) > (b) ? (a) : (b))\n\nint binarySearch(const int jobs[][3], int right, int target) {\n    int left = 0;\n    while (left < right) {\n        int mid = left + (right - left) / 2;\n        if (jobs[mid][1] > target) {\n            right = mid;\n        } else {\n            left = mid + 1;\n        }\n    }\n    return left;\n}\n\nstatic inline int cmp(const void *pa, const void *pb) {\n    int *a = (int *)pa;\n    int *b = (int *)pb;\n    return a[1] - b[1];\n}\n\nint jobScheduling(int* startTime, int startTimeSize, int* endTime, int endTimeSize, int* profit, int profitSize) {\n    int n = startTimeSize;\n    int jobs[n][3];\n    for (int i = 0; i < n; i++) {\n        jobs[i][0] = startTime[i];\n        jobs[i][1] = endTime[i];\n        jobs[i][2] = profit[i];\n    }\n    qsort(jobs, n, sizeof(jobs[0]), cmp);\n    int dp[n + 1];\n    memset(dp, 0, sizeof(dp));\n    for (int i = 1; i <= n; i++) {\n        int k = binarySearch(jobs, i - 1, jobs[i - 1][0]);\n        dp[i] = MAX(dp[i - 1], dp[k] + jobs[i - 1][2]);\n    }\n    return dp[n];\n}\n```\n\n```JavaScript [sol1-JavaScript]\n/**\n * @param {number[]} startTime\n * @param {number[]} endTime\n * @param {number[]} profit\n * @return {number}\n */\nvar jobScheduling = function(startTime, endTime, profit) {\n    const n = startTime.length;\n    const jobs = new Array(n).fill(0).map((_, i) => [startTime[i], endTime[i], profit[i]]);\n    jobs.sort((a, b) => a[1] - b[1]);\n    const dp = new Array(n + 1).fill(0);\n    for (let i = 1; i <= n; i++) {\n        const k = binarySearch(jobs, i - 1, jobs[i - 1][0]);\n        dp[i] = Math.max(dp[i - 1], dp[k] + jobs[i - 1][2]);\n    }\n    return dp[n];\n}\n\nconst binarySearch = (jobs, right, target) => {\n    let left = 0;\n    while (left < right) {\n        const mid = left + Math.floor((right - left) / 2);\n        if (jobs[mid][1] > target) {\n            right = mid;\n        } else {\n            left = mid + 1;\n        }\n    }\n    return left;\n};\n```\n\n```go [sol1-Golang]\nfunc jobScheduling(startTime, endTime, profit []int) int {\n    n := len(startTime)\n    jobs := make([][3]int, n)\n    for i := 0; i < n; i++ {\n        jobs[i] = [3]int{startTime[i], endTime[i], profit[i]}\n    }\n    sort.Slice(jobs, func(i, j int) bool { return jobs[i][1] < jobs[j][1] })\n\n    dp := make([]int, n+1)\n    for i := 1; i <= n; i++ {\n        k := sort.Search(i, func(j int) bool { return jobs[j][1] > jobs[i-1][0] })\n        dp[i] = max(dp[i-1], dp[k]+jobs[i-1][2])\n    }\n    return dp[n]\n}\n\nfunc max(a, b int) int {\n    if b > a {\n        return b\n    }\n    return a\n}\n```\n\n**复杂度分析**\n\n+ 时间复杂度：$O(n \\log n)$，其中 $n$ 是兼职工作的数量。排序需要 $O(n \\log n)$，遍历 + 二分查找需要 $O(n \\log n)$，因此总时间复杂度为 $O(n \\log n)$。\n\n+ 空间复杂度：$O(n)$。需要 $O(n)$ 的空间来保存 $\\textit{dp}$。",
+            "slateValue": "",
+            "slug": "gui-hua-jian-zhi-gong-zuo-by-leetcode-so-gu0e",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "sL72yl",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 77,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Sorting",
+                    "nameTranslated": "排序",
+                    "slug": "sorting",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-10-21T02:27:09.807448+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 + 二分查找 由题意知，兼职工作由开始时间 $\\textit{startTime}$，结束时间 $\\textit{endTime}$ 和预计报酬 $\\textit{profit}$ 三种属性表示。我们首先将兼职工作按结束时间 $\\textit{endTime}$ 从小到大进行排序。使用 $\\texti",
+            "topic": {
+                "id": 1910416,
+                "subscribed": false,
+                "commentCount": 113,
+                "viewCount": 12956,
+                "post": {
+                    "id": 3715299,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 94,
+            "isEditorsPick": false,
+            "hitCount": 41474,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "maximum-profit-in-job-scheduling",
+                "questionFrontendId": "1235"
+            },
+            "next": {
+                "slug": "dong-tai-gui-hua-er-fen-cha-zhao-you-hua-zkcg",
+                "title": "动态规划 + 二分查找优化（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

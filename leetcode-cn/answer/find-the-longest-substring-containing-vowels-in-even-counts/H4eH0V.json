@@ -1,0 +1,134 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "H4eH0V",
+            "title": "每个元音包含偶数次的最长子字符串",
+            "content": "#### 方法一：前缀和 + 状态压缩\n\n**思路和算法**\n\n我们先来考虑暴力方法怎么做。最直观的方法无非就是枚举所有子串，遍历子串中的所有字符，统计元音字母出现的个数。如果符合条件，我们就更新答案，但这样肯定会因为超时而无法通过所有测试用例。\n\n再回顾一下上面的操作，其实每个子串对应着一个区间，那么有什么方法可以在不重复遍历子串的前提下，快速求出这个区间里元音字母出现的次数呢？答案就是前缀和，对于一个区间，我们可以用两个前缀和的差值，得到其中某个字母的出现次数。\n\n我们对每个元音字母维护一个前缀和，定义 $\\textit{pre}[i][k]$ 表示在字符串前 $i$ 个字符中，第 $k$ 个元音字母一共出现的次数。假设我们需要求出 $[l,r]$ 这个区间的子串是否满足条件，那么我们可以用 $\\textit{pre}[r][k]-pre[l-1][k]$，在 $O(1)$ 的时间得到第 $k$ 个元音字母出现的次数。对于每一个元音字母，我们都判断一下其是否出现偶数次即可。\n\n我们利用前缀和优化了统计子串的时间复杂度，然而枚举所有子串的复杂度仍需要 $O(n^2)$，不足以通过本题，还需要继续进行优化，避免枚举所有子串。我们考虑枚举字符串的每个位置 $i$ ，计算以它结尾的满足条件的最长字符串长度。其实我们要做的就是快速找到**最小**的 $j \\in [0,i)$，满足 $\\textit{pre}[i][k]-pre[j][k]$（即每一个元音字母出现的次数）均为偶数，那么以 $i$ 结尾的最长字符串 $s[j+1,i]$ 长度就是 $i-j$。\n\n有经验的读者可能马上就想到了利用哈希表来优化查找的复杂度，但是单单利用前缀和，我们无法找到 $i$ 和 $j$ 相关的恒等式，像「[1248. 统计优美子数组](https://leetcode.cn/problems/count-number-of-nice-subarrays/)」这道题我们是能明确知道两个前缀的差值是恒定的。那难道就没办法了么？其实不然，这道题我们还有一个性质没有充分利用：我们需要找的子串中，每个元音字母都恰好出现了**偶数次**。\n\n**偶数**这个条件其实告诉了我们，对于满足条件的子串而言，两个前缀和 $\\textit{pre}[i][k]$ 和 $\\textit{pre}[j][k]$ 的奇偶性一定是相同的，因为小学数学的知识告诉我们：奇数减奇数等于偶数，偶数减偶数等于偶数。因此我们可以对前缀和稍作修改，从维护元音字母出现的次数改作维护元音字母出现次数的**奇偶性**。这样我们只要实时维护每个元音字母出现的奇偶性，那么 $s[j+1,i]$ 满足条件当且仅当对于所有的 $k$，$\\textit{pre}[i][k]$ 和 $\\textit{pre}[j][k]$ 的奇偶性都相等，此时我们就可以利用哈希表存储**每一种**奇偶性（即考虑所有的元音字母）对应**最早出现的位置**，边遍历边更新答案。\n\n题目做到这里基本上做完了，但是我们还可以进一步优化我们的编码方式，如果直接以每个元音字母出现次数的奇偶性为哈希表中的键，难免有些冗余，我们可能需要额外定义一个状态：\n\n```text\n{\n  a: cnta, // a 出现次数的奇偶性\n  e: cnte, // e 出现次数的奇偶性\n  i: cnti, // i 出现次数的奇偶性\n  o: cnto, // o 出现次数的奇偶性\n  u: cntu  // u 出现次数的奇偶性\n}\n```\n\n将这么一个结构当作我们哈希表存储的键值，如果题目稍作修改扩大了字符集，那么维护起来可能会比较吃力。考虑到出现次数的奇偶性其实无非就两个值，$0$ 代表出现了偶数次，$1$ 代表出现了奇数次，我们可以将其压缩到一个二进制数中，第 $k$ 位的 $0$ 或 $1$ 代表了第 $k$ 个元音字母出现的奇偶性。举一个例子，假如到第 $i$ 个位置，`u o i e a` 出现的奇偶性分别为 `1 1 0 0 1`，那么我们就可以将其压成一个二进制数 $(11001)_2=(25)_{10}$ 作为它的状态。这样我们就可以将 $5$ 个元音字母出现次数的奇偶性压缩到了一个二进制数中，且连续对应了二进制数的 $[(00000)_2,(11111)_2]$ 的范围，转成十进制数即 $[0,31]$。因此我们也不再需要使用哈希表，直接用一个长度为 $32$ 的数组来存储对应状态出现的最早位置即可。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int findTheLongestSubstring(string s) {\n        int ans = 0, status = 0, n = s.length();\n        vector<int> pos(1 << 5, -1);\n        pos[0] = 0;\n        for (int i = 0; i < n; ++i) {\n            if (s[i] == 'a') {\n                status ^= 1<<0;\n            } else if (s[i] == 'e') {\n                status ^= 1<<1;\n            } else if (s[i] == 'i') {\n                status ^= 1<<2;\n            } else if (s[i] == 'o') {\n                status ^= 1<<3;\n            } else if (s[i] == 'u') {\n                status ^= 1<<4;\n            }\n            if (~pos[status]) {\n                ans = max(ans, i + 1 - pos[status]);\n            } else {\n                pos[status] = i + 1;\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```JavaScript [sol1-JavaScript]\nvar findTheLongestSubstring = function(s) {\n    const n = s.length;\n    const pos = new Array(1 << 5).fill(-1);\n    let ans = 0, status = 0;\n    pos[0] = 0;\n    for (let i = 0; i < n; ++i) {\n        const ch = s.charAt(i);\n        if (ch === 'a') {\n            status ^= 1<<0;\n        } else if (ch === 'e') {\n            status ^= 1<<1;\n        } else if (ch === 'i') {\n            status ^= 1<<2;\n        } else if (ch === 'o') {\n            status ^= 1<<3;\n        } else if (ch === 'u') {\n            status ^= 1<<4;\n        }\n        if (~pos[status]) {\n            ans = Math.max(ans, i + 1 - pos[status]);\n        } else {\n            pos[status] = i + 1;\n        }\n    }\n    return ans;\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int findTheLongestSubstring(String s) {\n        int n = s.length();\n        int[] pos = new int[1 << 5];\n        Arrays.fill(pos, -1);\n        int ans = 0, status = 0;\n        pos[0] = 0;\n        for (int i = 0; i < n; i++) {\n            char ch = s.charAt(i);\n            if (ch == 'a') {\n                status ^= (1 << 0);\n            } else if (ch == 'e') {\n                status ^= (1 << 1);\n            } else if (ch == 'i') {\n                status ^= (1 << 2);\n            } else if (ch == 'o') {\n                status ^= (1 << 3);\n            } else if (ch == 'u') {\n                status ^= (1 << 4);\n            }\n            if (pos[status] >= 0) {\n                ans = Math.max(ans, i + 1 - pos[status]);\n            } else {\n                pos[status] = i + 1;\n            }\n        }\n        return ans;\n    }\n}\n```\n```csharp [sol1-C#]\npublic class Solution {\n    public int FindTheLongestSubstring(string s) {\n        int[] earliest = new int [1 << 5];\n        for (int i = 0; i < earliest.Length; ++i) {\n            earliest[i] = int.MaxValue;\n        }\n        earliest[0] = -1;\n        int mask = 0, ans = 0;\n        for (int i = 0; i < s.Length; ++i) {\n            switch (s[i]) {\n                case 'a': mask ^= (1 << 0); break;\n                case 'e': mask ^= (1 << 1); break;\n                case 'i': mask ^= (1 << 2); break;\n                case 'o': mask ^= (1 << 3); break;\n                case 'u': mask ^= (1 << 4); break;\n            }\n            if (earliest[mask] == int.MaxValue) earliest[mask] = i;\n            else ans = Math.Max(ans, i - earliest[mask]);\n        } \n        return ans;\n    } \n}\n```\n\n```golang [sol1-Golang]\nfunc findTheLongestSubstring(s string) int {\n    ans, status := 0, 0\n    pos := make([]int, 1 << 5)\n    for i := 0; i < len(pos); i++ {\n        pos[i] = -1\n    }\n    pos[0] = 0\n    for i := 0; i < len(s); i++ {\n        switch s[i] {\n        case 'a':\n            status ^= 1 << 0\n        case 'e':\n            status ^= 1 << 1\n        case 'i':\n            status ^= 1 << 2\n        case 'o':\n            status ^= 1 << 3\n        case 'u':\n            status ^= 1 << 4\n        }\n        if pos[status] >= 0 {\n            ans = Max(ans, i + 1 - pos[status])\n        } else {\n            pos[status] = i + 1\n        }\n    }\n    return ans\n}\n\nfunc Max(x, y int) int {\n    if x > y {\n        return x\n    }\n    return y\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 为字符串 $s$ 的长度。我们只需要遍历一遍字符串即可求得答案，因此时间复杂度为 $O(n)$。\n\n- 空间复杂度：$O(S)$，其中 $S$ 表示元音字母压缩成一个状态数的最大值，在本题中 $S = 32$。我们需要对应 $S$ 大小的空间来存放每个状态第一次出现的位置，因此需要 $O(S)$ 的空间复杂度。",
+            "slateValue": "",
+            "slug": "mei-ge-yuan-yin-bao-han-ou-shu-ci-de-zui-chang-z-2",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "H4eH0V",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 151,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 9,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 7,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Bit Manipulation",
+                    "nameTranslated": "位运算",
+                    "slug": "bit-manipulation",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Prefix Sum",
+                    "nameTranslated": "前缀和",
+                    "slug": "prefix-sum",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Bitmask",
+                    "nameTranslated": "位掩码",
+                    "slug": "bitmask",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2020-05-08T15:22:00.618687+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：前缀和 + 状态压缩 思路和算法 我们先来考虑暴力方法怎么做。最直观的方法无非就是枚举所有子串，遍历子串中的所有字符，统计元音字母出现的个数。如果符合条件，我们就更新答案，但这样肯定会因为超时而无法通过所有测试用例。 再回顾一下上面的操作，其实每个子串对应着一个区间，那么有什么方法可以在不重复遍历子串的前提下，",
+            "topic": {
+                "id": 238567,
+                "subscribed": false,
+                "commentCount": 296,
+                "viewCount": 30929,
+                "post": {
+                    "id": 626283,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 224,
+            "isEditorsPick": false,
+            "hitCount": 60080,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "find-the-longest-substring-containing-vowels-in-even-counts",
+                "questionFrontendId": "1371"
+            },
+            "next": {
+                "slug": "jian-dan-de-si-lu-by-mnizy",
+                "title": "简单的思路"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,128 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "VUD0zR",
+            "title": "视频拼接",
+            "content": "#### 前言\n\n本题要求从一系列视频子区间中选出尽可能少的一部分，使得这部分视频子区间能够重新剪出一个完整的视频。我们可以这样理解：给定区间 $[0,\\textit{time})$ 的一系列子区间（可能重叠），要求从中选出尽可能少的子区间，使得这些子区间能够完全覆盖区间 $[0,\\textit{time})$。\n\n为下文表述方便，我们用 $[a,b)$ 来代表每一个子区间，第 $i$ 个子区间表示为 $[a_i,b_i)$。\n\n#### 方法一：动态规划\n\n**思路及解法**\n\n比较容易想到的方法是动态规划，我们令 $\\textit{dp}[i]$ 表示将区间 $[0,i)$ 覆盖所需的最少子区间的数量。由于我们希望子区间的数目尽可能少，因此可以将所有 $\\textit{dp}[i]$ 的初始值设为一个大整数，并将 $\\textit{dp}[0]$（即空区间）的初始值设为 $0$。\n\n我们可以枚举所有的子区间来依次计算出所有的 $\\textit{dp}$ 值。我们首先枚举 $i$，同时对于任意一个子区间 $[a_j,b_j)$，若其满足 $a_j < i \\leq b_j$，那么它就可以覆盖区间 $[0, i)$ 的后半部分，而前半部分则可以用 $\\textit{dp}[a_j]$ 对应的**最优**方法进行覆盖，因此我们可以用 $dp[a_j] + 1$ 来更新 $\\textit{dp}[i]$。状态转移方程如下：\n\n$$\n\\textit{dp}[i] = \\min \\{ \\textit{dp}[a_j] \\} + 1 \\quad (a_j < i \\leq b_j)\n$$\n\n最终的答案即为 $\\textit{dp}[\\textit{time}]$。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int videoStitching(vector<vector<int>>& clips, int time) {\n        vector<int> dp(time + 1, INT_MAX - 1);\n        dp[0] = 0;\n        for (int i = 1; i <= time; i++) {\n            for (auto& it : clips) {\n                if (it[0] < i && i <= it[1]) {\n                    dp[i] = min(dp[i], dp[it[0]] + 1);\n                }\n            }\n        }\n        return dp[time] == INT_MAX - 1 ? -1 : dp[time];\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int videoStitching(int[][] clips, int time) {\n        int[] dp = new int[time + 1];\n        Arrays.fill(dp, Integer.MAX_VALUE - 1);\n        dp[0] = 0;\n        for (int i = 1; i <= time; i++) {\n            for (int[] clip : clips) {\n                if (clip[0] < i && i <= clip[1]) {\n                    dp[i] = Math.min(dp[i], dp[clip[0]] + 1);\n                }\n            }\n        }\n        return dp[time] == Integer.MAX_VALUE - 1 ? -1 : dp[time];\n    }\n}\n```\n\n```Golang [sol1-Golang]\nfunc videoStitching(clips [][]int, time int) int {\n    const inf = math.MaxInt64 - 1\n    dp := make([]int, time+1)\n    for i := range dp {\n        dp[i] = inf\n    }\n    dp[0] = 0\n    for i := 1; i <= time; i++ {\n        for _, c := range clips {\n            l, r := c[0], c[1]\n            // 若能剪出子区间 [l,i]，则可以从 dp[l] 转移到 dp[i]\n            if l < i && i <= r && dp[l]+1 < dp[i] {\n                dp[i] = dp[l] + 1\n            }\n        }\n    }\n    if dp[time] == inf {\n        return -1\n    }\n    return dp[time]\n}\n```\n\n```C [sol1-C]\nint videoStitching(int** clips, int clipsSize, int* clipsColSize, int time) {\n    int dp[time + 1];\n    memset(dp, 0x3f, sizeof(dp));\n    dp[0] = 0;\n    for (int i = 1; i <= time; i++) {\n        for (int j = 0; j < clipsSize; j++) {\n            if (clips[j][0] < i && i <= clips[j][1]) {\n                dp[i] = fmin(dp[i], dp[clips[j][0]] + 1);\n            }\n        }\n    }\n    return dp[time] == 0x3f3f3f3f ? -1 : dp[time];\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def videoStitching(self, clips: List[List[int]], time: int) -> int:\n        dp = [0] + [float(\"inf\")] * time\n        for i in range(1, time + 1):\n            for aj, bj in clips:\n                if aj < i <= bj:\n                    dp[i] = min(dp[i], dp[aj] + 1)\n        \n        return -1 if dp[time] == float(\"inf\") else dp[time]\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(\\textit{time} \\times n)$，其中 $\\textit{time}$ 是区间的长度，$n$ 是子区间的数量。对于任意一个前缀区间 $[0,i)$ ，我们都需要枚举所有的子区间，时间复杂度 $O(n)$。总时间复杂度为 $O(\\textit{time}) \\times O(n) = O(\\textit{time} \\times n)$。\n\n- 空间复杂度：$O(\\textit{time})$，其中 $\\textit{time}$ 是区间的长度。我们需要记录每一个前缀区间 $[0,i)$ 的状态信息。\n\n#### 方法二：贪心\n\n**思路及解法**\n\n注意到对于所有左端点相同的子区间，其右端点越远越有利。且最佳方案中不可能出现两个左端点相同的子区间。于是我们预处理所有的子区间，对于每一个位置 $i$，我们记录以其为左端点的子区间中最远的右端点，记为 $\\textit{maxn}[i]$。\n\n我们可以参考「[55. 跳跃游戏的官方题解](https://leetcode.cn/problems/jump-game/solution/tiao-yue-you-xi-by-leetcode-solution/)」，使用贪心解决这道题。\n\n具体地，我们枚举每一个位置，假设当枚举到位置 $i$ 时，记左端点不大于 $i$ 的所有子区间的最远右端点为 $\\textit{last}$。这样 $\\textit{last}$ 就代表了当前能覆盖到的最远的右端点。\n\n每次我们枚举到一个新位置，我们都用 $\\textit{maxn}[i]$ 来更新 $\\textit{last}$。如果更新后 $\\textit{last} == i$，那么说明下一个位置无法被覆盖，我们无法完成目标。\n\n同时我们还需要记录上一个被使用的子区间的结束位置为 $\\textit{pre}$，每次我们越过一个被使用的子区间，就说明我们要启用一个新子区间，这个新子区间的结束位置即为当前的 $\\textit{last}$。也就是说，每次我们遇到 $i == \\textit{pre}$，则说明我们用完了一个被使用的子区间。这种情况下我们让答案加 $1$，并更新 $\\textit{pre}$ 即可。\n\n**代码**\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    int videoStitching(vector<vector<int>>& clips, int time) {\n        vector<int> maxn(time);\n        int last = 0, ret = 0, pre = 0;\n        for (vector<int>& it : clips) {\n            if (it[0] < time) {\n                maxn[it[0]] = max(maxn[it[0]], it[1]);\n            }\n        }\n        for (int i = 0; i < time; i++) {\n            last = max(last, maxn[i]);\n            if (i == last) {\n                return -1;\n            }\n            if (i == pre) {\n                ret++;\n                pre = last;\n            }\n        }\n        return ret;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public int videoStitching(int[][] clips, int time) {\n        int[] maxn = new int[time];\n        int last = 0, ret = 0, pre = 0;\n        for (int[] clip : clips) {\n            if (clip[0] < time) {\n                maxn[clip[0]] = Math.max(maxn[clip[0]], clip[1]);\n            }\n        }\n        for (int i = 0; i < time; i++) {\n            last = Math.max(last, maxn[i]);\n            if (i == last) {\n                return -1;\n            }\n            if (i == pre) {\n                ret++;\n                pre = last;\n            }\n        }\n        return ret;\n    }\n}\n```\n\n```Golang [sol2-Golang]\nfunc videoStitching(clips [][]int, time int) (ans int) {\n    maxn := make([]int, time)\n    last, pre := 0, 0\n    for _, c := range clips {\n        l, r := c[0], c[1]\n        if l < time && r > maxn[l] {\n            maxn[l] = r\n        }\n    }\n    for i, v := range maxn {\n        if v > last {\n            last = v\n        }\n        if i == last {\n            return -1\n        }\n        if i == pre {\n            ans++\n            pre = last\n        }\n    }\n    return\n}\n```\n\n```C [sol2-C]\nint videoStitching(int** clips, int clipsSize, int* clipsColSize, int time) {\n    int maxn[time + 1];\n    memset(maxn, 0, sizeof(maxn));\n    int last = 0, ret = 0, pre = 0;\n    for (int i = 0; i < clipsSize; i++) {\n        if (clips[i][0] < time) {\n            maxn[clips[i][0]] = fmax(maxn[clips[i][0]], clips[i][1]);\n        }\n    }\n    for (int i = 0; i < time; i++) {\n        last = fmax(last, maxn[i]);\n        if (i == last) {\n            return -1;\n        }\n        if (i == pre) {\n            ret++;\n            pre = last;\n        }\n    }\n    return ret;\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def videoStitching(self, clips: List[List[int]], time: int) -> int:\n        maxn = [0] * time\n        last = ret = pre = 0\n        for a, b in clips:\n            if a < time:\n                maxn[a] = max(maxn[a], b)\n        \n        for i in range(time):\n            last = max(last, maxn[i])\n            if i == last:\n                return -1\n            if i == pre:\n                ret += 1\n                pre = last\n        \n        return ret\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(\\textit{time} + n)$，其中 $\\textit{time}$ 是区间的长度，$n$ 是子区间的数量。我们需要枚举每一个位置，时间复杂度 $O(\\textit{time})$，同时我们还需要预处理所有的子区间，时间复杂度 $O(n)$。总时间复杂度为 $O(\\textit{time}) + O(n) = O(\\textit{time} + n)$。\n\n- 空间复杂度：$O(\\textit{time})$，其中 $\\textit{time}$ 是区间的长度。对于每一个位置，我们需要记录以其为左端点的子区间的最右端点。",
+            "slateValue": "",
+            "slug": "shi-pin-pin-jie-by-leetcode-solution",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "VUD0zR",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 75,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 8,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Greedy",
+                    "nameTranslated": "贪心",
+                    "slug": "greedy",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2020-10-23T15:53:52.534714+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "前言 本题要求从一系列视频子区间中选出尽可能少的一部分，使得这部分视频子区间能够重新剪出一个完整的视频。我们可以这样理解：给定区间 $[0,\\textit{time})$ 的一系列子区间（可能重叠），要求从中选出尽可能少的子区间，使得这些子区间能够完全覆盖区间 $[0,\\textit{time})$。 为下文表述方便，",
+            "topic": {
+                "id": 458461,
+                "subscribed": false,
+                "commentCount": 142,
+                "viewCount": 24602,
+                "post": {
+                    "id": 1097414,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 145,
+            "isEditorsPick": false,
+            "hitCount": 51544,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "video-stitching",
+                "questionFrontendId": "1024"
+            },
+            "next": {
+                "slug": "shou-hua-tu-jie-dong-tai-gui-hua-si-lu-pou-xi-xian",
+                "title": "「手画图解」动态规划 思路 | 分情况讨论"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,122 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "8EJuNi",
+            "title": "单调递增的数字",
+            "content": "#### 方法一：贪心\n\n我们可以从高到低按位构造这个小于等于 $n$ 的最大单调递增的数字。假设不考虑 $n$ 的限制，那么对于一个长度为 $k$ 的数字，最大单调递增的数字一定是每一位都为 $9$ 的数字。\n\n记 $\\textit{strN}[i]$ 表示数字 $n$ 从高到低的第 $i$ 位的数字（$i$ 从 $0$ 开始）。\n\n如果整个数字 $n$ 本身已经是按位单调递增的，那么最大的数字即为 $n$。\n\n如果找到第一个位置 $i$ 使得 $[0,i-1]$ 的数位单调递增且 $\\textit{strN}[i-1]>\\textit{strN}[i]$，此时 $[0,i]$ 的数位都与 $n$ 的对应数位相等，仍然被 $n$ 限制着，**即我们不能随意填写 $[i+1,k-1]$ 位置上的数字**。为了得到最大的数字，我们需要解除 $n$ 的限制，来让剩余的低位全部变成 $9$ ，即能得到小于 $n$ 的最大整数。而从贪心的角度考虑，我们需要尽量让高位与 $n$ 的对应数位相等，故尝试让 $\\textit{strN}[i-1]$ 自身数位减 $1$。此时已经不再受 $n$ 的限制，直接将 $[i, k-1]$ 的位置上的数全部变为 $9$ 即可。\n\n但这里存在一个问题：当 $\\textit{strN}[i-1]$ 自身数位减 $1$ 后可能会使得 $\\textit{strN}[i-1]$ 和 $\\textit{strN}[i-2]$ 不再满足递增的关系，因此我们需要从 $i-1$ 开始递减比较相邻数位的关系，直到找到第一个位置 $j$ 使得 $\\textit{strN}[j]$ 自身数位减 $1$ 后 $\\textit{strN}[j-1]$ 和 $\\textit{strN}[j]$ 仍然保持递增关系，或者位置 $j$ 已经到最左边（即 $j$ 的值为 $0$），此时我们将 $[j+1,k-1]$ 的数全部变为 $9$ 才能得到最终正确的答案。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int monotoneIncreasingDigits(int n) {\n        string strN = to_string(n);\n        int i = 1;\n        while (i < strN.length() && strN[i - 1] <= strN[i]) {\n            i += 1;\n        }\n        if (i < strN.length()) {\n            while (i > 0 && strN[i - 1] > strN[i]) {\n                strN[i - 1] -= 1;\n                i -= 1;\n            }\n            for (i += 1; i < strN.length(); ++i) {\n                strN[i] = '9';\n            }\n        }\n        return stoi(strN);\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int monotoneIncreasingDigits(int n) {\n        char[] strN = Integer.toString(n).toCharArray();\n        int i = 1;\n        while (i < strN.length && strN[i - 1] <= strN[i]) {\n            i += 1;\n        }\n        if (i < strN.length) {\n            while (i > 0 && strN[i - 1] > strN[i]) {\n                strN[i - 1] -= 1;\n                i -= 1;\n            }\n            for (i += 1; i < strN.length; ++i) {\n                strN[i] = '9';\n            }\n        }\n        return Integer.parseInt(new String(strN));\n    }\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar monotoneIncreasingDigits = function(n) {\n    const strN = n.toString().split('').map(v => +v);\n    let i = 1;\n    while (i < strN.length && strN[i - 1] <= strN[i]) {\n        i += 1;\n    }\n    if (i < strN.length) {\n        while (i > 0 && strN[i - 1] > strN[i]) {\n            strN[i - 1] -= 1;\n            i -= 1;\n        }\n        for (i += 1; i < strN.length; ++i) {\n            strN[i] = 9;\n        }\n    }\n    return parseInt(strN.join(''));\n};\n```\n\n```Golang [sol1-Golang]\nfunc monotoneIncreasingDigits(n int) int {\n    s := []byte(strconv.Itoa(n))\n    i := 1\n    for i < len(s) && s[i] >= s[i-1] {\n        i++\n    }\n    if i < len(s) {\n        for i > 0 && s[i] < s[i-1] {\n            s[i-1]--\n            i--\n        }\n        for i++; i < len(s); i++ {\n            s[i] = '9'\n        }\n    }\n    ans, _ := strconv.Atoi(string(s))\n    return ans\n}\n```\n\n```C [sol1-C]\nvoid itoa(int num, char* str, int* strSize) {\n    *strSize = 0;\n    while (num > 0) {\n        str[(*strSize)++] = num % 10 + '0';\n        num /= 10;\n    }\n    for (int i = 0; i < (*strSize) / 2; i++) {\n        int tmp = str[i];\n        str[i] = str[(*strSize) - 1 - i];\n        str[(*strSize) - 1 - i] = tmp;\n    }\n}\n\nint monotoneIncreasingDigits(int n) {\n    int strNSize;\n    char strN[11];\n    itoa(n, strN, &strNSize);\n    int i = 1;\n    while (i < strNSize && strN[i - 1] <= strN[i]) {\n        i += 1;\n    }\n    if (i < strNSize) {\n        while (i > 0 && strN[i - 1] > strN[i]) {\n            strN[i - 1] -= 1;\n            i -= 1;\n        }\n        for (i += 1; i < strNSize; ++i) {\n            strN[i] = '9';\n        }\n    }\n    return atoi(strN);\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(\\log n)$，其中 $O(\\log n)$ 表示数字 $n$ 的位数。我们遍历 $O(\\log n)$ 的时间即能构造出满足条件的数字。\n\n- 空间复杂度：$O(\\log n)$。我们需要 $O(\\log n)$ 的空间存放数字 $n$ 每一位的数字大小。",
+            "slateValue": "",
+            "slug": "dan-diao-di-zeng-de-shu-zi-by-leetcode-s-5908",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "8EJuNi",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 39,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 0,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Greedy",
+                    "nameTranslated": "贪心",
+                    "slug": "greedy",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2020-12-14T15:38:44.240657+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：贪心 我们可以从高到低按位构造这个小于等于 $n$ 的最大单调递增的数字。假设不考虑 $n$ 的限制，那么对于一个长度为 $k$ 的数字，最大单调递增的数字一定是每一位都为 $9$ 的数字。 记 $\\textit{strN}[i]$ 表示数字 $n$ 从高到低的第 $i$ 位的数字（$i$ 从 $0$ 开始）。",
+            "topic": {
+                "id": 521694,
+                "subscribed": false,
+                "commentCount": 167,
+                "viewCount": 32627,
+                "post": {
+                    "id": 1228251,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 80,
+            "isEditorsPick": false,
+            "hitCount": 64841,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "monotone-increasing-digits",
+                "questionFrontendId": "738"
+            },
+            "next": {
+                "slug": "jian-dan-tan-xin-shou-ba-shou-jiao-xue-k-a0mp",
+                "title": "简单贪心，手把手教学，快来秒懂！"
+            },
+            "prev": null
+        }
+    }
+}

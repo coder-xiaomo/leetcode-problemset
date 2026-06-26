@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "5pUIkd",
+            "title": "距离相等的条形码",
+            "content": "#### 方法一：最大堆\n\n**思路**\n\n题目要求重新排列这些条形码，使其中任意两个相邻的条形码不能相等，可以返回任何满足该要求的答案，并且此题保证存在答案。我们首先想到的思路就是，找到剩余数量最多的元素，尽可能优先排列它。\n\n我们首先统计 $\\textit{barcodes}$ 每个元素的个数，然后遍历这个频数表，把每个元素的 (剩余数量， 元素值) 二元数组，依次插入最大堆。这样操作后，堆顶的元素就是剩余数量最多的元素。\n\n然后我们每次从堆顶拿出一个剩余最多的元素，放入排列中，再更新剩余数量，重新放入最大堆中。如果这个元素和排列结果中的最后一个元素相同，那么我们就需要再从最大堆中取出第二多的元素，放入排列中，之后再把这两个元素放回最大堆中。\n\n依次重复上面的操作，直到我们把所有元素都重新排列。\n\n**代码**\n\n```Java [sol1-Java]\nclass Solution {\n    public int[] rearrangeBarcodes(int[] barcodes) {\n        Map<Integer, Integer> count = new HashMap<>();\n        for (int b : barcodes) {\n            if (!count.containsKey(b)) {\n                count.put(b, 0);\n            }\n            count.put(b, count.get(b) + 1);\n        }\n        PriorityQueue<int[]> pq = new PriorityQueue<>((a, b) -> b[0] - a[0]);\n        for (Map.Entry<Integer, Integer> entry : count.entrySet()) {\n            pq.offer(new int[]{entry.getValue(), entry.getKey()});\n        }\n        int n = barcodes.length;\n        int[] res = new int[n];\n        for (int i = 0; i < n; ++i) {\n            int[] p = pq.poll();\n            int cx = p[0], x = p[1];\n            if (i == 0 || res[i - 1] != x) {\n                res[i] = x;\n                if (cx > 1) {\n                    pq.offer(new int[]{cx - 1, x});\n                }\n            } else {\n                int[] p2 = pq.poll();\n                int cy = p2[0], y = p2[1];\n                res[i] = y;\n                if (cy > 1) {\n                    pq.offer(new int[]{cy - 1, y});\n                }\n                pq.offer(new int[]{cx, x});\n            }\n        }\n        return res;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int[] RearrangeBarcodes(int[] barcodes) {\n        IDictionary<int, int> count = new Dictionary<int, int>();\n        foreach (int b in barcodes) {\n            count.TryAdd(b, 0);\n            count[b]++;\n        }\n        PriorityQueue<Tuple<int, int>, int> pq = new PriorityQueue<Tuple<int, int>, int>();\n        foreach (KeyValuePair<int, int> pair in count) {\n            pq.Enqueue(new Tuple<int, int>(pair.Value, pair.Key), -pair.Value);\n        }\n        int n = barcodes.Length;\n        int[] res = new int[n];\n        for (int i = 0; i < n; ++i) {\n            Tuple<int, int> p = pq.Dequeue();\n            int cx = p.Item1, x = p.Item2;\n            if (i == 0 || res[i - 1] != x) {\n                res[i] = x;\n                if (cx > 1) {\n                    pq.Enqueue(new Tuple<int, int>(cx - 1, x), 1 - cx);\n                }\n            } else {\n                Tuple<int, int> p2 = pq.Dequeue();\n                int cy = p2.Item1, y = p2.Item2;\n                res[i] = y;\n                if (cy > 1) {\n                    pq.Enqueue(new Tuple<int, int>(cy - 1, y), 1 - cy);\n                }\n                pq.Enqueue(new Tuple<int, int>(cx, x), -cx);\n            }\n        }\n        return res;\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<int> rearrangeBarcodes(vector<int>& barcodes) {\n        unordered_map<int, int> count;\n        for (int b : barcodes) {\n            count[b]++;\n        }\n        priority_queue<pair<int, int>> q;\n        for (const auto &[x, cx] : count) {\n            q.push({cx, x});\n        }\n        vector<int> res;\n        while (q.size()) {\n            auto [cx, x] = q.top();\n            q.pop();\n            if (res.empty() || res.back() != x) {\n                res.push_back(x);\n                if (cx > 1) {\n                    q.push({cx - 1, x});\n                }\n            } else {\n                if (q.size() < 1) return res;\n                auto [cy, y] = q.top();\n                q.pop();\n                res.push_back(y);\n                if (cy > 1)  {\n                    q.push({cy - 1, y});\n                }\n                q.push({cx, x});\n            }\n        }\n        return res;\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def rearrangeBarcodes(self, barcodes: List[int]) -> List[int]:\n        count = Counter(barcodes)\n        q = []\n        for x, cx in count.items():\n            heapq.heappush(q, (-cx, x))\n        res = []\n        while len(q) > 0:\n            cx, x = heapq.heappop(q)\n            if len(res) == 0 or res[-1] != x:\n                res.append(x)\n                if cx < -1:\n                    heapq.heappush(q, (cx + 1, x))\n            else:\n                cy, y = heapq.heappop(q)\n                res.append(y)\n                if cy < -1:\n                    heapq.heappush(q, (cy + 1, y))\n                heapq.heappush(q, (cx, x))\n        return res\n```\n\n```Go [sol1-Go]\ntype PriorityQueue [][]int\n\nfunc (pq PriorityQueue) Len() int {\n    return len(pq)\n}\nfunc (pq PriorityQueue) Less(i, j int) bool {\n    return pq[i][0] > pq[j][0]\n}\nfunc (pq PriorityQueue) Swap(i, j int) {\n    pq[i], pq[j] = pq[j], pq[i]\n}\nfunc (pq *PriorityQueue) Push(x interface{}) {\n    item := x.([]int)\n    *pq = append(*pq, item)\n}\nfunc (pq *PriorityQueue) Pop() interface{} {\n    old := *pq\n    n := len(old)\n    item := old[n-1]\n    *pq = old[:n-1]\n    return item\n}\n\nfunc rearrangeBarcodes(barcodes []int) []int {\n    count := make(map[int]int)\n    for _, b := range barcodes {\n        count[b]++\n    }\n    q := &PriorityQueue{}\n    heap.Init(q)\n    for k, v := range count {\n        heap.Push(q, []int{v, k})\n    }\n    n := len(barcodes)\n    res := make([]int, n)\n    for i := 0; i < n; i++ {\n        p := heap.Pop(q).([]int)\n        cx, x := p[0], p[1]\n        if i == 0 || res[i-1] != x {\n            res[i] = x\n            if cx > 1 {\n                heap.Push(q, []int{cx - 1, x})\n            }\n        } else {\n            p2 := heap.Pop(q).([]int)\n            cy, y := p2[0], p2[1]\n            res[i] = y\n            if cy > 1 {\n                heap.Push(q, []int{cy - 1, y})\n            }\n            heap.Push(q, []int{cx, x})\n        }\n    }\n    return res\n}\n```\n\n```JavaScript [sol1-JavaScript]\nclass MaxHeap {\n  constructor(compareFunc = (a, b) => a > b) {\n    this.compare = compareFunc;\n    this.heap = [];\n  }\n\n  get size() {\n    return this.heap.length;\n  }\n\n  peek() {\n    return this.heap[0];\n  }\n\n  add(value) {\n    this.heap.push(value);\n    this.heapifyUp();\n  }\n\n  poll() {\n    if (this.size === 0) {\n      return null;\n    }\n    if (this.size === 1) {\n      return this.heap.pop();\n    }\n    const max = this.heap[0];\n    this.heap[0] = this.heap.pop();\n    this.heapifyDown();\n    return max;\n  }\n\n  heapifyUp() {\n    let currentIndex = this.size - 1;\n    while (currentIndex > 0) {\n      const parentIndex = Math.floor((currentIndex - 1) / 2);\n      if (this.compare(this.heap[currentIndex], this.heap[parentIndex])) {\n        [this.heap[currentIndex], this.heap[parentIndex]] = [this.heap[parentIndex], this.heap[currentIndex]];\n        currentIndex = parentIndex;\n      } else {\n        break;\n      }\n    }\n  }\n\n  heapifyDown() {\n    let currentIndex = 0;\n    while (currentIndex < this.size) {\n      let largestIndex = currentIndex;\n      const leftChildIndex = 2 * currentIndex + 1;\n      const rightChildIndex = 2 * currentIndex + 2;\n      if (leftChildIndex < this.size && this.compare(this.heap[leftChildIndex], this.heap[largestIndex])) {\n        largestIndex = leftChildIndex;\n      }\n      if (rightChildIndex < this.size && this.compare(this.heap[rightChildIndex], this.heap[largestIndex])) {\n        largestIndex = rightChildIndex;\n      }\n      if (largestIndex !== currentIndex) {\n        [this.heap[currentIndex], this.heap[largestIndex]] = [this.heap[largestIndex], this.heap[currentIndex]];\n        currentIndex = largestIndex;\n      } else {\n        break;\n      }\n    }\n  }\n}\n\nvar rearrangeBarcodes = function(barcodes) {\n    const count = new Map();\n    for (const b of barcodes) {\n        if (!count.has(b)) {\n            count.set(b, 0);\n        }\n        count.set(b, count.get(b) + 1);\n    }\n    const pq = new MaxHeap((a, b) => a[0] > b[0] || (a[0] === b[0] && a[1] > b[1]));\n    for (const [k, v] of count.entries()) {\n        pq.add([v, k]);\n    }\n    const n = barcodes.length;\n    const res = new Array(n).fill(0);\n    for (let i = 0; i < n; ++i) {\n        const p = pq.poll();\n        const cx = p[0], x = p[1];\n        if (i === 0 || res[i - 1] !== x) {\n            res[i] = x;\n            if (cx > 1) {\n                pq.add([cx - 1, x]);\n            }\n        } else {\n            const p2 = pq.poll();\n            const cy = p2[0], y = p2[1];\n            res[i] = y;\n            if (cy > 1) {\n                pq.add([cy - 1, y]);\n            }\n            pq.add([cx, x]);\n        }\n    }\n    return res;\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log n)$，其中 $n$ 是 $\\textit{barcodes}$ 长度。\n\n- 空间复杂度：$O(n)$，其中 $n$ 是 $\\textit{barcodes}$ 长度。\n\n#### 方法二：计数统计\n\n**思路**\n\n通过观察我们可以发现，出现次数最多的元素，会始终在最大堆的顶部，我们实际上并不需要关心其他元素的相对大小顺序。在这个思路上可以进行优化，先统计所有元素的频数，找到出现次数最多的元素，然后将出现次数最多的元素交替排列。\n\n这个方法在实现过程，会应用不常规的小技巧，具体证明过程可以参考题目「[767. 重构字符串的官方题解](https://leetcode.cn/problems/reorganize-string/solution/zhong-gou-zi-fu-chuan-by-leetcode-solution/)」的方法二。\n\n首先统计每个元素的出现次数，然后根据每个元素的出现次数重构数组。\n\n当 $n$ 是奇数且出现最多的元素的出现次数是 $\\dfrac{n+1}{2}$ 时，出现次数最多的元素必须全部放置在偶数下标，否则一定会出现相邻的元素相同的情况。其余情况下，每个元素放置在偶数下标或者奇数下标都是可行的。\n\n维护偶数下标 $\\textit{evenIndex}$ 和奇数下标 $\\textit{oddIndex}$，初始值分别为 $0$ 和 $1$。遍历每个元素，根据每个元素的出现次数判断元素应该放置在偶数下标还是奇数下标。\n\n首先考虑是否可以放置在奇数下标。根据上述分析可知，只要元素的出现次数不超过数组的长度的一半（即出现次数小于或等于 $\\Big\\lfloor \\dfrac{n}{2} \\Big\\rfloor$），就可以放置在奇数下标，只有当元素的出现次数超过数组的长度的一半时，才必须放置在偶数下标。元素的出现次数超过数组的长度的一半只可能发生在 $n$ 是奇数的情况下，且最多只有一个元素的出现次数会超过数组的长度的一半。\n\n因此通过如下操作在重构的数组中放置元素。\n\n- 如果元素的出现次数大于 $0$ 且小于或等于 $\\Big\\lfloor \\dfrac{n}{2} \\Big\\rfloor$，且 $\\textit{oddIndex}$ 没有超出数组下标范围，则将元素放置在 $\\textit{oddIndex}$，然后将 $\\textit{oddIndex}$ 的值加 $2$。\n\n- 如果元素的出现次数大于 $\\Big\\lfloor \\dfrac{n}{2} \\Big\\rfloor$，或 $\\textit{oddIndex}$ 超出数组下标范围，则将元素放置在 $\\textit{evenIndex}$，然后将 $\\textit{evenIndex}$ 的值加 $2$。\n\n如果一个元素出现了多次，则重复上述操作，直到该元素全部放置完毕。\n\n**代码**\n\n```Java [sol2-Java]\nclass Solution {\n    public static int[] rearrangeBarcodes(int[] barcodes) {\n        int length = barcodes.length;\n        if (length < 2) {\n            return barcodes;\n        }\n\n        Map<Integer, Integer> counts = new HashMap<>();\n        int maxCount = 0;\n        for (int b : barcodes) {\n            counts.put(b, counts.getOrDefault(b, 0) + 1);\n            maxCount = Math.max(maxCount, counts.get(b));\n        }\n\n        int evenIndex = 0;\n        int oddIndex = 1;\n        int halfLength = length / 2;\n        int[] res = new int[length];\n        for (Map.Entry<Integer, Integer> entry : counts.entrySet()) {\n            int x = entry.getKey();\n            int count = entry.getValue();\n            while (count > 0 && count <= halfLength && oddIndex < length) {\n                res[oddIndex] = x;\n                count--;\n                oddIndex += 2;\n            }\n            while (count > 0) {\n                res[evenIndex] = x;\n                count--;\n                evenIndex += 2;\n            }\n        }\n        return res;\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    public int[] RearrangeBarcodes(int[] barcodes) {\n        int length = barcodes.Length;\n        if (length < 2) {\n            return barcodes;\n        }\n\n        IDictionary<int, int> counts = new Dictionary<int, int>();\n        int maxCount = 0;\n        foreach (int b in barcodes) {\n            counts.TryAdd(b, 0);\n            counts[b]++;\n            maxCount = Math.Max(maxCount, counts[b]);\n        }\n\n        int evenIndex = 0;\n        int oddIndex = 1;\n        int halfLength = length / 2;\n        int[] res = new int[length];\n        foreach (KeyValuePair<int, int> pair in counts) {\n            int x = pair.Key;\n            int count = pair.Value;\n            while (count > 0 && count <= halfLength && oddIndex < length) {\n                res[oddIndex] = x;\n                count--;\n                oddIndex += 2;\n            }\n            while (count > 0) {\n                res[evenIndex] = x;\n                count--;\n                evenIndex += 2;\n            }\n        }\n        return res;\n    }\n}\n```\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    vector<int> rearrangeBarcodes(vector<int>& barcodes) {\n        int length = barcodes.size();\n        if (length < 2) {\n            return barcodes;\n        }\n\n        unordered_map<int, int> counts;\n        int maxCount = 0;\n        for (int b : barcodes) {\n            maxCount = max(maxCount, ++counts[b]);\n        }\n\n        int evenIndex = 0, oddIndex = 1, halfLength = length / 2;\n        vector<int> res(length);\n        for (auto &[x, cx] : counts) {\n            while (cx > 0 && cx <= halfLength && oddIndex < length) {\n                res[oddIndex] = x;\n                cx--;\n                oddIndex += 2;\n            }\n            while (cx > 0) {\n                res[evenIndex] = x;\n                cx--;\n                evenIndex += 2;\n            }\n        }\n        return res;\n    }\n};\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def rearrangeBarcodes(self, barcodes: List[int]) -> List[int]:\n        length = len(barcodes)\n        if length < 2:\n            return barcodes\n\n        counts = {}\n        max_count = 0\n        for b in barcodes:\n            counts[b] = counts.get(b, 0) + 1\n            max_count = max(max_count, counts[b])\n\n        evenIndex = 0\n        oddIndex = 1\n        half_length = length // 2\n        res = [0] * length\n        for x, count in counts.items():\n            while count > 0 and count <= half_length and oddIndex < length:\n                res[oddIndex] = x\n                count -= 1\n                oddIndex += 2\n            while count > 0:\n                res[evenIndex] = x\n                count -= 1\n                evenIndex += 2\n        return res\n```\n\n```Go [sol2-Go]\nfunc rearrangeBarcodes(barcodes []int) []int {\n    if len(barcodes) < 2 {\n        return barcodes\n    }\n\n    counts := make(map[int]int)\n    maxCount := 0\n    for _, b := range barcodes {\n        counts[b] = counts[b] + 1\n        if counts[b] > maxCount {\n            maxCount = counts[b]\n        }\n    }\n\n    evenIndex := 0\n    oddIndex := 1\n    halfLength := len(barcodes) / 2\n    res := make([]int, len(barcodes))\n    for x, count := range counts {\n        for count > 0 && count <= halfLength && oddIndex < len(barcodes) {\n            res[oddIndex] = x\n            count--\n            oddIndex += 2\n        }\n        for count > 0 {\n            res[evenIndex] = x\n            count--\n            evenIndex += 2\n        }\n    }\n    return res\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar rearrangeBarcodes = function(barcodes) {\n    const length = barcodes.length;\n    if (length < 2) {\n        return barcodes;\n    }\n\n    const counts = new Map();\n    let maxCount = 0;\n    for (const b of barcodes) {\n        counts.set(b, (counts.get(b) || 0) + 1);\n        maxCount = Math.max(maxCount, counts.get(b));\n    }\n\n    let evenIndex = 0;\n    let oddIndex = 1;\n    let halfLength = Math.floor(length / 2);\n    const res = _.fill(Array(length), 0);\n    for (let [x, count] of counts.entries()) {\n        while (count > 0 && count <= halfLength && oddIndex < length) {\n            res[oddIndex] = x;\n            count--;\n            oddIndex += 2;\n        }\n        while (count > 0) {\n            res[evenIndex] = x;\n            count--;\n            evenIndex += 2;\n        }\n    }\n    return res;\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是 $\\textit{barcodes}$ 长度。\n\n- 空间复杂度：$O(n)$，其中 $n$ 是 $\\textit{barcodes}$ 长度。",
+            "slateValue": "",
+            "slug": "ju-chi-xiang-deng-de-tiao-xing-ma-by-lee-31qt",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "5pUIkd",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 39,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Greedy",
+                    "nameTranslated": "贪心",
+                    "slug": "greedy",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Counting",
+                    "nameTranslated": "计数",
+                    "slug": "counting",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Heap (Priority Queue)",
+                    "nameTranslated": "堆（优先队列）",
+                    "slug": "heap-priority-queue",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2023-05-12T06:51:20.846310+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：最大堆 思路 题目要求重新排列这些条形码，使其中任意两个相邻的条形码不能相等，可以返回任何满足该要求的答案，并且此题保证存在答案。我们首先想到的思路就是，找到剩余数量最多的元素，尽可能优先排列它。 我们首先统计 $\\textit{barcodes}$ 每个元素的个数，然后遍历这个频数表，把每个元素的 (剩余数量",
+            "topic": {
+                "id": 2267110,
+                "subscribed": false,
+                "commentCount": 56,
+                "viewCount": 948,
+                "post": {
+                    "id": 4282676,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 36,
+            "isEditorsPick": false,
+            "hitCount": 14923,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "distant-barcodes",
+                "questionFrontendId": "1054"
+            },
+            "next": {
+                "slug": "python3javacgotypescript-yi-ti-yi-jie-ji-3or2",
+                "title": "[Python3/Java/C++/Go/TypeScript] 一题一解：计数 + 排序"
+            },
+            "prev": null
+        }
+    }
+}

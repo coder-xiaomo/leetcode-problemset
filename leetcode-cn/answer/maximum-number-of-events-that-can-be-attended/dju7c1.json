@@ -1,0 +1,158 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "dju7c1",
+            "title": "最多可以参加的会议数目",
+            "content": "#### 方法一：贪心\n\n**思路与算法**\n\n根据题意可知，会议 $i$ 开始于 $\\textit{startDay}_i$ ，结束于 $\\textit{endDay}_i$，此时可以在区间 $[\\textit{startDay}_i,\\textit{endDay}_i]$ 中任意安排一天参会即可。由于每天只能参加一场会议，根据贪心原则可知，如果第 $k$ 天可以安排参加会议 $i$ 和 $j$，此时应尽量安排**结束时间** $\\min(\\textit{endDay}_i, \\textit{endDay}_j)$ 较早的会议，才能使得剩余时间还可以安排**结束时间**较晚的会议。 \n\n根据上述推论可知，设所有会议结束的最晚时间为 $\\textit{maxDay}$，我们可以 从 $1$ 开始枚举每个时间点，直到 $\\textit{maxDay}$ 结束，贪心选择该时间点下结束会议最早的时间。用**最小堆**保存当前待选择会议的结束时间，为了方便计算，将所有的会议按照开始时间先后顺序进行排序。假设当前时间点为 $i$，此时应处理如下：\n\n+ 将当前所有参会时间早于或等于 $i$ 的会议全部加入到待选队列中，此时**小根堆**中保存所有待选会议；\n\n+ 由于结束时间早于 $i$ 的会议无法参会，此时将所有结束时间小于 $i$ 的会议从待选队列中删除；\n\n+ 此时选择待选会议中结束时间最早的会议参会，当前堆顶元素即为最早的会议结束时间，当前时间点 $i$ 选择该会议参会即可，同时可参会计数加 $1$；\n\n返回最终的参会计数即为答案。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int maxEvents(vector<vector<int>>& events) {\n        int n = events.size();\n        int maxDay = 0;\n        for (int i = 0; i < events.size(); i++) {\n            maxDay = max(maxDay, events[i][1]);\n        }\n        priority_queue<int, vector<int>, greater<>> pq;\n        sort(events.begin(), events.end());\n        int ans = 0;\n        for (int i = 0, j = 0; i <= maxDay; i++) {\n            while (j < n && events[j][0] <= i) {\n                pq.emplace(events[j][1]);\n                j++;\n            }\n            while (!pq.empty() && pq.top() < i) {\n                pq.pop();\n            }\n            if (!pq.empty()) {\n                pq.pop();\n                ans++;\n            }\n        }\n\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int maxEvents(int[][] events) {\n        int n = events.length;\n        int maxDay = 0;\n        for (int[] event : events) {\n            maxDay = Math.max(maxDay, event[1]);\n        }\n\n        PriorityQueue<Integer> pq = new PriorityQueue<>();\n        Arrays.sort(events, (a, b) -> a[0] - b[0]);\n        int ans = 0;\n        for (int i = 1, j = 0; i <= maxDay; i++) {\n            while (j < n && events[j][0] <= i) {\n                pq.offer(events[j][1]);\n                j++;\n            }\n            while (!pq.isEmpty() && pq.peek() < i) {\n                pq.poll();\n            }\n            if (!pq.isEmpty()) {\n                pq.poll();\n                ans++;\n            }\n        }\n        \n        return ans;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MaxEvents(int[][] events) {\n        int n = events.Length;\n        int maxDay = 0;\n        foreach (var e in events) {\n            maxDay = Math.Max(maxDay, e[1]);\n        }\n        \n        var pq = new PriorityQueue<int, int>();\n        Array.Sort(events, (a, b) => a[0] - b[0]);\n        int ans = 0;\n        for (int i = 1, j = 0; i <= maxDay; i++) {\n            while (j < n && events[j][0] <= i) {\n                pq.Enqueue(events[j][1], events[j][1]);\n                j++;\n            }\n            while (pq.Count > 0 && pq.Peek() < i) {\n                pq.Dequeue();\n            }\n            if (pq.Count > 0) {\n                pq.Dequeue();\n                ans++;\n            }\n        }\n\n        return ans;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc maxEvents(events [][]int) int {\n\tn := len(events)\n\tmaxDay := 0\n\tfor _, event := range events {\n\t\tif event[1] > maxDay {\n\t\t\tmaxDay = event[1]\n\t\t}\n\t}\n\tsort.Slice(events, func(i, j int) bool {\n\t\treturn events[i][0] < events[j][0]\n\t})\n\tpq := &IntHeap{}\n\theap.Init(pq)\n\tans := 0\n\tfor i, j := 1, 0; i <= maxDay; i++ {\n        for j < n && events[j][0] <= i {\n\t\t\theap.Push(pq, events[j][1])\n\t\t\tj++\n\t\t}\n\t\tfor pq.Len() > 0 && (*pq)[0] < i {\n\t\t\theap.Pop(pq)\n\t\t}\n\t\tif pq.Len() > 0 {\n\t\t\theap.Pop(pq)\n\t\t\tans++\n\t\t}\n\t}\n\treturn ans\n}\n\ntype IntHeap []int\n\nfunc (h IntHeap) Len() int { \n    return len(h) \n}\n\nfunc (h IntHeap) Less(i, j int) bool { \n    return h[i] < h[j] \n}\n\nfunc (h IntHeap) Swap(i, j int) { \n    h[i], h[j] = h[j], h[i] \n}\n\nfunc (h *IntHeap) Push(x any) { \n    *h = append(*h, x.(int)) \n}\n\nfunc (h *IntHeap) Pop() any {\n\told := *h\n\tn := len(old)\n\tx := old[n - 1]\n\t*h = old[0 : n - 1]\n\treturn x\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def maxEvents(self, events: List[List[int]]) -> int:\n        n = len(events)\n        max_day = max(event[1] for event in events)\n        events.sort()\n        pq = []\n        ans, j = 0, 0\n        for i in range(1, max_day + 1):\n            while j < n and events[j][0] <= i:\n                heapq.heappush(pq, events[j][1])\n                j += 1\n            while pq and pq[0] < i:\n                heapq.heappop(pq)\n            if pq:\n                heapq.heappop(pq)\n                ans += 1\n                \n        return ans\n```\n\n```C [sol1-C]\n#define MIN_QUEUE_SIZE 64\n\ntypedef struct Element {\n    int data;\n} Element;\n\ntypedef bool (*compare)(const void *, const void *);\n\ntypedef struct PriorityQueue {\n    Element *arr;\n    int capacity;\n    int queueSize;\n    compare lessFunc;\n} PriorityQueue;\n\nstatic bool greater(const void *a, const void *b) {\n    Element *e1 = (Element *)a;\n    Element *e2 = (Element *)b;\n    return e1->data > e2->data;\n}\n\nstatic void memswap(void *m1, void *m2, size_t size){\n    unsigned char *a = (unsigned char*)m1;\n    unsigned char *b = (unsigned char*)m2;\n    while (size--) {\n        *b ^= *a ^= *b ^= *a;\n        a++;\n        b++;\n    }\n}\n\nstatic void swap(Element *arr, int i, int j) {\n    memswap(&arr[i], &arr[j], sizeof(Element));\n}\n\nstatic void down(Element *arr, int size, int i, compare cmpFunc) {\n    for (int k = 2 * i + 1; k < size; k = 2 * k + 1) {\n        if (k + 1 < size && cmpFunc(&arr[k], &arr[k + 1])) {\n            k++;\n        }\n        if (cmpFunc(&arr[k], &arr[(k - 1) / 2])) {\n            break;\n        }\n        swap(arr, k, (k - 1) / 2);\n    }\n}\n\nPriorityQueue *createPriorityQueue(compare cmpFunc) {\n    PriorityQueue *obj = (PriorityQueue *)malloc(sizeof(PriorityQueue));\n    obj->capacity = MIN_QUEUE_SIZE;\n    obj->arr = (Element *)malloc(sizeof(Element) * obj->capacity);\n    obj->queueSize = 0;\n    obj->lessFunc = cmpFunc;\n    return obj;\n}\n\nvoid heapfiy(PriorityQueue *obj) {\n    for (int i = obj->queueSize / 2 - 1; i >= 0; i--) {\n        down(obj->arr, obj->queueSize, i, obj->lessFunc);\n    }\n}\n\nvoid enQueue(PriorityQueue *obj, Element *e) {\n    // we need to alloc more space, just twice space size\n    if (obj->queueSize == obj->capacity) {\n        obj->capacity *= 2;\n        obj->arr = realloc(obj->arr, sizeof(Element) * obj->capacity);\n    }\n    memcpy(&obj->arr[obj->queueSize], e, sizeof(Element));\n    for (int i = obj->queueSize; i > 0 && obj->lessFunc(&obj->arr[(i - 1) / 2], &obj->arr[i]); i = (i - 1) / 2) {\n        swap(obj->arr, i, (i - 1) / 2);\n    }\n    obj->queueSize++;\n}\n\nElement* deQueue(PriorityQueue *obj) {\n    swap(obj->arr, 0, obj->queueSize - 1);\n    down(obj->arr, obj->queueSize - 1, 0, obj->lessFunc);\n    Element *e =  &obj->arr[obj->queueSize - 1];\n    obj->queueSize--;\n    return e;\n}\n\nbool isEmpty(const PriorityQueue *obj) {\n    return obj->queueSize == 0;\n}\n\nElement* front(const PriorityQueue *obj) {\n    if (obj->queueSize == 0) {\n        return NULL;\n    } else {\n        return &obj->arr[0];\n    }\n}\n\nvoid clear(PriorityQueue *obj) {\n    obj->queueSize = 0;\n}\n\nint size(const PriorityQueue *obj) {\n    return obj->queueSize;\n}\n\nvoid freeQueue(PriorityQueue *obj) {\n    free(obj->arr);\n    free(obj);\n}\n\nint cmp(const void *a, const void *b) {\n    return (*(int **)a)[0] - (*(int **)b)[0];\n};\n\nint maxEvents(int** events, int eventsSize, int* eventsColSize) {\n    int n = eventsSize;\n    int maxDay = 0;\n    for (int i = 0; i < eventsSize; i++) {\n        maxDay = fmax(maxDay, events[i][1]);\n    }\n\n    PriorityQueue *pq = createPriorityQueue(greater);\n    qsort(events, eventsSize, sizeof(events[0]), cmp);\n    int ans = 0;\n    for (int i = 1, j = 0; i <= maxDay; i++) {\n        while (j < n && events[j][0] <= i) {\n            Element e = {events[j][1]};\n            enQueue(pq, &e);\n            j++;\n        }\n        while (!isEmpty(pq) && front(pq)->data < i) {\n            deQueue(pq);\n        }\n        if (!isEmpty(pq)) {\n            deQueue(pq);\n            ans++;\n        }\n    }\n\n    freeQueue(pq);\n    return ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar maxEvents = function(events) {\n    const n = events.length;\n    let maxDay = 0;\n    for (const e of events) {\n        maxDay = Math.max(maxDay, e[1]);\n    }\n    events.sort((a, b) => a[0] - b[0]);\n    const pq = new MinPriorityQueue();\n    let ans = 0;\n    for (let i = 1, j = 0; i <= maxDay; i++) {\n        while (j < n && events[j][0] <= i) {\n            pq.enqueue(events[j][1]);\n            j++;\n        }\n        while (!pq.isEmpty() && pq.front() < i) {\n            pq.dequeue();\n        }\n        if (!pq.isEmpty()) {\n            pq.dequeue();\n            ans++;\n        }\n    }\n    return ans;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction maxEvents(events: number[][]): number {\n    const n = events.length;\n    let maxDay = 0;\n    for (const e of events) {\n        maxDay = Math.max(maxDay, e[1]);\n    }\n    events.sort((a, b) => a[0] - b[0]);\n    const pq = new MinPriorityQueue<number>();\n    let ans = 0;\n    for (let i = 1, j = 0; i <= maxDay; i++) {\n        while (j < n && events[j][0] <= i) {\n            pq.enqueue(events[j][1]);\n            j++;\n        }\n        while (!pq.isEmpty() && pq.front() < i) {\n            pq.dequeue();\n        }\n        if (!pq.isEmpty()) {\n            pq.dequeue();\n            ans++;\n        }\n    }\n    return ans;\n}\n```\n\n```Rust [sol1-Rust]\nuse std::collections::BinaryHeap;\nuse std::cmp::Reverse;\n\nimpl Solution {\n    pub fn max_events(events: Vec<Vec<i32>>) -> i32 {\n        let mut events = events;\n        events.sort_by(|a, b| a[0].cmp(&b[0]));\n        let max_day = events.iter().map(|e| e[1]).max().unwrap_or(0);\n        let mut pq = BinaryHeap::new();\n        let mut ans = 0;\n        let mut j = 0;\n        for i in 1..= max_day {\n            while j < events.len() && events[j][0] <= i {\n                pq.push(Reverse(events[j][1]));\n                j += 1;\n            }\n            while let Some(&Reverse(end)) = pq.peek() {\n                if end < i {\n                    pq.pop();\n                } else {\n                    break;\n                }\n            }\n            if let Some(Reverse(_)) = pq.pop() {\n                ans += 1;\n            }\n        }\n        ans\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O((T + n) \\log n)$，其中 $n$ 表示给定数组 $\\textit{events}$ 的长度，$T$ 表示 $\\textit{events}$ 中结束时间的最大值。将数组 $\\textit{events}$ 排序需要的时间为 $O(n \\log n)$，一共需要枚举 $T$ 个时间，由于优先队列中最多有 $n$ 个元素，每个时间点进出队列的时间为 $O(\\log n)$，因此枚举并操作优先队列的时间为 $O(T \\log n)$，总的时间复杂度为 $O((T + n) \\log n)$。\n\n- 空间复杂度：$O(n)$，其中 $n$ 表示给定数组 $\\textit{events}$ 的长度。用优先队列来保存所有待选会议，此时优先队列中最多存在 $n$ 个元素，因此空间复杂度为 $O(n)$。",
+            "slateValue": "",
+            "slug": "zui-duo-ke-yi-can-jia-de-hui-yi-shu-mu-by-leetcode",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "dju7c1",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 33,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Heap",
+                    "nameTranslated": "堆",
+                    "slug": "heap",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Greedy",
+                    "nameTranslated": "贪心",
+                    "slug": "greedy",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "优先队列",
+                    "nameTranslated": "",
+                    "slug": "you-xian-dui-lie",
+                    "tagType": "ADDITIONAL_TOPIC"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-02-18T12:40:29.699932+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：贪心 思路与算法 根据题意可知，会议 [latex] 开始于 [latex] ，结束于 [latex]，此时可以在区间 [latex] 中任意安排一天参会即可。由于每天只能参加一场会议，根据贪心原则可知，如果第 [latex] 天可以安排参加会议 [latex] 和 [latex]，此时应尽量安排结束时间 [l",
+            "topic": {
+                "id": 101227,
+                "subscribed": false,
+                "commentCount": 59,
+                "viewCount": 22865,
+                "post": {
+                    "id": 348593,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 101,
+            "isEditorsPick": false,
+            "hitCount": 52769,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "maximum-number-of-events-that-can-be-attended",
+                "questionFrontendId": "1353"
+            },
+            "next": {
+                "slug": "liang-chong-fang-fa-zui-xiao-dui-bing-ch-ijbf",
+                "title": "两种方法：最小堆 / 并查集（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

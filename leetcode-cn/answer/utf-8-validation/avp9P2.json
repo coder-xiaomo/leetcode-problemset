@@ -1,0 +1,134 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "avp9P2",
+            "title": "UTF-8 编码验证",
+            "content": "#### 方法一：遍历 + 位运算\n\n**思路**\n\n如果给定的数组 $\\textit{data}$ 是有效的 $\\text{UTF-8}$ 编码，则可能由一个或多个 $\\text{UTF-8}$ 字符组成。第一个 $\\text{UTF-8}$ 字符的长度由 $\\textit{data}[0]$ 的值决定。对于从 $\\textit{data}[\\textit{index}]$ 开始的 $\\text{UTF-8}$ 字符，可根据 $\\textit{data}[\\textit{index}]$ 的值得到该字符的长度 $n$，如果下一个 $\\text{UTF-8}$ 字符存在，则下一个 $\\text{UTF-8}$ 字符从下标 $\\textit{index} + n$ 开始。因此，如果给定的数组 $\\textit{data}$ 是有效的 $\\text{UTF-8}$ 编码，则其对应的 $\\text{UTF-8}$ 字符序列是唯一的，且每个 $\\text{UTF-8}$ 字符的开始下标是确定的。\n\n基于上述分析，可以遍历数组 $\\textit{data}$ 得到每个字符的开始下标和长度，并分别判断每个字符是否符合 $\\text{UTF-8}$ 编码的规则。\n\n每个 $\\text{UTF-8}$ 字符由 $1$ 到 $4$ 个字节组成。以下将每个 $\\text{UTF-8}$ 字符的第 $1$ 个字节称为头字节，除了第 $1$ 个字节以外的字节统称为其余字节。\n\n用 $m$ 表示 $\\textit{data}$ 的长度，用 $\\textit{index}$ 表示 $\\text{UTF-8}$ 字符的头字节在 $\\textit{data}$ 中的下标，初始时 $\\textit{index} = 0$。对于每个字符，执行如下操作。\n\n1. 头字节包含了当前字符的字节数信息，根据头字节计算当前字符字节数的方法如下。\n\n   - 如果头字节的最高位是 $0$，则当前字符由 $1$ 个字节组成，只有头字节，没有其余字节。\n\n   - 如果头字节的最高位是 $1$，则计算头字节从最高位开始的连续 $1$ 的个数。如果连续 $1$ 的个数为 $2$ 个到 $4$ 个，则连续 $1$ 的个数表示当前字符的字节数；否则头字节不符合 $\\text{UTF-8}$ 编码的规则，$\\textit{data}$ 不是有效的 $\\text{UTF-8}$ 编码。\n\n2. 当头字节符合 $\\text{UTF-8}$ 编码的规则时，根据头字节得到当前字符的字节数为 $n$，则当前字符包括头字节和 $n - 1$ 个其余字节。如果 $\\textit{data}$ 在头字节后面的字节数小于 $n - 1$，即 $\\textit{index} + n > m$，则 $\\textit{data}$ 不是有效的 $\\text{UTF-8}$ 编码。\n\n3. 当 $\\textit{data}$ 在头字节后面的字节数大于等于 $n - 1$ 时，头字节后面的 $n - 1$ 个字节为当前字符的其余字节。判断每个其余字节的最高两位是否是 $10$，如果存在一个其余字节的最高两位不是 $10$，则 $\\textit{data}$ 不是有效的 $\\text{UTF-8}$ 编码。\n\n4. 当前字符遍历结束之后，将 $\\textit{index}$ 的值加 $n$，则更新后的 $\\textit{index}$ 是下一个字符的头字节在 $\\textit{data}$ 中的下标。\n\n重复上述操作，直到 $\\textit{index} = n$ 时遍历结束，此时 $\\textit{data}$ 是有效的 $\\text{UTF-8}$ 编码。\n\n**实现**\n\n判断 $\\textit{data}$ 是否是有效的 $\\text{UTF-8}$ 编码时，需要对每个字符的头字节和其余字节分别做判断。判断需要通过位运算实现，为了方便判断，需要设计两个位掩码 $\\textit{MASK}_1 = 2^7$，$\\textit{MASK}_2 = 2^7 + 2^6$。\n\n对于头字节，首先判断头字节和 $\\textit{MASK}_1$ 的按位与运算结果是否为 $0$。如果为 $0$ 则当前字符由 $1$ 个字节组成。如果不为 $0$ 则创建位掩码 $\\textit{mask}$ 并将初始值设为 $\\textit{MASK}_1$，每次计算头字节和 $\\textit{mask}$ 的按位与运算结果，如果结果不为 $0$ 则将 $\\textit{mask}$ 除以 $2$（可通过右移位运算实现）并重复该过程，直到结果为 $0$，此时可得到当前字符的字节数。\n\n对于其余字节，判断最高两位是否是 $10$ 的做法为计算其余字节和 $\\textit{MASK}_2$ 的按位与运算结果是否等于 $\\textit{MASK}_1$。\n\n具体实现见代码。\n\n**代码**\n\n```Python [sol1-Python3]\nclass Solution:\n    def validUtf8(self, data: List[int]) -> bool:\n        MASK1, MASK2 = 1 << 7, (1 << 7) | (1 << 6)\n\n        def getBytes(num: int) -> int:\n            if (num & MASK1) == 0:\n                return 1\n            n, mask = 0, MASK1\n            while num & mask:\n                n += 1\n                if n > 4:\n                    return -1\n                mask >>= 1\n            return n if n >= 2 else -1\n\n        index, m = 0, len(data)\n        while index < m:\n            n = getBytes(data[index])\n            if n < 0 or index + n > m or any((ch & MASK2) != MASK1 for ch in data[index + 1: index + n]):\n                return False\n            index += n\n        return True\n```\n\n```Java [sol1-Java]\nclass Solution {\n    static final int MASK1 = 1 << 7;\n    static final int MASK2 = (1 << 7) + (1 << 6);\n\n    public boolean validUtf8(int[] data) {\n        int m = data.length;\n        int index = 0;\n        while (index < m) {\n            int num = data[index];\n            int n = getBytes(num);\n            if (n < 0 || index + n > m) {\n                return false;\n            }\n            for (int i = 1; i < n; i++) {\n                if (!isValid(data[index + i])) {\n                    return false;\n                }\n            }\n            index += n;\n        }\n        return true;\n    }\n\n    public int getBytes(int num) {\n        if ((num & MASK1) == 0) {\n            return 1;\n        }\n        int n = 0;\n        int mask = MASK1;\n        while ((num & mask) != 0) {\n            n++;\n            if (n > 4) {\n                return -1;\n            }\n            mask >>= 1;\n        }\n        return n >= 2 ? n : -1;\n    }\n\n    public boolean isValid(int num) {\n        return (num & MASK2) == MASK1;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    const int MASK1 = 1 << 7;\n    const int MASK2 = (1 << 7) + (1 << 6);\n\n    public bool ValidUtf8(int[] data) {\n        int m = data.Length;\n        int index = 0;\n        while (index < m) {\n            int num = data[index];\n            int n = GetBytes(num);\n            if (n < 0 || index + n > m) {\n                return false;\n            }\n            for (int i = 1; i < n; i++) {\n                if (!IsValid(data[index + i])) {\n                    return false;\n                }\n            }\n            index += n;\n        }\n        return true;\n    }\n\n    public int GetBytes(int num) {\n        if ((num & MASK1) == 0) {\n            return 1;\n        }\n        int n = 0;\n        int mask = MASK1;\n        while ((num & mask) != 0) {\n            n++;\n            if (n > 4) {\n                return -1;\n            }\n            mask >>= 1;\n        }\n        return n >= 2 ? n : -1;\n    }\n\n    public bool IsValid(int num) {\n        return (num & MASK2) == MASK1;\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    static const int MASK1 = 1 << 7;\n    static const int MASK2 = (1 << 7) + (1 << 6);\n\n    bool isValid(int num) {\n        return (num & MASK2) == MASK1;\n    }\n\n    int getBytes(int num) {\n        if ((num & MASK1) == 0) {\n            return 1;\n        }\n        int n = 0;\n        int mask = MASK1;\n        while ((num & mask) != 0) {\n            n++;\n            if (n > 4) {\n                return -1;\n            }\n            mask >>= 1;\n        }\n        return n >= 2 ? n : -1;\n    }\n\n    bool validUtf8(vector<int>& data) {\n        int m = data.size();\n        int index = 0;\n        while (index < m) {\n            int num = data[index];\n            int n = getBytes(num);\n            if (n < 0 || index + n > m) {\n                return false;\n            }\n            for (int i = 1; i < n; i++) {\n                if (!isValid(data[index + i])) {\n                    return false;\n                }\n            }\n            index += n;\n        }\n        return true;\n    }\n};\n```\n\n```C [sol1-C]\nstatic const int MASK1 = 1 << 7;\nstatic const int MASK2 = (1 << 7) + (1 << 6);\n\nbool isValid(int num) {\n    return (num & MASK2) == MASK1;\n}\n\nint getBytes(int num) {\n    if ((num & MASK1) == 0) {\n        return 1;\n    }\n    int n = 0;\n    int mask = MASK1;\n    while ((num & mask) != 0) {\n        n++;\n        if (n > 4) {\n            return -1;\n        }\n        mask >>= 1;\n    }\n    return n >= 2 ? n : -1;\n}\n\nbool validUtf8(int* data, int dataSize){\n    int m = dataSize;\n    int index = 0;\n    while (index < m) {\n        int num = data[index];\n        int n = getBytes(num);\n        if (n < 0 || index + n > m) {\n            return false;\n        }\n        for (int i = 1; i < n; i++) {\n            if (!isValid(data[index + i])) {\n                return false;\n            }\n        }\n        index += n;\n    }\n    return true;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nconst MASK1 = 1 << 7;\nconst MASK2 = (1 << 7) + (1 << 6);\n\nvar validUtf8 = function(data) {\n    const m = data.length;\n    let index = 0;\n    while (index < m) {\n        const num = data[index];\n        const n = getBytes(num);\n        if (n < 0 || index + n > m) {\n            return false;\n        }\n        for (let i = 1; i < n; i++) {\n            if (!isValid(data[index + i])) {\n                return false;\n            }\n        }\n        index += n;\n    }\n    return true;\n};\n\nconst getBytes = (num) => {\n    if ((num & MASK1) === 0) {\n        return 1;\n    }\n    let n = 0;\n    let mask = MASK1;\n    while ((num & mask) !== 0) {\n        n++;\n        if (n > 4) {\n            return -1;\n        }\n        mask >>= 1;\n    }\n    return n >= 2 ? n : -1;\n}\n\nconst isValid = (num) => {\n    return (num & MASK2) === MASK1;\n}\n```\n\n```go [sol1-Golang]\nconst mask1, mask2 = 1 << 7, 1<<7 | 1<<6\n\nfunc getBytes(num int) int {\n    if num&mask1 == 0 {\n        return 1\n    }\n    n := 0\n    for mask := mask1; num&mask != 0; mask >>= 1 {\n        n++\n        if n > 4 {\n            return -1\n        }\n    }\n    if n >= 2 {\n        return n\n    }\n    return -1\n}\n\nfunc validUtf8(data []int) bool {\n    for index, m := 0, len(data); index < m; {\n        n := getBytes(data[index])\n        if n < 0 || index+n > m {\n            return false\n        }\n        for _, ch := range data[index+1 : index+n] {\n            if ch&mask2 != mask1 {\n                return false\n            }\n        }\n        index += n\n    }\n    return true\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(m)$，其中 $m$ 是数组 $\\textit{data}$ 的长度。需要遍历数组 $\\textit{data}$ 一次，对于数组中的每个元素的计算时间都是 $O(1)$。\n\n- 空间复杂度：$O(1)$。",
+            "slateValue": "",
+            "slug": "utf-8-bian-ma-yan-zheng-by-leetcode-solu-vbbf",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "avp9P2",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 34,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 3,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 0,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Bit Manipulation",
+                    "nameTranslated": "位运算",
+                    "slug": "bit-manipulation",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-03-11T02:04:39.424757+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：遍历 + 位运算 思路 如果给定的数组 $\\textit{data}$ 是有效的 $\\text{UTF-8}$ 编码，则可能由一个或多个 $\\text{UTF-8}$ 字符组成。第一个 $\\text{UTF-8}$ 字符的长度由 $\\textit{data}[0]$ 的值决定。对于从 $\\textit{data",
+            "topic": {
+                "id": 1327330,
+                "subscribed": false,
+                "commentCount": 131,
+                "viewCount": 17670,
+                "post": {
+                    "id": 2758461,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 48,
+            "isEditorsPick": false,
+            "hitCount": 30155,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "utf-8-validation",
+                "questionFrontendId": "393"
+            },
+            "next": {
+                "slug": "by-ac_oier-zvoy",
+                "title": "【宫水三叶】简单模拟题"
+            },
+            "prev": null
+        }
+    }
+}

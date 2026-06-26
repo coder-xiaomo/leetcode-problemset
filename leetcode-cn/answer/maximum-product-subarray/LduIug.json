@@ -1,0 +1,104 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "LduIug",
+            "title": "乘积最大子数组",
+            "content": "#### 方法一：动态规划\n\n**思路和算法**\n\n如果我们用 $f_{\\max}(i)$ 开表示以第 $i$ 个元素结尾的乘积最大子数组的乘积，$a$ 表示输入参数 `nums`，那么根据「53. 最大子序和」的经验，我们很容易推导出这样的状态转移方程：\n\n$$ f_{\\max}(i) = \\max_{i = 1}^{n} \\{ f(i - 1) \\times a_i, a_i \\} $$\n\n它表示以第 $i$ 个元素结尾的乘积最大子数组的乘积可以考虑 $a_i$ 加入前面的 $f_{\\max}(i - 1)$ 对应的一段，或者单独成为一段，这里两种情况下取最大值。求出所有的 $f_{\\max}(i)$ 之后选取最大的一个作为答案。\n\n**可是在这里，这样做是错误的。为什么呢？**\n\n因为这里的定义并不满足「最优子结构」。具体地讲，如果 $a = \\{ 5, 6, -3, 4, -3 \\}$，那么此时 $f_{\\max}$ 对应的序列是 $\\{ 5, 30, -3, 4, -3 \\}$，按照前面的算法我们可以得到答案为 $30$，即前两个数的乘积，而实际上答案应该是全体数字的乘积。我们来想一想问题出在哪里呢？问题出在最后一个 $-3$ 所对应的 $f_{\\max}$ 的值既不是 $-3$，也不是 $4 \\times -3$，而是 $5 \\times 30 \\times (-3) \\times 4 \\times (-3)$。所以我们得到了一个结论：当前位置的最优解未必是由前一个位置的最优解转移得到的。\n\n**我们可以根据正负性进行分类讨论。**\n\n考虑当前位置如果是一个负数的话，那么我们希望以它前一个位置结尾的某个段的积也是个负数，这样就可以负负得正，并且我们希望这个积尽可能「负得更多」，即尽可能小。如果当前位置是一个正数的话，我们更希望以它前一个位置结尾的某个段的积也是个正数，并且希望它尽可能地大。于是这里我们可以再维护一个 $f_{\\min}(i)$，它表示以第 $i$ 个元素结尾的乘积最小子数组的乘积，那么我们可以得到这样的动态规划转移方程：\n\n$$\n    \\begin{aligned}\n        f_{\\max}(i) &= \\max_{i = 1}^{n} \\{ f_{\\max}(i - 1) \\times a_i, f_{\\min}(i - 1) \\times a_i, a_i \\} \\\\\n        f_{\\min}(i) &= \\min_{i = 1}^{n} \\{ f_{\\max}(i - 1) \\times a_i, f_{\\min}(i - 1) \\times a_i, a_i \\}\n    \\end{aligned} \n$$\n\n它代表第 $i$ 个元素结尾的乘积最大子数组的乘积 $f_{\\max}(i)$，可以考虑把 $a_i$ 加入第 $i - 1$ 个元素结尾的乘积最大或最小的子数组的乘积中，二者加上 $a_i$，三者取大，就是第 $i$ 个元素结尾的乘积最大子数组的乘积。第 $i$ 个元素结尾的乘积最小子数组的乘积 $f_{\\min}(i)$ 同理。\n\n不难给出这样的实现：\n\n```cpp [sample-C++]\nclass Solution {\npublic:\n    int maxProduct(vector<int>& nums) {\n        vector <long> maxF(nums.begin(),nums.end()), minF(nums.begin(), nums.end());\n        for (int i = 1; i < nums.size(); ++i) {\n            maxF[i] = max(maxF[i - 1] * nums[i], max((long)nums[i], minF[i - 1] * nums[i]));\n            minF[i] = min(minF[i - 1] * nums[i], min((long)nums[i], maxF[i - 1] * nums[i]));\n            if(minF[i]<INT_MIN) {\n                minF[i]=nums[i];\n            }\n        }\n        return *max_element(maxF.begin(), maxF.end());\n    }\n};\n```\n\n```Java [sample-Java]\nclass Solution {\n    public int maxProduct(int[] nums) {\n        int length = nums.length;\n        long[] maxF = new long[length];\n        long[] minF = new long[length];\n        for (int i = 0; i < length; i++) {\n            maxF[i] = nums[i];\n            minF[i] = nums[i];\n        }\n        for (int i = 1; i < length; ++i) {\n            maxF[i] = Math.max(maxF[i - 1] * nums[i], Math.max(nums[i], minF[i - 1] * nums[i]));\n            minF[i] = Math.min(minF[i - 1] * nums[i], Math.min(nums[i], maxF[i - 1] * nums[i]));\n            if (minF[i] < (-1 << 31)) {\n                minF[i] = nums[i];\n            }\n        }\n        int ans = (int) maxF[0];\n        for (int i = 1; i < length; ++i) {\n            ans = Math.max(ans, (int) maxF[i]);\n        }\n        return ans;\n    }\n}\n```\n\n易得这里的渐进时间复杂度和渐进空间复杂度都是 $O(n)$。\n\n**考虑优化空间。** \n\n由于第 $i$ 个状态只和第 $i - 1$ 个状态相关，根据「滚动数组」思想，我们可以只用两个变量来维护 $i - 1$ 时刻的状态，一个维护 $f_{\\max}$，一个维护 $f_{\\min}$。细节参见代码。\n\n**代码**\n\n```cpp [sol1-C++]\nclass Solution {\npublic:\n    int maxProduct(vector<int>& nums) {\n        long maxF = nums[0], minF = nums[0], ans = nums[0];\n        for (int i = 1; i < nums.size(); ++i) {\n            long mx = maxF, mn = minF;\n            maxF = max(mx * nums[i], max((long)nums[i], mn * nums[i]));\n            minF = min(mn * nums[i], min((long)nums[i], mx * nums[i]));\n            if(minF<INT_MIN) {\n                minF=nums[i];\n            }\n            ans = max(maxF, ans);\n        }\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int maxProduct(int[] nums) {\n        long maxF = nums[0], minF = nums[0];\n        int ans = nums[0];\n        int length = nums.length;\n        for (int i = 1; i < length; ++i) {\n            long mx = maxF, mn = minF;\n            maxF = Math.max(mx * nums[i], Math.max(nums[i], mn * nums[i]));\n            minF = Math.min(mn * nums[i], Math.min(nums[i], mx * nums[i]));\n            if(minF<-1<<31){\n                minF=nums[i];\n            }\n            ans = Math.max((int)maxF, ans);\n        }\n        return ans;\n    }\n}\n```\n\n```golang [sol1-Golang]\nfunc maxProduct(nums []int) int {\n    maxF, minF, ans := nums[0], nums[0], nums[0]\n    for i := 1; i < len(nums); i++ {\n        mx, mn := maxF, minF\n        maxF = max(mx * nums[i], max(nums[i], mn * nums[i]))\n        minF = min(mn * nums[i], min(nums[i], mx * nums[i]))\n        if minF<(-1<<31){\n            minF=nums[i]\n        }\n        ans = max(maxF, ans)\n    }\n    return ans\n}\n\nfunc max(x, y int) int {\n    if x > y {\n        return x\n    }\n    return y\n}\n\nfunc min(x, y int) int {\n    if x < y {\n        return x\n    }\n    return y\n}\n```\n\n**复杂度分析**\n\n记 `nums` 元素个数为 $n$。\n\n+ 时间复杂度：程序一次循环遍历了 `nums`，故渐进时间复杂度为 $O(n)$。\n\n+ 空间复杂度：优化后只使用常数个临时变量作为辅助空间，与 $n$ 无关，故渐进空间复杂度为 $O(1)$。",
+            "slateValue": "",
+            "slug": "cheng-ji-zui-da-zi-shu-zu-by-leetcode-solution",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "LduIug",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 469,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 24,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 7,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-05-16T16:10:39.634875+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 思路和算法 如果我们用 $f_{\\max}(i)$ 开表示以第 $i$ 个元素结尾的乘积最大子数组的乘积，$a$ 表示输入参数 nums，那么根据「53. 最大子序和」的经验，我们很容易推导出这样的状态转移方程：  f_{\\max}(i) = \\max_{i = 1}^{n} { f(i - 1) \\",
+            "topic": {
+                "id": 250015,
+                "subscribed": false,
+                "commentCount": 777,
+                "viewCount": 185415,
+                "post": {
+                    "id": 649819,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 1393,
+            "isEditorsPick": false,
+            "hitCount": 523520,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "maximum-product-subarray",
+                "questionFrontendId": "152"
+            },
+            "next": {
+                "slug": "hua-jie-suan-fa-152-cheng-ji-zui-da-zi-xu-lie-by-g",
+                "title": "画解算法：152. 乘积最大子序列"
+            },
+            "prev": null
+        }
+    }
+}

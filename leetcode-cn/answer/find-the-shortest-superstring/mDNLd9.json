@@ -1,0 +1,90 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "mDNLd9",
+            "title": "最短超级串",
+            "content": "#### 方法一：动态规划\n\n由于没有一个字符串是另一个字符串的子串，因此最优的方法是：将这些字符串排成一行，对于每两个相邻的字符串，将前一个字符串的后缀和后一个字符串的前缀的重复部分合并，得到的长字符串就是最优的答案。也就是说，如果需要最后的字符串最短，就需要让这些字符串的重复部分最长。\n\n假设我们已经选出了若干个字符串将它们排成一行且合并了重复部分，并且最后一个选出的字符串是 `A[i]`，那么如果我们现在选出一个新的字符串 `A[j]`，那么重复部分的长度会增加 `overlap(A[i], A[j])`，而与在 `A[i]` 之前选取了哪些字符串无关。\n\n因此我们可以使用动态规划来解决这个问题。设 `dp(mask, i)` 表示已经选出的字符串为 `mask`（`mask` 是一个长度为 `A.length` 的二进制数，它的第 `k` 位如果为 `1`，则表示第 `k` 个字符串已经选出，否则表示第 `k` 个字符串没有被选出），且最后一个选出的字符串是 `A[i]` 时的重复部分的最大长度。在状态转移时，我们枚举下一个选出的字符串 `j`，就有\n\n`dp(mask ^ (1 << j), j) = max{overlap(A[i], A[j]) + dp(mask, i)}`\n\n当然 `dp(mask, i)` 只记录了重复部分的最大长度，要得到这个最大长度对应的字符串，我们还需要记录一下每个状态从哪个状态转移得来，最后通过逆推的方式还原这个字符串。\n\n**算法**\n\n我们的算法包括三个部分：\n\n* 预先计算出所有的 `overlap(A[i], A[j])`；\n\n* 使用动态规划计算出所有的 `dp(mask, i)`，并记录每个状态从哪个状态转移得来，记为 `parent`；\n\n* 通过 `parent` 还原这个字符串。\n\n```Java [sol1]\nclass Solution {\n    public String shortestSuperstring(String[] A) {\n        int N = A.length;\n\n        // Populate overlaps\n        int[][] overlaps = new int[N][N];\n        for (int i = 0; i < N; ++i)\n            for (int j = 0; j < N; ++j) if (i != j) {\n                int m = Math.min(A[i].length(), A[j].length());\n                for (int k = m; k >= 0; --k)\n                    if (A[i].endsWith(A[j].substring(0, k))) {\n                        overlaps[i][j] = k;\n                        break;\n                    }\n            }\n\n        // dp[mask][i] = most overlap with mask, ending with ith element\n        int[][] dp = new int[1<<N][N];\n        int[][] parent = new int[1<<N][N];\n        for (int mask = 0; mask < (1<<N); ++mask) {\n            Arrays.fill(parent[mask], -1);\n\n            for (int bit = 0; bit < N; ++bit) if (((mask >> bit) & 1) > 0) {\n                // Let's try to find dp[mask][bit].  Previously, we had\n                // a collection of items represented by pmask.\n                int pmask = mask ^ (1 << bit);\n                if (pmask == 0) continue;\n                for (int i = 0; i < N; ++i) if (((pmask >> i) & 1) > 0) {\n                    // For each bit i in pmask, calculate the value\n                    // if we ended with word i, then added word 'bit'.\n                    int val = dp[pmask][i] + overlaps[i][bit];\n                    if (val > dp[mask][bit]) {\n                        dp[mask][bit] = val;\n                        parent[mask][bit] = i;\n                    }\n                }\n            }\n        }\n\n        // # Answer will have length sum(len(A[i]) for i) - max(dp[-1])\n        // Reconstruct answer, first as a sequence 'perm' representing\n        // the indices of each word from left to right.\n\n        int[] perm = new int[N];\n        boolean[] seen = new boolean[N];\n        int t = 0;\n        int mask = (1 << N) - 1;\n\n        // p: the last element of perm (last word written left to right)\n        int p = 0;\n        for (int j = 0; j < N; ++j)\n            if (dp[(1<<N) - 1][j] > dp[(1<<N) - 1][p])\n                p = j;\n\n        // Follow parents down backwards path that retains maximum overlap\n        while (p != -1) {\n            perm[t++] = p;\n            seen[p] = true;\n            int p2 = parent[mask][p];\n            mask ^= 1 << p;\n            p = p2;\n        }\n\n        // Reverse perm\n        for (int i = 0; i < t/2; ++i) {\n            int v = perm[i];\n            perm[i] = perm[t-1-i];\n            perm[t-1-i] = v;\n        }\n\n        // Fill in remaining words not yet added\n        for (int i = 0; i < N; ++i) if (!seen[i])\n            perm[t++] = i;\n\n        // Reconstruct final answer given perm\n        StringBuilder ans = new StringBuilder(A[perm[0]]);\n        for (int i = 1; i < N; ++i) {\n            int overlap = overlaps[perm[i-1]][perm[i]];\n            ans.append(A[perm[i]].substring(overlap));\n        }\n\n        return ans.toString();\n    }\n}\n\n```\n\n```Python [sol1]\nclass Solution(object):\n    def shortestSuperstring(self, A):\n        N = len(A)\n\n        # Populate overlaps\n        overlaps = [[0] * N for _ in xrange(N)]\n        for i, x in enumerate(A):\n            for j, y in enumerate(A):\n                if i != j:\n                    for ans in xrange(min(len(x), len(y)), -1, -1):\n                        if x.endswith(y[:ans]):\n                            overlaps[i][j] = ans\n                            break\n\n        # dp[mask][i] = most overlap with mask, ending with ith element\n        dp = [[0] * N for _ in xrange(1<<N)]\n        parent = [[None] * N for _ in xrange(1<<N)]\n        for mask in xrange(1, 1 << N):\n            for bit in xrange(N):\n                if (mask >> bit) & 1:\n                    # Let's try to find dp[mask][bit].  Previously, we had\n                    # a collection of items represented by pmask.\n                    pmask = mask ^ (1 << bit)\n                    if pmask == 0: continue\n                    for i in xrange(N):\n                        if (pmask >> i) & 1:\n                            # For each bit i in pmask, calculate the value\n                            # if we ended with word i, then added word 'bit'.\n                            value = dp[pmask][i] + overlaps[i][bit]\n                            if value > dp[mask][bit]:\n                                dp[mask][bit] = value\n                                parent[mask][bit] = i\n\n        # Answer will have length sum(len(A[i]) for i) - max(dp[-1])\n        # Reconstruct answer:\n\n        # Follow parents down backwards path that retains maximum overlap\n        perm = []\n        mask = (1<<N) - 1\n        i = max(xrange(N), key = dp[-1].__getitem__)\n        while i is not None:\n            perm.append(i)\n            mask, i = mask ^ (1<<i), parent[mask][i]\n\n        # Reverse path to get forwards direction; add all remaining words\n        perm = perm[::-1]\n        seen = [False] * N\n        for x in perm:\n            seen[x] = True\n        perm.extend([i for i in xrange(N) if not seen[i]])\n\n        # Reconstruct answer given perm = word indices in left to right order\n        ans = [A[perm[0]]]\n        for i in xrange(1, len(perm)):\n            overlap = overlaps[perm[i-1]][perm[i]]\n            ans.append(A[perm[i]][overlap:])\n\n        return \"\".join(ans)\n```\n\n**复杂度分析**\n\n* 时间复杂度：$O(N^2 * (2^N + W))$，其中 $N$ 是字符串的数目，$W$ 是字符串的最大长度。\n\n* 空间复杂度：$O(N * (2^N + W))$。",
+            "slateValue": "",
+            "slug": "zui-duan-chao-ji-chuan-by-leetcode",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "mDNLd9",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 20,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2019-07-22T09:14:18.005303+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/uploaded_files/2021/03/73c9f099-abbe-4d94-853f-f8abffd459cd/leetcode.png",
+                    "userSlug": "leetcode",
+                    "realName": "LeetCode",
+                    "reputation": 2117
+                }
+            },
+            "summary": " 方法一：动态规划\n由于没有一个字符串是另一个字符串的子串，因此最优的方法是：将这些字符串排成一行，对于每两个相邻的字符串，将前一个字符串的后缀和后一个字符串的前缀的重复部分合并，得到的长字符串就是最优的答案。也就是说，如果需要最后的字符串最短，就需要让这些字符串的重复部分最长。\n假设我们已经选出了若干个字符串将它们排",
+            "topic": {
+                "id": 15999,
+                "subscribed": false,
+                "commentCount": 55,
+                "viewCount": 6395,
+                "post": {
+                    "id": 135610,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 48,
+            "isEditorsPick": false,
+            "hitCount": 13783,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "find-the-shortest-superstring",
+                "questionFrontendId": "943"
+            },
+            "next": {
+                "slug": "gong-shui-san-xie-zhuang-ya-dp-yun-yong-p6hlz",
+                "title": "【宫水三叶】状压 DP 运用题"
+            },
+            "prev": null
+        }
+    }
+}

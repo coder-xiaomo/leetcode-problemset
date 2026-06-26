@@ -1,0 +1,140 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "m3Y8MT",
+            "title": "连续的子数组和",
+            "content": "#### 方法一：前缀和 + 哈希表\n\n朴素的思路是遍历数组 $\\textit{nums}$ 的每个大小至少为 $2$ 的子数组并计算每个子数组的元素和，判断是否存在一个子数组的元素和为 $k$ 的倍数。当数组 $\\textit{nums}$ 的长度为 $m$ 时，上述思路需要用 $O(m^2)$ 的时间遍历全部子数组，对于每个子数组需要 $O(m)$ 的时间计算元素和，因此时间复杂度是 $O(m^3)$，会超出时间限制，因此必须优化。\n\n如果事先计算出数组 $\\textit{nums}$ 的前缀和数组，则对于任意一个子数组，都可以在 $O(1)$ 的时间内得到其元素和。用 $\\textit{prefixSums}[i]$ 表示数组 $\\textit{nums}$ 从下标 $0$ 到下标 $i$ 的前缀和，则 $\\textit{nums}$ 从下标 $p+1$ 到下标 $q$（其中 $p<q$）的子数组的长度为 $q-p$，该子数组的元素和为 $\\textit{prefixSums}[q]-\\textit{prefixSums}[p]$。\n\n如果 $\\textit{prefixSums}[q]-\\textit{prefixSums}[p]$ 为 $k$ 的倍数，且 $q-p \\ge 2$，则上述子数组即满足大小至少为 $2$ 且元素和为 $k$ 的倍数。\n\n当 $\\textit{prefixSums}[q]-\\textit{prefixSums}[p]$ 为 $k$ 的倍数时，$\\textit{prefixSums}[p]$ 和 $\\textit{prefixSums}[q]$ 除以 $k$ 的余数相同。因此只需要计算每个下标对应的前缀和除以 $k$ 的余数即可，使用哈希表存储每个余数第一次出现的下标。\n\n规定空的前缀的结束下标为 $-1$，由于空的前缀的元素和为 $0$，因此在哈希表中存入键值对 $(0,-1)$。对于 $0 \\le i<m$，从小到大依次遍历每个 $i$，计算每个下标对应的前缀和除以 $k$ 的余数，并维护哈希表：\n\n- 如果当前余数在哈希表中已经存在，则取出该余数在哈希表中对应的下标 $\\textit{prevIndex}$，$\\textit{nums}$ 从下标 $\\textit{prevIndex}+1$ 到下标 $i$ 的子数组的长度为 $i-\\textit{prevIndex}$，该子数组的元素和为 $k$ 的倍数，如果 $i-\\textit{prevIndex} \\ge 2$，则找到了一个大小至少为 $2$ 且元素和为 $k$ 的倍数的子数组，返回 $\\text{true}$；\n\n- 如果当前余数在哈希表中不存在，则将当前余数和当前下标 $i$ 的键值对存入哈希表中。\n\n由于哈希表存储的是每个余数第一次出现的下标，因此当遇到重复的余数时，根据当前下标和哈希表中存储的下标计算得到的子数组长度是以当前下标结尾的子数组中满足元素和为 $k$ 的倍数的子数组长度中的最大值。只要最大长度至少为 $2$，即存在符合要求的子数组。\n\n```Java [sol1-Java]\nclass Solution {\n    public boolean checkSubarraySum(int[] nums, int k) {\n        int m = nums.length;\n        if (m < 2) {\n            return false;\n        }\n        Map<Integer, Integer> map = new HashMap<Integer, Integer>();\n        map.put(0, -1);\n        int remainder = 0;\n        for (int i = 0; i < m; i++) {\n            remainder = (remainder + nums[i]) % k;\n            if (map.containsKey(remainder)) {\n                int prevIndex = map.get(remainder);\n                if (i - prevIndex >= 2) {\n                    return true;\n                }\n            } else {\n                map.put(remainder, i);\n            }\n        }\n        return false;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public bool CheckSubarraySum(int[] nums, int k) {\n        int m = nums.Length;\n        if (m < 2) {\n            return false;\n        }\n        Dictionary<int, int> dictionary = new Dictionary<int, int>();\n        dictionary.Add(0, -1);\n        int remainder = 0;\n        for (int i = 0; i < m; i++) {\n            remainder = (remainder + nums[i]) % k;\n            if (dictionary.ContainsKey(remainder)) {\n                int prevIndex = dictionary[remainder];\n                if (i - prevIndex >= 2) {\n                    return true;\n                }\n            } else {\n                dictionary.Add(remainder, i);\n            }\n        }\n        return false;\n    }\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar checkSubarraySum = function(nums, k) {\n    const m = nums.length;\n    if (m < 2) {\n        return false;\n    }\n    const map = new Map();\n    map.set(0, -1);\n    let remainder = 0;\n    for (let i = 0; i < m; i++) {\n        remainder = (remainder + nums[i]) % k;\n        if (map.has(remainder)) {\n            const prevIndex = map.get(remainder);\n            if (i - prevIndex >= 2) {\n                return true;\n            }\n        } else {\n            map.set(remainder, i);\n        }\n    }\n    return false;\n};\n```\n\n```go [sol1-Golang]\nfunc checkSubarraySum(nums []int, k int) bool {\n    m := len(nums)\n    if m < 2 {\n        return false\n    }\n    mp := map[int]int{0: -1}\n    remainder := 0\n    for i, num := range nums {\n        remainder = (remainder + num) % k\n        if prevIndex, has := mp[remainder]; has {\n            if i-prevIndex >= 2 {\n                return true\n            }\n        } else {\n            mp[remainder] = i\n        }\n    }\n    return false\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    bool checkSubarraySum(vector<int>& nums, int k) {\n        int m = nums.size();\n        if (m < 2) {\n            return false;\n        }\n        unordered_map<int, int> mp;\n        mp[0] = -1;\n        int remainder = 0;\n        for (int i = 0; i < m; i++) {\n            remainder = (remainder + nums[i]) % k;\n            if (mp.count(remainder)) {\n                int prevIndex = mp[remainder];\n                if (i - prevIndex >= 2) {\n                    return true;\n                }\n            } else {\n                mp[remainder] = i;\n            }\n        }\n        return false;\n    }\n};\n```\n\n```C [sol1-C]\nstruct HashTable {\n    int key, val;\n    UT_hash_handle hh;\n};\n\nbool checkSubarraySum(int* nums, int numsSize, int k) {\n    int m = numsSize;\n    if (m < 2) {\n        return false;\n    }\n    struct HashTable* hashTable = NULL;\n    struct HashTable* tmp = malloc(sizeof(struct HashTable));\n    tmp->key = 0, tmp->val = -1;\n    HASH_ADD_INT(hashTable, key, tmp);\n    int remainder = 0;\n    for (int i = 0; i < m; i++) {\n        remainder = (remainder + nums[i]) % k;\n        HASH_FIND_INT(hashTable, &remainder, tmp);\n        if (tmp != NULL) {\n            int prevIndex = tmp->val;\n            if (i - prevIndex >= 2) {\n                return true;\n            }\n        } else {\n            tmp = malloc(sizeof(struct HashTable));\n            tmp->key = remainder, tmp->val = i;\n            HASH_ADD_INT(hashTable, key, tmp);\n        }\n    }\n    return false;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(m)$，其中 $m$ 是数组 $\\textit{nums}$ 的长度。需要遍历数组一次。\n\n- 空间复杂度：$O(\\min(m,k))$，其中 $m$ 是数组 $\\textit{nums}$ 的长度。空间复杂度主要取决于哈希表，哈希表中存储每个余数第一次出现的下标，最多有 $\\min(m,k)$ 个余数。",
+            "slateValue": "",
+            "slug": "lian-xu-de-zi-shu-zu-he-by-leetcode-solu-rdzi",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "m3Y8MT",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 143,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 11,
+                    "reactionType": "CONFUSED"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Prefix Sum",
+                    "nameTranslated": "前缀和",
+                    "slug": "prefix-sum",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2021-06-01T15:58:54.928992+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：前缀和 + 哈希表 朴素的思路是遍历数组 $\\textit{nums}$ 的每个大小至少为 $2$ 的子数组并计算每个子数组的元素和，判断是否存在一个子数组的元素和为 $k$ 的倍数。当数组 $\\textit{nums}$ 的长度为 $m$ 时，上述思路需要用 $O(m^2)$ 的时间遍历全部子数组，对于每个子",
+            "topic": {
+                "id": 807930,
+                "subscribed": false,
+                "commentCount": 294,
+                "viewCount": 49486,
+                "post": {
+                    "id": 1775490,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 252,
+            "isEditorsPick": false,
+            "hitCount": 110689,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "continuous-subarray-sum",
+                "questionFrontendId": "523"
+            },
+            "next": {
+                "slug": "gong-shui-san-xie-tuo-zhan-wei-qiu-fang-1juse",
+                "title": "【宫水三叶】拓展到求方案数问题"
+            },
+            "prev": null
+        }
+    }
+}

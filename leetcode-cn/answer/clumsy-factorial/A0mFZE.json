@@ -1,0 +1,128 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "A0mFZE",
+            "title": "笨阶乘",
+            "content": "#### 方法一：使用栈模拟\n\n**思路**\n\n根据求解问题「[150. 逆波兰表达式求值](/problems/evaluate-reverse-polish-notation)」、「[224. 基本计算器](/problems/basic-calculator)」、「[227. 基本计算器 II](/problems/basic-calculator-ii)」的经验，表达式的计算一般可以借助数据结构「栈」完成，特别是带有括号的表达式。我们将暂时还不能确定的数据存入栈，确定了优先级最高以后，一旦可以计算出结果，我们就把数据从栈里取出，**整个过程恰好符合了「后进先出」的规律**。本题也不例外。\n\n根据题意，「笨阶乘」没有显式括号，运算优先级是先「乘除」后「加减」。我们可以从 $n$ 开始，枚举 $n-1$、$n-2$ 直到 $1$ ，枚举这些数的时候，认为它们之前的操作符按照「乘」「除」「加」「减」交替进行。\n\n- 出现乘法、除法的时候可以把栈顶元素取出，与当前的 $n$ 进行乘法运算、除法运算（除法运算需要注意先后顺序），并将运算结果重新压入栈中；\n\n- 出现加法、减法的时候，把减法视为加上一个数的相反数，然后压入栈，等待以后遇见「乘」「除」法的时候取出。\n\n最后将栈中元素累加即为答案。由于加法运算交换律成立，可以将栈里的元素依次出栈相加。\n\n**代码**\n\n```Java [sol1-Java]\nclass Solution {\n    public int clumsy(int n) {\n        Deque<Integer> stack = new LinkedList<Integer>();\n        stack.push(n);\n        n--;\n\n        int index = 0; // 用于控制乘、除、加、减\n        while (n > 0) {\n            if (index % 4 == 0) {\n                stack.push(stack.pop() * n);\n            } else if (index % 4 == 1) {\n                stack.push(stack.pop() / n);\n            } else if (index % 4 == 2) {\n                stack.push(n);\n            } else {\n                stack.push(-n);\n            }\n            index++;\n            n--;\n        }\n\n        // 把栈中所有的数字依次弹出求和\n        int sum = 0;\n        while (!stack.isEmpty()) {\n            sum += stack.pop();\n        }\n        return sum;\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int clumsy(int n) {\n        stack<int> stk;\n        stk.push(n);\n        n--;\n\n        int index = 0; // 用于控制乘、除、加、减\n        while (n > 0) {\n            if (index % 4 == 0) {\n                stk.top() *= n;\n            } else if (index % 4 == 1) {\n                stk.top() /= n;\n            } else if (index % 4 == 2) {\n                stk.push(n);\n            } else {\n                stk.push(-n);\n            }\n            index++;\n            n--;\n        }\n\n        // 把栈中所有的数字依次弹出求和\n        int sum = 0;\n        while (!stk.empty()) {\n            sum += stk.top();\n            stk.pop();\n        }\n        return sum;\n    }\n};\n```\n\n```go [sol1-Go]\nfunc clumsy(n int) (ans int) {\n    stk := []int{n}\n    n--\n\n    index := 0 // 用于控制乘、除、加、减\n    for n > 0 {\n        switch index % 4 {\n        case 0:\n            stk[len(stk)-1] *= n\n        case 1:\n            stk[len(stk)-1] /= n\n        case 2:\n            stk = append(stk, n)\n        default:\n            stk = append(stk, -n)\n        }\n        n--\n        index++\n    }\n\n    // 累加栈中数字\n    for _, v := range stk {\n        ans += v\n    }\n    return\n}\n```\n\n```C [sol1-C]\nint clumsy(int n) {\n    int stk[n], top = 0;\n    stk[top++] = n;\n    n--;\n\n    int index = 0; // 用于控制乘、除、加、减\n    while (n > 0) {\n        if (index % 4 == 0) {\n            stk[top - 1] *= n;\n        } else if (index % 4 == 1) {\n            stk[top - 1] /= n;\n        } else if (index % 4 == 2) {\n            stk[top++] = n;\n        } else {\n            stk[top++] = -n;\n        }\n        index++;\n        n--;\n    }\n\n    // 把栈中所有的数字依次弹出求和\n    int sum = 0;\n    while (top) {\n        sum += stk[--top];\n    }\n    return sum;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar clumsy = function(n) {\n    const stack = [n--];\n\n    let index = 0; // 用于控制乘、除、加、减\n    while (n > 0) {\n        if (index % 4 == 0) {\n            stack.push(stack.pop() * n);\n        } else if (index % 4 == 1) {\n            const cur = stack.pop();\n            stack.push(cur > 0 ? Math.floor(cur / n) : Math.ceil(cur / n));\n        } else if (index % 4 == 2) {\n            stack.push(n);\n        } else {\n            stack.push(-n);\n        }\n        index++;\n        n--;\n    }\n\n    // 把栈中所有的数字依次弹出求和\n    let sum = 0;\n    stack.forEach((element) => {\n        sum += element;\n    })\n    return sum;\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$。从 $n$ 到 $1$ 每一个元素进栈一次，出栈一次。\n\n- 空间复杂度：$O(n)$。由于「乘」「除」运算在进栈、出栈过程中被计算出来，最后一步弹出栈之前，栈里保存的是「加」「减」法项。\n\n#### 方法二：数学\n\n**思路**\n\n让我们来尝试化简「笨阶乘」的式子。\n\n观察「笨阶乘」的前三项，有\n\n$$\n\\begin{aligned}\n&5\\cdot4/3=6\\\\\n&6\\cdot5/4=7\\\\\n&7\\cdot6/5=8\\\\\n&\\dots\n\\end{aligned}\n$$\n\n一般地，有\n\n$$\n\\begin{aligned}\n&\\quad~ n \\cdot (n - 1) / (n - 2) \\\\ &= \\cfrac{n^2 - n}{n-2} \\\\ \n&= \\cfrac{n^2 - 2n + n}{n-2}  \\\\ &= \\cfrac{n(n - 2) + n}{n-2} \\\\\n&= n + \\cfrac{n}{n-2} \\\\\n&= n + \\cfrac{n - 2 + 2}{n-2} \\\\\n&= n + 1 + \\cfrac{2}{n - 2}\n\\end{aligned}\n$$\n\n上式最后一项 $\\cfrac{2}{n - 2}$，当分子严格小于分母（$2 < n - 2$，即 $n > 4$）的时候，在地板除法的定义下等于 $0$。\n即当 $n > 4$ 时，有 \n\n$$\nn \\cdot (n - 1) / (n - 2) = n + 1\n$$\n\n我们把「笨阶乘」的计算式多写几项：\n$$\n\\texttt{clumsy}(n) = n \\cdot (n - 1) / (n - 2) + (n - 3) - (n - 4) \\cdot (n - 5) / (n - 6) + (n - 7) - \\cdots\n$$\n\n就会发现其中有可以「消去」的部分，根据以上分析，当 $n > 8$ 时，有\n\n$$\n(n - 4) \\cdot (n - 5) / (n - 6) = n - 3\n$$\n\n此时 $\\texttt{clumsy}(n)$ 除了 $n \\cdot (n - 1) / (n - 2) = n + 1$ 以外，后面每 $4$ 项的计算结果均为 $0$。即当 $n > 8$ 时，有\n\n$$\n(n - 3) - (n - 4) \\cdot (n - 5) / (n - 6) = 0\n$$\n\n剩下不能够成 $4$ 个一组成对「消去」的情况需要分类讨论。由于「笨阶乘」按照「乘」「除」「加」「减」循环的顺序定义运算，我们可以将 $n$ 按照对 $4$ 取模的余数分类讨论。\n\n下面我们分类讨论：$n$ 对 $4$ 取模的余数分别是 $0$、$1$、$2$、$3$ 时，最后一项 $1$ 的符号。\n\n**情况一**：当 $n$ 对 $4$ 取模的余数等于 $0$ 时，有\n\n$$\n\\begin{aligned}\n\\texttt{clumsy}(n) &= \\underline{n \\cdot (n - 1) / (n - 2) } + \\cdots 8 \\times 7 / 6 + \\underline{ 5 - 4 \\times 3 / 2 + 1 } \\\\ &= n + 1 + 5 - 6 + 1 \\\\\n&= n + 1\n\\end{aligned}\n$$\n\n观察到：上式中**除了有下划线的部分，其余项的和为 $0$**。注意我们观察到数字 $8$ 后面恰好是「笨阶乘」定义的第一种运算「乘」，由它可以观察出此时 $n$ 的一般规律，即当 $n \\bmod 4 = 0$ 时，最后一项 $1$ 前面是「加」。\n\n后面的情况可以类似地进行分析。\n\n**情况二**：当 $n$ 对 $4$ 取模的余数等于 $1$ 时，有\n\n$$\n\\begin{aligned}\n\\texttt{clumsy}(n) &= \\underline{n \\cdot (n - 1) / (n - 2) } + \\cdots 9 \\times 8 / 7 + \\underline{ 6 - 5 \\times 4 / 3 + 2 - 1 } \\\\ \n&= n + 1 + 6 - 6 + 2 - 1 \\\\\n&= n + 2\n\\end{aligned}\n$$\n\n此时最后一项 $1$ 前面是「减」。\n\n**情况三**：当 $n$ 对 $4$ 取模的余数等于 $2$ 时，有\n\n$$\n\\begin{aligned}\n\\texttt{clumsy}(n) &= \\underline{n \\cdot (n - 1) / (n - 2) } + \\cdots 10 \\times 9 / 8 + \\underline{ 7 - 6 \\times 5 / 4 + 3 - 2 \\times 1 } \\\\\n&= n + 1 + 7 - 7 + 3 - 2 \\\\\n&= n + 2\n\\end{aligned}\n$$\n\n此时最后一项 $1$ 前面是「乘」。\n\n**情况四**：当 $n$ 对 $4$ 取模的余数等于 $3$ 时，有\n\n$$\n\\begin{aligned}\n\\texttt{clumsy}(n) &= \\underline{n \\cdot (n - 1) / (n - 2) } + \\cdots 11 \\times 10 / 9 + \\underline{ 8 - 7 \\times 6 / 5 + 4 - 3 \\times 2 / 1 } \\\\\n&= n + 1 + 8 - 8 + 4 - 6 \\\\\n&= n - 1\n\\end{aligned}\n$$\n此时最后一项 $1$ 前面是「除」。\n\n综上所述：\n\n- 当 $n \\le 4$ 时，可以分别单独计算「笨阶乘」；\n\n- 当 $n > 4$ 时，可以根据 $n$ 对 $4$ 取模的余数进行分类讨论。\n\n**代码**\n\n```Java [sol2-Java]\nclass Solution {\n    public int clumsy(int n) {\n        if (n == 1) {\n            return 1;\n        } else if (n == 2) {\n            return 2;\n        } else if (n == 3) {\n            return 6;\n        } else if (n == 4) {\n            return 7;\n        }\n\n        if (n % 4 == 0) {\n            return n + 1;\n        } else if (n % 4 <= 2) {\n            return n + 2;\n        } else {\n            return n - 1;\n        }\n    }\n}\n```\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    int clumsy(int n) {\n        if (n == 1) {\n            return 1;\n        } else if (n == 2) {\n            return 2;\n        } else if (n == 3) {\n            return 6;\n        } else if (n == 4) {\n            return 7;\n        }\n\n        if (n % 4 == 0) {\n            return n + 1;\n        } else if (n % 4 <= 2) {\n            return n + 2;\n        } else {\n            return n - 1;\n        }\n    }\n};\n```\n\n```go [sol2-Go]\nfunc clumsy(n int) (ans int) {\n    switch {\n    case n == 1:\n        return 1\n    case n == 2:\n        return 2\n    case n == 3:\n        return 6\n    case n == 4:\n        return 7\n\n    case n%4 == 0:\n        return n + 1\n    case n%4 <= 2:\n        return n + 2\n    default:\n        return n - 1\n    }\n}\n```\n\n```C [sol2-C]\nint clumsy(int n) {\n    if (n == 1) {\n        return 1;\n    } else if (n == 2) {\n        return 2;\n    } else if (n == 3) {\n        return 6;\n    } else if (n == 4) {\n        return 7;\n    }\n\n    if (n % 4 == 0) {\n        return n + 1;\n    } else if (n % 4 <= 2) {\n        return n + 2;\n    } else {\n        return n - 1;\n    }\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar clumsy = function(n) {\n    if (n === 1) {\n        return 1;\n    } else if (n === 2) {\n        return 2;\n    } else if (n === 3) {\n        return 6;\n    } else if (n === 4) {\n        return 7;\n    }\n\n    if (n % 4 === 0) {\n        return n + 1;\n    } else if (n % 4 <= 2) {\n        return n + 2;\n    } else {\n        return n - 1;\n    }\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(1)$。对于任意的 $n$，计算时间都为常数。\n\n- 空间复杂度：$O(1)$。",
+            "slateValue": "",
+            "slug": "ben-jie-cheng-by-leetcode-solution-deh2",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "A0mFZE",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 95,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 4,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 0,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Stack",
+                    "nameTranslated": "栈",
+                    "slug": "stack",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Simulation",
+                    "nameTranslated": "模拟",
+                    "slug": "simulation",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2021-03-31T14:55:25.593948+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：使用栈模拟 思路 根据求解问题「150. 逆波兰表达式求值」、「224. 基本计算器」、「227. 基本计算器 II」的经验，表达式的计算一般可以借助数据结构「栈」完成，特别是带有括号的表达式。我们将暂时还不能确定的数据存入栈，确定了优先级最高以后，一旦可以计算出结果，我们就把数据从栈里取出，整个过程恰好符合了",
+            "topic": {
+                "id": 692629,
+                "subscribed": false,
+                "commentCount": 204,
+                "viewCount": 26685,
+                "post": {
+                    "id": 1557768,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 99,
+            "isEditorsPick": false,
+            "hitCount": 43759,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "clumsy-factorial",
+                "questionFrontendId": "1006"
+            },
+            "next": {
+                "slug": "gong-shui-san-xie-tong-yong-biao-da-shi-nngfp",
+                "title": "【宫水三叶の相信科学系列】「通用表达式」&「数学」解法，以及更有价值的「求解思路」"
+            },
+            "prev": null
+        }
+    }
+}

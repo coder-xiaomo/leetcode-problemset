@@ -1,0 +1,134 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "i0pH6G",
+            "title": "扁平化嵌套列表迭代器",
+            "content": "#### 方法一：深度优先搜索\n\n**思路**\n\n嵌套的整型列表是一个树形结构，树上的叶子节点对应一个整数，非叶节点对应一个列表。\n\n在这棵树上深度优先搜索的顺序就是迭代器遍历的顺序。\n\n我们可以先遍历整个嵌套列表，将所有整数存入一个数组，然后遍历该数组从而实现 $\\texttt{next}$ 和 $\\texttt{hasNext}$ 方法。\n\n**代码**\n\n```C++ [sol1-C++]\nclass NestedIterator {\nprivate:\n    vector<int> vals;\n    vector<int>::iterator cur;\n\n    void dfs(const vector<NestedInteger> &nestedList) {\n        for (auto &nest : nestedList) {\n            if (nest.isInteger()) {\n                vals.push_back(nest.getInteger());\n            } else {\n                dfs(nest.getList());\n            }\n        }\n    }\n\npublic:\n    NestedIterator(vector<NestedInteger> &nestedList) {\n        dfs(nestedList);\n        cur = vals.begin();\n    }\n\n    int next() {\n        return *cur++;\n    }\n\n    bool hasNext() {\n        return cur != vals.end();\n    }\n};\n```\n\n```Java [sol1-Java]\npublic class NestedIterator implements Iterator<Integer> {\n    private List<Integer> vals;\n    private Iterator<Integer> cur;\n\n    public NestedIterator(List<NestedInteger> nestedList) {\n        vals = new ArrayList<Integer>();\n        dfs(nestedList);\n        cur = vals.iterator();\n    }\n\n    @Override\n    public Integer next() {\n        return cur.next();\n    }\n\n    @Override\n    public boolean hasNext() {\n        return cur.hasNext();\n    }\n\n    private void dfs(List<NestedInteger> nestedList) {\n        for (NestedInteger nest : nestedList) {\n            if (nest.isInteger()) {\n                vals.add(nest.getInteger());\n            } else {\n                dfs(nest.getList());\n            }\n        }\n    }\n}\n```\n\n```go [sol1-Golang]\ntype NestedIterator struct {\n    vals []int\n}\n\nfunc Constructor(nestedList []*NestedInteger) *NestedIterator {\n    var vals []int\n    var dfs func([]*NestedInteger)\n    dfs = func(nestedList []*NestedInteger) {\n        for _, nest := range nestedList {\n            if nest.IsInteger() {\n                vals = append(vals, nest.GetInteger())\n            } else {\n                dfs(nest.GetList())\n            }\n        }\n    }\n    dfs(nestedList)\n    return &NestedIterator{vals}\n}\n\nfunc (it *NestedIterator) Next() int {\n    val := it.vals[0]\n    it.vals = it.vals[1:]\n    return val\n}\n\nfunc (it *NestedIterator) HasNext() bool {\n    return len(it.vals) > 0\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar NestedIterator = function(nestedList) {\n    vals = [];\n    const dfs = (nestedList) => {\n        for (const nest of nestedList) {\n            if (nest.isInteger()) {\n                vals.push(nest.getInteger());\n            } else {\n                dfs(nest.getList());\n            }\n        }\n    }\n    dfs(nestedList);\n};\n\nNestedIterator.prototype.hasNext = function() {\n    return vals.length > 0;\n};\n\nNestedIterator.prototype.next = function() {\n    const val = vals[0];\n    vals = vals.slice(1);\n    return val;\n};\n```\n\n```C [sol1-C]\nstruct NestedIterator {\n    int *vals;\n    int size;\n    int cur;\n};\n\nvoid dfs(struct NestedIterator *iter, struct NestedInteger **nestedList, int nestedListSize) {\n    for (int i = 0; i < nestedListSize; i++) {\n        if (NestedIntegerIsInteger(nestedList[i])) {\n            (iter->vals)[(iter->size)++] = NestedIntegerGetInteger(nestedList[i]);\n        } else {\n            dfs(iter, NestedIntegerGetList(nestedList[i]), NestedIntegerGetListSize(nestedList[i]));\n        }\n    }\n}\n\nstruct NestedIterator *nestedIterCreate(struct NestedInteger **nestedList, int nestedListSize) {\n    struct NestedIterator *ret = malloc(sizeof(struct NestedIterator));\n    ret->vals = malloc(sizeof(int) * 20001);\n    ret->size = 0;\n    ret->cur = 0;\n    dfs(ret, nestedList, nestedListSize);\n    return ret;\n}\n\nbool nestedIterHasNext(struct NestedIterator *iter) {\n    return iter->cur != iter->size;\n}\n\nint nestedIterNext(struct NestedIterator *iter) {\n    return (iter->vals)[(iter->cur)++];\n}\n\nvoid nestedIterFree(struct NestedIterator *iter) {\n    free(iter->vals);\n    free(iter);\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：初始化为 $O(n)$，$\\texttt{next}$ 和 $\\texttt{hasNext}$ 为 $O(1)$。其中 $n$ 是嵌套的整型列表中的元素个数。\n\n- 空间复杂度：$O(n)$。需要一个数组存储嵌套的整型列表中的所有元素。\n\n#### 方法二：栈\n\n**思路**\n\n我们可以用一个栈来代替方法一中的递归过程。\n\n具体来说，用一个栈来维护深度优先搜索时，从根节点到当前节点路径上的所有节点。由于非叶节点对应的是一个列表，我们在栈中存储的是指向列表当前遍历的元素的指针（下标）。每次向下搜索时，取出列表的当前指针指向的元素并将其入栈，同时将该指针向后移动一位。如此反复直到找到一个整数。循环时若栈顶指针指向了列表末尾，则将其从栈顶弹出。\n\n下面的代码中，$\\texttt{C++}$ 和 $\\texttt{Java}$ 的栈存储的是迭代器，迭代器可以起到指向元素的指针的效果，$\\texttt{Go}$ 的栈存储的是切片（视作队列），通过将元素弹出队首的操作代替移动指针的操作。\n\n**代码**\n\n```C++ [sol2-C++]\nclass NestedIterator {\nprivate:\n    // pair 中存储的是列表的当前遍历位置，以及一个尾后迭代器用于判断是否遍历到了列表末尾\n    stack<pair<vector<NestedInteger>::iterator, vector<NestedInteger>::iterator>> stk;\n\npublic:\n    NestedIterator(vector<NestedInteger> &nestedList) {\n        stk.emplace(nestedList.begin(), nestedList.end());\n    }\n\n    int next() {\n        // 由于保证调用 next 之前会调用 hasNext，直接返回栈顶列表的当前元素，然后迭代器指向下一个元素\n        return stk.top().first++->getInteger();\n    }\n\n    bool hasNext() {\n        while (!stk.empty()) {\n            auto &p = stk.top();\n            if (p.first == p.second) { // 遍历到当前列表末尾，出栈\n                stk.pop();\n                continue;\n            }\n            if (p.first->isInteger()) {\n                return true;\n            }\n            // 若当前元素为列表，则将其入栈，且迭代器指向下一个元素\n            auto &lst = p.first++->getList();\n            stk.emplace(lst.begin(), lst.end());\n        }\n        return false;\n    }\n};\n```\n\n```Java [sol2-Java]\npublic class NestedIterator implements Iterator<Integer> {\n    // 存储列表的当前遍历位置\n    private Deque<Iterator<NestedInteger>> stack;\n\n    public NestedIterator(List<NestedInteger> nestedList) {\n        stack = new LinkedList<Iterator<NestedInteger>>();\n        stack.push(nestedList.iterator());\n    }\n\n    @Override\n    public Integer next() {\n        // 由于保证调用 next 之前会调用 hasNext，直接返回栈顶列表的当前元素\n        return stack.peek().next().getInteger();\n    }\n\n    @Override\n    public boolean hasNext() {\n        while (!stack.isEmpty()) {\n            Iterator<NestedInteger> it = stack.peek();\n            if (!it.hasNext()) { // 遍历到当前列表末尾，出栈\n                stack.pop();\n                continue;\n            }\n            // 若取出的元素是整数，则通过创建一个额外的列表将其重新放入栈中\n            NestedInteger nest = it.next();\n            if (nest.isInteger()) {\n                List<NestedInteger> list = new ArrayList<NestedInteger>();\n                list.add(nest);\n                stack.push(list.iterator());\n                return true;\n            }\n            stack.push(nest.getList().iterator());\n        }\n        return false;\n    }\n}\n```\n\n```go [sol2-Golang]\ntype NestedIterator struct {\n    // 将列表视作一个队列，栈中直接存储该队列\n    stack [][]*NestedInteger\n}\n\nfunc Constructor(nestedList []*NestedInteger) *NestedIterator {\n    return &NestedIterator{[][]*NestedInteger{nestedList}}\n}\n\nfunc (it *NestedIterator) Next() int {\n    // 由于保证调用 Next 之前会调用 HasNext，直接返回栈顶列表的队首元素，将其弹出队首并返回\n    queue := it.stack[len(it.stack)-1]\n    val := queue[0].GetInteger()\n    it.stack[len(it.stack)-1] = queue[1:]\n    return val\n}\n\nfunc (it *NestedIterator) HasNext() bool {\n    for len(it.stack) > 0 {\n        queue := it.stack[len(it.stack)-1]\n        if len(queue) == 0 { // 当前队列为空，出栈\n            it.stack = it.stack[:len(it.stack)-1]\n            continue\n        }\n        nest := queue[0]\n        if nest.IsInteger() {\n            return true\n        }\n        // 若队首元素为列表，则将其弹出队列并入栈\n        it.stack[len(it.stack)-1] = queue[1:]\n        it.stack = append(it.stack, nest.GetList())\n    }\n    return false\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar NestedIterator = function(nestedList) {\n    this.stack = nestedList;\n};\n\nNestedIterator.prototype.hasNext = function() {\n    while (this.stack.length !== 0) {\n        if (this.stack[0].isInteger()) {\n            return true;\n        } else {\n            let cur = this.stack[0].getList();\n            this.stack.shift();\n            this.stack.unshift(...cur);\n        }\n    }\n};\n\nNestedIterator.prototype.next = function() {\n    return this.stack.shift().getInteger();\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：初始化和 $\\texttt{next}$ 为 $O(1)$，$\\texttt{hasNext}$ 为均摊 $O(1)$。\n\n- 空间复杂度：$O(n)$。最坏情况下嵌套的整型列表是一条链，我们需要一个 $O(n)$ 大小的栈来存储链上的所有元素。",
+            "slateValue": "",
+            "slug": "bian-ping-hua-qian-tao-lie-biao-die-dai-ipjzq",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "i0pH6G",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 78,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 11,
+                    "reactionType": "CONFUSED"
+                },
+                {
+                    "count": 3,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Stack",
+                    "nameTranslated": "栈",
+                    "slug": "stack",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Tree",
+                    "nameTranslated": "树",
+                    "slug": "tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Depth-First Search",
+                    "nameTranslated": "深度优先搜索",
+                    "slug": "depth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Design",
+                    "nameTranslated": "设计",
+                    "slug": "design",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-03-22T15:04:28.292042+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：深度优先搜索 思路 嵌套的整型列表是一个树形结构，树上的叶子节点对应一个整数，非叶节点对应一个列表。 在这棵树上深度优先搜索的顺序就是迭代器遍历的顺序。 我们可以先遍历整个嵌套列表，将所有整数存入一个数组，然后遍历该数组从而实现 $\\texttt{next}$ 和 $\\texttt{hasNext}$ 方法。 ",
+            "topic": {
+                "id": 674229,
+                "subscribed": false,
+                "commentCount": 152,
+                "viewCount": 39311,
+                "post": {
+                    "id": 1522575,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 140,
+            "isEditorsPick": false,
+            "hitCount": 69842,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "flatten-nested-list-iterator",
+                "questionFrontendId": "341"
+            },
+            "next": {
+                "slug": "fu-xue-ming-zhu-xiang-jie-ti-yi-shu-li-d-n4qa",
+                "title": "【负雪明烛】详解题意，梳理递归和迭代两种思路"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,126 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "cCYyzW",
+            "title": "细分图中的可到达结点",
+            "content": "#### 方法一：Dijkstra 算法\n\n**思路**\n\n当图中只存在原始节点而不存在细分节点时，此题可以用 Dijkstra 算法解决：将输入的 $\\textit{edges}$ 转换成邻接表 $\\textit{adList}$，维护一个小顶堆 $\\textit{pq}$ 可以依次计算出图中的起点到各个点最短路径，从而计算出可到达节点。$\\textit{pq}$ 中的元素为节点以及起点到该节点的路径长度，并以路径长度为比较元素。每次取出未访问过的节点中的路径最短的节点，并访问其邻接点，若路径长度仍小于等于 $\\textit{maxMoves}$ 且未访问过，可将其放入 $\\textit{pq}$，直至 $\\textit{pq}$ 为空或 $\\textit{pq}$ 最短路径大于 $\\textit{maxMoves}$。\n\n但当每条边上都加入细分节点后，需要考虑细分节点是否可达。用一个哈希表 $\\textit{used}$ 记录各条边上的细分节点的可达情况，键为二元点对 $(u,v)$ 表示从点 $u$ 到点 $v$ 的边，值为这条边上的可达细分节点数。注意在计算细分节点时，是考虑单向的情况，即会分别计算 $\\textit{used}[(u, v)]$ 和 $\\textit{used}[(v, u)]$，并且这两个值不一定相等。计算 $\\textit{used}$ 时，是要在访问路径最短的节点 $u$ 的邻接节点 $v$ 时计算。如果邻接节点的路径长度小于等于 $\\textit{maxMoves}$，说明这条边上的细分节点都可达，否则只有一部分可达，且这部分细分节点是靠近节点 $u$ 的。\n\n计算总的可达节点时，需要加上细分节点的部分。但每条边上的细分节点可能会被计算过两次，即 $\\textit{used}[(u, v)$ 和 $\\textit{used}[(v, u)]$，他们分别是是靠近 $u$ 开始计算的和靠近 $v$ 开始计算的，需要对这两部分进行去重。\n\n**代码**\n\n```Python [sol1-Python3]\nclass Solution:\n    def reachableNodes(self, edges: List[List[int]], maxMoves: int, n: int) -> int:\n        adList = defaultdict(list)\n        for u, v, nodes in edges:\n            adList[u].append([v, nodes])\n            adList[v].append([u, nodes])\n        used = {}\n        visited = set()\n        reachableNodes = 0\n        pq = [[0, 0]]\n\n        while pq and pq[0][0] <= maxMoves:\n            step, u = heapq.heappop(pq)\n            if u in visited:\n                continue\n            visited.add(u)\n            reachableNodes += 1\n            for v, nodes in adList[u]:\n                if nodes + step + 1 <= maxMoves and v not in visited:\n                    heappush(pq, [nodes + step + 1, v])\n                used[(u, v)] = min(nodes, maxMoves - step)\n\n        for u, v, nodes in edges:\n            reachableNodes += min(nodes, used.get((u, v), 0) + used.get((v, u), 0))\n        return reachableNodes\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int reachableNodes(int[][] edges, int maxMoves, int n) {\n        List<int[]>[] adList = new List[n];\n        for (int i = 0; i < n; i++) {\n            adList[i] = new ArrayList<int[]>();\n        }\n        for (int[] edge : edges) {\n            int u = edge[0], v = edge[1], nodes = edge[2];\n            adList[u].add(new int[]{v, nodes});\n            adList[v].add(new int[]{u, nodes});\n        }\n        Map<Integer, Integer> used = new HashMap<Integer, Integer>();\n        Set<Integer> visited = new HashSet<Integer>();\n        int reachableNodes = 0;\n        PriorityQueue<int[]> pq = new PriorityQueue<int[]>((a, b) -> a[0] - b[0]);\n        pq.offer(new int[]{0, 0});\n\n        while (!pq.isEmpty() && pq.peek()[0] <= maxMoves) {\n            int[] pair = pq.poll();\n            int step = pair[0], u = pair[1];\n            if (!visited.add(u)) {\n                continue;\n            }\n            reachableNodes++;\n            for (int[] next : adList[u]) {\n                int v = next[0], nodes = next[1];\n                if (nodes + step + 1 <= maxMoves && !visited.contains(v)) {\n                    pq.offer(new int[]{nodes + step + 1, v});\n                }\n                used.put(encode(u, v, n), Math.min(nodes, maxMoves - step));\n            }\n        }\n\n        for (int[] edge : edges) {\n            int u = edge[0], v = edge[1], nodes = edge[2];\n            reachableNodes += Math.min(nodes, used.getOrDefault(encode(u, v, n), 0) + used.getOrDefault(encode(v, u, n), 0));\n        }\n        return reachableNodes;\n    }\n\n    public int encode(int u, int v, int n) {\n        return u * n + v;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int ReachableNodes(int[][] edges, int maxMoves, int n) {\n        IList<int[]>[] adList = new IList<int[]>[n];\n        for (int i = 0; i < n; i++) {\n            adList[i] = new List<int[]>();\n        }\n        foreach (int[] edge in edges) {\n            int u = edge[0], v = edge[1], nodes = edge[2];\n            adList[u].Add(new int[]{v, nodes});\n            adList[v].Add(new int[]{u, nodes});\n        }\n        IDictionary<int, int> used = new Dictionary<int, int>();\n        ISet<int> visited = new HashSet<int>();\n        int reachableNodes = 0;\n        PriorityQueue<int[], int> pq = new PriorityQueue<int[], int>();\n        pq.Enqueue(new int[]{0, 0}, 0);\n\n        while (pq.Count > 0 && pq.Peek()[0] <= maxMoves) {\n            int[] pair = pq.Dequeue();\n            int step = pair[0], u = pair[1];\n            if (!visited.Add(u)) {\n                continue;\n            }\n            reachableNodes++;\n            foreach (int[] next in adList[u]) {\n                int v = next[0], nodes = next[1];\n                if (nodes + step + 1 <= maxMoves && !visited.Contains(v)) {\n                    pq.Enqueue(new int[]{nodes + step + 1, v}, nodes + step + 1);\n                }\n                used.Add(Encode(u, v, n), Math.Min(nodes, maxMoves - step));\n            }\n        }\n\n        foreach (int[] edge in edges) {\n            int u = edge[0], v = edge[1], nodes = edge[2];\n            int key1 = Encode(u, v, n), key2 = Encode(v, u, n);\n            reachableNodes += Math.Min(nodes, (used.ContainsKey(key1) ? used[key1] : 0) + (used.ContainsKey(key2) ? used[key2] : 0));\n        }\n        return reachableNodes;\n    }\n\n    public int Encode(int u, int v, int n) {\n        return u * n + v;\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int encode(int u, int v, int n) {\n        return u * n + v;\n    }\n\n    int reachableNodes(vector<vector<int>>& edges, int maxMoves, int n) {\n        vector<vector<pair<int, int>>> adList(n);\n        for (auto &edge : edges) {\n            int u = edge[0], v = edge[1], nodes = edge[2];\n            adList[u].emplace_back(v, nodes);\n            adList[v].emplace_back(u, nodes);\n        }\n\n        unordered_map<int, int> used;\n        unordered_set<int> visited;\n        int reachableNodes = 0;\n        priority_queue<pair<int, int>, vector<pair<int, int>>, greater<pair<int, int>>> pq;\n        pq.emplace(0, 0);\n        while (!pq.empty() && pq.top().first <= maxMoves) {\n            auto [step, u] = pq.top();\n            pq.pop();\n            if (visited.count(u)) {\n                continue;\n            }\n            visited.emplace(u);\n            reachableNodes++;\n            for (auto [v, nodes] : adList[u]) {\n                if (nodes + step + 1 <= maxMoves && !visited.count(v)) {\n                    pq.emplace(nodes + step + 1, v);\n                }\n                used[encode(u, v, n)] = min(nodes, maxMoves - step);\n            }\n        }\n\n        for (auto &edge : edges) {\n            int u = edge[0], v = edge[1], nodes = edge[2];\n            reachableNodes += min(nodes, used[encode(u, v, n)] + used[encode(v, u, n)]);\n        }\n        return reachableNodes;\n    }\n};\n```\n\n```go [sol1-Golang]\nfunc reachableNodes(edges [][]int, maxMoves, n int) int {\n    adList := map[int][][]int{}\n    for _, edge := range edges {\n        u, v, nodes := edge[0], edge[1], edge[2]\n        adList[u] = append(adList[u], []int{v, nodes})\n        adList[v] = append(adList[v], []int{u, nodes})\n    }\n    used := map[int]int{}\n    visited := map[int]bool{}\n    reachableNodes := 0\n    pq := myHeap{}\n    heap.Push(&pq, []int{0, 0})\n\n    for pq.Len() > 0 && pq[0][0] <= maxMoves {\n        p := heap.Pop(&pq).([]int)\n        step, u := p[0], p[1]\n        if visited[u] {\n            continue\n        }\n        visited[u] = true\n        reachableNodes++\n        for _, q := range adList[u] {\n            v, nodes := q[0], q[1]\n            if nodes+step+1 <= maxMoves && !visited[v] {\n                heap.Push(&pq, []int{nodes + step + 1, v})\n            }\n            used[u*n+v] = min(nodes, maxMoves-step)\n        }\n    }\n\n    for _, edge := range edges {\n        u, v, nodes := edge[0], edge[1], edge[2]\n        reachableNodes += min(nodes, used[u*n+v]+used[v*n+u])\n    }\n    return reachableNodes\n}\n\nfunc min(x, y int) int {\n    if x > y {\n        return y\n    }\n    return x\n}\n\ntype myHeap [][]int\n\nfunc (h myHeap) Len() int {\n    return len(h)\n}\n\nfunc (h myHeap) Less(i, j int) bool {\n    return h[i][0] < h[j][0]\n}\n\nfunc (h myHeap) Swap(i, j int) {\n    h[i], h[j] = h[j], h[i]\n}\n\nfunc (h *myHeap) Push(val interface{}) {\n    *h = append(*h, val.([]int))\n}\n\nfunc (h *myHeap) Pop() interface{} {\n    hp := *h\n    val := hp[len(hp)-1]\n    *h = hp[:len(hp)-1]\n    return val\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(E \\times \\log V)$，$V$ 为节点数，即 $n$，$E$ 为输入 $\\textit{edges}$ 的长度。邻接表 $\\textit{adList}$ 的时间复杂度为 $O(E)$，Dijkstra 算法的时间复杂度为 $O(E \\times \\log V)$。总的时间复杂度为 $O(E \\times \\log V)$。\n\n- 空间复杂度：$O(V+E)$，邻接表 $\\textit{adList}$ 的空间复杂度为 $O(E)$，$\\textit{pq}$ 的空间复杂度为 $O(E)$，$\\textit{visited}$ 的空间复杂度为 $O(V)$，$\\textit{used}$ 的空间复杂度为 $O(E)$，总的空间复杂度为 $O(V+E)$。",
+            "slateValue": "",
+            "slug": "xi-fen-tu-zhong-de-ke-dao-da-jie-dian-by-u8m1",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "cCYyzW",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 30,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Graph",
+                    "nameTranslated": "图",
+                    "slug": "graph",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Shortest Path",
+                    "nameTranslated": "最短路",
+                    "slug": "shortest-path",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Heap (Priority Queue)",
+                    "nameTranslated": "堆（优先队列）",
+                    "slug": "heap-priority-queue",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2022-11-25T07:51:53.819171+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：Dijkstra 算法 思路 当图中只存在原始节点而不存在细分节点时，此题可以用 Dijkstra 算法解决：将输入的 $\\textit{edges}$ 转换成邻接表 $\\textit{adList}$，维护一个小顶堆 $\\textit{pq}$ 可以依次计算出图中的起点到各个点最短路径，从而计算出可到达节点。",
+            "topic": {
+                "id": 1990614,
+                "subscribed": false,
+                "commentCount": 39,
+                "viewCount": 5823,
+                "post": {
+                    "id": 3836405,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 34,
+            "isEditorsPick": false,
+            "hitCount": 11764,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "reachable-nodes-in-subdivided-graph",
+                "questionFrontendId": "882"
+            },
+            "next": {
+                "slug": "tu-jie-zhuan-huan-cheng-dan-yuan-zui-dua-6l8o",
+                "title": "【图解】转换成单源最短路问题，附题单（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

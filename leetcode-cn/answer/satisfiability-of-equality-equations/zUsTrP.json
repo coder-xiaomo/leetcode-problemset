@@ -1,0 +1,122 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "zUsTrP",
+            "title": "等式方程的可满足性",
+            "content": "### 📺 视频题解  \n![990. 等式方程的可满足性.mp4](fa3c8d24-ca62-4a44-bff8-bae421e2838c)\n\n### 📖 文字题解\n#### 方法一：并查集\n\n我们可以将每一个变量看作图中的一个节点，把相等的关系 `==` 看作是连接两个节点的边，那么由于表示相等关系的等式方程具有传递性，即如果 `a==b` 和 `b==c` 成立，则 `a==c` 也成立。也就是说，所有相等的变量属于同一个连通分量。因此，我们可以使用并查集来维护这种连通分量的关系。\n\n首先遍历所有的等式，构造并查集。同一个等式中的两个变量属于同一个连通分量，因此将两个变量进行合并。\n\n然后遍历所有的不等式。同一个不等式中的两个变量不能属于同一个连通分量，因此对两个变量分别查找其所在的连通分量，如果两个变量在同一个连通分量中，则产生矛盾，返回 `false`。\n\n如果遍历完所有的不等式没有发现矛盾，则返回 `true`。\n\n![fig1](https://assets.leetcode.cn/solution-static/990/990_fig1.gif){:width=\"90%\"}\n\n具体实现方面，使用一个数组 `parent` 存储每个变量的连通分量信息，其中的每个元素表示当前变量所在的连通分量的父节点信息，如果父节点是自身，说明该变量为所在的连通分量的根节点。一开始所有变量的父节点都是它们自身。对于合并操作，我们将第一个变量的根节点的父节点指向第二个变量的根节点；对于查找操作，我们沿着当前变量的父节点一路向上查找，直到找到根节点。\n\n```Java [sol1-Java]\nclass Solution {\n    public boolean equationsPossible(String[] equations) {\n        int[] parent = new int[26];\n        for (int i = 0; i < 26; i++) {\n            parent[i] = i;\n        }\n        for (String str : equations) {\n            if (str.charAt(1) == '=') {\n                int index1 = str.charAt(0) - 'a';\n                int index2 = str.charAt(3) - 'a';\n                union(parent, index1, index2);\n            }\n        }\n        for (String str : equations) {\n            if (str.charAt(1) == '!') {\n                int index1 = str.charAt(0) - 'a';\n                int index2 = str.charAt(3) - 'a';\n                if (find(parent, index1) == find(parent, index2)) {\n                    return false;\n                }\n            }\n        }\n        return true;\n    }\n\n    public void union(int[] parent, int index1, int index2) {\n        parent[find(parent, index1)] = find(parent, index2);\n    }\n\n    public int find(int[] parent, int index) {\n        while (parent[index] != index) {\n            parent[index] = parent[parent[index]];\n            index = parent[index];\n        }\n        return index;\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass UnionFind {\nprivate:\n    vector<int> parent;\n\npublic:\n    UnionFind() {\n        parent.resize(26);\n        iota(parent.begin(), parent.end(), 0);\n    }\n\n    int find(int index) {\n        if (index == parent[index]) {\n            return index;\n        }\n        parent[index] = find(parent[index]);\n        return parent[index];\n    }\n\n    void unite(int index1, int index2) {\n        parent[find(index1)] = find(index2);\n    }\n};\n\nclass Solution {\npublic:\n    bool equationsPossible(vector<string>& equations) {\n        UnionFind uf;\n        for (const string& str: equations) {\n            if (str[1] == '=') {\n                int index1 = str[0] - 'a';\n                int index2 = str[3] - 'a';\n                uf.unite(index1, index2);\n            }\n        }\n        for (const string& str: equations) {\n            if (str[1] == '!') {\n                int index1 = str[0] - 'a';\n                int index2 = str[3] - 'a';\n                if (uf.find(index1) == uf.find(index2)) {\n                    return false;\n                }\n            }\n        }\n        return true;\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n\n    class UnionFind:\n        def __init__(self):\n            self.parent = list(range(26))\n        \n        def find(self, index):\n            if index == self.parent[index]:\n                return index\n            self.parent[index] = self.find(self.parent[index])\n            return self.parent[index]\n        \n        def union(self, index1, index2):\n            self.parent[self.find(index1)] = self.find(index2)\n\n\n    def equationsPossible(self, equations: List[str]) -> bool:\n        uf = Solution.UnionFind()\n        for st in equations:\n            if st[1] == \"=\":\n                index1 = ord(st[0]) - ord(\"a\")\n                index2 = ord(st[3]) - ord(\"a\")\n                uf.union(index1, index2)\n        for st in equations:\n            if st[1] == \"!\":\n                index1 = ord(st[0]) - ord(\"a\")\n                index2 = ord(st[3]) - ord(\"a\")\n                if uf.find(index1) == uf.find(index2):\n                    return False\n        return True\n```\n\n```golang [sol1-Golang]\nfunc equationsPossible(equations []string) bool {\n    parent := make([]int, 26)\n    for i := 0; i < 26; i++ {\n        parent[i] = i\n    }\n    for _, str := range equations {\n        if str[1] == '=' {\n            index1 := int(str[0] - 'a')\n            index2 := int(str[3] - 'a')\n            union(parent, index1, index2)\n        }\n    }\n\n    for _, str := range equations {\n        if str[1] == '!' {\n            index1 := int(str[0] - 'a')\n            index2 := int(str[3] - 'a')\n            if find(parent, index1) == find(parent, index2) {\n                return false\n            }\n        }\n    }\n    return true\n}\n\nfunc union(parent []int, index1, index2 int) {\n    parent[find(parent, index1)] = find(parent, index2)\n}\n\nfunc find(parent []int, index int) int {\n    for parent[index] != index {\n        parent[index] = parent[parent[index]]\n        index = parent[index]\n    }\n    return index\n}\n```\n\n**复杂度分析**\n\n* 时间复杂度：$O(n+C \\log C)$，其中 $n$ 是 `equations` 中的方程数量，$C$ 是变量的总数，在本题中变量都是小写字母，即 $C \\leq 26$。上面的并查集代码中使用了路径压缩优化，对于每个方程的合并和查找的均摊时间复杂度都是 $O(\\log C)$。由于需要遍历每个方程，因此总时间复杂度是 $O(n+C \\log C)$。\n\n* 空间复杂度：$O(C)$。创建一个数组 `parent` 存储每个变量的连通分量信息，由于变量都是小写字母，因此 `parent` 是长度为 $C$。",
+            "slateValue": "",
+            "slug": "deng-shi-fang-cheng-de-ke-man-zu-xing-by-leetcode-",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "zUsTrP",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 133,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 12,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 8,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Union Find",
+                    "nameTranslated": "并查集",
+                    "slug": "union-find",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Graph",
+                    "nameTranslated": "图",
+                    "slug": "graph",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-06-07T13:23:53.579569+00:00",
+            "thumbnail": "https://assets.leetcode-cn.com/solution-static/990/990_fig1.gif",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "📺 视频题解 📖 文字题解 方法一：并查集 我们可以将每一个变量看作图中的一个节点，把相等的关系 == 看作是连接两个节点的边，那么由于表示相等关系的等式方程具有传递性，即如果 a==b 和 b==c 成立，则 a==c 也成立。也就是说，所有相等的变量属于同一个连通分量。因此，我们可以使用并查集来维护这种连通分量的关",
+            "topic": {
+                "id": 279091,
+                "subscribed": false,
+                "commentCount": 138,
+                "viewCount": 31290,
+                "post": {
+                    "id": 712154,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": true,
+            "favoriteCount": 171,
+            "isEditorsPick": false,
+            "hitCount": 59369,
+            "videosInfo": [
+                {
+                    "videoId": "93e3fd333b9e4a9f82cdb532c72a340d",
+                    "coverUrl": "https://video.leetcode.cn/image/cover/F3B0977E94B242AFB814ED0812B39A13-6-2.png?auth_key=1782487471-43df40315db1430095a94f563c03d5ae-0-72478964a255f3f6e7cd160f9a9781ef",
+                    "duration": 555.52
+                }
+            ],
+            "question": {
+                "titleSlug": "satisfiability-of-equality-equations",
+                "questionFrontendId": "990"
+            },
+            "next": {
+                "slug": "an-ti-yi-he-bing-xiang-deng-ji-ke-by-qia-6yib",
+                "title": "按题意合并相等即可"
+            },
+            "prev": null
+        }
+    }
+}

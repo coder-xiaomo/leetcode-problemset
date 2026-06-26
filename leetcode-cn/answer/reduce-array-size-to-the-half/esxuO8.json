@@ -1,0 +1,154 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "esxuO8",
+            "title": "数组大小减半",
+            "content": "#### 方法一：贪心算法\n\n**思路与算法**\n\n在每一步操作中，我们需要选择一个数 $x$，并且删除数组 $\\textit{arr}$ 中所有的 $x$。显然选择的数 $x$ 在数组 $\\textit{arr}$ 中出现的次数越多越好。因此我们可以统计数组 $\\textit{arr}$ 中每个数出现的次数，并进行降序排序。在得到了排序的结果之后，我们依次选择这些数进行删除，直到删除了至少一半的数。\n\n在统计数组 $\\textit{arr}$ 中每个数出现的次数时，我们可以借助哈希映射（$\\text{HashMap}$），对于其中的每个键值对，键表示数 $x$，值表示数 $x$ 出现的次数。在统计结束后，我们只要取出哈希映射中的所有值进行降序排序即可。在进行删除时，我们实际上也只需要将删除的数的个数进行累加，直到累加的值达到数组 $\\textit{arr}$ 长度的一半，而不需要真正地将数组 $\\textit{arr}$ 中的数删除。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int minSetSize(vector<int>& arr) {\n        unordered_map<int, int> freq;\n        for (int num: arr) {\n            ++freq[num];\n        }\n        vector<int> occ;\n        for (auto& [k, v]: freq) {\n            occ.push_back(v);\n        }\n        sort(occ.begin(), occ.end(), greater<int>());\n        int cnt = 0, ans = 0;\n        for (int c: occ) {\n            cnt += c;\n            ans += 1;\n            if (cnt * 2 >= arr.size()) {\n                break;\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def minSetSize(self, arr: List[int]) -> int:\n        freq = collections.Counter(arr)\n        cnt, ans = 0, 0\n        for num, occ in freq.most_common():\n            cnt += occ\n            ans += 1\n            if cnt * 2 >= len(arr):\n                break\n        return ans\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int minSetSize(int[] arr) {\n        Map<Integer, Integer> freq = new HashMap<>();\n        for (int num : arr) {\n            freq.put(num, freq.getOrDefault(num, 0) + 1);\n        }\n\n        List<Integer> occ = new ArrayList<>(freq.values());\n        Collections.sort(occ, Collections.reverseOrder());\n        int cnt = 0, ans = 0;\n        for (int c : occ) {\n            cnt += c;\n            ans += 1;\n            if (cnt * 2 >= arr.length) {\n                break;\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MinSetSize(int[] arr) {\n        Dictionary<int, int> freq = new Dictionary<int, int>();\n        foreach (int num in arr) {\n            if (freq.ContainsKey(num)) {\n                freq[num]++;\n            } else {\n                freq[num] = 1;\n            }\n        }\n\n        List<int> occ = freq.Values.ToList();\n        occ.Sort((a, b) => b - a);\n        int cnt = 0, ans = 0;\n        foreach (int c in occ) {\n            cnt += c;\n            ans += 1;\n            if (cnt * 2 >= arr.Length) {\n                break;\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc minSetSize(arr []int) int {\n    freq := make(map[int]int)\n    for _, num := range arr {\n        freq[num]++\n    }\n\n    occ := []int{}\n    for _, v := range freq {\n        occ = append(occ, v)\n    }\n    sort.Sort(sort.Reverse(sort.IntSlice(occ)))\n    cnt, ans := 0, 0\n    for _, c := range occ {\n        cnt += c\n        ans++\n        if cnt * 2 >= len(arr) {\n            break\n        }\n    }\n    return ans\n}\n```\n\n```C [sol1-C]\ntypedef struct {\n    int key;\n    int val;\n    UT_hash_handle hh;\n} HashItem; \n\nHashItem *hashFindItem(HashItem **obj, int key) {\n    HashItem *pEntry = NULL;\n    HASH_FIND_INT(*obj, &key, pEntry);\n    return pEntry;\n}\n\nbool hashAddItem(HashItem **obj, int key, int val) {\n    if (hashFindItem(obj, key)) {\n        return false;\n    }\n    HashItem *pEntry = (HashItem *)malloc(sizeof(HashItem));\n    pEntry->key = key;\n    pEntry->val = val;\n    HASH_ADD_INT(*obj, key, pEntry);\n    return true;\n}\n\nbool hashSetItem(HashItem **obj, int key, int val) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        hashAddItem(obj, key, val);\n    } else {\n        pEntry->val = val;\n    }\n    return true;\n}\n\nint hashGetItem(HashItem **obj, int key, int defaultVal) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        return defaultVal;\n    }\n    return pEntry->val;\n}\n\nvoid hashFree(HashItem **obj) {\n    HashItem *curr = NULL, *tmp = NULL;\n    HASH_ITER(hh, *obj, curr, tmp) {\n        HASH_DEL(*obj, curr);  \n        free(curr);\n    }\n}\n\nstatic int compare(const void *a, const void *b) {\n    return *(int *)b - *(int *)a;\n}\n\nint minSetSize(int* arr, int arrSize) {\n    HashItem *freq = NULL;\n    for (int i = 0; i < arrSize; i++) {\n        hashSetItem(&freq, arr[i], hashGetItem(&freq, arr[i], 0) + 1);\n    }\n\n    int occSize = HASH_COUNT(freq);\n    int *occ = (int *)calloc(occSize, sizeof(int));\n    int pos = 0;\n    for (HashItem *pEntry = freq; pEntry; pEntry = pEntry->hh.next) {\n        occ[pos++] = pEntry->val;\n    }\n    qsort(occ, occSize, sizeof(int), compare);\n    int cnt = 0, ans = 0;\n    for (int i = 0; i < occSize; ++i) {\n        cnt += occ[i];\n        ans++;\n        if (cnt * 2 >= arrSize) {\n            break;\n        }\n    }\n    hashFree(&freq);\n    return ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar minSetSize = function(arr) {\n    const freq = new Map();\n    for (const num of arr) {\n        freq.set(num, (freq.get(num) || 0) + 1);\n    }\n    const occ = [...freq.values()].sort((a, b) => b - a);\n    let cnt = 0, ans = 0;\n    for (const c of occ) {\n        cnt += c;\n        ans++;\n        if (cnt * 2 >= arr.length) {\n            break;\n        }\n    }\n    return ans;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction minSetSize(arr: number[]): number {\n    const freq: Map<number, number> = new Map();\n    for (const num of arr) {\n        freq.set(num, (freq.get(num) || 0) + 1);\n    }\n\n    const occ = Array.from(freq.values()).sort((a, b) => b - a);\n    let cnt = 0, ans = 0;\n    for (const c of occ) {\n        cnt += c;\n        ans++;\n        if (cnt * 2 >= arr.length) {\n            break;\n        }\n    }\n    return ans;\n};\n```\n\n```Rust [sol1-Rust]\nuse std::collections::HashMap;\n\nimpl Solution {\n    pub fn min_set_size(arr: Vec<i32>) -> i32 {\n        let mut freq = HashMap::new();\n        for &num in &arr {\n            *freq.entry(num).or_insert(0) += 1;\n        }\n\n        let mut occ: Vec<i32> = freq.values().cloned().collect();\n        occ.sort_by(|a, b| b.cmp(a));\n        let mut cnt = 0;\n        let mut ans = 0;\n        for c in occ {\n            cnt += c;\n            ans += 1;\n            if cnt * 2 >= arr.len() as i32 {\n                break;\n            }\n        }\n        ans\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(NlogN)$，其中 $N$ 是数组 $\\textit{arr}$ 的长度。\n\n- 空间复杂度：$O(N)$，其中 $N$ 是数组 $\\textit{arr}$ 的长度。",
+            "slateValue": "",
+            "slug": "shu-zu-da-xiao-jian-ban-by-leetcode-solution",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "esxuO8",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 14,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Greedy",
+                    "nameTranslated": "贪心",
+                    "slug": "greedy",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Sorting",
+                    "nameTranslated": "排序",
+                    "slug": "sorting",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-03-04T09:20:50.188893+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：贪心算法 思路与算法 在每一步操作中，我们需要选择一个数 [latex]，并且删除数组 [latex] 中所有的 [latex]。显然选择的数 [latex] 在数组 [latex] 中出现的次数越多越好。因此我们可以统计数组 [latex] 中每个数出现的次数，并进行降序排序。在得到了排序的结果之后，我们依次",
+            "topic": {
+                "id": 130594,
+                "subscribed": false,
+                "commentCount": 33,
+                "viewCount": 6033,
+                "post": {
+                    "id": 398432,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 17,
+            "isEditorsPick": false,
+            "hitCount": 15919,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "reduce-array-size-to-the-half",
+                "questionFrontendId": "1338"
+            },
+            "next": {
+                "slug": "ji-shu-cong-da-dao-xiao-tan-xin-pythonja-9vth",
+                "title": "计数+从大到小贪心（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,128 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "4q2aca",
+            "title": "分割数组为连续子序列",
+            "content": "#### 方法一：哈希表 + 最小堆\n\n由于需要将数组分割成一个或多个由连续整数组成的子序列，因此只要知道子序列的最后一个数字和子序列的长度，就能确定子序列。\n\n当 $x$ 在数组中时，如果存在一个子序列以 $x-1$ 结尾，长度为 $k$，则可以将 $x$ 加入该子序列中，得到长度为 $k+1$ 的子序列。如果不存在以 $x-1$ 结尾的子序列，则必须新建一个只包含 $x$ 的子序列，长度为 $1$。\n\n当 $x$ 在数组中时，如果存在多个子序列以 $x-1$ 结尾，应该将 $x$ 加入其中的哪一个子序列？由于题目要求每个子序列的长度至少为 $3$，显然应该让最短的子序列尽可能长，因此应该将 $x$ 加入其中最短的子序列。\n\n基于上述分析，可以使用哈希表和最小堆进行实现。\n\n哈希表的键为子序列的最后一个数字，值为最小堆，用于存储所有的子序列长度，最小堆满足堆顶的元素是最小的，因此堆顶的元素即为最小的子序列长度。\n\n遍历数组，当遍历到元素 $x$ 时，可以得到一个以 $x$ 结尾的子序列。\n\n- 如果哈希表中存在以 $x-1$ 结尾的子序列，则取出以 $x-1$ 结尾的最小的子序列长度，将子序列长度加 $1$ 之后作为以 $x$ 结尾的子序列长度。此时，以 $x-1$ 结尾的子序列减少了一个，以 $x$ 结尾的子序列增加了一个。\n\n- 如果哈希表中不存在以 $x-1$ 结尾的子序列，则新建一个长度为 $1$ 的以 $x$ 结尾的子序列。\n\n由于数组是有序的，因此当遍历到元素 $x$ 时，数组中所有小于 $x$ 的元素都已经被遍历过，不会出现当前元素比之前的元素小的情况。\n\n遍历结束之后，检查哈希表中存储的每个子序列的长度是否都不小于 $3$，即可判断是否可以完成分割。由于哈希表中的每条记录的值都是最小堆，堆顶元素为最小的子序列长度（以当前的键为最后一个数字的子序列），因此只要遍历每个最小堆的堆顶元素，即可判断每个子序列的长度是否都不小于 $3$。\n\n<![sol1](https://assets.leetcode.cn/solution-static/659/1.png),![sol1](https://assets.leetcode.cn/solution-static/659/2.png),![sol1](https://assets.leetcode.cn/solution-static/659/3.png),![sol1](https://assets.leetcode.cn/solution-static/659/4.png),![sol1](https://assets.leetcode.cn/solution-static/659/5.png),![sol1](https://assets.leetcode.cn/solution-static/659/6.png),![sol1](https://assets.leetcode.cn/solution-static/659/7.png),![sol1](https://assets.leetcode.cn/solution-static/659/8.png),![sol1](https://assets.leetcode.cn/solution-static/659/9.png),![sol1](https://assets.leetcode.cn/solution-static/659/10.png),![sol1](https://assets.leetcode.cn/solution-static/659/11.png),![sol1](https://assets.leetcode.cn/solution-static/659/12.png),![sol1](https://assets.leetcode.cn/solution-static/659/13.png),![sol1](https://assets.leetcode.cn/solution-static/659/14.png),![sol1](https://assets.leetcode.cn/solution-static/659/15.png),![sol1](https://assets.leetcode.cn/solution-static/659/16.png),![sol1](https://assets.leetcode.cn/solution-static/659/17.png),![sol1](https://assets.leetcode.cn/solution-static/659/18.png),![sol1](https://assets.leetcode.cn/solution-static/659/19.png),![sol1](https://assets.leetcode.cn/solution-static/659/20.png),![sol1](https://assets.leetcode.cn/solution-static/659/21.png),![sol1](https://assets.leetcode.cn/solution-static/659/22.png),![sol1](https://assets.leetcode.cn/solution-static/659/23.png)>\n\n```Java [sol1-Java]\nclass Solution {\n    public boolean isPossible(int[] nums) {\n        Map<Integer, PriorityQueue<Integer>> map = new HashMap<Integer, PriorityQueue<Integer>>();\n        for (int x : nums) {\n            if (!map.containsKey(x)) {\n                map.put(x, new PriorityQueue<Integer>());\n            }\n            if (map.containsKey(x - 1)) {\n                int prevLength = map.get(x - 1).poll();\n                if (map.get(x - 1).isEmpty()) {\n                    map.remove(x - 1);\n                }\n                map.get(x).offer(prevLength + 1);\n            } else {\n                map.get(x).offer(1);\n            }\n        }\n        Set<Map.Entry<Integer, PriorityQueue<Integer>>> entrySet = map.entrySet();\n        for (Map.Entry<Integer, PriorityQueue<Integer>> entry : entrySet) {\n            PriorityQueue<Integer> queue = entry.getValue();\n            if (queue.peek() < 3) {\n                return false;\n            }\n        }\n        return true;\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    bool isPossible(vector<int>& nums) {\n        unordered_map<int, priority_queue<int, vector<int>,greater<int>>> mp;\n        for (auto& x : nums) {\n            if (mp.find(x) == mp.end()) {\n                mp[x] = priority_queue<int, vector<int>,greater<int>>();\n            }\n            if (mp.find(x - 1) != mp.end()) {\n                int prevLength = mp[x - 1].top();\n                mp[x - 1].pop();\n                if (mp[x - 1].empty()) {\n                    mp.erase(x - 1);\n                }\n                mp[x].push(prevLength + 1);\n            } else {\n                mp[x].push(1);\n            }\n        }\n        for (auto it = mp.begin(); it != mp.end(); ++it) {\n            priority_queue<int, vector<int>,greater<int>> queue = it->second;\n            if (queue.top() < 3) {\n                return false;\n            }\n        }\n        return true;\n    }\n};\n```\n\n```JavaScript [sol1-JavaScript]\nvar isPossible = function(nums) {\n    const map = new Map();\n    for (let x of nums) {\n        if (!map.has(x)) {\n            map.set(x, new MinPriorityQueue());\n        }\n        if (map.has(x - 1)) {\n            const prevLength = map.get(x - 1).dequeue()['priority'];\n            if (map.get(x - 1).isEmpty()) {\n                map.delete(x - 1);\n            }\n            map.get(x).enqueue(x, prevLength + 1);\n        } else {\n            map.get(x).enqueue(x, 1);\n        }\n    }\n    for (let [key, value] of map.entries()) {\n        if (value.front()['priority'] < 3) {\n            return false;\n        }\n    }\n    return true;\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def isPossible(self, nums: List[int]) -> bool:\n        mp = collections.defaultdict(list)\n        for x in nums:\n            if queue := mp.get(x - 1):\n                prevLength = heapq.heappop(queue)\n                heapq.heappush(mp[x], prevLength + 1)\n            else:\n                heapq.heappush(mp[x], 1)\n        \n        return not any(queue and queue[0] < 3 for queue in mp.values())\n```\n\n```Golang [sol1-Golang]\ntype hp struct{ sort.IntSlice }\n\nfunc (h *hp) Push(v interface{}) { h.IntSlice = append(h.IntSlice, v.(int)) }\nfunc (h *hp) Pop() interface{}   { a := h.IntSlice; v := a[len(a)-1]; h.IntSlice = a[:len(a)-1]; return v }\nfunc (h *hp) push(v int)         { heap.Push(h, v) }\nfunc (h *hp) pop() int           { return heap.Pop(h).(int) }\n\nfunc isPossible(nums []int) bool {\n    lens := map[int]*hp{}\n    for _, v := range nums {\n        if lens[v] == nil {\n            lens[v] = new(hp)\n        }\n        if h := lens[v-1]; h != nil {\n            prevLen := h.pop()\n            if h.Len() == 0 {\n                delete(lens, v-1)\n            }\n            lens[v].push(prevLen + 1)\n        } else {\n            lens[v].push(1)\n        }\n    }\n\n    for _, h := range lens {\n        if h.IntSlice[0] < 3 {\n            return false\n        }\n    }\n    return true\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log n)$，其中 $n$ 是数组的长度。\n  需要遍历数组，对于数组中的每个数，都要对哈希表和最小堆进行更新。每个数对应的最小堆的长度不超过 $n$，因此每次对最小堆的操作的时间复杂度是 $O(\\log n)$，数组长度为 $n$，因此时间复杂度是 $O(n \\log n)$。\n  然后需要遍历哈希表中的每一条记录，判断是否满足每个子序列的长度都不小于 $3$，子序列的数量不会超过 $n$，因此时间复杂度是 $O(n)$。\n  因此总时间复杂度是 $O(n \\log n)$。\n\n- 空间复杂度：$O(n)$，其中 $n$ 是数组的长度。需要使用哈希表和最小堆存储以每个数结尾的各个子序列的长度，哈希表和最小堆中的元素数量不会超过数组的长度。\n\n#### 方法二：贪心\n\n从方法一可以看到，对于数组中的元素 $x$，如果存在一个子序列以 $x-1$ 结尾，则可以将 $x$ 加入该子序列中。将 $x$ 加入已有的子序列总是比新建一个只包含 $x$ 的子序列更优，因为前者可以将一个已有的子序列的长度增加 $1$，而后者新建一个长度为 $1$ 的子序列，而题目要求分割成的子序列的长度都不小于 $3$，因此应该尽量避免新建短的子序列。\n\n基于此，可以通过贪心的方法判断是否可以完成分割。\n\n使用两个哈希表，第一个哈希表存储数组中的每个数字的剩余次数，第二个哈希表存储数组中的每个数字作为结尾的子序列的数量。\n\n初始时，每个数字的剩余次数即为每个数字在数组中出现的次数，因此遍历数组，初始化第一个哈希表。\n\n在初始化第一个哈希表之后，遍历数组，更新两个哈希表。只有当一个数字的剩余次数大于 $0$ 时，才需要考虑这个数字是否属于某个子序列。假设当前元素是 $x$，进行如下操作。\n\n- 首先判断是否存在以 $x-1$ 结尾的子序列，即根据第二个哈希表判断 $x-1$ 作为结尾的子序列的数量是否大于 $0$，如果大于 $0$，则将元素 $x$ 加入该子序列中。由于 $x$ 被使用了一次，因此需要在第一个哈希表中将 $x$ 的剩余次数减 $1$。又由于该子序列的最后一个数字从 $x-1$ 变成了 $x$，因此需要在第二个哈希表中将 $x-1$ 作为结尾的子序列的数量减 $1$，以及将 $x$ 作为结尾的子序列的数量加 $1$。\n\n- 否则，$x$ 为一个子序列的第一个数，为了得到长度至少为 $3$ 的子序列，$x+1$ 和 $x+2$ 必须在子序列中，因此需要判断在第一个哈希表中 $x+1$ 和 $x+2$ 的剩余次数是否都大于 $0$。\n\n   - 当 $x+1$ 和 $x+2$ 的剩余次数都大于 $0$ 时，可以新建一个长度为 $3$ 的子序列 $[x,x+1,x+2]$。由于这三个数都被使用了一次，因此需要在第一个哈希表中将这三个数的剩余次数分别减 $1$。又由于该子序列的最后一个数字是 $x+2$，因此需要在第二个哈希表中将 $x+2$ 作为结尾的子序列的数量加 $1$。\n\n   - 否则，无法得到长度为 $3$ 的子序列 $[x,x+1,x+2]$，因此无法完成分割，返回 $\\text{false}$。\n\n如果整个数组遍历结束时，没有遇到无法完成分割的情况，则可以完成分割，返回 $\\text{true}$。\n\n<![sol2](https://assets.leetcode.cn/solution-static/659/2_1.png),![sol2](https://assets.leetcode.cn/solution-static/659/2_2.png),![sol2](https://assets.leetcode.cn/solution-static/659/2_3.png),![sol2](https://assets.leetcode.cn/solution-static/659/2_4.png),![sol2](https://assets.leetcode.cn/solution-static/659/2_5.png),![sol2](https://assets.leetcode.cn/solution-static/659/2_6.png),![sol2](https://assets.leetcode.cn/solution-static/659/2_7.png),![sol2](https://assets.leetcode.cn/solution-static/659/2_8.png),![sol2](https://assets.leetcode.cn/solution-static/659/2_9.png),![sol2](https://assets.leetcode.cn/solution-static/659/2_10.png),![sol2](https://assets.leetcode.cn/solution-static/659/2_11.png),![sol2](https://assets.leetcode.cn/solution-static/659/2_12.png),![sol2](https://assets.leetcode.cn/solution-static/659/2_13.png),![sol2](https://assets.leetcode.cn/solution-static/659/2_14.png),![sol2](https://assets.leetcode.cn/solution-static/659/2_15.png),![sol2](https://assets.leetcode.cn/solution-static/659/2_16.png),![sol2](https://assets.leetcode.cn/solution-static/659/2_17.png),![sol2](https://assets.leetcode.cn/solution-static/659/2_18.png),![sol2](https://assets.leetcode.cn/solution-static/659/2_19.png),![sol2](https://assets.leetcode.cn/solution-static/659/2_20.png),![sol2](https://assets.leetcode.cn/solution-static/659/2_21.png),![sol2](https://assets.leetcode.cn/solution-static/659/2_22.png)>\n\n```Java [sol2-Java]\nclass Solution {\n    public boolean isPossible(int[] nums) {\n        Map<Integer, Integer> countMap = new HashMap<Integer, Integer>();\n        Map<Integer, Integer> endMap = new HashMap<Integer, Integer>();\n        for (int x : nums) {\n            int count = countMap.getOrDefault(x, 0) + 1;\n            countMap.put(x, count);\n        }\n        for (int x : nums) {\n            int count = countMap.getOrDefault(x, 0);\n            if (count > 0) {\n                int prevEndCount = endMap.getOrDefault(x - 1, 0);\n                if (prevEndCount > 0) {\n                    countMap.put(x, count - 1);\n                    endMap.put(x - 1, prevEndCount - 1);\n                    endMap.put(x, endMap.getOrDefault(x, 0) + 1);\n                } else {\n                    int count1 = countMap.getOrDefault(x + 1, 0);\n                    int count2 = countMap.getOrDefault(x + 2, 0);\n                    if (count1 > 0 && count2 > 0) {\n                        countMap.put(x, count - 1);\n                        countMap.put(x + 1, count1 - 1);\n                        countMap.put(x + 2, count2 - 1);\n                        endMap.put(x + 2, endMap.getOrDefault(x + 2, 0) + 1);\n                    } else {\n                        return false;\n                    }\n                }\n            }\n        }\n        return true;\n    }\n}\n```\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    bool isPossible(vector<int>& nums) {\n        unordered_map<int, int> countMap;\n        unordered_map<int, int> endMap;\n        for (auto& x : nums) {\n            int count = countMap[x] + 1;\n            countMap[x] = count;\n        }\n        for (auto& x : nums) {\n            int count = countMap[x];\n            if (count > 0) {\n                int prevEndCount = endMap[x - 1];\n                if (prevEndCount > 0) {\n                    countMap[x] = count - 1;\n                    endMap[x - 1] = prevEndCount - 1;\n                    endMap[x] = endMap[x] + 1;\n                } else {\n                    int count1 = countMap[x + 1];\n                    int count2 = countMap[x + 2];\n                    if (count1 > 0 && count2 > 0) {\n                        countMap[x] = count - 1;\n                        countMap[x + 1] = count1 - 1;\n                        countMap[x + 2] = count2 - 1;\n                        endMap[x + 2] = endMap[x + 2] + 1;\n                    } else {\n                        return false;\n                    }\n                }\n            }\n        }\n        return true;\n    }\n};\n```\n\n```JavaScript [sol2-JavaScript]\nvar isPossible = function(nums) {\n    const countMap = new Map();\n    const endMap = new Map();\n    for (const x of nums) {\n        const count = (countMap.get(x) || 0) + 1;\n        countMap.set(x, count);\n    }\n    for (const x of nums) {\n        const count = countMap.get(x) || 0;\n        if (count > 0) {\n            const prevEndCount = endMap.get(x - 1) || 0;\n            if (prevEndCount > 0) {\n                countMap.set(x, count - 1);\n                endMap.set(x - 1, prevEndCount - 1);\n                endMap.set(x, (endMap.get(x, 0) || 0) + 1);\n            } else {\n                const count1 = countMap.get(x + 1, 0);\n                const count2 = countMap.get(x + 2, 0);\n                if (count1 > 0 && count2 > 0) {\n                    countMap.set(x, count - 1);\n                    countMap.set(x + 1, count1 - 1);\n                    countMap.set(x + 2, count2 - 1);\n                    endMap.set(x + 2, (endMap.get(x + 2) || 0) + 1);\n                } else {\n                    return false;\n                }\n            }\n        }\n    }\n    return true;\n};\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def isPossible(self, nums: List[int]) -> bool:\n        countMap = collections.Counter(nums)\n        endMap = collections.Counter()\n\n        for x in nums:\n            if (count := countMap[x]) > 0:\n                if (prevEndCount := endMap.get(x - 1, 0)) > 0:\n                    countMap[x] -= 1\n                    endMap[x - 1] = prevEndCount - 1\n                    endMap[x] += 1\n                else:\n                    if (count1 := countMap.get(x + 1, 0)) > 0 and (count2 := countMap.get(x + 2, 0)) > 0:\n                        countMap[x] -= 1\n                        countMap[x + 1] -= 1\n                        countMap[x + 2] -= 1\n                        endMap[x + 2] += 1\n                    else:\n                        return False\n        \n        return True\n```\n\n```Golang [sol2-Golang]\nfunc isPossible(nums []int) bool {\n    left := map[int]int{} // 每个数字的剩余个数\n    for _, v := range nums {\n        left[v]++\n    }\n    endCnt := map[int]int{} // 以某个数字结尾的连续子序列的个数\n    for _, v := range nums {\n        if left[v] == 0 {\n            continue\n        }\n        if endCnt[v-1] > 0 { // 若存在以 v-1 结尾的连续子序列，则将 v 加到其末尾\n            left[v]--\n            endCnt[v-1]--\n            endCnt[v]++\n        } else if left[v+1] > 0 && left[v+2] > 0 { // 否则，生成一个长度为 3 的连续子序列\n            left[v]--\n            left[v+1]--\n            left[v+2]--\n            endCnt[v+2]++\n        } else { // 无法生成\n            return false\n        }\n    }\n    return true\n}\n```\n\n```C [sol2-C]\nstruct hashTable {\n    int key;\n    int val;\n    UT_hash_handle hh;\n};\n\nstruct hashTable* find(struct hashTable** hashtable, int ikey) {\n    struct hashTable* tmp;\n    HASH_FIND_INT(*hashtable, &ikey, tmp);\n    return tmp;\n}\n\nvoid insert(struct hashTable** hashtable, int ikey, int ival) {\n    struct hashTable* tmp = malloc(sizeof(struct hashTable));\n    tmp->key = ikey, tmp->val = ival;\n    HASH_ADD_INT(*hashtable, key, tmp);\n}\n\nint query(struct hashTable** hashtable, int ikey) {\n    struct hashTable* tmp;\n    HASH_FIND_INT(*hashtable, &ikey, tmp);\n    if (tmp == NULL) {\n        return 0;\n    }\n    return tmp->val;\n}\n\nvoid modify(struct hashTable** hashtable, int ikey, int ival) {\n    struct hashTable* tmp = find(hashtable, ikey);\n    if (tmp == NULL) {\n        insert(hashtable, ikey, ival);\n    } else {\n        tmp->val = ival;\n    }\n}\n\nvoid inc(struct hashTable** hashtable, int ikey) {\n    struct hashTable* tmp = find(hashtable, ikey);\n    if (tmp == NULL) {\n        insert(hashtable, ikey, 1);\n    } else {\n        tmp->val++;\n    }\n}\n\nbool isPossible(int* nums, int numsSize) {\n    struct hashTable* countMap = NULL;\n    struct hashTable* endMap = NULL;\n    for (int i = 0; i < numsSize; i++) {\n        inc(&countMap, nums[i]);\n    }\n    for (int i = 0; i < numsSize; i++) {\n        int count = query(&countMap, nums[i]);\n        if (count > 0) {\n            int prevEndCount = query(&endMap, nums[i] - 1);\n            if (prevEndCount > 0) {\n                modify(&countMap, nums[i], count - 1);\n                modify(&endMap, nums[i] - 1, prevEndCount - 1);\n                inc(&endMap, nums[i]);\n            } else {\n                int count1 = query(&countMap, nums[i] + 1);\n                int count2 = query(&countMap, nums[i] + 2);\n                if (count1 > 0 && count2 > 0) {\n                    modify(&countMap, nums[i], count - 1);\n                    modify(&countMap, nums[i] + 1, count1 - 1);\n                    modify(&countMap, nums[i] + 2, count2 - 1);\n                    inc(&endMap, nums[i] + 2);\n                } else {\n                    return false;\n                }\n            }\n        }\n    }\n    return true;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是数组的长度。需要遍历数组两次，对于数组中的每个元素，更新哈希表的时间复杂度是常数。\n\n- 空间复杂度：$O(n)$，其中 $n$ 是数组的长度。需要使用两个哈希表，每个哈希表的大小都不会超过 $n$。",
+            "slateValue": "",
+            "slug": "fen-ge-shu-zu-wei-lian-xu-zi-xu-lie-by-l-lbs5",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "4q2aca",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 90,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 6,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 5,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Greedy",
+                    "nameTranslated": "贪心",
+                    "slug": "greedy",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Heap (Priority Queue)",
+                    "nameTranslated": "堆（优先队列）",
+                    "slug": "heap-priority-queue",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2020-12-03T15:21:40.072416+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：哈希表 + 最小堆 由于需要将数组分割成一个或多个由连续整数组成的子序列，因此只要知道子序列的最后一个数字和子序列的长度，就能确定子序列。 当 $x$ 在数组中时，如果存在一个子序列以 $x-1$ 结尾，长度为 $k$，则可以将 $x$ 加入该子序列中，得到长度为 $k+1$ 的子序列。如果不存在以 $x-1$",
+            "topic": {
+                "id": 508610,
+                "subscribed": false,
+                "commentCount": 252,
+                "viewCount": 31485,
+                "post": {
+                    "id": 1200981,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 155,
+            "isEditorsPick": false,
+            "hitCount": 58040,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "split-array-into-consecutive-subsequences",
+                "questionFrontendId": "659"
+            },
+            "next": {
+                "slug": "tan-xin-suan-fa-jian-cha-shu-zu-neng-fou-bei-fen-w",
+                "title": "贪心算法检查数组能否被分为连续子序列"
+            },
+            "prev": null
+        }
+    }
+}

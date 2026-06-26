@@ -1,0 +1,120 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "mSn8L4",
+            "title": "验证IP地址",
+            "content": "#### 方法一：依次判断\n\n**思路与算法**\n\n我们首先查找给定的字符串 $\\textit{queryIP}$ 中是否包含符号 $\\text{`.'}$。如果包含，那么我们需要判断其是否为 IPv4 地址；如果不包含，我们则判断其是否为 IPv6 地址。\n\n对于 IPv4 地址而言，它包含 $4$ 个部分，用 $\\text{`.'}$ 隔开。因此我们可以存储相邻两个 $\\text{`.'}$ 出现的位置 $\\textit{last}$ 和 $\\textit{cur}$（当考虑首个部分时，$\\textit{last}=-1$；当考虑最后一个部分时，$\\textit{cur}=n$，其中 $n$ 是字符串的长度），那么子串 $\\textit{queryIP}[\\textit{last}+1..\\textit{cur}-1]$ 就对应着一个部分。我们需要判断：\n\n- 它的长度是否在 $[1, 3]$ 之间（虽然这一步没有显式要求，但提前判断可以防止后续计算值时 $32$ 位整数无法表示的情况）；\n\n- 它是否只包含数字；\n\n- 它的值是否在 $[0, 255]$ 之间；\n\n- 它是否不包含前导零。具体地，如果它的值为 $0$，那么该部分只能包含一个 $0$，即 $(\\textit{cur}-1) - (\\textit{last}+1) + 1 = 1$；如果它的值不为 $0$，那么该部分的第一个数字不能为 $0$，即 $\\textit{queryIP}[\\textit{last}+1]$ 不为 $0$。\n\n对于 IPv6 地址而言，它包含 $8$ 个部分，用 $\\text{`:'}$ 隔开。同样地，我们可以存储相邻两个 $\\text{`:'}$ 出现的位置 $\\textit{last}$ 和 $\\textit{cur}$，那么子串 $\\textit{queryIP}[\\textit{last}+1..\\textit{cur}-1]$ 就对应着一个部分。我们需要判断：\n\n- 它的长度是否在 $[1, 4]$ 之间；\n\n- 它是否只包含数字，或者 $\\text{a-f}$，或者 $\\text{A-F}$；\n\n除了上述情况以外，如果我们无法找到对应数量的部分，那么给定的字符串也不是一个有效的 IP 地址。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    string validIPAddress(string queryIP) {\n        if (queryIP.find('.') != string::npos) {\n            // IPv4\n            int last = -1;\n            for (int i = 0; i < 4; ++i) {\n                int cur = (i == 3 ? queryIP.size() : queryIP.find('.', last + 1));\n                if (cur == string::npos) {\n                    return \"Neither\";\n                }\n                if (cur - last - 1 < 1 || cur - last - 1 > 3) {\n                    return \"Neither\";\n                }\n                int addr = 0;\n                for (int j = last + 1; j < cur; ++j) {\n                    if (!isdigit(queryIP[j])) {\n                        return \"Neither\";\n                    }\n                    addr = addr * 10 + (queryIP[j] - '0');\n                }\n                if (addr > 255) {\n                    return \"Neither\";\n                }\n                if (addr > 0 && queryIP[last + 1] == '0') {\n                    return \"Neither\";\n                }\n                if (addr == 0 && cur - last - 1 > 1) {\n                    return \"Neither\";\n                }\n                last = cur;\n            }\n            return \"IPv4\";\n        }\n        else {\n            // IPv6\n            int last = -1;\n            for (int i = 0; i < 8; ++i) {\n                int cur = (i == 7 ? queryIP.size() : queryIP.find(':', last + 1));\n                if (cur == string::npos) {\n                    return \"Neither\";\n                }\n                if (cur - last - 1 < 1 || cur - last - 1 > 4) {\n                    return \"Neither\";\n                }\n                for (int j = last + 1; j < cur; ++j) {\n                    if (!isdigit(queryIP[j]) && !('a' <= tolower(queryIP[j]) && tolower(queryIP[j]) <= 'f')) {\n                        return \"Neither\";\n                    }\n                }\n                last = cur;\n            }\n            return \"IPv6\";\n        }\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public String validIPAddress(String queryIP) {\n        if (queryIP.indexOf('.') >= 0) {\n            // IPv4\n            int last = -1;\n            for (int i = 0; i < 4; ++i) {\n                int cur = (i == 3 ? queryIP.length() : queryIP.indexOf('.', last + 1));\n                if (cur < 0) {\n                    return \"Neither\";\n                }\n                if (cur - last - 1 < 1 || cur - last - 1 > 3) {\n                    return \"Neither\";\n                }\n                int addr = 0;\n                for (int j = last + 1; j < cur; ++j) {\n                    if (!Character.isDigit(queryIP.charAt(j))) {\n                        return \"Neither\";\n                    }\n                    addr = addr * 10 + (queryIP.charAt(j) - '0');\n                }\n                if (addr > 255) {\n                    return \"Neither\";\n                }\n                if (addr > 0 && queryIP.charAt(last + 1) == '0') {\n                    return \"Neither\";\n                }\n                if (addr == 0 && cur - last - 1 > 1) {\n                    return \"Neither\";\n                }\n                last = cur;\n            }\n            return \"IPv4\";\n        } else {\n            // IPv6\n            int last = -1;\n            for (int i = 0; i < 8; ++i) {\n                int cur = (i == 7 ? queryIP.length() : queryIP.indexOf(':', last + 1));\n                if (cur < 0) {\n                    return \"Neither\";\n                }\n                if (cur - last - 1 < 1 || cur - last - 1 > 4) {\n                    return \"Neither\";\n                }\n                for (int j = last + 1; j < cur; ++j) {\n                    if (!Character.isDigit(queryIP.charAt(j)) && !('a' <= Character.toLowerCase(queryIP.charAt(j)) && Character.toLowerCase(queryIP.charAt(j)) <= 'f')) {\n                        return \"Neither\";\n                    }\n                }\n                last = cur;\n            }\n            return \"IPv6\";\n        }\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public string ValidIPAddress(string queryIP) {\n        if (queryIP.IndexOf('.') >= 0) {\n            // IPv4\n            int last = -1;\n            for (int i = 0; i < 4; ++i) {\n                int cur = (i == 3 ? queryIP.Length : queryIP.IndexOf('.', last + 1));\n                if (cur < 0) {\n                    return \"Neither\";\n                }\n                if (cur - last - 1 < 1 || cur - last - 1 > 3) {\n                    return \"Neither\";\n                }\n                int addr = 0;\n                for (int j = last + 1; j < cur; ++j) {\n                    if (!char.IsDigit(queryIP[j])) {\n                        return \"Neither\";\n                    }\n                    addr = addr * 10 + (queryIP[j] - '0');\n                }\n                if (addr > 255) {\n                    return \"Neither\";\n                }\n                if (addr > 0 && queryIP[last + 1] == '0') {\n                    return \"Neither\";\n                }\n                if (addr == 0 && cur - last - 1 > 1) {\n                    return \"Neither\";\n                }\n                last = cur;\n            }\n            return \"IPv4\";\n        } else {\n            // IPv6\n            int last = -1;\n            for (int i = 0; i < 8; ++i) {\n                int cur = (i == 7 ? queryIP.Length : queryIP.IndexOf(':', last + 1));\n                if (cur < 0) {\n                    return \"Neither\";\n                }\n                if (cur - last - 1 < 1 || cur - last - 1 > 4) {\n                    return \"Neither\";\n                }\n                for (int j = last + 1; j < cur; ++j) {\n                    if (!char.IsDigit(queryIP[j]) && !('a' <= char.ToLower(queryIP[j]) && char.ToLower(queryIP[j]) <= 'f')) {\n                        return \"Neither\";\n                    }\n                }\n                last = cur;\n            }\n            return \"IPv6\";\n        }\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def validIPAddress(self, queryIP: str) -> str:\n        if queryIP.find(\".\") != -1:\n            # IPv4\n            last = -1\n            for i in range(4):\n                cur = (len(queryIP) if i == 3 else queryIP.find(\".\", last + 1))\n                if cur == -1:\n                    return \"Neither\"\n                if not 1 <= cur - last - 1 <= 3:\n                    return \"Neither\"\n                \n                addr = 0\n                for j in range(last + 1, cur):\n                    if not queryIP[j].isdigit():\n                        return \"Neither\"\n                    addr = addr * 10 + int(queryIP[j])\n                \n                if addr > 255:\n                    return \"Neither\"\n                if addr > 0 and queryIP[last + 1] == \"0\":\n                    return \"Neither\"\n                if addr == 0 and cur - last - 1 > 1:\n                    return \"Neither\"\n                \n                last = cur\n            \n            return \"IPv4\"\n        else:\n            # IPv6\n            last = -1\n            for i in range(8):\n                cur = (len(queryIP) if i == 7 else queryIP.find(\":\", last + 1))\n                if cur == -1:\n                    return \"Neither\"\n                if not 1 <= cur - last - 1 <= 4:\n                    return \"Neither\"\n\n                for j in range(last + 1, cur):\n                    if not queryIP[j].isdigit() and not(\"a\" <= queryIP[j].lower() <= \"f\"):\n                        return \"Neither\"\n                \n                last = cur\n            \n            return \"IPv6\"\n```\n\n```C [sol1-C]\nchar * validIPAddress(char * queryIP) {\n    int len = strlen(queryIP);\n    if (strchr(queryIP, '.')) {\n        // IPv4\n        int last = -1;\n        for (int i = 0; i < 4; ++i) {\n            int cur = -1;\n            if (i == 3) {\n                cur = len;\n            } else {\n                char * p = strchr(queryIP + last + 1, '.');\n                if (p) {\n                    cur = p - queryIP;\n                }\n            }\n            if (cur < 0) {\n                return \"Neither\";\n            }\n            if (cur - last - 1 < 1 || cur - last - 1 > 3) {\n                return \"Neither\";\n            }\n            int addr = 0;\n            for (int j = last + 1; j < cur; ++j) {\n                if (!isdigit(queryIP[j])) {\n                    return \"Neither\";\n                }\n                addr = addr * 10 + (queryIP[j] - '0');\n            }\n            if (addr > 255) {\n                return \"Neither\";\n            }\n            if (addr > 0 && queryIP[last + 1] == '0') {\n                return \"Neither\";\n            }\n            if (addr == 0 && cur - last - 1 > 1) {\n                return \"Neither\";\n            }\n            last = cur;\n        }\n        return \"IPv4\";\n    }\n    else {\n        // IPv6\n        int last = -1;\n        for (int i = 0; i < 8; ++i) {\n            int cur = -1;\n            if (i == 7) {\n                cur = len;\n            } else {\n                char * p = strchr(queryIP + last + 1, ':');\n                if (p) {\n                    cur = p - queryIP;\n                }\n            }\n            if (cur < 0) {\n                return \"Neither\";\n            }\n            if (cur - last - 1 < 1 || cur - last - 1 > 4) {\n                return \"Neither\";\n            }\n            for (int j = last + 1; j < cur; ++j) {\n                if (!isdigit(queryIP[j]) && !('a' <= tolower(queryIP[j]) && tolower(queryIP[j]) <= 'f')) {\n                    return \"Neither\";\n                }\n            }\n            last = cur;\n        }\n        return \"IPv6\";\n    }\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar validIPAddress = function(queryIP) {\n    if (queryIP.indexOf('.') >= 0) {\n        // IPv4\n        let last = -1;\n        for (let i = 0; i < 4; ++i) {\n            const cur = (i === 3 ? queryIP.length : queryIP.indexOf('.', last + 1));\n            if (cur < 0) {\n                return \"Neither\";\n            }\n            if (cur - last - 1 < 1 || cur - last - 1 > 3) {\n                return \"Neither\";\n            }\n            let addr = 0;\n            for (let j = last + 1; j < cur; ++j) {\n                if (!isDigit(queryIP[j])) {\n                    return \"Neither\";\n                }\n                addr = addr * 10 + (queryIP[j].charCodeAt() - '0'.charCodeAt());\n            }\n            if (addr > 255) {\n                return \"Neither\";\n            }\n            if (addr > 0 && queryIP[last + 1].charCodeAt() === '0'.charCodeAt()) {\n                return \"Neither\";\n            }\n            if (addr === 0 && cur - last - 1 > 1) {\n                return \"Neither\";\n            }\n            last = cur;\n        }\n        return \"IPv4\";\n    } else {\n        // IPv6\n        let last = -1;\n        for (let i = 0; i < 8; ++i) {\n            const cur = (i === 7 ? queryIP.length : queryIP.indexOf(':', last + 1));\n            if (cur < 0) {\n                return \"Neither\";\n            }\n            if (cur - last - 1 < 1 || cur - last - 1 > 4) {\n                return \"Neither\";\n            }\n            for (let j = last + 1; j < cur; ++j) {\n                if (!isDigit(queryIP[j]) && !('a' <= queryIP[j].toLowerCase() && queryIP[j].toLowerCase() <= 'f')) {\n                    return \"Neither\";\n                }\n            }\n            last = cur;\n        }\n        return \"IPv6\";\n    }\n};\n\nconst isDigit = (ch) => {\n    return parseFloat(ch).toString() === \"NaN\" ? false : true;\n}\n```\n\n```go [sol1-Golang]\nfunc validIPAddress(queryIP string) string {\n    if sp := strings.Split(queryIP, \".\"); len(sp) == 4 {\n        for _, s := range sp {\n            if len(s) > 1 && s[0] == '0' {\n                return \"Neither\"\n            }\n            if v, err := strconv.Atoi(s); err != nil || v > 255 {\n                return \"Neither\"\n            }\n        }\n        return \"IPv4\"\n    }\n    if sp := strings.Split(queryIP, \":\"); len(sp) == 8 {\n        for _, s := range sp {\n            if len(s) > 4 {\n                return \"Neither\"\n            }\n            if _, err := strconv.ParseUint(s, 16, 64); err != nil {\n                return \"Neither\"\n            }\n        }\n        return \"IPv6\"\n    }\n    return \"Neither\"\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是字符串 $\\textit{queryIP}$ 的长度。我们只需要遍历字符串常数次。\n\n- 空间复杂度：$O(1)$。",
+            "slateValue": "",
+            "slug": "yan-zheng-ipdi-zhi-by-leetcode-solution-kge5",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "mSn8L4",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 40,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-05-27T11:46:28.732231+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：依次判断 思路与算法 我们首先查找给定的字符串 $\\textit{queryIP}$ 中是否包含符号 $\\text{`.'}$。如果包含，那么我们需要判断其是否为 IPv4 地址；如果不包含，我们则判断其是否为 IPv6 地址。 对于 IPv4 地址而言，它包含 $4$ 个部分，用 $\\text{.'}$ 隔开",
+            "topic": {
+                "id": 1521467,
+                "subscribed": false,
+                "commentCount": 111,
+                "viewCount": 21042,
+                "post": {
+                    "id": 3105962,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 77,
+            "isEditorsPick": false,
+            "hitCount": 50710,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "validate-ip-address",
+                "questionFrontendId": "468"
+            },
+            "next": {
+                "slug": "by-ac_oier-s217",
+                "title": "【宫水三叶】简单字符串模拟题"
+            },
+            "prev": null
+        }
+    }
+}

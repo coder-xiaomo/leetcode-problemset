@@ -1,0 +1,128 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "RxLPXO",
+            "title": "重新安排行程",
+            "content": "#### 前言\n\n本题和「[753. 破解保险箱](https://leetcode.cn/problems/cracking-the-safe/)」类似，是力扣平台上为数不多的求解欧拉回路 / 欧拉通路的题目。读者可以配合着进行练习。\n\n我们化简本题题意：给定一个 $n$ 个点 $m$ 条边的图，要求从指定的顶点出发，经过所有的边恰好一次（可以理解为给定起点的「一笔画」问题），使得路径的字典序最小。\n\n这种「一笔画」问题与欧拉图或者半欧拉图有着紧密的联系，下面给出定义：\n\n- 通过图中所有边恰好一次且行遍所有顶点的通路称为欧拉通路；\n- 通过图中所有边恰好一次且行遍所有顶点的回路称为欧拉回路；\n- 具有欧拉回路的无向图称为欧拉图；\n- 具有欧拉通路但不具有欧拉回路的无向图称为半欧拉图。\n\n因为本题保证至少存在一种合理的路径，也就告诉了我们，这张图是一个欧拉图或者半欧拉图。我们只需要输出这条欧拉通路的路径即可。\n\n> 如果没有保证至少存在一种合理的路径，我们需要判别这张图是否是欧拉图或者半欧拉图，具体地：\n>\n> - 对于无向图 $G$，$G$ 是欧拉图当且仅当 $G$ 是连通的且没有奇度顶点。\n> - 对于无向图 $G$，$G$ 是半欧拉图当且仅当 $G$ 是连通的且 $G$ 中恰有 $0$ 个或 $2$ 个奇度顶点。\n> - 对于有向图 $G$，$G$ 是欧拉图当且仅当 $G$ 的所有顶点属于同一个强连通分量且每个顶点的入度和出度相同。\n> - 对于有向图 $G$，$G$ 是半欧拉图当且仅当\n>   - 如果将 $G$ 中的所有有向边退化为无向边时，那么 $G$ 的所有顶点属于同一个强连通分量；\n>   - 最多只有一个顶点的出度与入度差为 $1$；\n>   - 最多只有一个顶点的入度与出度差为 $1$；\n>   - 所有其他顶点的入度和出度相同。\n\n让我们考虑下面的这张图：\n\n![Graph1](https://assets.leetcode.cn/solution-static/332/332_fig1.png)\n\n我们从起点 $\\text{JFK}$ 出发，合法路径有两条：\n\n- $\\text{JFK} \\to \\text{AAA} \\to \\text{JFK} \\to \\text{BBB} \\to \\text{JFK}$\n\n- $\\text{JFK} \\to \\text{BBB} \\to \\text{JFK} \\to \\text{AAA} \\to \\text{JFK}$\n\n既然要求字典序最小，那么我们每次应该贪心地选择当前节点所连的节点中字典序最小的那一个，并将其入栈。最后栈中就保存了我们遍历的顺序。\n\n为了保证我们能够快速找到当前节点所连的节点中字典序最小的那一个，我们可以使用优先队列存储当前节点所连到的点，每次我们 $O(1)$ 地找到最小字典序的节点，并 $O(\\log m)$ 地删除它。\n\n然后我们考虑一种特殊情况：\n\n![Graph2](https://assets.leetcode.cn/solution-static/332/332_fig2.png)\n\n当我们先访问 $\\text{AAA}$ 时，我们无法回到 $\\text{JFK}$，这样我们就无法访问剩余的边了。\n\n也就是说，当我们贪心地选择字典序最小的节点前进时，我们可能先走入「死胡同」，从而导致无法遍历到其他还未访问的边。于是我们希望能够遍历完当前节点所连接的其他节点后再进入「死胡同」。\n\n> 注意对于每一个节点，它只有最多一个「死胡同」分支。依据前言中对于半欧拉图的描述，只有那个入度与出度差为 $1$ 的节点会导致死胡同。\n\n#### 方法一：$\\text{Hierholzer}$ 算法\n\n**思路及算法**\n\n$\\text{Hierholzer}$ 算法用于在连通图中寻找欧拉路径，其流程如下：\n\n1. 从起点出发，进行深度优先搜索。\n   \n2. 每次沿着某条边从某个顶点移动到另外一个顶点的时候，都需要删除这条边。\n   \n3. 如果没有可移动的路径，则将所在节点加入到栈中，并返回。\n\n当我们顺序地考虑该问题时，我们也许很难解决该问题，因为我们无法判断当前节点的哪一个分支是「死胡同」分支。\n\n不妨倒过来思考。我们注意到只有那个入度与出度差为 $1$ 的节点会导致死胡同。而该节点必然是最后一个遍历到的节点。我们可以改变入栈的规则，当我们遍历完一个节点所连的所有节点后，我们才将该节点入栈（即逆序入栈）。\n\n对于当前节点而言，从它的每一个非「死胡同」分支出发进行深度优先搜索，都将会搜回到当前节点。而从它的「死胡同」分支出发进行深度优先搜索将不会搜回到当前节点。也就是说当前节点的死胡同分支将会优先于其他非「死胡同」分支入栈。\n\n这样就能保证我们可以「一笔画」地走完所有边，最终的栈中逆序地保存了「一笔画」的结果。我们只要将栈中的内容反转，即可得到答案。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    unordered_map<string, priority_queue<string, vector<string>, std::greater<string>>> vec;\n\n    vector<string> stk;\n\n    void dfs(const string& curr) {\n        while (vec.count(curr) && vec[curr].size() > 0) {\n            string tmp = vec[curr].top();\n            vec[curr].pop();\n            dfs(move(tmp));\n        }\n        stk.emplace_back(curr);\n    }\n\n    vector<string> findItinerary(vector<vector<string>>& tickets) {\n        for (auto& it : tickets) {\n            vec[it[0]].emplace(it[1]);\n        }\n        dfs(\"JFK\");\n\n        reverse(stk.begin(), stk.end());\n        return stk;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    Map<String, PriorityQueue<String>> map = new HashMap<String, PriorityQueue<String>>();\n    List<String> itinerary = new LinkedList<String>();\n\n    public List<String> findItinerary(List<List<String>> tickets) {\n        for (List<String> ticket : tickets) {\n            String src = ticket.get(0), dst = ticket.get(1);\n            if (!map.containsKey(src)) {\n                map.put(src, new PriorityQueue<String>());\n            }\n            map.get(src).offer(dst);\n        }\n        dfs(\"JFK\");\n        Collections.reverse(itinerary);\n        return itinerary;\n    }\n\n    public void dfs(String curr) {\n        while (map.containsKey(curr) && map.get(curr).size() > 0) {\n            String tmp = map.get(curr).poll();\n            dfs(tmp);\n        }\n        itinerary.add(curr);\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def findItinerary(self, tickets: List[List[str]]) -> List[str]:\n        def dfs(curr: str):\n            while vec[curr]:\n                tmp = heapq.heappop(vec[curr])\n                dfs(tmp)\n            stack.append(curr)\n\n        vec = collections.defaultdict(list)\n        for depart, arrive in tickets:\n            vec[depart].append(arrive)\n        for key in vec:\n            heapq.heapify(vec[key])\n        \n        stack = list()\n        dfs(\"JFK\")\n        return stack[::-1]\n```\n\n```C [sol1-C]\nchar* id2str[26 * 26 * 26];\n\nint str2id(char* a) {\n    int ret = 0;\n    for (int i = 0; i < 3; i++) {\n        ret = ret * 26 + a[i] - 'A';\n    }\n    return ret;\n}\n\nint cmp(const void* _a, const void* _b) {\n    int **a = (int**)_a, **b = (int**)_b;\n    return (*b)[0] - (*a)[0] ? (*b)[0] - (*a)[0] : (*b)[1] - (*a)[1];\n}\n\nint* vec[26 * 26 * 26];\nint vec_len[26 * 26 * 26];\nint* stk;\nint stk_len;\n\nvoid dfs(int curr) {\n    while (vec_len[curr] > 0) {\n        int tmp = vec[curr][--vec_len[curr]];\n        dfs(tmp);\n    }\n    stk[stk_len++] = curr;\n}\n\nchar** findItinerary(char*** tickets, int ticketsSize, int* ticketsColSize, int* returnSize) {\n    memset(vec_len, 0, sizeof(vec_len));\n    stk = malloc(sizeof(int) * (ticketsSize + 1));\n    stk_len = 0;\n\n    int* tickets_tmp[ticketsSize];\n    for (int i = 0; i < ticketsSize; i++) {\n        tickets_tmp[i] = (int*)malloc(sizeof(int) * 2);\n        tickets_tmp[i][0] = str2id(tickets[i][0]);\n        tickets_tmp[i][1] = str2id(tickets[i][1]);\n        id2str[tickets_tmp[i][0]] = tickets[i][0];\n        id2str[tickets_tmp[i][1]] = tickets[i][1];\n    }\n    qsort(tickets_tmp, ticketsSize, sizeof(int*), cmp);\n\n    int add = 0;\n    while (add < ticketsSize) {\n        int adds = add + 1, start = tickets_tmp[add][0];\n        while (adds < ticketsSize && start == tickets_tmp[adds][0]) {\n            adds++;\n        }\n        vec_len[start] = adds - add;\n        vec[start] = malloc(sizeof(int) * vec_len[start]);\n        for (int i = add; i < adds; i++) {\n            vec[start][i - add] = tickets_tmp[i][1];\n        }\n        add = adds;\n    }\n\n    dfs(str2id(\"JFK\"));\n\n    *returnSize = ticketsSize + 1;\n    char** ret = malloc(sizeof(char*) * (ticketsSize + 1));\n    for (int i = 0; i <= ticketsSize; i++) {\n        ret[ticketsSize - i] = id2str[stk[i]];\n    }\n    return ret;\n}\n```\n\n```golang [sol1-Golang]\nfunc findItinerary(tickets [][]string) []string {\n    var (\n        m  = map[string][]string{}\n        res []string\n    )\n    \n    for _, ticket := range tickets {\n        src, dst := ticket[0], ticket[1]\n        m[src] = append(m[src], dst)\n    }\n    for key := range m {\n        sort.Strings(m[key])\n    }\n\n    var dfs func(curr string)\n    dfs = func(curr string) {\n        for {\n            if v, ok := m[curr]; !ok || len(v) == 0 {\n                break\n            }\n            tmp := m[curr][0]\n            m[curr] = m[curr][1:]\n            dfs(tmp)\n        }\n        res = append(res, curr)\n    }\n\n    dfs(\"JFK\")\n    for i := 0; i < len(res)/2; i++ {\n        res[i], res[len(res) - 1 - i] = res[len(res) - 1 - i], res[i]\n    }\n    return res\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(m \\log m)$，其中 $m$ 是边的数量。对于每一条边我们需要 $O(\\log m)$ 地删除它，最终的答案序列长度为 $m+1$，而与 $n$ 无关。\n  \n- 空间复杂度：$O(m)$，其中 $m$ 是边的数量。我们需要存储每一条边。",
+            "slateValue": "",
+            "slug": "zhong-xin-an-pai-xing-cheng-by-leetcode-solution",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "RxLPXO",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 174,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 7,
+                    "reactionType": "CONFUSED"
+                },
+                {
+                    "count": 3,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Depth-First Search",
+                    "nameTranslated": "深度优先搜索",
+                    "slug": "depth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Graph",
+                    "nameTranslated": "图",
+                    "slug": "graph",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Eulerian Circuit",
+                    "nameTranslated": "欧拉回路",
+                    "slug": "eulerian-circuit",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2020-08-26T12:10:08.634700+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "前言 本题和「753. 破解保险箱」类似，是力扣平台上为数不多的求解欧拉回路 / 欧拉通路的题目。读者可以配合着进行练习。 我们化简本题题意：给定一个 $n$ 个点 $m$ 条边的图，要求从指定的顶点出发，经过所有的边恰好一次（可以理解为给定起点的「一笔画」问题），使得路径的字典序最小。 这种「一笔画」问题与欧拉图或者",
+            "topic": {
+                "id": 389885,
+                "subscribed": false,
+                "commentCount": 280,
+                "viewCount": 47995,
+                "post": {
+                    "id": 954093,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 458,
+            "isEditorsPick": false,
+            "hitCount": 109778,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "reconstruct-itinerary",
+                "questionFrontendId": "332"
+            },
+            "next": {
+                "slug": "javadfsjie-fa-by-pwrliang",
+                "title": "[Java]DFS 解法"
+            },
+            "prev": null
+        }
+    }
+}

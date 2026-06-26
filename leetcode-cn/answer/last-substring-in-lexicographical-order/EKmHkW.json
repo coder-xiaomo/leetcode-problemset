@@ -1,0 +1,134 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "EKmHkW",
+            "title": "按字典序排在最后的子串",
+            "content": "#### 方法一：双指针\n\n记字符串 $s$ 的长度为 $n$。首先并非所有的子字符串都需要被考虑到，只有后缀子字符串才可能是排在最后的子字符串。\n\n> ***为什么只有后缀子字符串才可能是排在最后的子字符串？***\n>\n> 考虑一个非后缀子字符串 $s_1$，那么 $s_1$ 向后延伸得到的后缀子字符串 $s_2$ 比 $s_1$ 大，即 $s_2$ 排在 $s_1$ 后面。\n\n我们用 $s_i$ ​表示从 $s[i]$ 开始的后缀子字符串，那么可以用指针 $i$ 来指向后缀子字符串 $s_i$。我们使用指针 $i$ 指向已知的最大后缀子字符串，$j$ 指向待比较的后缀子字符串，初始时有 $i=0$，$j=1$。一个简单的做法是从小到大枚举 $j$，如果 $s_i < s_j$，那么令 $i=j$，最终的后缀子字符串 $s_i$ 就是排在最后的子字符串。类似于字符串匹配，在 $s_i$ 与 $s_j$ 的比较过程中，一部分前缀是相等的，我们利用这一点跳过一些不需要进行比较的后缀子字符串。假设 $s_i$ 与 $s_j$ 在第 $k$ 个字符处不相等，即 $s_i[k] \\ne s_j [k]$，那么有两种情况：\n\n+ $s_i[k] < s_j[k]$\n\n    + 当 $i+k \\gt j$ 时\n\n        对于 $m \\in [1, k]$ 的后缀子字符串 $s_{i+m}$：\n\n        + 如果 $m \\in [k - (j - i) + 1, k]$，显然有 $s_{i + m} \\lt s_{j+m}$，而 $j + m \\gt i + k$，因此 $s_{i+m}$ 是不需要比较的。\n        \n        + 如果 $m \\in [1, k - (j-i)]$，那么 $s_{i + m} \\lt s_{j+m} = s_{i+m+j-i}$，又因为 $m \\lt m+j-i \\le k$，而 $s_{i+m}$ 右边的后缀子字符串不需要进行比较，因此 $s_{i+m}$ 是不需要进行比较的。\n\n        综上，下一个需要进行比较的后缀子字符串为 $s_{i+k+1}$。\n\n        ![2.jpeg](https://pic.leetcode.cn/1682247247-UltPaR-2.jpeg){:width=650}\n\n    + 当 $i+k \\le j$ 时\n\n        下一个需要进行比较的后缀子字符串为 $s_{j+1}$。\n\n+ $s_i[k] > s_j[k]$\n\n    对于 $m \\in [1, k]$ 的后缀子字符串 $s_{j+m}$：\n    \n    + 如果 $m \\in [1, j-i]$，显然有 $s_{j+m} \\lt s_{i+m} \\lt s_i$。\n    \n    + 如果 $m \\in [j-i+1, k]$，那么 $s_{j+m} \\lt s_{i+m} = s_{j + m + i - j} \\lt s_i$（因为 $1 \\le m + i - j \\lt m$，而 $s_{j+m}$ 左边的后缀子字符串小于 $s_i$，因此 $s_{j+m}$ 也小于 $s_i$）。\n    \n    综上，对于 $m \\in [1, k]$，都有 $s_{j+m} \\lt s_i$，所以下一个需要比较的后缀子字符串为 $s_{j+k+1}$。\n\n    ![1.jpeg](https://pic.leetcode.cn/1682247209-pEmLZX-1.jpeg){:width=600}\n\n> ***当 $s_j$ 为 $s_i$ 的前缀子字符串，即 $j+k=n$ 时，与情况 $s_i[k] > s_j[k]$ 类似***。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    string lastSubstring(string s) {\n        int i = 0, j = 1, n = s.size();\n        while (j < n) {\n            int k = 0;\n            while (j + k < n && s[i + k] == s[j + k]) {\n                k++;\n            }\n            if (j + k < n && s[i + k] < s[j + k]) {\n                int t = i;\n                i = j;\n                j = max(j + 1, t + k + 1);\n            } else {\n                j = j + k + 1;\n            }\n        }\n        return s.substr(i, n - i);\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public String lastSubstring(String s) {\n        int i = 0, j = 1, n = s.length();\n        while (j < n) {\n            int k = 0;\n            while (j + k < n && s.charAt(i + k) == s.charAt(j + k)) {\n                k++;\n            }\n            if (j + k < n && s.charAt(i + k) < s.charAt(j + k)) {\n                int t = i;\n                i = j;\n                j = Math.max(j + 1, t + k + 1);\n            } else {\n                j = j + k + 1;\n            }\n        }\n        return s.substring(i);\n    }\n}\n```\n```Python [sol1-Python3]\nclass Solution:\n    def lastSubstring(self, s: str) -> str:\n        i, j, n = 0, 1, len(s)\n        while j < n:\n            k = 0\n            while j + k < n and s[i + k] == s[j + k]:\n                k += 1\n            if j + k < n and s[i + k] < s[j + k]:\n                i, j = j, max(j + 1, i + k + 1)\n            else:\n                j = j + k + 1\n        return s[i:]\n```\n\n```JavaScript [sol1-JavaScript]\nvar lastSubstring = function(s) {\n    let i = 0, j = 1, n = s.length;\n    while (j < n) {\n        let k = 0;\n        while (j + k < n && s[i + k] === s[j + k]) {\n            k++;\n        }\n        if (j + k < n && s[i + k] < s[j + k]) {\n            let t = i;\n            i = j;\n            j = Math.max(j + 1, t + k + 1);\n        } else {\n            j = j + k + 1;\n        }\n    }\n    return s.substring(i, n);\n};\n```\n```C# [sol1-C#]\npublic class Solution {\n    public string LastSubstring(string s) {\n        int i = 0, j = 1, n = s.Length;\n        while (j < n) {\n            int k = 0;\n            while (j + k < n && s[i + k] == s[j + k]) {\n                k++;\n            }\n            if (j + k < n && s[i + k] < s[j + k]) {\n                int t = i;\n                i = j;\n                j = Math.Max(j + 1, t + k + 1);\n            } else {\n                j = j + k + 1;\n            }\n        }\n        return s.Substring(i);\n    }\n}\n```\n\n```Golang [sol1-Golang]\nfunc max(a, b int) int {\n    if a > b {\n        return a\n    }\n    return b\n}\n\nfunc lastSubstring(s string) string {\n    i, j, n := 0, 1, len(s)\n    for j < n {\n        k := 0\n        for j + k < n && s[i + k] == s[j + k] {\n            k++\n        }\n        if j + k < n && s[i + k] < s[j + k] {\n            i, j = j, max(j + 1, i + k + 1)\n        } else {\n            j = j + k + 1\n        }\n    }\n    return s[i:]\n}\n```\n\n```C [sol1-C]\n#define MAX(a, b) ((a) > (b) ? (a) : (b))\n\nchar * lastSubstring(char * s) {\n    int i = 0, j = 1, n = strlen(s);\n    while (j < n) {\n        int k = 0;\n        while (j + k < n && s[i + k] == s[j + k]) {\n            k++;\n        }\n        if (j + k < n && s[i + k] < s[j + k]) {\n            int t = i;\n            i = j;\n            j = MAX(j + 1, t + k + 1);\n        } else {\n            j = j + k + 1;\n        }\n    }\n    char *res = (char *)calloc(n - i + 1, sizeof(char));\n    strncpy(res, s + i, n - i);\n    return res;\n}\n```\n\n**复杂度分析**\n\n+ 时间复杂度：$O(n)$，其中 $n$ 是字符串 $s$ 的长度。每 $k$ 次比较，$i$ 与 $j$ 共同至少向右移动 $k$，因此总比较次数不超过 $2 \\times n$ 次。\n\n+ 空间复杂度：$O(1)$。返回值不计算空间复杂度。",
+            "slateValue": "",
+            "slug": "an-zi-dian-xu-pai-zai-zui-hou-de-zi-chua-31yl",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "EKmHkW",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 67,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Two Pointers",
+                    "nameTranslated": "双指针",
+                    "slug": "two-pointers",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-04-23T02:05:46.571862+00:00",
+            "thumbnail": "https://pic.leetcode.cn/1682247247-UltPaR-2.jpeg",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：双指针\n记字符串 s 的长度为 n。首先并非所有的子字符串都需要被考虑到，只有后缀子字符串才可能是排在最后的子字符串。\n\n为什么只有后缀子字符串才可能是排在最后的子字符串？\n考虑一个非后缀子字符串 s_1，那么 s_1 向后延伸得到的后缀子字符串 s_2 比 s_1 大，即 s_2 排在 s_1 后面。\n\n我",
+            "topic": {
+                "id": 2241014,
+                "subscribed": false,
+                "commentCount": 104,
+                "viewCount": 1557,
+                "post": {
+                    "id": 4239616,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 101,
+            "isEditorsPick": false,
+            "hitCount": 22589,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "last-substring-in-lexicographical-order",
+                "questionFrontendId": "1163"
+            },
+            "next": {
+                "slug": "python3javacgotypescript-yi-ti-yi-jie-sh-3amj",
+                "title": "[Python3/Java/C++/Go/TypeScript] 一题一解：双指针（清晰题解）"
+            },
+            "prev": null
+        }
+    }
+}

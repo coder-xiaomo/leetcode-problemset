@@ -1,0 +1,88 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "HKI94S",
+            "title": "字母组合迭代器",
+            "content": "### 方法一：生成法\n\n我们可以用经典的生成法依次求出这些组合。以字符串 `\"abcde\"` 为例，我们需要求出其长度为 `3` 的所有组合。\n\n首先，第一个组合即为 `\"abcde\"` 的前三个字母：\n\n```\na b c\n```\n\n那么我们如何求出下一个组合呢？可以发现，`\"abc\"` 的最后一个字母 `\"c\"` 还可以增大为 `\"d\"`，因此我们将其变为 `\"d\"` 即可得到第二个组合。同理，将 `\"d\"` 变为 `\"e\"` 即可得到第三个组合。\n\n```\na b c     =>     a b d     =>     a b e\n    ^                ^\n    d                e\n```\n\n此时，最后一个字母 `\"e\"` 已经无法再增大了，我们需要向前寻找可以增大的字母。可以发现，`\"abe\"` 中的第二个字母 `\"b\"` 可以增大为 `\"c\"`，因此我们将其变为 `\"c\"` 得到 `\"ace\"`。然而这并不是第四个组合，因为还需要将最后一个字母 `\"e\"` 减少为满足要求的最小值。因此我们将其变为 `\"d\"` 得到 `\"acd\"`，即为第四个组合。\n\n```\na b e     =>     a c d\n  ^ ^\n  c d\n```\n\n同理，我们可以继续得到接下来的第五和第六个组合：\n\n```\na c d     =>     a c e     =>     a d e\n    ^              ^ ^\n    e              d e\n```\n\n此时，最后一个字母 `\"e\"` 已经无法再增大了，同时第二个字母 `\"d\"` 也无法再增大了（虽然有比它大的字母 `\"e\"`，但是如果第二个字母增大为 `\"e\"`，那么最后一个字母就无法选择任何值了），我们需要再向前寻找到第一个字母，将其变为 `\"b\"` 得到 `\"bde\"`。同样地，我们需要将后面的两个字母减少为满足要求的最小值，变为 `\"bcd\"`，即为第七个组合。\n\n```\na d e     =>     b c d\n^ ^ ^\nb c d\n```\n\n同理，我们可以继续得到接下来的第八，第九和第十个组合：\n\n```\nb c d     =>     b c e     =>     b d e     =>     c d e\n    ^              ^ ^            ^ ^ ^\n    e              d e            c d e\n```\n\n此时，这三个字母都已经无法再增大，因此我们就可以知道这是最后一个组合了。\n\n通过上面这个例子，我们可以得到一般性的组合生成方法：\n\n- 假设字符串的长度为 `l`，组合的长度为 `k`，第一个组合即为字符串中的前 `k` 个字母；\n\n- 在调用函数 `next()` 时，我们将当前的组合作为答案返回，并开始寻找下一个组合：\n\n  - 我们从组合中的第 `k` 个位置开始看起，如果当前位置的字母可以增大，则将其增大一次；如果当前位置的字母已经到达最大值，则向前寻找，直到找到可以增大的位置，将其增大一次。如果没有找到，则说明当前已经是最大的组合，我们添加一个标记。对于组合中的第 `i` 个位置，它的最大值是字符串中的第 `l - k + i` 个字母；\n\n  - 记找到可以增大的字母位置为 `i`。我们将组合中的第 `i + 1` 到第 `k` 个位置的字母减少为满足要求的最小值。具体地，第 `i + 1` 个位置的字母为第 `i` 个位置的字母在字符串中的下一个字母，第 `i + 2` 个位置的字母为第 `i + 1` 个位置的字母在字符串中的下一个字母，以此类推。\n\n- 在调用函数 `hasNext()` 时，如果在调用函数 `next()` 时被添加过标记，那么说明当前已经是最大的组合，返回 `true`，否则返回 `false`。\n\n这种生成方法的优势在于，我们仅根据当前的组合就可以快速地得到下一个组合，而不需要提前将所有的组合存储在数据结构中。\n\n```C++ [sol1-C++]\nclass CombinationIterator {\nprivate:\n    vector<int> pos;\n    string s;\n    bool finished;\n\npublic:\n    CombinationIterator(string characters, int combinationLength) {\n        s = characters;\n        pos.resize(combinationLength);\n        iota(pos.begin(), pos.end(), 0);\n        finished = false;\n    }\n    \n    string next() {\n        string ans;\n        for (int p: pos) {\n            ans += s[p];\n        }\n        int i = -1;\n        for (int k = pos.size() - 1; k >= 0; --k) {\n            if (pos[k] != s.size() - pos.size() + k) {\n                i = k;\n                break;\n            }\n        }\n        if (i == -1) {\n            finished = true;\n        }\n        else {\n            ++pos[i];\n            for (int j = i + 1; j < pos.size(); ++j) {\n                pos[j] = pos[j - 1] + 1;\n            }\n        }\n        return ans;\n    }\n    \n    bool hasNext() {\n        return !finished;\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass CombinationIterator:\n\n    def __init__(self, characters: str, combinationLength: int):\n        self.s = characters\n        self.pos = [x for x in range(combinationLength)]\n        self.finished = False\n\n    def next(self) -> str:\n        ans = \"\".join([self.s[p] for p in self.pos])\n        i = -1\n        for k in range(len(self.pos) - 1, -1, -1):\n            if self.pos[k] != len(self.s) - len(self.pos) + k:\n                i = k\n                break\n        if i == -1:\n            self.finished = True\n        else:\n            self.pos[i] += 1\n            for j in range(i + 1, len(self.pos)):\n                self.pos[j] = self.pos[j - 1] + 1\n        return ans\n\n    def hasNext(self) -> bool:\n        return not self.finished\n```\n\n**复杂度分析**\n\n- 时间复杂度：`next()` 函数的时间复杂度为 $O(K)$，其中 $K$ 是组合的长度。`hasNext()` 函数的时间复杂度为 $O(1)$。\n\n- 空间复杂度：除了存储字符串和组合使用的空间之外，`next` 函数和 `hasNext()` 函数的空间复杂度均为 $O(1)$。",
+            "slateValue": "",
+            "slug": "zi-mu-zu-he-die-dai-qi-by-leetcode-solution",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "HKI94S",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 12,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-02-19T02:40:54.134290+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：生成法\n我们可以用经典的生成法依次求出这些组合。以字符串 \"abcde\" 为例，我们需要求出其长度为 3 的所有组合。\n首先，第一个组合即为 \"abcde\" 的前三个字母：\n那么我们如何求出下一个组合呢？可以发现，\"abc\" 的最后一个字母 \"c\" 还可以增大为 \"d\"，因此我们将其变为 \"d\" 即可得到第二个",
+            "topic": {
+                "id": 101723,
+                "subscribed": false,
+                "commentCount": 16,
+                "viewCount": 4937,
+                "post": {
+                    "id": 349532,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 24,
+            "isEditorsPick": false,
+            "hitCount": 9166,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "iterator-for-combination",
+                "questionFrontendId": "1286"
+            },
+            "next": {
+                "slug": "er-jin-zhi-bian-ma-bu-yong-qiu-chu-quan-pai-lie-by",
+                "title": "二进制编码，不用求出全排列"
+            },
+            "prev": null
+        }
+    }
+}

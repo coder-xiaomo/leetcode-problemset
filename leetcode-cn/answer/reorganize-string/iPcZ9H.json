@@ -1,0 +1,158 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "iPcZ9H",
+            "title": "重构字符串",
+            "content": "#### 前言\n\n这道题是典型的使用贪心思想的题。重构字符串时，需要根据每个字母在字符串中出现的次数处理每个字母放置的位置。如果出现次数最多的字母可以在重新排布之后不相邻，则可以重新排布字母使得相邻的字母都不相同。如果出现次数最多的字母过多，则无法重新排布字母使得相邻的字母都不相同。\n\n假设字符串的长度为 $n$，如果可以重新排布成相邻的字母都不相同的字符串，每个字母最多出现多少次？\n\n当 $n$ 是偶数时，有 $\\dfrac{n}{2}$ 个偶数下标和 $\\dfrac{n}{2}$ 个奇数下标，因此每个字母的出现次数都不能超过 $\\dfrac{n}{2}$ 次，否则出现次数最多的字母一定会出现相邻。\n\n当 $n$ 是奇数时，由于共有 $\\dfrac{n+1}{2}$ 个偶数下标，因此每个字母的出现次数都不能超过 $\\dfrac{n+1}{2}$ 次，否则出现次数最多的字母一定会出现相邻。\n\n由于当 $n$ 是偶数时，$\\dfrac{n}{2} = \\Big\\lfloor \\dfrac{n+1}{2} \\Big\\rfloor$，因此可以合并 $n$ 是偶数与 $n$ 是奇数的情况：如果可以重新排布成相邻的字母都不相同的字符串，每个字母最多出现 $\\Big\\lfloor \\dfrac{n+1}{2} \\Big\\rfloor$ 次。\n\n因此首先遍历字符串并统计每个字母的出现次数，如果存在一个字母的出现次数大于 $\\Big\\lfloor \\dfrac{n+1}{2} \\Big\\rfloor$，则无法重新排布字母使得相邻的字母都不相同，返回空字符串。如果所有字母的出现次数都不超过 $\\Big\\lfloor \\dfrac{n+1}{2} \\Big\\rfloor$，则考虑如何重新排布字母。\n\n以下提供两种使用贪心的方法，分别基于最大堆和计数。\n\n#### 方法一：基于最大堆的贪心\n\n维护最大堆存储字母，堆顶元素为出现次数最多的字母。首先统计每个字母的出现次数，然后将出现次数大于 $0$ 的字母加入最大堆。\n\n当最大堆的元素个数大于 $1$ 时，每次从最大堆取出两个字母，拼接到重构的字符串，然后将两个字母的出现次数分别减 $1$，并将剩余出现次数大于 $0$ 的字母重新加入最大堆。由于最大堆中的元素都是不同的，因此取出的两个字母一定也是不同的，将两个不同的字母拼接到重构的字符串，可以确保相邻的字母都不相同。\n\n如果最大堆变成空，则已经完成字符串的重构。如果最大堆剩下 $1$ 个元素，则取出最后一个字母，拼接到重构的字符串。\n\n对于长度为 $n$ 的字符串，共有 $\\Big\\lfloor \\dfrac{n}{2} \\Big\\rfloor$ 次每次从最大堆取出两个字母的操作，当 $n$ 是奇数时，还有一次从最大堆取出一个字母的操作，因此重构的字符串的长度一定是 $n$。\n\n当 $n$ 是奇数时，是否可能出现重构的字符串的最后两个字母相同的情况？如果最后一个字母在整个字符串中至少出现了 $2$ 次，则在最后一次从最大堆取出两个字母时，该字母会先被选出，因此不会成为重构的字符串的倒数第二个字母，也不可能出现重构的字符串最后两个字母相同的情况。\n\n因此，在重构字符串可行的情况下，基于最大堆的贪心可以确保得到正确答案。\n\n<![ppt1](https://assets.leetcode.cn/solution-static/767/1.png),![ppt2](https://assets.leetcode.cn/solution-static/767/2.png),![ppt3](https://assets.leetcode.cn/solution-static/767/3.png),![ppt4](https://assets.leetcode.cn/solution-static/767/4.png),![ppt5](https://assets.leetcode.cn/solution-static/767/5.png),![ppt6](https://assets.leetcode.cn/solution-static/767/6.png),![ppt7](https://assets.leetcode.cn/solution-static/767/7.png),![ppt8](https://assets.leetcode.cn/solution-static/767/8.png),![ppt9](https://assets.leetcode.cn/solution-static/767/9.png),![ppt10](https://assets.leetcode.cn/solution-static/767/10.png),![ppt11](https://assets.leetcode.cn/solution-static/767/11.png),![ppt12](https://assets.leetcode.cn/solution-static/767/12.png),![ppt13](https://assets.leetcode.cn/solution-static/767/13.png)>\n\n```Java [sol1-Java]\nclass Solution {\n    public String reorganizeString(String s) {\n        if (s.length() < 2) {\n            return s;\n        }\n        int[] counts = new int[26];\n        int maxCount = 0;\n        int length = s.length();\n        for (int i = 0; i < length; i++) {\n            char c = s.charAt(i);\n            counts[c - 'a']++;\n            maxCount = Math.max(maxCount, counts[c - 'a']);\n        }\n        if (maxCount > (length + 1) / 2) {\n            return \"\";\n        }\n        PriorityQueue<Character> queue = new PriorityQueue<Character>(new Comparator<Character>() {\n            public int compare(Character letter1, Character letter2) {\n                return counts[letter2 - 'a'] - counts[letter1 - 'a'];\n            }\n        });\n        for (char c = 'a'; c <= 'z'; c++) {\n            if (counts[c - 'a'] > 0) {\n                queue.offer(c);\n            }\n        }\n        StringBuffer sb = new StringBuffer();\n        while (queue.size() > 1) {\n            char letter1 = queue.poll();\n            char letter2 = queue.poll();\n            sb.append(letter1);\n            sb.append(letter2);\n            int index1 = letter1 - 'a', index2 = letter2 - 'a';\n            counts[index1]--;\n            counts[index2]--;\n            if (counts[index1] > 0) {\n                queue.offer(letter1);\n            }\n            if (counts[index2] > 0) {\n                queue.offer(letter2);\n            }\n        }\n        if (queue.size() > 0) {\n            sb.append(queue.poll());\n        }\n        return sb.toString();\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    string reorganizeString(string s) {\n        if (s.length() < 2) {\n            return s;\n        }\n        vector<int> counts(26, 0);\n        int maxCount = 0;\n        int length = s.length();\n        for (int i = 0; i < length; i++) {\n            char c = s[i];\n            counts[c - 'a']++;\n            maxCount = max(maxCount, counts[c - 'a']);\n        }\n        if (maxCount > (length + 1) / 2) {\n            return \"\";\n        }\n        auto cmp = [&](const char& letter1, const char& letter2) {\n            return counts[letter1 - 'a']  < counts[letter2 - 'a'];\n        };\n        priority_queue<char, vector<char>,  decltype(cmp)> queue{cmp};\n        for (char c = 'a'; c <= 'z'; c++) {\n            if (counts[c - 'a'] > 0) {\n                queue.push(c);\n            }\n        }\n        string sb = \"\";\n        while (queue.size() > 1) {\n            char letter1 = queue.top(); queue.pop();\n            char letter2 = queue.top(); queue.pop();\n            sb += letter1;\n            sb += letter2;\n            int index1 = letter1 - 'a', index2 = letter2 - 'a';\n            counts[index1]--;\n            counts[index2]--;\n            if (counts[index1] > 0) {\n                queue.push(letter1);\n            }\n            if (counts[index2] > 0) {\n                queue.push(letter2);\n            }\n        }\n        if (queue.size() > 0) {\n            sb += queue.top();\n        }\n        return sb;\n    }\n};\n```\n\n```Golang [sol1-Golang]\nvar cnt [26]int\n\ntype hp struct{ sort.IntSlice }\n\nfunc (h hp) Less(i, j int) bool  { return cnt[h.IntSlice[i]] > cnt[h.IntSlice[j]] }\nfunc (h *hp) Push(v interface{}) { h.IntSlice = append(h.IntSlice, v.(int)) }\nfunc (h *hp) Pop() interface{}   { a := h.IntSlice; v := a[len(a)-1]; h.IntSlice = a[:len(a)-1]; return v }\nfunc (h *hp) push(v int)         { heap.Push(h, v) }\nfunc (h *hp) pop() int           { return heap.Pop(h).(int) }\n\nfunc reorganizeString(s string) string {\n    n := len(s)\n    if n <= 1 {\n        return s\n    }\n\n    cnt = [26]int{}\n    maxCnt := 0\n    for _, ch := range s {\n        ch -= 'a'\n        cnt[ch]++\n        if cnt[ch] > maxCnt {\n            maxCnt = cnt[ch]\n        }\n    }\n    if maxCnt > (n+1)/2 {\n        return \"\"\n    }\n\n    h := &hp{}\n    for i, c := range cnt[:] {\n        if c > 0 {\n            h.IntSlice = append(h.IntSlice, i)\n        }\n    }\n    heap.Init(h)\n\n    ans := make([]byte, 0, n)\n    for len(h.IntSlice) > 1 {\n        i, j := h.pop(), h.pop()\n        ans = append(ans, byte('a'+i), byte('a'+j))\n        if cnt[i]--; cnt[i] > 0 {\n            h.push(i)\n        }\n        if cnt[j]--; cnt[j] > 0 {\n            h.push(j)\n        }\n    }\n    if len(h.IntSlice) > 0 {\n        ans = append(ans, byte('a'+h.IntSlice[0]))\n    }\n    return string(ans)\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def reorganizeString(self, s: str) -> str:\n        if len(s) < 2:\n            return s\n        \n        length = len(s)\n        counts = collections.Counter(s)\n        maxCount = max(counts.items(), key=lambda x: x[1])[1]\n        if maxCount > (length + 1) // 2:\n            return \"\"\n        \n        queue = [(-x[1], x[0]) for x in counts.items()]\n        heapq.heapify(queue)\n        ans = list()\n\n        while len(queue) > 1:\n            _, letter1 = heapq.heappop(queue)\n            _, letter2 = heapq.heappop(queue)\n            ans.extend([letter1, letter2])\n            counts[letter1] -= 1\n            counts[letter2] -= 1\n            if counts[letter1] > 0:\n                heapq.heappush(queue, (-counts[letter1], letter1))\n            if counts[letter2] > 0:\n                heapq.heappush(queue, (-counts[letter2], letter2))\n        \n        if queue:\n            ans.append(queue[0][1])\n        \n        return \"\".join(ans)\n```\n\n```JavaScript [sol1-JavaScript]\nvar reorganizeString = function(s) {\n    if (s.length < 2) {\n        return s;\n    }\n\n    const length = s.length;\n    const counts = _.countBy(s);\n    const maxCount = Math.max(...Object.values(counts));\n    if (maxCount > Math.floor((length + 1) / 2)) {\n        return '';\n    }\n\n    const queue = new MaxPriorityQueue();\n    Object.keys(counts).forEach(x => queue.enqueue(x, counts[x]));\n    let ans = new Array();\n\n    while (queue.size() > 1) {\n        const letter1 = queue.dequeue()['element'];\n        const letter2 = queue.dequeue()['element'];\n        ans = ans.concat(letter1, letter2)\n        counts[letter1]--;\n        counts[letter2]--;\n        if (counts[letter1] > 0) {\n            queue.enqueue(letter1, counts[letter1]);\n        }\n        if (counts[letter2] > 0) {\n            queue.enqueue(letter2, counts[letter2]);\n        }\n    }\n    \n    if (queue.size()) {\n        ans.push(queue.dequeue()['element'])\n    }\n\n    return ans.join('');\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n\\log|\\Sigma| + |\\Sigma|)$，其中 $n$ 是字符串的长度，$\\Sigma$ 是字符集，在本题中字符集为所有小写字母，$|\\Sigma|=26$。\n  遍历字符串并统计每个字母的出现次数，时间复杂度是 $O(n)$。\n  将每个字母加入最大堆，字母个数最多为 $|\\Sigma|$，这里设真正出现的小写字母数量为 $|\\Sigma'|$，那么时间复杂度是 $O(|\\Sigma|)$ 加上 $O(|\\Sigma'|\\log|\\Sigma'|)$ 或 $O(|\\Sigma'|)$。前者是对数组进行遍历的时间复杂度 $O(|\\Sigma|)$，而后者取决于是将每个字母依次加入最大堆，时间复杂度为 $O(|\\Sigma'|\\log|\\Sigma'|)$；还是直接使用一次堆的初始化操作，时间复杂度为 $O(|\\Sigma'|)$。\n  重构字符串需要对最大堆进行取出元素和添加元素的操作，取出元素和添加元素的次数都不会超过 $n$ 次，每次操作的时间复杂度是 $O(\\log|\\Sigma'|)$，因此总时间复杂度是 $O(n\\log|\\Sigma'|)$。由于真正出现的小写字母数量为 $|\\Sigma'|$ 一定小于等于字符串的长度 $n$，因此上面的时间复杂度中 $O(n)$，$O(|\\Sigma'|\\log|\\Sigma'|)$ 和 $O(|\\Sigma'|)$ 在渐进意义下均小于 $O(n\\log|\\Sigma'|)$，只需要保留 $O(|\\Sigma|)$。由于 $|\\Sigma'| \\leq |\\Sigma|$，为了不引入额外符号，可以将时间复杂度 $O(n\\log|\\Sigma'|)$ 写成 $O(n\\log|\\Sigma|)$。\n  总时间复杂度是 $O(n\\log|\\Sigma| + |\\Sigma|)$。\n\n- 空间复杂度：$O(|\\Sigma|)$，其中 $\\Sigma$ 是字符集，在本题中字符集为所有小写字母，$|\\Sigma|=26$。这里不计算存储最终答案字符串需要的空间（以及由于语言特性，在构造字符串时需要的额外缓存空间），空间复杂度主要取决于统计每个字母出现次数的空间和最大堆空间。\n\n#### 方法二：基于计数的贪心\n\n首先统计每个字母的出现次数，然后根据每个字母的出现次数重构字符串。\n\n当 $n$ 是奇数且出现最多的字母的出现次数是 $\\dfrac{n+1}{2}$ 时，出现次数最多的字母必须全部放置在偶数下标，否则一定会出现相邻的字母相同的情况。其余情况下，每个字母放置在偶数下标或者奇数下标都是可行的。\n\n维护偶数下标 $\\textit{evenIndex}$ 和奇数下标 $\\textit{oddIndex}$，初始值分别为 $0$ 和 $1$。遍历每个字母，根据每个字母的出现次数判断字母应该放置在偶数下标还是奇数下标。\n\n首先考虑是否可以放置在奇数下标。根据上述分析可知，只要字母的出现次数不超过字符串的长度的一半（即出现次数小于或等于 $\\Big\\lfloor \\dfrac{n}{2} \\Big\\rfloor$），就可以放置在奇数下标，只有当字母的出现次数超过字符串的长度的一半时，才必须放置在偶数下标。字母的出现次数超过字符串的长度的一半只可能发生在 $n$ 是奇数的情况下，且最多只有一个字母的出现次数会超过字符串的长度的一半。\n\n因此通过如下操作在重构的字符串中放置字母。\n\n- 如果字母的出现次数大于 $0$ 且小于或等于 $\\Big\\lfloor \\dfrac{n}{2} \\Big\\rfloor$，且 $\\textit{oddIndex}$ 没有超出数组下标范围，则将字母放置在 $\\textit{oddIndex}$，然后将 $\\textit{oddIndex}$ 的值加 $2$。\n\n- 如果字母的出现次数大于 $\\Big\\lfloor \\dfrac{n}{2} \\Big\\rfloor$，或 $\\textit{oddIndex}$ 超出数组下标范围，则将字母放置在 $\\textit{evenIndex}$，然后将 $\\textit{evenIndex}$ 的值加 $2$。\n\n如果一个字母出现了多次，则重复上述操作，直到该字母全部放置完毕。\n\n那么上述做法是否可以确保相邻的字母都不相同？考虑以下三种情况。\n\n- 如果 $n$ 是奇数且存在一个字母的出现次数为 $\\dfrac{n+1}{2}$，则该字母全部被放置在偶数下标，其余的 $\\dfrac{n-1}{2}$ 个字母都被放置在奇数下标，因此相邻的字母一定不相同。\n\n- 如果同一个字母全部被放置在奇数下标或全部被放置在偶数下标，则该字母不可能在相邻的下标出现。\n\n- 如果同一个字母先被放置在奇数下标直到奇数下标超出数组下标范围，然后被放置在偶数下标，由于该字母的出现次数不会超过 $\\Big\\lfloor \\dfrac{n}{2} \\Big\\rfloor$，因此该字母的最小奇数下标与最大偶数下标之差不小于 $3$，不可能在相邻的下标出现。证明如下：\n\n   - 当 $n$ 是偶数时，如果该字母的出现次数为 $\\dfrac{n}{2}$，包括 $p$ 个奇数下标和 $q$ 个偶数下标，满足 $p+q=\\dfrac{n}{2}$，最小奇数下标是 $n-2p+1$，最大偶数下标是 $2(q-1)$，最小奇数下标与最大偶数下标之差为：\n\n   $$\n   \\begin{aligned}\n   & (n-2p+1)-2(q-1) \\\\\n   = &\\ n-2p+1-2q+2 \\\\\n   = &\\ n-2(p+q)+3 \\\\\n   = &\\ n-2 \\times \\frac{n}{2}+3 \\\\\n   = &\\ n-n+3 \\\\\n   = &\\ 3\n   \\end{aligned}\n   $$\n\n   - 当 $n$ 是奇数时，如果该字母的出现次数为 $\\dfrac{n-1}{2}$，包括 $p$ 个奇数下标和 $q$ 个偶数下标，满足 $p+q=\\dfrac{n-1}{2}$，最小奇数下标是 $n-2p$，最大偶数下标是 $2(q-1)$，最小奇数下标与最大偶数下标之差为：\n\n   $$\n   \\begin{aligned}\n   & (n-2p)-2(q-1) \\\\\n   = &\\ n-2p-2q+2 \\\\\n   = &\\ n-2(p+q)+2 \\\\\n   = &\\ n-2 \\times \\frac{n-1}{2}+2 \\\\\n   = &\\ n-(n-1)+2 \\\\\n   = &\\ 3\n   \\end{aligned}\n   $$\n\n因此，在重构字符串可行的情况下，基于计数的贪心可以确保相邻的字母都不相同，得到正确答案。\n\n<![p1](https://assets.leetcode.cn/solution-static/767/2_1.png),![p2](https://assets.leetcode.cn/solution-static/767/2_2.png),![p3](https://assets.leetcode.cn/solution-static/767/2_3.png),![p4](https://assets.leetcode.cn/solution-static/767/2_4.png),![p5](https://assets.leetcode.cn/solution-static/767/2_5.png),![p6](https://assets.leetcode.cn/solution-static/767/2_6.png),![p7](https://assets.leetcode.cn/solution-static/767/2_7.png),![p8](https://assets.leetcode.cn/solution-static/767/2_8.png),![p9](https://assets.leetcode.cn/solution-static/767/2_9.png),![p10](https://assets.leetcode.cn/solution-static/767/2_10.png),![p11](https://assets.leetcode.cn/solution-static/767/2_11.png),![p12](https://assets.leetcode.cn/solution-static/767/2_12.png)>\n\n```Java [sol2-Java]\nclass Solution {\n    public String reorganizeString(String s) {\n        if (s.length() < 2) {\n            return s;\n        }\n        int[] counts = new int[26];\n        int maxCount = 0;\n        int length = s.length();\n        for (int i = 0; i < length; i++) {\n            char c = s.charAt(i);\n            counts[c - 'a']++;\n            maxCount = Math.max(maxCount, counts[c - 'a']);\n        }\n        if (maxCount > (length + 1) / 2) {\n            return \"\";\n        }\n        char[] reorganizeArray = new char[length];\n        int evenIndex = 0, oddIndex = 1;\n        int halfLength = length / 2;\n        for (int i = 0; i < 26; i++) {\n            char c = (char) ('a' + i);\n            while (counts[i] > 0 && counts[i] <= halfLength && oddIndex < length) {\n                reorganizeArray[oddIndex] = c;\n                counts[i]--;\n                oddIndex += 2;\n            }\n            while (counts[i] > 0) {\n                reorganizeArray[evenIndex] = c;\n                counts[i]--;\n                evenIndex += 2;\n            }\n        }\n        return new String(reorganizeArray);\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    public string ReorganizeString(string s) {\n        if (s.Length < 2) {\n            return s;\n        }\n        int[] counts = new int[26];\n        int maxCount = 0;\n        int length = s.Length;\n        for (int i = 0; i < length; i++) {\n            char c = s[i];\n            counts[c - 'a']++;\n            maxCount = Math.Max(maxCount, counts[c - 'a']);\n        }\n        if (maxCount > (length + 1) / 2) {\n            return \"\";\n        }\n        char[] reorganizeArray = new char[length];\n        int evenIndex = 0, oddIndex = 1;\n        int halfLength = length / 2;\n        for (int i = 0; i < 26; i++) {\n            char c = (char) ('a' + i);\n            while (counts[i] > 0 && counts[i] <= halfLength && oddIndex < length) {\n                reorganizeArray[oddIndex] = c;\n                counts[i]--;\n                oddIndex += 2;\n            }\n            while (counts[i] > 0) {\n                reorganizeArray[evenIndex] = c;\n                counts[i]--;\n                evenIndex += 2;\n            }\n        }\n        return new string(reorganizeArray);\n    }\n}\n```\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    string reorganizeString(string s) {\n        if (s.length() < 2) {\n            return s;\n        }\n        vector<int> counts(26, 0);\n        int maxCount = 0;\n        int length = s.length();\n        for (int i = 0; i < length; i++) {\n            char c = s[i];\n            counts[c - 'a']++;\n            maxCount = max(maxCount, counts[c - 'a']);\n        }\n        if (maxCount > (length + 1) / 2) {\n            return \"\";\n        }\n        string reorganizeArray(length, ' ');\n        int evenIndex = 0, oddIndex = 1;\n        int halfLength = length / 2;\n        for (int i = 0; i < 26; i++) {\n            char c = 'a' + i;\n            while (counts[i] > 0 && counts[i] <= halfLength && oddIndex < length) {\n                reorganizeArray[oddIndex] = c;\n                counts[i]--;\n                oddIndex += 2;\n            }\n            while (counts[i] > 0) {\n                reorganizeArray[evenIndex] = c;\n                counts[i]--;\n                evenIndex += 2;\n            }\n        }\n        return reorganizeArray;\n    }\n};\n```\n\n```Golang [sol2-Golang]\nfunc reorganizeString(s string) string {\n    n := len(s)\n    if n <= 1 {\n        return s\n    }\n\n    cnt := [26]int{}\n    maxCnt := 0\n    for _, ch := range s {\n        ch -= 'a'\n        cnt[ch]++\n        if cnt[ch] > maxCnt {\n            maxCnt = cnt[ch]\n        }\n    }\n    if maxCnt > (n+1)/2 {\n        return \"\"\n    }\n\n    ans := make([]byte, n)\n    evenIdx, oddIdx, halfLen := 0, 1, n/2\n    for i, c := range cnt[:] {\n        ch := byte('a' + i)\n        for c > 0 && c <= halfLen && oddIdx < n {\n            ans[oddIdx] = ch\n            c--\n            oddIdx += 2\n        }\n        for c > 0 {\n            ans[evenIdx] = ch\n            c--\n            evenIdx += 2\n        }\n    }\n    return string(ans)\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def reorganizeString(self, s: str) -> str:\n        if len(s) < 2:\n            return s\n        \n        length = len(s)\n        counts = collections.Counter(s)\n        maxCount = max(counts.items(), key=lambda x: x[1])[1]\n        if maxCount > (length + 1) // 2:\n            return \"\"\n        \n        reorganizeArray = [\"\"] * length\n        evenIndex, oddIndex = 0, 1\n        halfLength = length // 2\n\n        for c, count in counts.items():\n            while count > 0 and count <= halfLength and oddIndex < length:\n                reorganizeArray[oddIndex] = c\n                count -= 1\n                oddIndex += 2\n            while count > 0:\n                reorganizeArray[evenIndex] = c\n                count -= 1\n                evenIndex += 2\n        \n        return \"\".join(reorganizeArray)\n```\n\n```JavaScript [sol2-JavaScript]\nconst getIdx = (c) => c.charCodeAt() - 'a'.charCodeAt();\nconst getAlpha = (c) => String.fromCharCode(c);\nvar reorganizeString = function(s) {\n    if (s.length < 2) {\n        return s;\n    }\n    const counts = new Array(26).fill(0);\n    let maxCount = 0;\n    const length = s.length;\n    for (let i = 0; i < length; i++) {\n        const c = s.charAt(i);\n        counts[getIdx(c)]++;\n        maxCount = Math.max(maxCount, counts[getIdx(c)]);\n    }\n    if (maxCount > Math.floor((length + 1) / 2)) {\n        return \"\";\n    }\n    const reorganizeArray = new Array(length);\n    let evenIndex = 0, oddIndex = 1;\n    const halfLength = Math.floor(length / 2);\n    for (let i = 0; i < 26; i++) {\n        const c = getAlpha('a'.charCodeAt() + i);\n        while (counts[i] > 0 && counts[i] <= halfLength && oddIndex < length) {\n            reorganizeArray[oddIndex] = c;\n            counts[i]--;\n            oddIndex += 2;\n        }\n        while (counts[i] > 0) {\n            reorganizeArray[evenIndex] = c;\n            counts[i]--;\n            evenIndex += 2;\n        }\n    }\n    return reorganizeArray.join('');\n};\n```\n\n```C [sol2-C]\nchar* reorganizeString(char* s) {\n    int n = strlen(s);\n    if (n < 2) {\n        return s;\n    }\n    int counts[26];\n    memset(counts, 0, sizeof(counts));\n    int maxCount = 0;\n    for (int i = 0; i < n; i++) {\n        char c = s[i];\n        counts[c - 'a']++;\n        maxCount = fmax(maxCount, counts[c - 'a']);\n    }\n    if (maxCount > (n + 1) / 2) {\n        return \"\";\n    }\n    char* reorganizeArray = malloc(sizeof(char) * (n + 1));\n    for (int i = 0; i < n; i++) {\n        reorganizeArray[i] = ' ';\n    }\n    reorganizeArray[n] = '\\0';\n    int evenIndex = 0, oddIndex = 1;\n    int halfLength = n / 2;\n    for (int i = 0; i < 26; i++) {\n        char c = 'a' + i;\n        while (counts[i] > 0 && counts[i] <= halfLength && oddIndex < n) {\n            reorganizeArray[oddIndex] = c;\n            counts[i]--;\n            oddIndex += 2;\n        }\n        while (counts[i] > 0) {\n            reorganizeArray[evenIndex] = c;\n            counts[i]--;\n            evenIndex += 2;\n        }\n    }\n    return reorganizeArray;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n+|\\Sigma|)$，其中 $n$ 是字符串的长度，$\\Sigma$ 是字符集，在本题中字符集为所有小写字母，$|\\Sigma|=26$。\n  遍历字符串并统计每个字母的出现次数，时间复杂度是 $O(n)$。\n  重构字符串需要进行 $n$ 次放置字母的操作，并遍历每个字母得到出现次数，时间复杂度是 $O(n+|\\Sigma|)$。\n  总时间复杂度是 $O(n+|\\Sigma|)$。\n\n- 空间复杂度：$O(|\\Sigma|)$，其中 $n$ 是字符串的长度，$\\Sigma$ 是字符集，在本题中字符集为所有小写字母，$|\\Sigma|=26$。空间复杂度主要取决于统计每个字母出现次数的空间。这里不计算存储最终答案字符串需要的空间（以及由于语言特性，在构造字符串时需要的额外缓存空间）。",
+            "slateValue": "",
+            "slug": "zhong-gou-zi-fu-chuan-by-leetcode-solution",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "iPcZ9H",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 81,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 12,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Greedy",
+                    "nameTranslated": "贪心",
+                    "slug": "greedy",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Counting",
+                    "nameTranslated": "计数",
+                    "slug": "counting",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Heap (Priority Queue)",
+                    "nameTranslated": "堆（优先队列）",
+                    "slug": "heap-priority-queue",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2020-11-29T15:36:15.849478+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "前言 这道题是典型的使用贪心思想的题。重构字符串时，需要根据每个字母在字符串中出现的次数处理每个字母放置的位置。如果出现次数最多的字母可以在重新排布之后不相邻，则可以重新排布字母使得相邻的字母都不相同。如果出现次数最多的字母过多，则无法重新排布字母使得相邻的字母都不相同。 假设字符串的长度为 $n$，如果可以重新排布成",
+            "topic": {
+                "id": 503231,
+                "subscribed": false,
+                "commentCount": 164,
+                "viewCount": 41810,
+                "post": {
+                    "id": 1189897,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 222,
+            "isEditorsPick": false,
+            "hitCount": 78028,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "reorganize-string",
+                "questionFrontendId": "767"
+            },
+            "next": {
+                "slug": "tan-xin-gou-zao-pai-xu-bu-pai-xu-liang-c-h9jg",
+                "title": "结论+构造，排序/不排序两种写法，附相似题目（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,128 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "GwbUDt",
+            "title": "通配符匹配",
+            "content": "#### 前言\n\n本题与「[10. 正则表达式匹配](https://leetcode.cn/problems/regular-expression-matching/)」非常类似，但相比较而言，本题稍微容易一些。因为在本题中，模式 $p$ 中的任意一个字符都是**独立**的，即不会和前后的字符互相关联，形成一个新的匹配模式。因此，本题的状态转移方程需要考虑的情况会少一些。\n\n#### 方法一：动态规划\n\n**思路与算法**\n\n在给定的模式 $p$ 中，只会有三种类型的字符出现：\n\n- 小写字母 $a-z$，可以匹配对应的一个小写字母；\n\n- 问号 $?$，可以匹配任意一个小写字母；\n\n- 星号 $*$，可以匹配任意字符串，可以为空，也就是匹配零或任意多个小写字母。\n\n其中「小写字母」和「问号」的匹配是**确定**的，而「星号」的匹配是**不确定**的，因此我们需要枚举所有的匹配情况。为了减少重复枚举，我们可以使用动态规划来解决本题。\n\n我们用 $\\textit{dp}[i][j]$ 表示字符串 $s$ 的前 $i$ 个字符和模式 $p$ 的前 $j$ 个字符是否能匹配。在进行状态转移时，我们可以考虑模式 $p$ 的第 $j$ 个字符 $p_j$，与之对应的是字符串 $s$ 中的第 $i$ 个字符 $s_i$：\n\n- 如果 $p_j$ 是小写字母，那么 $s_i$ 必须也为相同的小写字母，状态转移方程为：\n\n    $$\n    \\textit{dp}[i][j] = (s_i~与~p_j~相同) \\wedge \\textit{dp}[i-1][j-1]\n    $$\n\n    其中 $\\wedge$ 表示逻辑与运算。也就是说，$\\textit{dp}[i][j]$ 为真，当且仅当 $\\textit{dp}[i-1][j-1]$ 为真，并且 $s_i$ 与 $p_j$ 相同。\n\n- 如果 $p_j$ 是问号，那么对 $s_i$ 没有任何要求，状态转移方程为：\n\n    $$\n    \\textit{dp}[i][j] = \\textit{dp}[i-1][j-1]\n    $$\n\n- 如果 $p_j$ 是星号，那么同样对 $s_i$ 没有任何要求，但是星号可以匹配零或任意多个小写字母，因此状态转移方程分为两种情况，即使用或不使用这个星号：\n\n    $$\n    \\textit{dp}[i][j] = \\textit{dp}[i][j-1] \\vee \\textit{dp}[i-1][j]\n    $$\n\n    其中 $\\vee$ 表示逻辑或运算。如果我们不使用这个星号，那么就会从 $\\textit{dp}[i][j-1]$ 转移而来；如果我们使用这个星号，那么就会从 $\\textit{dp}[i-1][j]$ 转移而来。\n\n最终的状态转移方程如下：\n\n$$\n\\textit{dp}[i][j] = \\begin{cases}\n    (s_i~与~p_j~相同) \\wedge \\textit{dp}[i-1][j-1], & p_j~是小写字母 \\\\\n    \\textit{dp}[i-1][j-1], & p_j~是问号 \\\\\n    \\textit{dp}[i][j-1] \\vee \\textit{dp}[i-1][j], & p_j~是星号\n\\end{cases}\n$$\n\n我们也可以将前两种转移进行归纳：\n\n$$\n\\textit{dp}[i][j] = \\begin{cases}\n    \\textit{dp}[i-1][j-1], & s_i~与~p_j~相同或者~p_j~是问号 \\\\\n    \\textit{dp}[i][j-1] \\vee \\textit{dp}[i-1][j], & p_j~是星号 \\\\\n    \\text{False}, & 其它情况\n\\end{cases}\n$$\n\n**细节**\n\n只有确定了边界条件，才能进行动态规划。在上述的状态转移方程中，由于 $\\textit{dp}[i][j]$ 对应着 $s$ 的前 $i$ 个字符和模式 $p$ 的前 $j$ 个字符，因此所有的 $\\textit{dp}[0][j]$ 和 $\\textit{dp}[i][0]$ 都是边界条件，因为它们涉及到空字符串或者空模式的情况，这是我们在状态转移方程中没有考虑到的：\n\n- $\\textit{dp}[0][0] = \\text{True}$，即当字符串 $s$ 和模式 $p$ 均为空时，匹配成功；\n\n- $\\textit{dp}[i][0] = \\text{False}$，即空模式无法匹配非空字符串；\n\n- $\\textit{dp}[0][j]$ 需要分情况讨论：因为星号才能匹配空字符串，所以只有当模式 $p$ 的前 $j$ 个字符均为星号时，$\\textit{dp}[0][j]$ 才为真。\n\n我们可以发现，$\\textit{dp}[i][0]$ 的值恒为假，$\\textit{dp}[0][j]$ 在 $j$ 大于模式 $p$ 的开头出现的星号字符个数之后，值也恒为假，而 $\\textit{dp}[i][j]$ 的默认值（其它情况）也为假，因此在对动态规划的数组初始化时，我们就可以将所有的状态初始化为 $\\text{False}$，减少状态转移的代码编写难度。\n\n最终的答案即为 $\\textit{dp}[m][n]$，其中 $m$ 和 $n$ 分别是字符串 $s$ 和模式 $p$ 的长度。需要注意的是，由于大部分语言中字符串的下标从 $0$ 开始，因此 $s_i$ 和 $p_j$ 分别对应着 $s[i-1]$ 和 $p[j-1]$。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    bool isMatch(string s, string p) {\n        int m = s.size();\n        int n = p.size();\n        vector<vector<int>> dp(m + 1, vector<int>(n + 1));\n        dp[0][0] = true;\n        for (int i = 1; i <= n; ++i) {\n            if (p[i - 1] == '*') {\n                dp[0][i] = true;\n            }\n            else {\n                break;\n            }\n        }\n        for (int i = 1; i <= m; ++i) {\n            for (int j = 1; j <= n; ++j) {\n                if (p[j - 1] == '*') {\n                    dp[i][j] = dp[i][j - 1] | dp[i - 1][j];\n                }\n                else if (p[j - 1] == '?' || s[i - 1] == p[j - 1]) {\n                    dp[i][j] = dp[i - 1][j - 1];\n                }\n            }\n        }\n        return dp[m][n];\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public boolean isMatch(String s, String p) {\n        int m = s.length();\n        int n = p.length();\n        boolean[][] dp = new boolean[m + 1][n + 1];\n        dp[0][0] = true;\n        for (int i = 1; i <= n; ++i) {\n            if (p.charAt(i - 1) == '*') {\n                dp[0][i] = true;\n            } else {\n                break;\n            }\n        }\n        for (int i = 1; i <= m; ++i) {\n            for (int j = 1; j <= n; ++j) {\n                if (p.charAt(j - 1) == '*') {\n                    dp[i][j] = dp[i][j - 1] || dp[i - 1][j];\n                } else if (p.charAt(j - 1) == '?' || s.charAt(i - 1) == p.charAt(j - 1)) {\n                    dp[i][j] = dp[i - 1][j - 1];\n                }\n            }\n        }\n        return dp[m][n];\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def isMatch(self, s: str, p: str) -> bool:\n        m, n = len(s), len(p)\n\n        dp = [[False] * (n + 1) for _ in range(m + 1)]\n        dp[0][0] = True\n        for i in range(1, n + 1):\n            if p[i - 1] == '*':\n                dp[0][i] = True\n            else:\n                break\n        \n        for i in range(1, m + 1):\n            for j in range(1, n + 1):\n                if p[j - 1] == '*':\n                    dp[i][j] = dp[i][j - 1] | dp[i - 1][j]\n                elif p[j - 1] == '?' or s[i - 1] == p[j - 1]:\n                    dp[i][j] = dp[i - 1][j - 1]\n                \n        return dp[m][n]\n```\n\n```golang [sol1-Golang]\nfunc isMatch(s string, p string) bool {\n    m, n := len(s), len(p)\n    dp := make([][]bool, m + 1)\n    for i := 0; i <= m; i++ {\n        dp[i] = make([]bool, n + 1)\n    }\n    dp[0][0] = true\n    for i := 1; i <= n; i++ {\n        if p[i-1] == '*' {\n            dp[0][i] = true\n        } else {\n            break\n        }\n    }\n    for i := 1; i <= m; i++ {\n        for j := 1; j <= n; j++ {\n            if p[j-1] == '*' {\n                dp[i][j] = dp[i][j-1] || dp[i-1][j]\n            } else if p[j-1] == '?' || s[i-1] == p[j-1] {\n                dp[i][j] = dp[i-1][j-1]\n            }\n        }\n    }\n    return dp[m][n]\n}\n```\n\n```C [sol1-C]\nbool isMatch(char* s, char* p) {\n    int m = strlen(s);\n    int n = strlen(p);\n    int dp[m + 1][n + 1];\n    memset(dp, 0, sizeof(dp));\n    dp[0][0] = true;\n    for (int i = 1; i <= n; ++i) {\n        if (p[i - 1] == '*') {\n            dp[0][i] = true;\n        } else {\n            break;\n        }\n    }\n    for (int i = 1; i <= m; ++i) {\n        for (int j = 1; j <= n; ++j) {\n            if (p[j - 1] == '*') {\n                dp[i][j] = dp[i][j - 1] | dp[i - 1][j];\n            } else if (p[j - 1] == '?' || s[i - 1] == p[j - 1]) {\n                dp[i][j] = dp[i - 1][j - 1];\n            }\n        }\n    }\n    return dp[m][n];\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(mn)$，其中 $m$ 和 $n$ 分别是字符串 $s$ 和模式 $p$ 的长度。\n\n- 空间复杂度：$O(mn)$，即为存储所有 $(m+1)(n+1)$ 个状态需要的空间。此外，在状态转移方程中，由于 $\\textit{dp}[i][j]$ 只会从 $\\textit{dp}[i][..]$ 以及 $\\textit{dp}[i - 1][..]$ 转移而来，因此我们可以使用滚动数组对空间进行优化，即用两个长度为 $n+1$ 的一维数组代替整个二维数组进行状态转移，空间复杂度为 $O(n)$。\n\n#### 方法二：贪心算法\n\n方法一的瓶颈在于对星号 $*$ 的处理方式：使用动态规划枚举所有的情况。由于星号是「万能」的匹配字符，连续的多个星号和单个星号实际上是等价的，那么不连续的多个星号呢？\n\n我们以 $p = *~\\text{abcd}~*$ 为例，$p$ 可以匹配**所有包含子串 $\\text{abcd}$ 的字符串**，也就是说，我们只需要暴力地枚举字符串 $s$ 中的每个位置作为起始位置，并判断对应的子串是否为 $\\text{abcd}$ 即可。这种暴力方法的时间复杂度为 $O(mn)$，与动态规划一致，但不需要额外的空间。\n\n如果 $p = *~\\text{abcd}*\\text{efgh}*\\text{i}~*$ 呢？显然，$p$ 可以匹配所有依次出现子串 $\\text{abcd}$、$\\text{efgh}$、$\\text{i}$ 的字符串。此时，对于任意一个字符串 $s$，我们首先暴力找到最早出现的 $\\text{abcd}$，随后从下一个位置开始暴力找到最早出现的 $\\text{efgh}$，最后找出 $\\text{i}$，就可以判断 $s$ 是否可以与 $p$ 匹配。这样「贪心地」找到最早出现的子串是比较直观的，因为如果 $s$ 中多次出现了某个子串，那么我们选择最早出现的位置，可以使得后续子串能被找到的机会更大。\n\n因此，如果模式 $p$ 的形式为 $*~u_1*u_2*u_3~*\\cdots*u_x~*$，即字符串（可以为空）和星号交替出现，并且首尾字符均为星号，那么我们就可以设计出下面这个基于贪心的暴力匹配算法。算法的本质是：如果在字符串 $s$ 中首先找到 $u_1$，再找到 $u_2, u_3, \\cdots, u_x$，那么 $s$ 就可以与模式 $p$ 匹配，伪代码如下：\n\n```\n// 我们用 sIndex 和 pIndex 表示当前遍历到 s 和 p 的位置\n// 此时我们正在 s 中寻找某个 u_i\n// 其在 s 和 p 中的起始位置为 sRecord 和 pRecord\n\n// sIndex 和 sRecord 的初始值为 0\n// 即我们从字符串 s 的首位开始匹配\nsIndex = sRecord = 0\n\n// pIndex 和 pRecord 的初始值为 1\n// 这是因为模式 p 的首位是星号，那么 u_1 的起始位置为 1\npIndex = pRecord = 1\n\nwhile sIndex < s.length and pIndex < p.length do\n    if p[pIndex] == '*' then\n        // 如果遇到星号，说明找到了 u_i，开始寻找 u_i+1\n        pIndex += 1\n        // 记录下起始位置\n        sRecord = sIndex\n        pRecord = pIndex\n    else if match(s[sIndex], p[pIndex]) then\n        // 如果两个字符可以匹配，就继续寻找 u_i 的下一个字符\n        sIndex += 1\n        pIndex += 1\n    else if sRecord + 1 < s.length then\n        // 如果两个字符不匹配，那么需要重新寻找 u_i\n        // 枚举下一个 s 中的起始位置\n        sRecord += 1\n        sIndex = sRecord\n        pIndex = pRecord\n    else\n        // 如果不匹配并且下一个起始位置不存在，那么匹配失败\n        return False\n    end if\nend while\n\n// 由于 p 的最后一个字符是星号，那么 s 未匹配完，那么没有关系\n// 但如果 p 没有匹配完，那么 p 剩余的字符必须都是星号\nreturn all(p[pIndex] ~ p[p.length - 1] == '*')\n```\n\n然而模式 $p$ 并不一定是 $*~u_1*u_2*u_3~*\\cdots*u_x~*$ 的形式：\n\n- 模式 $p$ 的开头字符不是星号；\n\n- 模式 $p$ 的结尾字符不是星号。\n\n第二种情况处理起来并不复杂。如果模式 $p$ 的结尾字符不是星号，那么就必须与字符串 $s$ 的结尾字符匹配。那么我们不断地匹配 $s$ 和 $p$ 的结尾字符，直到 $p$ 为空或者 $p$ 的结尾字符是星号为止。在这个过程中，如果匹配失败，或者最后 $p$ 为空但 $s$ 不为空，那么需要返回 $\\text{False}$。\n\n第一种情况的处理也很类似，我们可以不断地匹配 $s$ 和 $p$ 的开头字符。下面的代码中给出了另一种处理方法，即修改 $\\textit{sRecord}$ 和 $\\textit{tRecord}$ 的初始值为 $-1$，表示模式 $p$ 的开头字符不是星号，并且在匹配失败时进行判断，如果它们的值仍然为 $-1$，说明没有「反悔」重新进行匹配的机会。\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    bool isMatch(string s, string p) {\n        auto allStars = [](const string& str, int left, int right) {\n            for (int i = left; i < right; ++i) {\n                if (str[i] != '*') {\n                    return false;\n                }\n            }\n            return true;\n        };\n        auto charMatch = [](char u, char v) {\n            return u == v || v == '?';\n        };\n\n        while (s.size() && p.size() && p.back() != '*') {\n            if (charMatch(s.back(), p.back())) {\n                s.pop_back();\n                p.pop_back();\n            }\n            else {\n                return false;\n            }\n        }\n        if (p.empty()) {\n            return s.empty();\n        }\n\n        int sIndex = 0, pIndex = 0;\n        int sRecord = -1, pRecord = -1;\n        while (sIndex < s.size() && pIndex < p.size()) {\n            if (p[pIndex] == '*') {\n                ++pIndex;\n                sRecord = sIndex;\n                pRecord = pIndex;\n            }\n            else if (charMatch(s[sIndex], p[pIndex])) {\n                ++sIndex;\n                ++pIndex;\n            }\n            else if (sRecord != -1 && sRecord + 1 < s.size()) {\n                ++sRecord;\n                sIndex = sRecord;\n                pIndex = pRecord;\n            }\n            else {\n                return false;\n            }\n        }\n        return allStars(p, pIndex, p.size());\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public boolean isMatch(String s, String p) {\n        int sRight = s.length(), pRight = p.length();\n        while (sRight > 0 && pRight > 0 && p.charAt(pRight - 1) != '*') {\n            if (charMatch(s.charAt(sRight - 1), p.charAt(pRight - 1))) {\n                --sRight;\n                --pRight;\n            } else {\n                return false;\n            }\n        }\n\n        if (pRight == 0) {\n            return sRight == 0;\n        }\n\n        int sIndex = 0, pIndex = 0;\n        int sRecord = -1, pRecord = -1;\n        \n        while (sIndex < sRight && pIndex < pRight) {\n            if (p.charAt(pIndex) == '*') {\n                ++pIndex;\n                sRecord = sIndex;\n                pRecord = pIndex;\n            } else if (charMatch(s.charAt(sIndex), p.charAt(pIndex))) {\n                ++sIndex;\n                ++pIndex;\n            } else if (sRecord != -1 && sRecord + 1 < sRight) {\n                ++sRecord;\n                sIndex = sRecord;\n                pIndex = pRecord;\n            } else {\n                return false;\n            }\n        }\n\n        return allStars(p, pIndex, pRight);\n    }\n\n    public boolean allStars(String str, int left, int right) {\n        for (int i = left; i < right; ++i) {\n            if (str.charAt(i) != '*') {\n                return false;\n            }\n        }\n        return true;\n    }\n\n    public boolean charMatch(char u, char v) {\n        return u == v || v == '?';\n    }\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def isMatch(self, s: str, p: str) -> bool:\n        def allStars(st: str, left: int, right: int) -> bool:\n            return all(st[i] == '*' for i in range(left, right))\n        \n        def charMatch(u: str, v: str) -> bool:\n            return u == v or v == '?'\n\n        sRight, pRight = len(s), len(p)\n        while sRight > 0 and pRight > 0 and p[pRight - 1] != '*':\n            if charMatch(s[sRight - 1], p[pRight - 1]):\n                sRight -= 1\n                pRight -= 1\n            else:\n                return False\n        \n        if pRight == 0:\n            return sRight == 0\n        \n        sIndex, pIndex = 0, 0\n        sRecord, pRecord = -1, -1\n        while sIndex < sRight and pIndex < pRight:\n            if p[pIndex] == '*':\n                pIndex += 1\n                sRecord, pRecord = sIndex, pIndex\n            elif charMatch(s[sIndex], p[pIndex]):\n                sIndex += 1\n                pIndex += 1\n            elif sRecord != -1 and sRecord + 1 < sRight:\n                sRecord += 1\n                sIndex, pIndex = sRecord, pRecord\n            else:\n                return False\n\n        return allStars(p, pIndex, pRight)\n```\n\n```golang [sol2-Golang]\nfunc isMatch(s string, p string) bool {\n    for len(s) > 0 && len(p) > 0 && p[len(p)-1] != '*' {\n        if charMatch(s[len(s)-1], p[len(p)-1]) {\n            s = s[:len(s)-1]\n            p = p[:len(p)-1]\n        } else {\n            return false\n        }\n    }\n    if len(p) == 0 {\n        return len(s) == 0\n    }\n    sIndex, pIndex := 0, 0\n    sRecord, pRecord := -1, -1\n    for sIndex < len(s) && pRecord < len(p) {\n        if p[pIndex] == '*' {\n            pIndex++\n            sRecord, pRecord = sIndex, pIndex\n        } else if charMatch(s[sIndex], p[pIndex]) {\n            sIndex++\n            pIndex++\n        } else if sRecord != -1 && sRecord + 1 < len(s) {\n            sRecord++\n            sIndex, pIndex = sRecord, pRecord\n        } else {\n            return false\n        }\n    }\n    return allStars(p, pIndex, len(p))\n}\n\nfunc allStars(str string, left, right int) bool {\n    for i := left; i < right; i++ {\n        if str[i] != '*' {\n            return false\n        }\n    }\n    return true\n}\n\nfunc charMatch(u, v byte) bool {\n    return u == v || v == '?'\n}\n```\n\n```C [sol2-C]\nbool allStars(char* str, int left, int right) {\n    for (int i = left; i < right; ++i) {\n        if (str[i] != '*') {\n            return false;\n        }\n    }\n    return true;\n}\nbool charMatch(char u, char v) { return u == v || v == '?'; };\n\nbool isMatch(char* s, char* p) {\n    int len_s = strlen(s), len_p = strlen(p);\n    while (len_s && len_p && p[len_p - 1] != '*') {\n        if (charMatch(s[len_s - 1], p[len_p - 1])) {\n            len_s--;\n            len_p--;\n        } else {\n            return false;\n        }\n    }\n    if (len_p == 0) {\n        return len_s == 0;\n    }\n\n    int sIndex = 0, pIndex = 0;\n    int sRecord = -1, pRecord = -1;\n    while (sIndex < len_s && pIndex < len_p) {\n        if (p[pIndex] == '*') {\n            ++pIndex;\n            sRecord = sIndex;\n            pRecord = pIndex;\n        } else if (charMatch(s[sIndex], p[pIndex])) {\n            ++sIndex;\n            ++pIndex;\n        } else if (sRecord != -1 && sRecord + 1 < len_s) {\n            ++sRecord;\n            sIndex = sRecord;\n            pIndex = pRecord;\n        } else {\n            return false;\n        }\n    }\n    return allStars(p, pIndex, len_p);\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：\n\n    - 渐进复杂度：$O(mn)$，其中 $m$ 和 $n$ 分别是字符串 $s$ 和模式 $p$ 的长度。从代码中可以看出，$s[\\textit{sIndex}]$ 和 $p[\\textit{pIndex}]$ 至多只会被匹配（判断）一次，因此渐进时间复杂度为 $O(mn)$。\n    \n    - 最坏情况的例子：$s=\\text{aaa}\\cdots\\text{aaab}$，$p=*~\\text{ab}~*$。\n\n    - 平均复杂度：$O(m \\log n)$。直观上来看，如果 $s$ 和 $p$ 是随机字符串，那么暴力算法的效率会非常高，因为大部分情况下只需要匹配常数次就可以成功匹配 $u_i$ 或者枚举下一个常数位置。具体的分析可以参考论文 [On the Average-case Complexity of Pattern Matching with Wildcards](https://arxiv.org/abs/1407.0950)，注意论文中的分析是对于每一个 $u_i$ 而言的，即模式中只包含小写字母和问号，本题相当于多个连续模式的情况。由于超出了面试难度。这里不再赘述。\n\n- 空间复杂度：$O(1)$。\n\n#### 结语\n\n在方法二中，对于每一个被星号分隔的、只包含小写字符和问号的子模式 $u_i$，我们在原串中使用的是暴力匹配的方法。然而这里是可以继续进行优化的，即使用 [AC 自动机](https://baike.baidu.com/item/AC%E8%87%AA%E5%8A%A8%E6%9C%BA) 代替暴力方法进行匹配。由于 AC 自动机本身已经是竞赛难度的知识点，而本题还需要在 AC 自动机中额外存储一些内容才能完成匹配，因此这种做法远远超过了面试难度。这里只给出参考讲义 [Set Matching and Aho-Corasick Algorithm](http://www.cs.cmu.edu/~ab/CMU/Week%2010-%20Strings%20Search/print04.pdf)：\n\n- 讲义的前 $6$ 页介绍了字典树 Trie；\n\n- 讲义的 $7-19$ 页介绍了 AC 自动机，它是以字典树为基础的；\n\n- 讲义的 $20-23$ 页介绍了基于 AC 自动机的一种 wildcard matching 算法，其中的 wildcard $\\phi$ 就是本题中的问号。\n\n感兴趣的读者可以尝试进行学习。",
+            "slateValue": "",
+            "slug": "tong-pei-fu-pi-pei-by-leetcode-solution",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "GwbUDt",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 265,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 18,
+                    "reactionType": "CONFUSED"
+                },
+                {
+                    "count": 7,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Greedy",
+                    "nameTranslated": "贪心",
+                    "slug": "greedy",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2020-07-04T14:38:59.393395+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "前言 本题与「10. 正则表达式匹配」非常类似，但相比较而言，本题稍微容易一些。因为在本题中，模式 $p$ 中的任意一个字符都是独立的，即不会和前后的字符互相关联，形成一个新的匹配模式。因此，本题的状态转移方程需要考虑的情况会少一些。 方法一：动态规划 思路与算法 在给定的模式 $p$ 中，只会有三种类型的字符出现： ",
+            "topic": {
+                "id": 315802,
+                "subscribed": false,
+                "commentCount": 319,
+                "viewCount": 86277,
+                "post": {
+                    "id": 791139,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 688,
+            "isEditorsPick": false,
+            "hitCount": 196105,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "wildcard-matching",
+                "questionFrontendId": "44"
+            },
+            "next": {
+                "slug": "yi-ge-qi-pan-kan-dong-dong-tai-gui-hua-dpsi-lu-by-",
+                "title": "一个棋盘看懂动态规划(DP)思路；附Python代码"
+            },
+            "prev": null
+        }
+    }
+}

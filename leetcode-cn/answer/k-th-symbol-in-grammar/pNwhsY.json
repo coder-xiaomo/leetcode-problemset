@@ -1,0 +1,140 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "pNwhsY",
+            "title": "第K个语法符号",
+            "content": "#### 方法一：递归\n\n**思路与算法**\n\n首先题目给出一个 $n$ 行的表（索引从 $1$ 开始）。并给出表的构造规则为：第一行仅有一个 $0$，然后接下来的每一行可以由上一行中 $0$ 替换为 $01$，$1$ 替换为 $10$ 来生成。\n\n- 比如当 $n = 3$ 时，第 $1$ 行是 $0$，第 $2$ 行是 $01$，第 $3$ 行是 $0110$。\n\n现在要求表第 $n$ 行中第 $k$ 个数字，$1 \\le k \\le 2 ^ n$。首先我们可以看到第 $i$ 行中会有 $2^{i-1}$ 个数字，$1 \\le i \\le n$，且其中第 $j$ 个数字按照构造规则会生第 $i + 1$ 行中的第 $2*j - 1$ 和 $2*j$ 个数字，$1 \\le j \\le 2^{i-1}$。即对于第 $i + 1$ 行中的第 $x$ 个数字 $\\textit{num}_1$，$1 \\le x \\le 2^i$，会被第 $i$ 行中第 $\\lfloor \\frac{x + 1}{2} \\rfloor$ 个数字 $\\textit{num}_2$ 生成。且满足规则：\n\n- 当 $\\textit{num}_2 = 0$ 时，$\\textit{num}_2$ 会生成 $01$：\n\n$$\n\\textit{num}_1 = \\begin{cases}\n0, & x \\equiv 1 \\pmod{2} \\\\\n1, & x \\equiv 0 \\pmod{2} \\\\\n\\end{cases}\n$$\n\n- 当 $num_2 = 1$ 时，$\\textit{num}_2$ 会生成 $10$：\n\n$$\n\\textit{num}_1 = \\begin{cases}\n1, & x \\equiv 1 \\pmod{2} \\\\\n0, & x \\equiv 0 \\pmod{2} \\\\\n\\end{cases}\n$$\n\n并且进一步总结我们可以得到：$\\textit{num}_1 = (x \\And 1) \\oplus 1 \\oplus \\textit{num}_2$，其中 $\\And$ 为「与」运算符， $\\oplus$ 为「异或」运算符。那么我们从第 $n$ 不断往上递归求解，并且当在第一行时只有一个数字，直接返回 $0$ 即可。\n\n**代码**\n\n```Python [sol1-Python3]\nclass Solution:\n    def kthGrammar(self, n: int, k: int) -> int:\n        if n == 1:\n            return 0\n        return (k & 1) ^ 1 ^ self.kthGrammar(n - 1, (k + 1) // 2)\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int kthGrammar(int n, int k) {\n        if (n == 1) {\n            return 0;\n        }\n        return (k & 1) ^ 1 ^ kthGrammar(n - 1, (k + 1) / 2);\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int KthGrammar(int n, int k) {\n        if (n == 1) {\n            return 0;\n        }\n        return (k & 1) ^ 1 ^ KthGrammar(n - 1, (k + 1) / 2);\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int kthGrammar(int n, int k) {\n        if (n == 1) {\n            return 0;\n        }\n        return (k & 1) ^ 1 ^ kthGrammar(n - 1, (k + 1) / 2);\n    }\n};\n```\n\n```C [sol1-C]\nint kthGrammar(int n, int k){\n    if (n == 1) {\n        return 0;\n    }\n    return (k & 1) ^ 1 ^ kthGrammar(n - 1, (k + 1) / 2);\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar kthGrammar = function(n, k) {\n    if (n === 1) {\n        return 0;\n    }\n    return (k & 1) ^ 1 ^ kthGrammar(n - 1, (k + 1) / 2);\n};\n```\n\n```go [sol1-Golang]\nfunc kthGrammar(n, k int) int {\n    if n == 1 {\n        return 0\n    }\n    return k&1 ^ 1 ^ kthGrammar(n-1, (k+1)/2)\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 为题目给定表的行数，递归深度为 $n$。\n- 空间复杂度：$O(n)$，其中 $n$ 为题目给定表的行数，主要为递归的空间开销。\n\n#### 方法二：找规律 + 递归\n\n**思路与算法**\n\n按照方法一，我们可以尝试写表中的前几行：\n\n- $0$\n- $01$\n- $0110$\n- $01101001$\n- $\\cdots$\n\n我们可以注意到规律：每一行的后半部分正好为前半部分的“翻转”——前半部分是 $0$ 后半部分变为 $1$，前半部分是 $1$，后半部分变为 $0$。且每一行的前半部分和上一行相同。我们可以通过「数学归纳法」来进行证明。\n\n有了这个性质，那么我们再次思考原问题：对于查询某一个行第 $k$ 个数字，如果 $k$ 在后半部分，那么原问题就可以转化为求解该行前半部分的对应位置的“翻转”数字，又因为该行前半部分与上一行相同，所以又转化为上一行对应对应的“翻转”数字。那么按照这样一直递归下去，并在第一行时返回数字 $0$ 即可。\n\n**代码**\n\n```Python [sol2-Python3]\nclass Solution:\n    def kthGrammar(self, n: int, k: int) -> int:\n        if k == 1:\n            return 0\n        if k > (1 << (n - 2)):\n            return 1 ^ self.kthGrammar(n - 1, k - (1 << (n - 2)))\n        return self.kthGrammar(n - 1, k)\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public int kthGrammar(int n, int k) {\n        if (k == 1) {\n            return 0;\n        }\n        if (k > (1 << (n - 2))) {\n            return 1 ^ kthGrammar(n - 1, k - (1 << (n - 2)));\n        }\n        return kthGrammar(n - 1, k);\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    public int KthGrammar(int n, int k) {\n        if (k == 1) {\n            return 0;\n        }\n        if (k > (1 << (n - 2))) {\n            return 1 ^ KthGrammar(n - 1, k - (1 << (n - 2)));\n        }\n        return KthGrammar(n - 1, k);\n    }\n}\n```\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    int kthGrammar(int n, int k) {\n        if (k == 1) {\n            return 0;\n        }\n        if (k > (1 << (n - 2))) {\n            return 1 ^ kthGrammar(n - 1, k - (1 << (n - 2)));\n        }\n        return kthGrammar(n - 1, k);\n    }\n};\n```\n\n```C [sol2-C]\nint kthGrammar(int n, int k){\n    if (k == 1) {\n        return 0;\n    }\n    if (k > (1 << (n - 2))) {\n        return 1 ^ kthGrammar(n - 1, k - (1 << (n - 2)));\n    }\n    return kthGrammar(n - 1, k);\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar kthGrammar = function(n, k) {\n    if (k === 1) {\n        return 0;\n    }\n    if (k > (1 << (n - 2))) {\n        return 1 ^ kthGrammar(n - 1, k - (1 << (n - 2)));\n    }\n    return kthGrammar(n - 1, k);\n};\n```\n\n```go [sol2-Golang]\nfunc kthGrammar(n, k int) int {\n    if k == 1 {\n        return 0\n    }\n    if k > 1<<(n-2) {\n        return 1 ^ kthGrammar(n-1, k-1<<(n-2))\n    }\n    return kthGrammar(n-1, k)\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 为题目给定表的行数。\n- 空间复杂度：$O(n)$，其中 $n$ 为题目给定表的行数，主要为递归的空间开销。\n\n#### 方法三：找规律 + 位运算\n\n**思路与算法**\n\n在「方法二」的基础上，我们来进行优化，本质上我们其实只需要求在过程中的“翻转”总次数，如果“翻转”为偶数次则原问题求解为 $0$，否则为 $1$。\n\n首先我们修改行的索引从 $0$ 开始，此时原先第 $p$ 行的索引现在为 $p - 1$ 行，第 $i$ 行有 $2 ^ i$ 位。那么对于某一行 $i$ 中下标为 $x$ 的数字，如果 $x < 2^{i - 1}$ 那么等价于求 $i - 1$ 中下标为 $x$ 的数字，否则 $x$ 的二进制位的从右往左第 $i + 1$ 位为 $1$，此时需要减去该位（“翻转”一次），然后递归求解即可。所以我们可以看到最后“翻转”的总次数只和初始状态下的下标 $x$ 二进制表示中 $1$ 的个数有关。因此原问题中求“翻转”的总次数就等价于求 $k - 1$ 的二进制表示中 $1$ 的个数，求解方法具体可以参考题库题目[「191. 位1的个数」的官方题解](https://leetcode.cn/problems/number-of-1-bits/solution/wei-1de-ge-shu-by-leetcode-solution-jnwf/) 来更进一步学习求解。\n\n**代码**\n\n```Python [sol3-Python3]\nclass Solution:\n    def kthGrammar(self, n: int, k: int) -> int:\n        # return (k - 1).bit_count() & 1\n        k -= 1\n        res = 0\n        while k:\n            k &= k - 1\n            res ^= 1\n        return res\n```\n\n```Java [sol3-Java]\nclass Solution {\n    public int kthGrammar(int n, int k) {\n        // return Integer.bitCount(k - 1) & 1;\n        k--;\n        int res = 0;\n        while (k > 0) {\n            k &= k - 1;\n            res ^= 1;\n        }\n        return res;\n    }\n}\n```\n\n```C# [sol3-C#]\npublic class Solution {\n    public int KthGrammar(int n, int k) {\n        k--;\n        int res = 0;\n        while (k > 0) {\n            k &= k - 1;\n            res ^= 1;\n        }\n        return res;\n    }\n}\n```\n\n```C++ [sol3-C++]\nclass Solution {\npublic:\n    int kthGrammar(int n, int k) {\n        // return __builtin_popcount(k - 1) & 1;\n        k--;\n        int res = 0;\n        while (k > 0) {\n            k &= k - 1;\n            res ^= 1;\n        }\n        return res;\n    }\n};\n```\n\n```C [sol3-C]\nint kthGrammar(int n, int k){\n    k--;\n    int res = 0;\n    while (k > 0) {\n        k &= k - 1;\n        res ^= 1;\n    }\n    return res;\n}\n```\n\n```JavaScript [sol3-JavaScript]\nvar kthGrammar = function(n, k) {\n    k--;\n    let res = 0;\n    while (k > 0) {\n        k &= k - 1;\n        res ^= 1;\n    }\n    return res;\n};\n```\n\n```go [sol3-Golang]\nfunc kthGrammar(n, k int) (ans int) {\n    // return bits.OnesCount(uint(k-1)) & 1\n    for k--; k > 0; k &= k - 1 {\n        ans ^= 1\n    }\n    return\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(\\log k)$，其中 $k$ 为题目给定查询的下标。\n- 空间复杂度：$O(1)$，仅使用常量变量。",
+            "slateValue": "",
+            "slug": "di-kge-yu-fa-fu-hao-by-leetcode-solution-zgwd",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "pNwhsY",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 54,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 3,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 0,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Bit Manipulation",
+                    "nameTranslated": "位运算",
+                    "slug": "bit-manipulation",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Recursion",
+                    "nameTranslated": "递归",
+                    "slug": "recursion",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-10-19T01:51:01.822114+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：递归 思路与算法 首先题目给出一个 $n$ 行的表（索引从 $1$ 开始）。并给出表的构造规则为：第一行仅有一个 $0$，然后接下来的每一行可以由上一行中 $0$ 替换为 $01$，$1$ 替换为 $10$ 来生成。 比如当 $n = 3$ 时，第 $1$ 行是 $0$，第 $2$ 行是 $01$，第 $3$ ",
+            "topic": {
+                "id": 1903508,
+                "subscribed": false,
+                "commentCount": 95,
+                "viewCount": 15786,
+                "post": {
+                    "id": 3705497,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 76,
+            "isEditorsPick": false,
+            "hitCount": 28161,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "k-th-symbol-in-grammar",
+                "questionFrontendId": "779"
+            },
+            "next": {
+                "slug": "by-lcbin-2eyj",
+                "title": "[Python3/Java/C++/Go] 一题双解：递归 & 位运算（详解）"
+            },
+            "prev": null
+        }
+    }
+}

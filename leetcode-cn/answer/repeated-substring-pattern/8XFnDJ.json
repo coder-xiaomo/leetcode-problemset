@@ -1,0 +1,122 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "8XFnDJ",
+            "title": "重复的子字符串",
+            "content": "#### 方法一：枚举\n\n**思路与算法**\n\n如果一个长度为 $n$ 的字符串 $s$ 可以由它的一个长度为 $n'$ 的子串 $s'$ 重复多次构成，那么：\n\n- $n$ 一定是 $n'$ 的倍数；\n\n- $s'$ 一定是 $s$ 的前缀；\n\n- 对于任意的 $i \\in [n', n)$，有 $s[i] = s[i-n']$。\n\n也就是说，$s$ 中长度为 $n'$ 的前缀就是 $s'$，并且在这之后的每一个位置上的字符 $s[i]$，都需要与它之前的第 $n'$ 个字符 $s[i-n']$ 相同。\n\n因此，我们可以从小到大枚举 $n'$，并对字符串 $s$ 进行遍历，进行上述的判断。注意到一个小优化是，因为子串至少需要重复一次，所以 $n'$ 不会大于 $n$ 的一半，我们只需要在 $[1, \\frac{n}{2}]$ 的范围内枚举 $n'$ 即可。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    bool repeatedSubstringPattern(string s) {\n        int n = s.size();\n        for (int i = 1; i * 2 <= n; ++i) {\n            if (n % i == 0) {\n                bool match = true;\n                for (int j = i; j < n; ++j) {\n                    if (s[j] != s[j - i]) {\n                        match = false;\n                        break;\n                    }\n                }\n                if (match) {\n                    return true;\n                }\n            }\n        }\n        return false;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public boolean repeatedSubstringPattern(String s) {\n        int n = s.length();\n        for (int i = 1; i * 2 <= n; ++i) {\n            if (n % i == 0) {\n                boolean match = true;\n                for (int j = i; j < n; ++j) {\n                    if (s.charAt(j) != s.charAt(j - i)) {\n                        match = false;\n                        break;\n                    }\n                }\n                if (match) {\n                    return true;\n                }\n            }\n        }\n        return false;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def repeatedSubstringPattern(self, s: str) -> bool:\n        n = len(s)\n        for i in range(1, n // 2 + 1):\n            if n % i == 0:\n                if all(s[j] == s[j - i] for j in range(i, n)):\n                    return True\n        return False\n```\n\n```golang [sol1-Golang]\nfunc repeatedSubstringPattern(s string) bool {\n    n := len(s)\n    for i := 1; i * 2 <= n; i++ {\n        if n % i == 0 {\n            match := true\n            for j := i; j < n; j++ {\n                if s[j] != s[j - i] {\n                    match = false\n                    break\n                }\n            }\n            if match {\n                return true\n            }\n        }\n    }\n    return false\n}\n```\n\n```C [sol1-C]\nbool repeatedSubstringPattern(char* s) {\n    int n = strlen(s);\n    for (int i = 1; i * 2 <= n; ++i) {\n        if (n % i == 0) {\n            bool match = true;\n            for (int j = i; j < n; ++j) {\n                if (s[j] != s[j - i]) {\n                    match = false;\n                    break;\n                }\n            }\n            if (match) {\n                return true;\n            }\n        }\n    }\n    return false;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n^2)$，其中 $n$ 是字符串 $s$ 的长度。枚举 $i$ 的时间复杂度为 $O(n)$，遍历 $s$ 的时间复杂度为 $O(n)$，相乘即为总时间复杂度。\n\n- 空间复杂度：$O(1)$。\n\n#### 方法二：字符串匹配\n\n**思路与算法**\n\n我们可以把字符串 $s$ 写成\n\n$$\ns's' \\cdots s's'\n$$\n\n的形式，总计 $\\frac{n}{n'}$ 个 $s'$。但我们如何在不枚举 $n'$ 的情况下，判断 $s$ 是否能写成上述的形式呢？\n\n如果我们移除字符串 $s$ 的前 $n'$ 个字符（即一个完整的 $s'$），再将这些字符保持顺序添加到剩余字符串的末尾，那么得到的字符串仍然是 $s$。由于 $1 \\leq n' < n$，那么如果将两个 $s$ 连在一起，并移除第一个和最后一个字符，那么得到的字符串一定包含 $s$，即 $s$ 是它的一个子串。\n\n因此我们可以考虑这种方法：我们将两个 $s$ 连在一起，并移除第一个和最后一个字符。如果 $s$ 是该字符串的子串，那么 $s$ 就满足题目要求。\n\n注意到我们证明的是**如果 $s$ 满足题目要求，那么 $s$ 有这样的性质**，而我们使用的方法却是**如果 $s$ 有这样的性质，那么 $s$ 满足题目要求**。因此，只证明了充分性是远远不够的，我们还需要证明必要性。\n\n> 题解区的很多题解都忽略了这一点，但它是非常重要的。\n\n证明需要使用一些同余运算的小技巧，可以见方法三之后的「正确性证明」部分。这里先假设我们已经完成了证明，这样就可以使用非常简短的代码完成本题。在下面的代码中，我们可以从位置 $1$ 开始查询，并希望查询结果不为位置 $n$，这与移除字符串的第一个和最后一个字符是等价的。\n\n**代码**\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    bool repeatedSubstringPattern(string s) {\n        return (s + s).find(s, 1) != s.size();\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public boolean repeatedSubstringPattern(String s) {\n        return (s + s).indexOf(s, 1) != s.length();\n    }\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def repeatedSubstringPattern(self, s: str) -> bool:\n        return (s + s).find(s, 1) != len(s)\n```\n\n```C [sol2-C]\nbool repeatedSubstringPattern(char* s) {\n    int n = strlen(s);\n    char k[2 * n + 1];\n    k[0] = 0;\n    strcat(k, s);\n    strcat(k, s);\n    return strstr(k + 1, s) - k != n;\n}\n```\n\n**复杂度分析**\n\n由于我们使用了语言自带的字符串查找函数，因此这里不深入分析其时空复杂度。\n\n#### 方法三：KMP 算法\n\n**思路与算法**\n\n在方法二中，我们使用了语言自带的字符串查找函数。同样我们也可以自己实现这个函数，例如使用比较经典的 KMP 算法。\n\n读者需要注意以下几点：\n\n- KMP 算法虽然有着良好的理论时间复杂度上限，但大部分语言自带的字符串查找函数并不是用 KMP 算法实现的。这是因为在实现 API 时，我们需要在平均时间复杂度和最坏时间复杂度二者之间权衡。普通的暴力匹配算法以及优化的 BM 算法拥有比 KMP 算法更为优秀的平均时间复杂度；\n\n- 学习 KMP 算法时，一定要理解其本质。如果放弃阅读晦涩难懂的材料（即使大部分讲解 KMP 算法的材料都包含大量的图，但图毕竟只能描述特殊而非一般情况）而是直接去阅读代码，是永远无法学会 KMP 算法的。读者甚至无法理解 KMP 算法关键代码中的任意一行。\n\n由于本题就是在一个字符串中查询另一个字符串是否出现，可以直接套用 KMP 算法。因此这里对 KMP 算法本身不再赘述。读者可以自行查阅资料进行学习。这里留了三个思考题，读者可以在学习完毕后尝试回答这三个问题，检验自己的学习成果：\n\n- 设查询串的的长度为 $n$，模式串的长度为 $m$，我们需要判断模式串是否为查询串的子串。那么使用 KMP 算法处理该问题时的时间复杂度是多少？在分析时间复杂度时使用了哪一种分析方法？\n\n- 如果有多个查询串，平均长度为 $n$，数量为 $k$，那么总时间复杂度是多少？\n\n- 在 KMP 算法中，对于模式串，我们需要预处理出一个 $\\textit{fail}$ 数组（有时也称为 $\\textit{next}$ 数组、$\\pi$ 数组等）。这个数组到底表示了什么？\n\n**代码**\n\n```C++ [sol3-C++]\nclass Solution {\npublic:\n    bool kmp(const string& query, const string& pattern) {\n        int n = query.size();\n        int m = pattern.size();\n        vector<int> fail(m, -1);\n        for (int i = 1; i < m; ++i) {\n            int j = fail[i - 1];\n            while (j != -1 && pattern[j + 1] != pattern[i]) {\n                j = fail[j];\n            }\n            if (pattern[j + 1] == pattern[i]) {\n                fail[i] = j + 1;\n            }\n        }\n        int match = -1;\n        for (int i = 1; i < n - 1; ++i) {\n            while (match != -1 && pattern[match + 1] != query[i]) {\n                match = fail[match];\n            }\n            if (pattern[match + 1] == query[i]) {\n                ++match;\n                if (match == m - 1) {\n                    return true;\n                }\n            }\n        }\n        return false;\n    }\n\n    bool repeatedSubstringPattern(string s) {\n        return kmp(s + s, s);\n    }\n};\n```\n\n```Java [sol3-Java]\nclass Solution {\n    public boolean repeatedSubstringPattern(String s) {\n        return kmp(s + s, s);\n    }\n\n    public boolean kmp(String query, String pattern) {\n        int n = query.length();\n        int m = pattern.length();\n        int[] fail = new int[m];\n        Arrays.fill(fail, -1);\n        for (int i = 1; i < m; ++i) {\n            int j = fail[i - 1];\n            while (j != -1 && pattern.charAt(j + 1) != pattern.charAt(i)) {\n                j = fail[j];\n            }\n            if (pattern.charAt(j + 1) == pattern.charAt(i)) {\n                fail[i] = j + 1;\n            }\n        }\n        int match = -1;\n        for (int i = 1; i < n - 1; ++i) {\n            while (match != -1 && pattern.charAt(match + 1) != query.charAt(i)) {\n                match = fail[match];\n            }\n            if (pattern.charAt(match + 1) == query.charAt(i)) {\n                ++match;\n                if (match == m - 1) {\n                    return true;\n                }\n            }\n        }\n        return false;\n    }\n}\n```\n\n```Python [sol3-Python3]\nclass Solution:\n    def repeatedSubstringPattern(self, s: str) -> bool:\n        def kmp(query: str, pattern: str) -> bool:\n            n, m = len(query), len(pattern)\n            fail = [-1] * m\n            for i in range(1, m):\n                j = fail[i - 1]\n                while j != -1 and pattern[j + 1] != pattern[i]:\n                    j = fail[j]\n                if pattern[j + 1] == pattern[i]:\n                    fail[i] = j + 1\n            match = -1\n            for i in range(1, n - 1):\n                while match != -1 and pattern[match + 1] != query[i]:\n                    match = fail[match]\n                if pattern[match + 1] == query[i]:\n                    match += 1\n                    if match == m - 1:\n                        return True\n            return False\n        \n        return kmp(s + s, s)\n```\n\n```golang [sol3-Golang]\nfunc repeatedSubstringPattern(s string) bool {\n    return kmp(s + s, s)\n}\n\nfunc kmp(query, pattern string) bool {\n    n, m := len(query), len(pattern)\n    fail := make([]int, m)\n    for i := 0; i < m; i++ {\n        fail[i] = -1\n    }\n    for i := 1; i < m; i++ {\n        j := fail[i - 1]\n        for j != -1 && pattern[j + 1] != pattern[i] {\n            j = fail[j]\n        }\n        if pattern[j + 1] == pattern[i] {\n            fail[i] = j + 1\n        }\n    }\n    match := -1\n    for i := 1; i < n - 1; i++ {\n        for match != -1 && pattern[match + 1] != query[i] {\n            match = fail[match]\n        }\n        if pattern[match + 1] == query[i] {\n            match++\n            if match == m - 1 {\n                return true\n            }\n        }\n    }\n    return false\n}\n```\n\n```C [sol3-C]\nbool kmp(char* query, char* pattern) {\n    int n = strlen(query);\n    int m = strlen(pattern);\n    int fail[m];\n    memset(fail, -1, sizeof(fail));\n    for (int i = 1; i < m; ++i) {\n        int j = fail[i - 1];\n        while (j != -1 && pattern[j + 1] != pattern[i]) {\n            j = fail[j];\n        }\n        if (pattern[j + 1] == pattern[i]) {\n            fail[i] = j + 1;\n        }\n    }\n    int match = -1;\n    for (int i = 1; i < n - 1; ++i) {\n        while (match != -1 && pattern[match + 1] != query[i]) {\n            match = fail[match];\n        }\n        if (pattern[match + 1] == query[i]) {\n            ++match;\n            if (match == m - 1) {\n                return true;\n            }\n        }\n    }\n    return false;\n}\n\nbool repeatedSubstringPattern(char* s) {\n    int n = strlen(s);\n    char k[2 * n + 1];\n    k[0] = 0;\n    strcat(k, s);\n    strcat(k, s);\n    return kmp(k, s);\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是字符串 $s$ 的长度。\n\n- 空间复杂度：$O(n)$。\n\n#### 正确性证明\n\n一方面，如果长度为 $n$ 的字符串 $s$ 是字符串 $t=s+s$ 的子串，并且 $s$ 在 $t$ 中的起始位置不为 $0$ 或 $n$，那么 $s$ 就满足题目的要求。证明过程如下：\n\n- 我们设 $s$ 在 $t$ 中的起始位置为 $i$，$i \\in (0, n)$。也就是说，$t$ 中从位置 $i$ 开始的 $n$ 个连续的字符，恰好就是字符串 $s$。那么我们有：\n\n    $$\n    s[0:n-1] = t[i:n+i-1]\n    $$\n\n    由于 $t$ 是由两个 $s$ 拼接而成的，我们可以将 $t[i:n+i-1]$ 分成位置 $n-1$ 左侧和右侧两部分：\n\n    $$\n    \\left \\{ \\begin{aligned}\n    s[0:n-i-1] &= t[i:n-1] \\\\\n    s[n-i:n-1] &= t[n:n+i-1] = t[0:i-1]\n    \\end{aligned} \\right.\n    $$\n\n    每一部分都可以对应回 $s$：\n\n    $$\n    \\left \\{ \\begin{aligned}\n    s[0:n-i-1] &= s[i:n-1] \\\\\n    s[n-i:n-1] &= s[0:i-1]\n    \\end{aligned} \\right.\n    $$\n\n    这说明，$s$ 是一个「可旋转」的字符串：将 $s$ 的前 $i$ 个字符保持顺序，移动到 $s$ 的末尾，得到的新字符串与 $s$ 相同。也就是说，**在模 $n$ 的意义下**，\n\n    $$\n    s[j] = s[j+i]\n    $$\n\n    对于任意的 $j$ 恒成立。\n\n    > 「在模 $n$ 的意义下」可以理解为，所有的加法运算的结果都需要对 $n$ 取模，使得结果保持在 $[0, n)$ 中，这样加法就自带了「旋转」的效果。\n\n    如果我们不断地连写这个等式：\n\n    $$\n    s[j] = s[j+i] = s[j+2i] = s[j+3i] = \\cdots\n    $$\n\n    那么所有满足 $j_0 = j + k \\cdot i$ 的位置 $j_0$ 都有 $s[j] = s[j_0]$，$j$ 和 $j_0$ 在模 $i$ 的意义下等价。由于我们已经在模 $n$ 的意义下讨论这个问题，因此 $j$ 和 $j_0$ 在模 $\\mathrm{gcd}(n, i)$ 的意义下等价，其中 $\\mathrm{gcd}$ 表示最大公约数。也就是说，字符串 $s$ 中的两个位置如果在模 $\\mathrm{gcd}(n, i)$ 的意义下等价，那么它们对应的字符必然是相同的。\n\n    由于 $\\mathrm{gcd}(n, i)$ 一定是 $n$ 的约数，那么字符串 $s$ 一定可以由其长度为 $\\mathrm{gcd}(n, i)$ 的前缀重复 $\\frac{n}{\\mathrm{gcd}(n, i)}$ 次构成。\n\n\n另一方面，如果 $s$ 满足题目的要求，那么 $s$ 包含若干个「部分」，$t=s+s$ 包含两倍数量的「部分」，因此 $s$ 显然是 $t$ 的子串，并且起始位置可以不为 $0$ 或 $n$：我们只需要选择 $t$ 中第一个「部分」的起始位置即可。\n\n综上所述，我们证明了：长度为 $n$ 的字符串 $s$ 是字符串 $t=s+s$ 的子串，并且 $s$ 在 $t$ 中的起始位置不为 $0$ 或 $n$，**当且仅当** $s$ 满足题目的要求。因此，\n\n#### 思考题答案\n\n- 设查询串的的长度为 $n$，模式串的长度为 $m$，我们需要判断模式串是否为查询串的子串。那么使用 KMP 算法处理该问题时的时间复杂度是多少？在分析时间复杂度时使用了哪一种分析方法？\n\n    - 时间复杂度为 $O(n+m)$，用到了均摊分析（摊还分析）的方法。\n    \n    - 具体地，无论在预处理过程还是查询过程中，虽然匹配失败时，指针会不断地根据 $\\textit{fail}$ 数组向左回退，看似时间复杂度会很高。但考虑匹配成功时，指针会向右移动一个位置，这一部分对应的时间复杂度为 $O(n+m)$。又因为向左移动的次数不会超过向右移动的次数，因此总时间复杂度仍然为 $O(n+m)$。\n\n- 如果有多个查询串，平均长度为 $n$，数量为 $k$，那么总时间复杂度是多少？\n\n    - 时间复杂度为 $O(nk+m)$。模式串只需要预处理一次。\n\n- 在 KMP 算法中，对于模式串，我们需要预处理出一个 $\\textit{fail}$ 数组（有时也称为 $\\textit{next}$ 数组、$\\pi$ 数组等）。这个数组到底表示了什么？\n\n    - $\\textit{fail}[i]$ 等于满足下述要求的 $x$ 的最大值：$s[0:i]$ 具有长度为 $x+1$ 的完全相同的前缀和后缀。这也是 KMP 算法最重要的一部分。\n\n#### 方法四：优化的 KMP 算法\n\n**思路与算法**\n\n如果读者能够看懂「正确性证明」和「思考题答案」这两部分，那么一定已经发现了方法三中的 KMP 算法有可以优化的地方。即：\n\n- 在「正确性证明」部分，如果我们设 $i$ 为**最小的**起始位置，那么一定有 $\\mathrm{gcd}(n, i) = i$，即 $n$ 是 $i$ 的倍数。这说明字符串 $s$ 是由长度为 $i$ 的前缀重复 $\\frac{n}{i}$ 次构成；\n\n- 由于 $\\textit{fail}[n-1]$ 表示 $s$ 具有长度为 $\\textit{fail}[n-1]+1$ 的完全相同的（且最长的）前缀和后缀。那么对于满足题目要求的字符串，一定有 $\\textit{fail}[n-1] = n-i-1$，即 $i = n - \\textit{fail}[n-1] - 1$；\n\n- 对于不满足题目要求的字符串，$n$ 一定不是 $n - \\textit{fail}[n-1] - 1$ 的倍数。\n\n> 上述所有的结论都可以很容易地使用反证法证出。\n\n因此，我们在预处理出 $\\textit{fail}$ 数组后，只需要判断 $n$ 是否为 $n - \\textit{fail}[n-1] - 1$ 的倍数即可。\n\n**代码**\n\n```C++ [sol4-C++]\nclass Solution {\npublic:\n    bool kmp(const string& pattern) {\n        int n = pattern.size();\n        vector<int> fail(n, -1);\n        for (int i = 1; i < n; ++i) {\n            int j = fail[i - 1];\n            while (j != -1 && pattern[j + 1] != pattern[i]) {\n                j = fail[j];\n            }\n            if (pattern[j + 1] == pattern[i]) {\n                fail[i] = j + 1;\n            }\n        }\n        return fail[n - 1] != -1 && n % (n - fail[n - 1] - 1) == 0;\n    }\n\n    bool repeatedSubstringPattern(string s) {\n        return kmp(s);\n    }\n};\n```\n\n```Java [sol4-Java]\nclass Solution {\n    public boolean repeatedSubstringPattern(String s) {\n        return kmp(s);\n    }\n\n    public boolean kmp(String pattern) {\n        int n = pattern.length();\n        int[] fail = new int[n];\n        Arrays.fill(fail, -1);\n        for (int i = 1; i < n; ++i) {\n            int j = fail[i - 1];\n            while (j != -1 && pattern.charAt(j + 1) != pattern.charAt(i)) {\n                j = fail[j];\n            }\n            if (pattern.charAt(j + 1) == pattern.charAt(i)) {\n                fail[i] = j + 1;\n            }\n        }\n        return fail[n - 1] != -1 && n % (n - fail[n - 1] - 1) == 0;\n    }\n}\n```\n\n```Python [sol4-Python3]\nclass Solution:\n    def repeatedSubstringPattern(self, s: str) -> bool:\n        def kmp(pattern: str) -> bool:\n            n = len(pattern)\n            fail = [-1] * n\n            for i in range(1, n):\n                j = fail[i - 1]\n                while j != -1 and pattern[j + 1] != pattern[i]:\n                    j = fail[j]\n                if pattern[j + 1] == pattern[i]:\n                    fail[i] = j + 1\n            return fail[n - 1] != -1 and n % (n - fail[n - 1] - 1) == 0\n        \n        return kmp(s)\n```\n\n```golang [sol4-Golang]\nfunc repeatedSubstringPattern(s string) bool {\n    return kmp(s)\n}\n\nfunc kmp(pattern string) bool {\n    n := len(pattern)\n    fail := make([]int, n)\n    for i := 0; i < n; i++ {\n        fail[i] = -1\n    }\n    for i := 1; i < n; i++ {\n        j := fail[i - 1]\n        for (j != -1 && pattern[j + 1] != pattern[i]) {\n            j = fail[j]\n        }\n        if pattern[j + 1] == pattern[i] {\n            fail[i] = j + 1\n        }\n    }\n    return fail[n - 1] != -1 && n % (n - fail[n - 1] - 1) == 0\n}\n```\n\n```C [sol4-C]\nbool kmp(char* pattern) {\n    int n = strlen(pattern);\n    int fail[n];\n    memset(fail, -1, sizeof(fail));\n    for (int i = 1; i < n; ++i) {\n        int j = fail[i - 1];\n        while (j != -1 && pattern[j + 1] != pattern[i]) {\n            j = fail[j];\n        }\n        if (pattern[j + 1] == pattern[i]) {\n            fail[i] = j + 1;\n        }\n    }\n    return fail[n - 1] != -1 && n % (n - fail[n - 1] - 1) == 0;\n}\n\nbool repeatedSubstringPattern(char* s) {\n    return kmp(s);\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是字符串 $s$ 的长度。\n\n- 空间复杂度：$O(n)$。",
+            "slateValue": "",
+            "slug": "zhong-fu-de-zi-zi-fu-chuan-by-leetcode-solution",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "8XFnDJ",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 394,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 13,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 12,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "String Matching",
+                    "nameTranslated": "字符串匹配",
+                    "slug": "string-matching",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2020-08-23T14:37:59.690301+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：枚举 思路与算法 如果一个长度为 $n$ 的字符串 $s$ 可以由它的一个长度为 $n'$ 的子串 $s'$ 重复多次构成，那么： $n$ 一定是 $n'$ 的倍数； $s'$ 一定是 $s$ 的前缀； 对于任意的 $i \\in [n', n)$，有 $s[i] = s[i-n']$。 也就是说，$s$ 中长度",
+            "topic": {
+                "id": 386481,
+                "subscribed": false,
+                "commentCount": 419,
+                "viewCount": 93930,
+                "post": {
+                    "id": 946220,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 1267,
+            "isEditorsPick": false,
+            "hitCount": 274337,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "repeated-substring-pattern",
+                "questionFrontendId": "459"
+            },
+            "next": {
+                "slug": "jian-dan-ming-liao-guan-yu-javaliang-xing-dai-ma-s",
+                "title": "简单明了！！关于java两行代码实现的思路来源"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,124 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "9lUZzf",
+            "title": "从先序遍历还原二叉树",
+            "content": "#### 前言\n\n相较于传统的递归 + 回溯的实现方法而言，本题使用迭代方法（模拟递归）更加简洁方便。\n\n#### 方法一：迭代\n\n我们每次从字符串 $s$ 中取出一个节点的值以及它的深度信息。具体地：\n\n- 我们首先读取若干个字符 `-`，直到遇到非 `-` 字符位置。通过 `-` 的个数，我们就可以知道当前节点的深度信息；\n\n- 我们再读取若干个数字，直到遇到非数字或者字符串的结尾。通过这些数字，我们就可以知道当前节点的值。\n\n得到这些信息之后，我们就需要考虑将当前的节点放在何处。记当前节点为 $T$，上一个节点为 $S$，那么实际上只有两种情况：\n\n- $T$ 是 $S$ 的**左子节点**；\n\n- $T$ 是根节点到 $S$ 这一条路径上（不包括 $S$）某一个节点的**右子节点**。\n\n    - 为什么不包括 $S$？因为题目中规定了**如果节点只有一个子节点，那么保证该子节点为左子节点**。在 $T$ 出现之前，$S$ 仍然还是一个叶节点，没有左子节点，因此 $T$ 如果是 $S$ 的子节点，一定是优先变成 $S$ 的左子节点。\n\n这是因为先序遍历本身的性质。在先序遍历中，我们是通过「根 — 左 — 右」的顺序访问每一个节点的。想一想先序遍历的递归 + 回溯方法，对于在先序遍历中任意的两个相邻的节点 $S$ 和 $T$，要么 $T$ 就是 $S$ 的左子节点（对应上面的第一种情况），要么在遍历到 $S$ 之后发现 $S$ 是个叶节点，于是回溯到之前的某个节点，并开始递归地遍历其右子节点（对应上面的第二种情况）。这样以来，我们按照顺序维护**从根节点到当前节点的路径上的所有节点**，就可以方便地处理这两种情况。仔细想一想，这实际上就是使用递归 + 回溯的方法遍历一棵树时，栈中的所有节点，也就是可以回溯到的节点。因此我们只需要使用一个栈来模拟递归 + 回溯即可。\n\n回到上面的分析，当我们得到当前节点的值以及深度信息之后，我们可以发现：如果 $T$ 是 $S$ 的左子节点，那么 $T$ 的深度恰好比 $S$ 的深度大 $1$；在其它的情况下，$T$ 是栈中某个节点（不包括 $S$）的右子节点，那么我们将栈顶的节点不断地出栈，直到 $T$ 的深度恰好比栈顶节点的深度大 $1$，此时我们就找到了 $T$ 的双亲节点。\n\n**扩展与思考**\n\n通过上面的分析，我们只需要借助一个栈，通过迭代的方法就可以还原出这棵二叉树。由于题目给出的 $\\textit{traversal}$ 一定是某棵二叉树的先序遍历结果，因此我们在代码中不需要处理任何异常异常情况。\n\n读者可以进行如下的思考：如果给定的 $\\textit{traversal}$ 只保证由数字和 `-` 组成，那么我们如何修改代码，使其判断是否能够还原出一棵二叉树呢？\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    TreeNode* recoverFromPreorder(string traversal) {\n        stack<TreeNode*> path;\n        int pos = 0;\n        while (pos < traversal.size()) {\n            int level = 0;\n            while (traversal[pos] == '-') {\n                ++level;\n                ++pos;\n            }\n            int value = 0;\n            while (pos < traversal.size() && isdigit(traversal[pos])) {\n                value = value * 10 + (traversal[pos] - '0');\n                ++pos;\n            }\n            TreeNode* node = new TreeNode(value);\n            if (level == path.size()) {\n                if (!path.empty()) {\n                    path.top()->left = node;\n                }\n            }\n            else {\n                while (level != path.size()) {\n                    path.pop();\n                }\n                path.top()->right = node;\n            }\n            path.push(node);\n        }\n        while (path.size() > 1) {\n            path.pop();\n        }\n        return path.top();\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public TreeNode recoverFromPreorder(String traversal) {\n        Deque<TreeNode> path = new LinkedList<TreeNode>();\n        int pos = 0;\n        while (pos < traversal.length()) {\n            int level = 0;\n            while (traversal.charAt(pos) == '-') {\n                ++level;\n                ++pos;\n            }\n            int value = 0;\n            while (pos < traversal.length() && Character.isDigit(traversal.charAt(pos))) {\n                value = value * 10 + (traversal.charAt(pos) - '0');\n                ++pos;\n            }\n            TreeNode node = new TreeNode(value);\n            if (level == path.size()) {\n                if (!path.isEmpty()) {\n                    path.peek().left = node;\n                }\n            } else {\n                while (level != path.size()) {\n                    path.pop();\n                }\n                path.peek().right = node;\n            }\n            path.push(node);\n        }\n        while (path.size() > 1) {\n            path.pop();\n        }\n        return path.peek();\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def recoverFromPreorder(self, traversal: str) -> TreeNode:\n        path, pos = list(), 0\n        while pos < len(traversal):\n            level = 0\n            while traversal[pos] == '-':\n                level += 1\n                pos += 1\n            value = 0\n            while pos < len(traversal) and traversal[pos].isdigit():\n                value = value * 10 + (ord(traversal[pos]) - ord('0'))\n                pos += 1\n            node = TreeNode(value)\n            if level == len(path):\n                if path:\n                    path[-1].left = node\n            else:\n                path = path[:level]\n                path[-1].right = node\n            path.append(node)\n        return path[0]\n```\n\n```golang [sol1-Golang]\nfunc recoverFromPreorder(traversal string) *TreeNode {\n    path, pos := []*TreeNode{}, 0\n    for pos < len(traversal) {\n        level := 0\n        for traversal[pos] == '-' {\n            level++\n            pos++\n        }\n        value := 0\n        for ; pos < len(traversal) && traversal[pos] >= '0' && traversal[pos] <= '9'; pos++ {\n            value = value * 10 + int(traversal[pos] - '0')\n        }\n        node := &TreeNode{Val: value}\n        if level == len(path) {\n            if len(path) > 0 { path[len(path)-1].Left = node }\n        } else {\n            path = path[:level]\n            path[len(path)-1].Right = node\n        }\n        path = append(path, node)\n    }\n    return path[0]\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(|\\textit{traversal}|)$，其中 $|\\textit{traversal}|$ 是字符串 $\\textit{traversal}$ 的长度。我们的算法不断地从 $\\textit{traversal}$ 中取出一个节点的信息，直到取完为止。在这个过程中，我们实际上是对 $\\textit{traversal}$ 进行了一次遍历。\n\n- 空间复杂度：$O(h)$，其中 $h$ 是还原出的二叉树的高度。除了作为答案返回的二叉树使用的空间以外，我们使用了一个栈帮助我们进行迭代。由于栈中存放了从根节点到当前节点这一路径上的所有节点，因此最多只会同时有 $h$ 个节点。",
+            "slateValue": "",
+            "slug": "cong-xian-xu-bian-li-huan-yuan-er-cha-shu-by-leetc",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "9lUZzf",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 69,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Tree",
+                    "nameTranslated": "树",
+                    "slug": "tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Depth-First Search",
+                    "nameTranslated": "深度优先搜索",
+                    "slug": "depth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Binary Tree",
+                    "nameTranslated": "二叉树",
+                    "slug": "binary-tree",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2020-06-17T06:05:25.139155+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "前言 相较于传统的递归 + 回溯的实现方法而言，本题使用迭代方法（模拟递归）更加简洁方便。 方法一：迭代 我们每次从字符串 $s$ 中取出一个节点的值以及它的深度信息。具体地： 我们首先读取若干个字符 -，直到遇到非 - 字符位置。通过 - 的个数，我们就可以知道当前节点的深度信息； 我们再读取若干个数字，直到遇到非数",
+            "topic": {
+                "id": 292136,
+                "subscribed": false,
+                "commentCount": 111,
+                "viewCount": 19339,
+                "post": {
+                    "id": 740275,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 74,
+            "isEditorsPick": false,
+            "hitCount": 33229,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "recover-a-tree-from-preorder-traversal",
+                "questionFrontendId": "1028"
+            },
+            "next": {
+                "slug": "shou-hui-tu-jie-fei-di-gui-fa-zhong-gou-chu-er-cha",
+                "title": "【手画图解+比喻】迭代和递归两种方法，迭代版更好理解"
+            },
+            "prev": null
+        }
+    }
+}

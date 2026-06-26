@@ -1,0 +1,122 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "BXYwLg",
+            "title": "Range 模块",
+            "content": "#### 方法一：有序集合 / 有序映射\n\n**思路与算法**\n\n我们可以使用有序集合或者有序映射来实时维护所有的区间。在任意一次 $\\text{addRange}$ 或 $\\text{removeRange}$ 操作后，我们需要保证有序集合中的区间两两不能合并成一个更大的连续区间。也就是说：如果当前有序集合中有 $k$ 个区间 $[l_1, r_1), [l_2, r_2), \\cdots, [l_k, r_k)$，那么需要保证：\n\n$$\nl_1 < r_1 < l_2 < r_2 < \\cdots < l_k < r_k\n$$\n\n成立。这样一来 $\\text{queryRange}$ 操作就会变得非常方便：对于 $\\text{queryRange(left, right)}$ 而言，我们只需要判断是否存在一个区间 $[l_i, r_i)$，满足 $l_i \\leq \\textit{left} < \\textit{right} \\leq r_i$ 即可。\n\n接下来我们详细讲解如何处理 $\\text{addRange}$ 或 $\\text{removeRange}$ 和操作。对于 $\\text{addRange(left, right)}$ 操作，我们首先在有序集合上进行二分，找出最后一个满足 $l_i \\leq \\textit{left}$ 的区间 $[l_i, r_i)$，那么会有如下的四种情况：\n\n- 如果不存在这样的区间，那么我们可以忽略这一步；\n\n- 如果 $l_i \\leq \\textit{left} < \\textit{right} \\leq r_i$，即 $[l_i, r_i)$ 完全包含待添加的区间，那么我们不需要进行任何操作，可以直接返回；\n\n- 如果 $l_i \\leq \\textit{left} \\leq r_i < \\textit{right}$，我们需要删除区间 $[l_i, r_i)$，并把 $\\textit{left}$ 置为 $l_i$。此时 $[\\textit{left}, \\textit{right})$ 就表示待添加区间与 $[l_i, r_i)$ 的并集；\n\n- 如果 $l_i < r_i < \\textit{left} < \\textit{right}$，那么我们也可以忽略这一步。\n\n随后，我们遍历 $[l_i, r_i)$ 之后的区间（如果前面不存在满足要求的 $[l_i, r_i)$，那么就从头开始遍历），这些区间 $[l_j, r_j)$ 都满足 $l_j > \\textit{left}$，那么只要 $l_j \\leq \\textit{right}$，$[l_j, r_j)$ 就可以与 $[\\textit{left}, \\textit{right})$ 合并成一个更大的连续区间。当遍历到 $l_j > \\textit{right}$ 时，根据集合的有序性，之后的所有区间都不会和 $[\\textit{left}, \\textit{right})$ 有交集，就可以结束遍历。\n\n在遍历完成后，我们还需要将 $[\\textit{left}, \\textit{right})$ 加入有序集合中。\n\n对于 $\\text{removeRange(left, right)}$ 操作，我们的处理方法是类似的，首先在有序集合上进行二分，找出最后一个满足 $l_i \\leq \\textit{left}$ 的区间 $[l_i, r_i)$，那么会有如下的四种情况：\n\n- 如果不存在这样的区间，那么我们可以忽略这一步；\n\n- 如果满足 $l_i \\leq \\textit{left} \\leq \\textit{right} \\leq r_i$，即 $[l_i, r_i)$ 完全包含待添加的区间，那么 $l_i \\leq \\textit{left} \\leq \\textit{right} \\leq r_i$ 的删除会导致 $[l_i, r_i)$ 变成两个短区间：$[l_i, \\textit{left})$ 和 $[\\textit{right}, r_i)$。如果 $\\textit{left} = l_i$，那么第一个区间为空区间；如果 $\\textit{right} = r_i$，那么第二个区间为空区间。我们将 $[l_i, r_i)$ 删除后，向有序集合中添加所有的非空区间，即可直接返回；\n\n- 如果 $l_i \\leq \\textit{left} < r_i < \\textit{right}$，我们把区间 $[l_i, r_i)$ 变成 $[l_i, \\textit{left})$ 即可。特别地，如果 $\\textit{left} = l_i$，我们可以直接把这个区间删除；\n\n- 如果 $l_i < r_i \\leq \\textit{left} < \\textit{right}$，那么我们也可以忽略这一步。\n\n随后，我们遍历 $[l_i, r_i)$ 之后的区间，这些区间 $[l_j, r_j)$ 都满足 $l_j > \\textit{left}$，那么只要 $l_j < \\textit{right}$，$[l_j, r_j)$ 中的一部分就会被删除。如果 $r_j \\leq \\textit{right}$，那么 $[l_j, r_j)$ 会被完全删除；如果  $r_j > \\textit{right}$，那么 $[l_j, r_j)$ 会剩下 $[\\textit{right}, r_j)$，此时之后的所有区间都不会和 $[\\textit{left}, \\textit{right})$ 有交集，就可以结束遍历。\n\n最后，对于 $\\text{queryRange(left, right)}$ 操作，我们同样在有序集合上进行二分，找出最后一个满足 $l_i \\leq \\textit{left}$ 的区间 $[l_i, r_i)$。如果 $l_i \\leq \\textit{left} < \\textit{right} \\leq r_i$，那么返回 $\\text{True}$，否则返回 $\\text{False}$。\n\n\n**代码**\n\n```C++ [sol1-C++]\nclass RangeModule {\npublic:\n    RangeModule() {}\n    \n    void addRange(int left, int right) {\n        auto it = intervals.upper_bound(left);\n        if (it != intervals.begin()) {\n            auto start = prev(it);\n            if (start->second >= right) {\n                return;\n            }\n            if (start->second >= left) {\n                left = start->first;\n                intervals.erase(start);\n            }\n        }\n        while (it != intervals.end() && it->first <= right) {\n            right = max(right, it->second);\n            it = intervals.erase(it);\n        }\n        intervals[left] = right;\n    }\n    \n    bool queryRange(int left, int right) {\n        auto it = intervals.upper_bound(left);\n        if (it == intervals.begin()) {\n            return false;\n        }\n        it = prev(it);\n        return right <= it->second;\n    }\n    \n    void removeRange(int left, int right) {\n        auto it = intervals.upper_bound(left);\n        if (it != intervals.begin()) {\n            auto start = prev(it);\n            if (start->second >= right) {\n                int ri = start->second;\n                if (start->first == left) {\n                    intervals.erase(start);\n                }\n                else {\n                    start->second = left;\n                }\n                if (right != ri) {\n                    intervals[right] = ri;\n                }\n                return;\n            }\n            else if (start->second > left) {\n                if (start->first == left) {\n                    intervals.erase(start);\n                }\n                else {\n                    start->second = left;\n                }\n            }\n        }\n        while (it != intervals.end() && it->first < right) {\n            if (it->second <= right) {\n                it = intervals.erase(it);\n            }\n            else {\n                intervals[right] = it->second;\n                intervals.erase(it);\n                break;\n            }\n        }\n    }\n\nprivate:\n    map<int, int> intervals;\n};\n```\n\n```Java [sol1-Java]\nclass RangeModule {\n    TreeMap<Integer, Integer> intervals;\n\n    public RangeModule() {\n        intervals = new TreeMap<Integer, Integer>();\n    }\n\n    public void addRange(int left, int right) {\n        Map.Entry<Integer, Integer> entry = intervals.higherEntry(left);\n        if (entry != intervals.firstEntry()) {\n            Map.Entry<Integer, Integer> start = entry != null ? intervals.lowerEntry(entry.getKey()) : intervals.lastEntry();\n            if (start != null && start.getValue() >= right) {\n                return;\n            }\n            if (start != null && start.getValue() >= left) {\n                left = start.getKey();\n                intervals.remove(start.getKey());\n            }\n        }\n        while (entry != null && entry.getKey() <= right) {\n            right = Math.max(right, entry.getValue());\n            intervals.remove(entry.getKey());\n            entry = intervals.higherEntry(entry.getKey());\n        }\n        intervals.put(left, right);\n    }\n\n    public boolean queryRange(int left, int right) {\n        Map.Entry<Integer, Integer> entry = intervals.higherEntry(left);\n        if (entry == intervals.firstEntry()) {\n            return false;\n        }\n        entry = entry != null ? intervals.lowerEntry(entry.getKey()) : intervals.lastEntry();\n        return entry != null && right <= entry.getValue();\n    }\n\n    public void removeRange(int left, int right) {\n        Map.Entry<Integer, Integer> entry = intervals.higherEntry(left);\n        if (entry != intervals.firstEntry()) {\n            Map.Entry<Integer, Integer> start = entry != null ? intervals.lowerEntry(entry.getKey()) : intervals.lastEntry();\n            if (start != null && start.getValue() >= right) {\n                int ri = start.getValue();\n                if (start.getKey() == left) {\n                    intervals.remove(start.getKey());\n                } else {\n                    intervals.put(start.getKey(), left);\n                }\n                if (right != ri) {\n                    intervals.put(right, ri);\n                }\n                return;\n            } else if (start != null && start.getValue() > left) {\n                if (start.getKey() == left) {\n                    intervals.remove(start.getKey());\n                } else {\n                    intervals.put(start.getKey(), left);\n                }\n            }\n        }\n        while (entry != null && entry.getKey() < right) {\n            if (entry.getValue() <= right) {\n                intervals.remove(entry.getKey());\n                entry = intervals.higherEntry(entry.getKey());\n            } else {\n                intervals.put(right, entry.getValue());\n                intervals.remove(entry.getKey());\n                break;\n            }\n        }\n    }\n}\n```\n\n```Python [sol1-Python3]\nfrom sortedcontainers import SortedDict\n\nclass RangeModule:\n\n    def __init__(self):\n        self.intervals = SortedDict()\n\n    def addRange(self, left: int, right: int) -> None:\n        itvs_ = self.intervals\n\n        x = itvs_.bisect_right(left)\n        if x != 0:\n            start = x - 1\n            if itvs_.values()[start] >= right:\n                return\n            if itvs_.values()[start] >= left:\n                left = itvs_.keys()[start]\n                itvs_.popitem(start)\n                x -= 1\n        \n        while x < len(itvs_) and itvs_.keys()[x] <= right:\n            right = max(right, itvs_.values()[x])\n            itvs_.popitem(x)\n        \n        itvs_[left] = right\n\n    def queryRange(self, left: int, right: int) -> bool:\n        itvs_ = self.intervals\n\n        x = itvs_.bisect_right(left)\n        if x == 0:\n            return False\n        \n        return right <= itvs_.values()[x - 1]\n\n    def removeRange(self, left: int, right: int) -> None:\n        itvs_ = self.intervals\n\n        x = itvs_.bisect_right(left)\n        if x != 0:\n            start = x - 1\n            if (ri := itvs_.values()[start]) >= right:\n                if (li := itvs_.keys()[start]) == left:\n                    itvs_.popitem(start)\n                else:\n                    itvs_[li] = left\n                if right != ri:\n                    itvs_[right] = ri\n                return\n            elif ri > left:\n                if (li := itvs_.keys()[start]) == left:\n                    itvs_.popitem(start)\n                    x -= 1\n                else:\n                    itvs_[itvs_.keys()[start]] = left\n                \n        while x < len(itvs_) and itvs_.keys()[x] < right:\n            if itvs_.values()[x] <= right:\n                itvs_.popitem(x)\n            else:\n                itvs_[right] = itvs_.values()[x]\n                itvs_.popitem(x)\n                break\n```\n\n```go [sol1-Golang]\ntype RangeModule struct {\n    *redblacktree.Tree\n}\n\nfunc Constructor() RangeModule {\n    return RangeModule{redblacktree.NewWithIntComparator()}\n}\n\nfunc (t RangeModule) AddRange(left, right int) {\n    if node, ok := t.Floor(left); ok {\n        r := node.Value.(int)\n        if r >= right {\n            return\n        }\n        if r >= left {\n            left = node.Key.(int)\n            t.Remove(left)\n        }\n    }\n    for node, ok := t.Ceiling(left); ok && node.Key.(int) <= right; node, ok = t.Ceiling(left) {\n        right = max(right, node.Value.(int))\n        t.Remove(node.Key)\n    }\n    t.Put(left, right)\n}\n\nfunc (t RangeModule) QueryRange(left, right int) bool {\n    node, ok := t.Floor(left)\n    return ok && node.Value.(int) >= right\n}\n\nfunc (t RangeModule) RemoveRange(left, right int) {\n    if node, ok := t.Floor(left); ok {\n        l, r := node.Key.(int), node.Value.(int)\n        if r >= right {\n            if l == left {\n                t.Remove(l)\n            } else {\n                node.Value = left\n            }\n            if right != r {\n                t.Put(right, r)\n            }\n            return\n        }\n        if r > left {\n            if l == left {\n                t.Remove(l)\n            } else {\n                node.Value = left\n            }\n        }\n    }\n    for node, ok := t.Ceiling(left); ok && node.Key.(int) < right; node, ok = t.Ceiling(left) {\n        r := node.Value.(int)\n        t.Remove(node.Key)\n        if r > right {\n            t.Put(right, r)\n            break\n        }\n    }\n}\n\nfunc max(a, b int) int {\n    if b > a {\n        return b\n    }\n    return a\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：对于操作 $\\text{queryRange}$，时间复杂度为 $O(\\log(a+r))$，其中 $a$ 是操作 $\\text{addRange}$ 的次数，$r$ 是操作 $\\text{removeRange}$ 的次数。对于操作 $\\text{addRange}$ 和 $\\text{removeRange}$，时间复杂度为均摊 $O(\\log(a+r))$，这是因为 $\\text{addRange}$ 操作最多添加一个区间，$\\text{removeRange}$ 最多添加两个区间，每一个添加的区间只会在未来的操作中被移除一次，因此均摊时间复杂度为对有序集合 / 有序映射常数次操作需要的时间，即为 $O(\\log(a+r))$。\n\n- 空间复杂度：$O(a+r)$，即为有序集合 / 有序映射需要使用的空间。",
+            "slateValue": "",
+            "slug": "range-mo-kuai-by-leetcode-solution-4utf",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "BXYwLg",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 47,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Design",
+                    "nameTranslated": "设计",
+                    "slug": "design",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Ordered Set",
+                    "nameTranslated": "有序集合",
+                    "slug": "ordered-set",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-06-18T01:34:41.724373+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：有序集合 / 有序映射 思路与算法 我们可以使用有序集合或者有序映射来实时维护所有的区间。在任意一次 $\\text{addRange}$ 或 $\\text{removeRange}$ 操作后，我们需要保证有序集合中的区间两两不能合并成一个更大的连续区间。也就是说：如果当前有序集合中有 $k$ 个区间 $[l_1",
+            "topic": {
+                "id": 1608992,
+                "subscribed": false,
+                "commentCount": 95,
+                "viewCount": 15875,
+                "post": {
+                    "id": 3223413,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 77,
+            "isEditorsPick": false,
+            "hitCount": 39269,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "range-module",
+                "questionFrontendId": "715"
+            },
+            "next": {
+                "slug": "by-lfool-eo50",
+                "title": "线段树详解「汇总级别整理 🔥🔥🔥」"
+            },
+            "prev": null
+        }
+    }
+}

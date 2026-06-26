@@ -1,0 +1,146 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "M5eEZw",
+            "title": "不同的二叉搜索树",
+            "content": "#### 方法一：动态规划\n\n**思路**\n\n给定一个有序序列 $1 \\cdots n$，为了构建出一棵二叉搜索树，我们可以遍历每个数字 $i$，将该数字作为树根，将 $1 \\cdots (i-1)$ 序列作为左子树，将 $(i+1) \\cdots n$ 序列作为右子树。接着我们可以按照同样的方式递归构建左子树和右子树。\n\n在上述构建的过程中，由于根的值不同，因此我们能保证每棵二叉搜索树是唯一的。\n\n由此可见，原问题可以分解成规模较小的两个子问题，且子问题的解可以复用。因此，我们可以想到使用动态规划来求解本题。\n\n**算法**\n\n题目要求是计算不同二叉搜索树的个数。为此，我们可以定义两个函数：\n\n1. $G(n)$: 长度为 $n$ 的序列能构成的不同二叉搜索树的个数。\n\n2. $F(i, n)$: 以 $i$ 为根、序列长度为 $n$ 的不同二叉搜索树个数 $(1 \\leq i \\leq n)$。\n\n可见，$G(n)$ 是我们求解需要的函数。\n\n稍后我们将看到，$G(n)$ 可以从 $F(i, n)$ 得到，而 $F(i, n)$ 又会递归地依赖于 $G(n)$。\n\n首先，根据上一节中的思路，不同的二叉搜索树的总数 $G(n)$，是对遍历所有 $i$ $(1 \\le i \\le n)$ 的 $F(i, n)$ 之和。换言之：\n\n$$\nG(n) = \\sum_{i=1}^{n} F(i, n)\\qquad \\qquad (1)\n$$\n\n对于边界情况，当序列长度为 $1$（只有根）或为 $0$（空树）时，只有一种情况，即：\n\n$$\nG(0) = 1, \\qquad G(1) = 1\n$$\n\n给定序列 $1 \\cdots n$，我们选择数字 $i$ 作为根，则根为 $i$ 的所有二叉搜索树的集合是左子树集合和右子树集合的**笛卡尔积**，对于笛卡尔积中的每个元素，加上根节点之后形成完整的二叉搜索树，如下图所示：\n\n![fig1](https://assets.leetcode.cn/solution-static/96/96_fig1.png){:width=\"90%\"}\n\n举例而言，创建以 $3$ 为根、长度为 $7$ 的不同二叉搜索树，整个序列是 $[1, 2, 3, 4, 5, 6, 7]$，我们需要从左子序列 $[1, 2]$ 构建左子树，从右子序列 $[4, 5, 6, 7]$ 构建右子树，然后将它们组合（即笛卡尔积）。\n\n对于这个例子，不同二叉搜索树的个数为 $F(3, 7)$。我们将 $[1,2]$ 构建不同左子树的数量表示为 $G(2)$, 从 $[4, 5, 6, 7]$ 构建不同右子树的数量表示为 $G(4)$，注意到 $G(n)$ 和序列的内容无关，只和序列的长度有关。于是，$F(3,7) = G(2) \\cdot G(4)$。 因此，我们可以得到以下公式：\n\n$$\nF(i, n) = G(i-1) \\cdot G(n-i) \\qquad  \\qquad (2)\n$$\n\n将公式 $(1)$，$(2)$ 结合，可以得到 $G(n)$ 的递归表达式：\n\n$$\nG(n) = \\sum_{i=1}^{n}G(i-1) \\cdot G(n-i) \\qquad  \\qquad (3)\n$$\n\n至此，我们从小到大计算 $G$ 函数即可，因为 $G(n)$ 的值依赖于 $G(0) \\cdots G(n-1)$。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int numTrees(int n) {\n        vector<int> G(n + 1, 0);\n        G[0] = 1;\n        G[1] = 1;\n\n        for (int i = 2; i <= n; ++i) {\n            for (int j = 1; j <= i; ++j) {\n                G[i] += G[j - 1] * G[i - j];\n            }\n        }\n        return G[n];\n    }\n};\n```\n```Java [sol1-Java]\nclass Solution {\n    public int numTrees(int n) {\n        int[] G = new int[n + 1];\n        G[0] = 1;\n        G[1] = 1;\n\n        for (int i = 2; i <= n; ++i) {\n            for (int j = 1; j <= i; ++j) {\n                G[i] += G[j - 1] * G[i - j];\n            }\n        }\n        return G[n];\n    }\n}\n```\n```Python [sol1-Python]\nclass Solution:\n    def numTrees(self, n):\n        \"\"\"\n        :type n: int\n        :rtype: int\n        \"\"\"\n        G = [0]*(n+1)\n        G[0], G[1] = 1, 1\n\n        for i in range(2, n+1):\n            for j in range(1, i+1):\n                G[i] += G[j-1] * G[i-j]\n\n        return G[n]\n```\n```JavaScript [sol1-JavaScript]\nvar numTrees = function(n) {\n    const G = new Array(n + 1).fill(0);\n    G[0] = 1;\n    G[1] = 1;\n\n    for (let i = 2; i <= n; ++i) {\n        for (let j = 1; j <= i; ++j) {\n            G[i] += G[j - 1] * G[i - j];\n        }\n    }\n    return G[n];\n};\n```\n\n```golang [sol1-Golang]\nfunc numTrees(n int) int {\n    G := make([]int, n + 1)\n    G[0], G[1] = 1, 1\n    for i := 2; i <= n; i++ {\n        for j := 1; j <= i; j++ {\n            G[i] += G[j-1] * G[i-j]\n        }\n    }\n    return G[n]\n}\n```\n\n```C [sol1-C]\nint numTrees(int n) {\n    int G[n + 1];\n    memset(G, 0, sizeof(G));\n    G[0] = G[1] = 1;\n    for (int i = 2; i <= n; ++i) {\n        for (int j = 1; j <= i; ++j) {\n            G[i] += G[j - 1] * G[i - j];\n        }\n    }\n    return G[n];\n}\n```\n\n**复杂度分析**\n\n* 时间复杂度 : $O(n^2)$，其中 $n$ 表示二叉搜索树的节点个数。$G(n)$ 函数一共有 $n$ 个值需要求解，每次求解需要 $O(n)$ 的时间复杂度，因此总时间复杂度为 $O(n^2)$。\n\n* 空间复杂度 : $O(n)$。我们需要 $O(n)$ 的空间存储 $G$ 数组。\n\n#### 方法二：数学\n\n**思路与算法**\n\n事实上我们在方法一中推导出的 $G(n)$函数的值在数学上被称为[卡塔兰数](https://baike.baidu.com/item/catalan/7605685?fr=aladdin) $C_n$。卡塔兰数更便于计算的定义如下:\n\n$$\nC_0 = 1, \\qquad C_{n+1} = \\frac{2(2n+1)}{n+2}C_n\n$$\n\n证明过程可以参考上述文献，此处不再赘述。\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    int numTrees(int n) {\n        long long C = 1;\n        for (int i = 0; i < n; ++i) {\n            C = C * 2 * (2 * i + 1) / (i + 2);\n        }\n        return (int)C;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public int numTrees(int n) {\n        // 提示：我们在这里需要用 long 类型防止计算过程中的溢出\n        long C = 1;\n        for (int i = 0; i < n; ++i) {\n            C = C * 2 * (2 * i + 1) / (i + 2);\n        }\n        return (int) C;\n    }\n}\n```\n\n```Python [sol2-Python]\nclass Solution(object):\n    def numTrees(self, n):\n        \"\"\"\n        :type n: int\n        :rtype: int\n        \"\"\"\n        C = 1\n        for i in range(0, n):\n            C = C * 2*(2*i+1)/(i+2)\n        return int(C)\n```\n\n```JavaScript [sol2-JavaScript]\nvar numTrees = function(n) {\n    let C = 1;\n    for (let i = 0; i < n; ++i) {\n        C = C * 2 * (2 * i + 1) / (i + 2);\n    }\n    return C;\n};\n```\n\n```golang [sol2-Golang]\nfunc numTrees(n int) int {\n    C := 1\n    for i := 0; i < n; i++ {\n        C = C * 2 * (2 * i + 1) / (i + 2);\n    }\n    return C\n}\n```\n\n```C [sol2-C]\nint numTrees(int n) {\n    long long C = 1;\n    for (int i = 0; i < n; ++i) {\n        C = C * 2 * (2 * i + 1) / (i + 2);\n    }\n    return (int)C;\n}\n```\n\n**复杂度分析**\n\n* 时间复杂度 : $O(n)$，其中 $n$ 表示二叉搜索树的节点个数。我们只需要循环遍历一次即可。\n* 空间复杂度 : $O(1)$。我们只需要常数空间存放若干变量。",
+            "slateValue": "",
+            "slug": "bu-tong-de-er-cha-sou-suo-shu-by-leetcode-solution",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "M5eEZw",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 513,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 27,
+                    "reactionType": "CONFUSED"
+                },
+                {
+                    "count": 22,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Tree",
+                    "nameTranslated": "树",
+                    "slug": "tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search Tree",
+                    "nameTranslated": "二叉搜索树",
+                    "slug": "binary-search-tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Binary Tree",
+                    "nameTranslated": "二叉树",
+                    "slug": "binary-tree",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2020-07-14T04:43:44.726831+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 思路 给定一个有序序列 $1 \\cdots n$，为了构建出一棵二叉搜索树，我们可以遍历每个数字 $i$，将该数字作为树根，将 $1 \\cdots (i-1)$ 序列作为左子树，将 $(i+1) \\cdots n$ 序列作为右子树。接着我们可以按照同样的方式递归构建左子树和右子树。 在上述构建的过程中",
+            "topic": {
+                "id": 329807,
+                "subscribed": false,
+                "commentCount": 652,
+                "viewCount": 204536,
+                "post": {
+                    "id": 821738,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 1215,
+            "isEditorsPick": false,
+            "hitCount": 412706,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "unique-binary-search-trees",
+                "questionFrontendId": "96"
+            },
+            "next": {
+                "slug": "hua-jie-suan-fa-96-bu-tong-de-er-cha-sou-suo-shu-b",
+                "title": "画解算法：96. 不同的二叉搜索树"
+            },
+            "prev": null
+        }
+    }
+}

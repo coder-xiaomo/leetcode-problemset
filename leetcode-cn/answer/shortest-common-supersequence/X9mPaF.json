@@ -1,0 +1,118 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "X9mPaF",
+            "title": "最短公共超序列",
+            "content": "#### 方法一：动态规划\n\n**思路与算法**\n\n首先题目给出两个字符串 $\\textit{str}_1$ 和 $\\textit{str}_2$，我们需要返回任意一个满足同时以 $\\textit{str}_1$ 和 $\\textit{str}_2$ 作为子序列的最短字符串。我们设 $\\textit{str}_1$ 的长度为 $n$，$\\textit{str}_2$ 的长度为 $m$，$\\textit{dp}[i][j]$ 表示同时以字符串 $\\textit{str}_1[i:n]$ 和 $\\textit{str}_2[j:m]$ 作为子序列的最短字符串长度，其中 $\\textit{str}_1[i:j]$，$\\textit{str}_2[i:j]$ 表示字符串 $\\textit{str}_1$，$\\textit{str}_2$ 从下标 $i$ 到下标 $j$ 的子串（包含下标 $i$ 且不包含下标 $j$）。现在我们来思考如何求解各个状态：\n\n1. 当 $\\textit{str}_1[i] = \\textit{str}_2[j]$ 时，以 $\\textit{str}_1[i:n]$ 和 $\\textit{str}_2[j:m]$ 作为子序列的最短字符串的开头字符为 $\\textit{str}_1[i]$ 一定是最优的：\n\n$$\\textit{dp}[i][j] = \\textit{dp}[i + 1][j + 1] + 1$$\n\n2. 否则当 $\\textit{str}_1[i] \\ne \\textit{str}_2[j]$ 时，以 $\\textit{str}_1[i:n]$ 和 $\\textit{str}_2[j:m]$ 作为子序列的最短字符串的开头字符只能为 $\\textit{str}_1[i]$ 或者 $\\textit{str}_2[j]$：\n\n$$\\textit{dp}[i][j] = \\min\\{\\textit{dp}[i + 1][j], \\textit{dp}[i][j + 1]\\} + 1$$\n\n上文讨论的是建立在 $i < n$ 和 $j < m$ 的前提上的，我们还需要考虑动态规划的边界条件，当 $i = n$ 或 $j = m$ 时，此时其中一个字符串为空串，同时满足以两字符串作为子序列的最短字符串长度为另一个字符串的长度。因此我们就可以写出动态规划的边界条件：\n\n$$\n\\textit{dp}[i][j] = \\begin{cases}\nm - j, & i = n \\And j < m \\\\\nn - i, & j = m \\And i < n \\\\\n0, & i = n \\And j = m \\\\\n\\end{cases}\n$$\n\n可以看到每一个区间上的求解都与其子区间的求解有关，所以我们可以采用「自底向上」的编码方式来实现求解过程。求解完毕后，此时 $\\textit{dp}[0][0]$ 即为此时题目中满足同时以 $\\textit{str}_1$ 和 $\\textit{str}_2$ 作为子序列的最短字符串长度，然后我们可以通过双指针和通过动态规划状态来从前往后构造出具体方案。我们用指针 $t_1 = 0$ 来指向 $\\textit{str}_1$ 的头部，用 $t_2 = 0$ 来指向 $\\textit{str}_2$ 的头部，并根据 $\\textit{dp}[i][j]$ 来从前往后构造出具体字符串方案：\n\n1. 若 $t_1$ 到达 $\\textit{str}_1$ 尾部（$t_1 = n$）或者 $t_2$ 到达 $\\textit{str}_2$ 尾部（$t_2 = m$），将对应的剩下的字符加到结果字符串后面。\n2. 否则：\n   - 若 $\\textit{str}_1[t_1] = \\textit{str}_2[t_2]$，则此时结果字符串最后添加 $\\textit{str}_1[t_1]$ 为最优条件，然后 $t_1$ 和 $t_2$ 指针分别往后移动一单位。\n   - 否则若当 \n    $$\n    \\textit{dp}[t_1 + 1][t_2] = \\textit{dp}[t_1][t_2] - 1 \\tag{1}\n    $$\n    向结果字符串中添加 $\\textit{str}_1[t_1]$，然后 $t_1$ 指针往后移动一单位。若当\n    $$\n    \\textit{dp}[t_1][t_2 + 1] = \\textit{dp}[t_1][t_2] - 1 \\tag{2}\n    $$\n    则向结果字符串中添加 $\\textit{str}_2[t_2]$，然后 $t_2$ 指针往后移动一单位。由于我们只需要返回任一符合条件的结果字符串，所以若条件 $(1)(2)$ 都满足我们只需要取其中一种情况即可。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    string shortestCommonSupersequence(string str1, string str2) {\n        int n = str1.size(), m = str2.size();\n        vector<vector<int>> dp(n + 1, vector<int>(m + 1));\n        for (int i = 0; i < n; ++i) {\n            dp[i][m] = n - i;\n        }\n        for (int i = 0; i < m; ++i) {\n            dp[n][i] = m - i;\n        }\n        for (int i = n - 1; i >= 0; --i) {\n            for (int j = m - 1; j >= 0; --j) {\n                if (str1[i] == str2[j]) {\n                    dp[i][j] = dp[i + 1][j + 1] + 1;\n                } else {\n                    dp[i][j] = min(dp[i + 1][j], dp[i][j + 1]) + 1;\n                }\n            }\n        }\n        string res;\n        int t1 = 0, t2 = 0;\n        while (t1 < n && t2 < m) {\n            if (str1[t1] == str2[t2]) {\n                res += str1[t1];\n                ++t1;\n                ++t2;\n            } else if (dp[t1 + 1][t2] == dp[t1][t2] - 1) {\n                res += str1[t1];\n                ++t1;\n            } else if (dp[t1][t2 + 1] == dp[t1][t2] - 1) {\n                res += str2[t2];\n                ++t2;\n            }\n        }\n        if (t1 < n) {\n            res += str1.substr(t1);\n        }\n        else if (t2 < m) {\n            res += str2.substr(t2);\n        }\n        return res;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public String shortestCommonSupersequence(String str1, String str2) {\n        int n = str1.length(), m = str2.length();\n        int[][] dp = new int[n + 1][m + 1];\n        for (int i = 0; i < n; ++i) {\n            dp[i][m] = n - i;\n        }\n        for (int i = 0; i < m; ++i) {\n            dp[n][i] = m - i;\n        }\n        for (int i = n - 1; i >= 0; --i) {\n            for (int j = m - 1; j >= 0; --j) {\n                if (str1.charAt(i) == str2.charAt(j)) {\n                    dp[i][j] = dp[i + 1][j + 1] + 1;\n                } else {\n                    dp[i][j] = Math.min(dp[i + 1][j], dp[i][j + 1]) + 1;\n                }\n            }\n        }\n        StringBuilder res = new StringBuilder();\n        int t1 = 0, t2 = 0;\n        while (t1 < n && t2 < m) {\n            if (str1.charAt(t1) == str2.charAt(t2)) {\n                res.append(str1.charAt(t1));\n                ++t1;\n                ++t2;\n            } else if (dp[t1 + 1][t2] == dp[t1][t2] - 1) {\n                res.append(str1.charAt(t1));\n                ++t1;\n            } else if (dp[t1][t2 + 1] == dp[t1][t2] - 1) {\n                res.append(str2.charAt(t2));\n                ++t2;\n            }\n        }\n        if (t1 < n) {\n            res.append(str1.substring(t1));\n        } else if (t2 < m) {\n            res.append(str2.substring(t2));\n        }\n        return res.toString();\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public string ShortestCommonSupersequence(string str1, string str2) {\n        int n = str1.Length, m = str2.Length;\n        int[][] dp = new int[n + 1][];\n        for (int i = 0; i <= n; ++i) {\n            dp[i] = new int[m + 1];\n        }\n        for (int i = 0; i < n; ++i) {\n            dp[i][m] = n - i;\n        }\n        for (int i = 0; i < m; ++i) {\n            dp[n][i] = m - i;\n        }\n        for (int i = n - 1; i >= 0; --i) {\n            for (int j = m - 1; j >= 0; --j) {\n                if (str1[i] == str2[j]) {\n                    dp[i][j] = dp[i + 1][j + 1] + 1;\n                } else {\n                    dp[i][j] = Math.Min(dp[i + 1][j], dp[i][j + 1]) + 1;\n                }\n            }\n        }\n        StringBuilder res = new StringBuilder();\n        int t1 = 0, t2 = 0;\n        while (t1 < n && t2 < m) {\n            if (str1[t1] == str2[t2]) {\n                res.Append(str1[t1]);\n                ++t1;\n                ++t2;\n            } else if (dp[t1 + 1][t2] == dp[t1][t2] - 1) {\n                res.Append(str1[t1]);\n                ++t1;\n            } else if (dp[t1][t2 + 1] == dp[t1][t2] - 1) {\n                res.Append(str2[t2]);\n                ++t2;\n            }\n        }\n        if (t1 < n) {\n            res.Append(str1.Substring(t1));\n        } else if (t2 < m) {\n            res.Append(str2.Substring(t2));\n        }\n        return res.ToString();\n    }\n}\n```\n\n```C [sol1-C]\n#define MIN(a, b) ((a) < (b) ? (a) : (b))\n\nchar * shortestCommonSupersequence(char * str1, char * str2) {\n    int n = strlen(str1), m = strlen(str2);\n    int dp[n + 1][m + 1];\n    memset(dp, 0, sizeof(dp));\n    for (int i = 0; i < n; ++i) {\n        dp[i][m] = n - i;\n    }\n    for (int i = 0; i < m; ++i) {\n        dp[n][i] = m - i;\n    }\n    for (int i = n - 1; i >= 0; --i) {\n        for (int j = m - 1; j >= 0; --j) {\n            if (str1[i] == str2[j]) {\n                dp[i][j] = dp[i + 1][j + 1] + 1;\n            } else {\n                dp[i][j] = MIN(dp[i + 1][j], dp[i][j + 1]) + 1;\n            }\n        }\n    }\n    char *res = (char *)malloc(sizeof(char) * (m + n + 1));\n    int t1 = 0, t2 = 0;\n    int pos = 0;\n    while (t1 < n && t2 < m) {\n        if (str1[t1] == str2[t2]) {\n            res[pos++] = str1[t1];\n            ++t1;\n            ++t2;\n        } else if (dp[t1 + 1][t2] == dp[t1][t2] - 1) {\n            res[pos++] = str1[t1];\n            ++t1;\n        } else if (dp[t1][t2 + 1] == dp[t1][t2] - 1) {\n            res[pos++] = str2[t2];\n            ++t2;\n        }\n    }\n    if (t1 < n) {\n        sprintf(res + pos, \"%s\", str1 + t1);\n    } else if (t2 < m) {\n        sprintf(res + pos, \"%s\", str2 + t2);\n    } else {\n        res[pos] = '\\0';\n    }\n    return res;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar shortestCommonSupersequence = function(str1, str2) {\n    const n = str1.length, m = str2.length;\n    const dp = new Array(n + 1).fill(0).map(() => new Array(m + 1).fill(0));\n    for (let i = 0; i < n; ++i) {\n        dp[i][m] = n - i;\n    }\n    for (let i = 0; i < m; ++i) {\n        dp[n][i] = m - i;\n    }\n    for (let i = n - 1; i >= 0; --i) {\n        for (let j = m - 1; j >= 0; --j) {\n            if (str1[i] == str2[j]) {\n                dp[i][j] = dp[i + 1][j + 1] + 1;\n            } else {\n                dp[i][j] = Math.min(dp[i + 1][j], dp[i][j + 1]) + 1;\n            }\n        }\n    }\n    let res = '';\n    let t1 = 0, t2 = 0;\n    while (t1 < n && t2 < m) {\n        if (str1[t1] === str2[t2]) {\n            res += str1[t1];\n            ++t1;\n            ++t2;\n        } else if (dp[t1 + 1][t2] === dp[t1][t2] - 1) {\n            res += str1[t1];\n            ++t1;\n        } else if (dp[t1][t2 + 1] === dp[t1][t2] - 1) {\n            res += str2[t2];\n            ++t2;\n        }\n    }\n    if (t1 < n) {\n        res += str1.slice(t1);\n    } else if (t2 < m) {\n        res += str2.slice(t2);\n    }\n    return res;\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\times m)$。其中预处理动态规划求解的复杂度为 $O(n \\times m)$，构造具体字符串方案的复杂度为 $O(n + m)$，其中 $n$ 为字符串 $\\textit{str}_1$ 的长度，$m$ 为字符串 $\\textit{str}_2$ 的长度。\n- 空间复杂度：$O(n \\times m)$，其中 $n$ 为字符串 $\\textit{str}_1$ 的长度，$m$ 为字符串 $\\textit{str}_2$ 的长度。空间复杂度主要取决于动态规划模型中状态的总数。",
+            "slateValue": "",
+            "slug": "zui-duan-gong-gong-chao-xu-lie-by-leetco-c1tu",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "X9mPaF",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 32,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-03-27T10:55:41.777700+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 思路与算法 首先题目给出两个字符串 $\\textit{str}_1$ 和 $\\textit{str}_2$，我们需要返回任意一个满足同时以 $\\textit{str}_1$ 和 $\\textit{str}_2$ 作为子序列的最短字符串。我们设 $\\textit{str}_1$ 的长度为 $n$，$\\t",
+            "topic": {
+                "id": 2193928,
+                "subscribed": false,
+                "commentCount": 26,
+                "viewCount": 1400,
+                "post": {
+                    "id": 4165047,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 41,
+            "isEditorsPick": false,
+            "hitCount": 17917,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "shortest-common-supersequence",
+                "questionFrontendId": "1092"
+            },
+            "next": {
+                "slug": "cong-di-gui-dao-di-tui-jiao-ni-yi-bu-bu-auy8z",
+                "title": "从递归到递推，教你一步步思考动态规划！（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

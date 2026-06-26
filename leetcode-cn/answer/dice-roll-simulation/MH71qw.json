@@ -1,0 +1,118 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "MH71qw",
+            "title": "掷骰子模拟",
+            "content": "#### 方法一：动态规划\n\n**思路与算法**\n\n为了方便编写程序，我们重新定义骰子模拟器每次投掷生成的随机数为 $0 \\sim 5$，且连续掷出数字 $i$ 的次数不能超过 $\\textit{rollMax}[i]$，其中 $i \\in [0, 5]$。\n\n定义状态 $d[i][j][k]$ 表示已经完成了 $i$ 次掷骰子，第 $i$ 次掷的是 $j$，并且已经连续掷了 $k$ 次 $j$ 的合法序列数。\n\n初始状态从 $i=1$ 开始，对于所有的 $j \\in [0, 5]$，令 $d[1][j][1] = 1$。\n\n状态转移时，我们首先枚举表示上一次投掷的状态 $d[i-1][j][k]$，然后再枚举当前这一次投掷生成的随机数 $p$，根据 $p$ 是否等于 $j$ 来分情况转移：\n\n- 若 $p \\neq j$，则令 $d[i][p][1]$ 加上 $d[i - 1][j][k]$。\n- 若 $p = j$，并且 $k + 1 \\le \\textit{rollMax}[j]$，则令 $d[i][p][k + 1]$ 加上 $d[i - 1][j][k]$。\n\n最终，我们要求的答案是：\n\n$$\\sum_{j=0}^{5} \\sum_{k=1}^{\\textit{rollMax}[j]} d[n][j][k]$$\n\n**空间优化**\n\n注意到状态转移过程中，$d[i]$ 这一层状态仅依赖 $d[i - 1]$ 的状态，所以我们可以将 $n$ 维状态表示压缩为 $2$ 维，进一步优化空间。\n\n具体的，我们令 $t = i ~\\&~ 1$（其中 $\\&$ 表示按位与运算），则 $d[t][j][k]$ 表示原 $d[i][j][k]$ 状态， $d[t \\oplus 1][j][k]$ 表示原 $d[i - 1][j][k]$ 状态（其中 $\\oplus$ 表示按位异或运算）。每次转移时，从 $t \\oplus 1$ 向 $t$ 进行转移，注意转移之前需要将 $d[t]$ 所有内容重置为 $0$。\n\n**代码**\n\n未使用空间优化的代码如下：\n\n```C++ [sol1_1-C++]\nclass Solution {\npublic:\n    static constexpr int mod = 1E9 + 7;\n    int dieSimulator(int n, vector<int>& rollMax) {\n        vector d(n + 1, vector(6, vector<int>(16)));\n        for (int j = 0; j < 6; j++) {\n            d[1][j][1] = 1;\n        }\n        for (int i = 2; i <= n; i++) {\n            for (int j = 0; j < 6; j++) {\n                for (int k = 1; k <= rollMax[j]; k++) {\n                    for (int p = 0; p < 6; p++) {\n                        if (p != j) {\n                            d[i][p][1] = (d[i][p][1] + d[i - 1][j][k]) % mod;\n                        } else if (k + 1 <= rollMax[j]) {\n                            d[i][p][k + 1] = (d[i][p][k + 1] + d[i - 1][j][k]) % mod;\n                        }\n                    }\n                }\n            }\n        }\n        \n        int res = 0;\n        for (int j = 0; j < 6; j++) {\n            for (int k = 1; k <= rollMax[j]; k++) {\n                res = (res + d[n][j][k]) % mod;\n            }\n        }\n        return res;\n    }\n};\n```\n\n```Java [sol1_1-Java]\nclass Solution {\n    static final int MOD = 1000000007;\n\n    public int dieSimulator(int n, int[] rollMax) {\n        int[][][] d = new int[n + 1][6][16];\n        for (int j = 0; j < 6; j++) {\n            d[1][j][1] = 1;\n        }\n        for (int i = 2; i <= n; i++) {\n            for (int j = 0; j < 6; j++) {\n                for (int k = 1; k <= rollMax[j]; k++) {\n                    for (int p = 0; p < 6; p++) {\n                        if (p != j) {\n                            d[i][p][1] = (d[i][p][1] + d[i - 1][j][k]) % MOD;\n                        } else if (k + 1 <= rollMax[j]) {\n                            d[i][p][k + 1] = (d[i][p][k + 1] + d[i - 1][j][k]) % MOD;\n                        }\n                    }\n                }\n            }\n        }\n        \n        int res = 0;\n        for (int j = 0; j < 6; j++) {\n            for (int k = 1; k <= rollMax[j]; k++) {\n                res = (res + d[n][j][k]) % MOD;\n            }\n        }\n        return res;\n    }\n}\n```\n\n```C# [sol1_1-C#]\npublic class Solution {\n    const int MOD = 1000000007;\n\n    public int DieSimulator(int n, int[] rollMax) {\n        int[][][] d = new int[n + 1][][];\n        for (int i = 0; i <= n; i++) {\n            d[i] = new int[6][];\n            for (int j = 0; j < 6; j++) {\n                d[i][j] = new int[16];\n            }\n        }\n        for (int j = 0; j < 6; j++) {\n            d[1][j][1] = 1;\n        }\n        for (int i = 2; i <= n; i++) {\n            for (int j = 0; j < 6; j++) {\n                for (int k = 1; k <= rollMax[j]; k++) {\n                    for (int p = 0; p < 6; p++) {\n                        if (p != j) {\n                            d[i][p][1] = (d[i][p][1] + d[i - 1][j][k]) % MOD;\n                        } else if (k + 1 <= rollMax[j]) {\n                            d[i][p][k + 1] = (d[i][p][k + 1] + d[i - 1][j][k]) % MOD;\n                        }\n                    }\n                }\n            }\n        }\n        \n        int res = 0;\n        for (int j = 0; j < 6; j++) {\n            for (int k = 1; k <= rollMax[j]; k++) {\n                res = (res + d[n][j][k]) % MOD;\n            }\n        }\n        return res;\n    }\n}\n```\n\n```C [sol1_1-C]\nconst int mod = 1E9 + 7;\n\nint dieSimulator(int n, int* rollMax, int rollMaxSize) {\n    int d[n + 1][6][16];\n    memset(d, 0, sizeof(d));\n    for (int j = 0; j < 6; j++) {\n        d[1][j][1] = 1;\n    }\n    for (int i = 2; i <= n; i++) {\n        for (int j = 0; j < 6; j++) {\n            for (int k = 1; k <= rollMax[j]; k++) {\n                for (int p = 0; p < 6; p++) {\n                    if (p != j) {\n                        d[i][p][1] = (d[i][p][1] + d[i - 1][j][k]) % mod;\n                    } else if (k + 1 <= rollMax[j]) {\n                        d[i][p][k + 1] = (d[i][p][k + 1] + d[i - 1][j][k]) % mod;\n                    }\n                }\n            }\n        }\n    }\n    \n    int res = 0;\n    for (int j = 0; j < 6; j++) {\n        for (int k = 1; k <= rollMax[j]; k++) {\n            res = (res + d[n][j][k]) % mod;\n        }\n    }\n    return res;\n}\n```\n\n```JavaScript [sol1_1-JavaScript]\nconst MOD = 1000000007;\nvar dieSimulator = function(n, rollMax) {\n    const d = new Array(n + 1).fill(0).map(() => new Array(6).fill(0).map(() => new Array(16).fill(0)));\n    for (let j = 0; j < 6; j++) {\n        d[1][j][1] = 1;\n    }\n    for (let i = 2; i <= n; i++) {\n        for (let j = 0; j < 6; j++) {\n            for (let k = 1; k <= rollMax[j]; k++) {\n                for (let p = 0; p < 6; p++) {\n                    if (p !== j) {\n                        d[i][p][1] = (d[i][p][1] + d[i - 1][j][k]) % MOD;\n                    } else if (k + 1 <= rollMax[j]) {\n                        d[i][p][k + 1] = (d[i][p][k + 1] + d[i - 1][j][k]) % MOD;\n                    }\n                }\n            }\n        }\n    }\n\n    let res = 0;\n    for (let j = 0; j < 6; j++) {\n        for (let k = 1; k <= rollMax[j]; k++) {\n            res = (res + d[n][j][k]) % MOD;\n        }\n    }\n    return res;\n};\n```\n\n使用空间优化的代码如下：\n\n```C++ [sol1_2-C++]\nclass Solution {\npublic:\n    static constexpr int mod = 1E9 + 7;\n    int dieSimulator(int n, vector<int>& rollMax) {\n        vector d(2, vector(6, vector<int>(16)));\n        for (int j = 0; j < 6; j++) {\n            d[1][j][1] = 1;\n        }\n        for (int i = 2; i <= n; i++) {\n            int t = i & 1;\n            for (int j = 0; j < 6; j++) {\n                fill(d[t][j].begin(), d[t][j].end(), 0);\n            }\n            for (int j = 0; j < 6; j++) {\n                for (int k = 1; k <= rollMax[j]; k++) {\n                    for (int p = 0; p < 6; p++) {\n                        if (p != j) {\n                            d[t][p][1] = (d[t][p][1] + d[t ^ 1][j][k]) % mod;\n                        } else if (k + 1 <= rollMax[j]) {\n                            d[t][p][k + 1] = (d[t][p][k + 1] + d[t ^ 1][j][k]) % mod;\n                        }\n                    }\n                }\n            }\n        }\n        \n        int res = 0;\n        for (int j = 0; j < 6; j++) {\n            for (int k = 1; k <= rollMax[j]; k++) {\n                res = (res + d[n & 1][j][k]) % mod;\n            }\n        }\n        return res;\n    }\n};\n```\n\n```Java [sol1_2-Java]\nclass Solution {\n    static final int MOD = 1000000007;\n\n    public int dieSimulator(int n, int[] rollMax) {\n        int[][][] d = new int[2][6][16];\n        for (int j = 0; j < 6; j++) {\n            d[1][j][1] = 1;\n        }\n        for (int i = 2; i <= n; i++) {\n            int t = i & 1;\n            for (int j = 0; j < 6; j++) {\n                Arrays.fill(d[t][j], 0);\n            }\n            for (int j = 0; j < 6; j++) {\n                for (int k = 1; k <= rollMax[j]; k++) {\n                    for (int p = 0; p < 6; p++) {\n                        if (p != j) {\n                            d[t][p][1] = (d[t][p][1] + d[t ^ 1][j][k]) % MOD;\n                        } else if (k + 1 <= rollMax[j]) {\n                            d[t][p][k + 1] = (d[t][p][k + 1] + d[t ^ 1][j][k]) % MOD;\n                        }\n                    }\n                }\n            }\n        }\n        \n        int res = 0;\n        for (int j = 0; j < 6; j++) {\n            for (int k = 1; k <= rollMax[j]; k++) {\n                res = (res + d[n & 1][j][k]) % MOD;\n            }\n        }\n        return res;\n    }\n}\n```\n\n```C# [sol1_2-C#]\npublic class Solution {\n    const int MOD = 1000000007;\n\n    public int DieSimulator(int n, int[] rollMax) {\n        int[][][] d = new int[2][][];\n        for (int i = 0; i < 2; i++) {\n            d[i] = new int[6][];\n            for (int j = 0; j < 6; j++) {\n                d[i][j] = new int[16];\n            }\n        }\n        for (int j = 0; j < 6; j++) {\n            d[1][j][1] = 1;\n        }\n        for (int i = 2; i <= n; i++) {\n            int t = i & 1;\n            for (int j = 0; j < 6; j++) {\n                Array.Fill(d[t][j], 0);\n            }\n            for (int j = 0; j < 6; j++) {\n                for (int k = 1; k <= rollMax[j]; k++) {\n                    for (int p = 0; p < 6; p++) {\n                        if (p != j) {\n                            d[t][p][1] = (d[t][p][1] + d[t ^ 1][j][k]) % MOD;\n                        } else if (k + 1 <= rollMax[j]) {\n                            d[t][p][k + 1] = (d[t][p][k + 1] + d[t ^ 1][j][k]) % MOD;\n                        }\n                    }\n                }\n            }\n        }\n        \n        int res = 0;\n        for (int j = 0; j < 6; j++) {\n            for (int k = 1; k <= rollMax[j]; k++) {\n                res = (res + d[n & 1][j][k]) % MOD;\n            }\n        }\n        return res;\n    }\n}\n```\n\n```C [sol1_2-C]\nconst int mod = 1E9 + 7;\n\nint dieSimulator(int n, int* rollMax, int rollMaxSize) {\n    int d[2][6][16];\n    memset(d, 0, sizeof(d));\n    for (int j = 0; j < 6; j++) {\n        d[1][j][1] = 1;\n    }\n    for (int i = 2; i <= n; i++) {\n        int t = i & 1;\n        for (int j = 0; j < 6; j++) {\n            memset(d[t][j], 0, sizeof(d[t][j]));\n        }\n        for (int j = 0; j < 6; j++) {\n            for (int k = 1; k <= rollMax[j]; k++) {\n                for (int p = 0; p < 6; p++) {\n                    if (p != j) {\n                        d[t][p][1] = (d[t][p][1] + d[t ^ 1][j][k]) % mod;\n                    } else if (k + 1 <= rollMax[j]) {\n                        d[t][p][k + 1] = (d[t][p][k + 1] + d[t ^ 1][j][k]) % mod;\n                    }\n                }\n            }\n        }\n    }\n    \n    int res = 0;\n    for (int j = 0; j < 6; j++) {\n        for (int k = 1; k <= rollMax[j]; k++) {\n            res = (res + d[n & 1][j][k]) % mod;\n        }\n    }\n    return res;\n}\n```\n\n```JavaScript [sol1_2-JavaScript]\nconst MOD = 1000000007;\nvar dieSimulator = function(n, rollMax) {\n    const d = new Array(n + 1).fill(0).map(() => new Array(6).fill(0).map(() => new Array(16).fill(0)));\n    for (let j = 0; j < 6; j++) {\n        d[1][j][1] = 1;\n    }\n    for (let i = 2; i <= n; i++) {\n        let t = i & 1;\n        for (let j = 0; j < 6; j++) {\n            d[t][j].fill(0);\n        }\n        for (let j = 0; j < 6; j++) {\n            for (let k = 1; k <= rollMax[j]; k++) {\n                for (let p = 0; p < 6; p++) {\n                    if (p !== j) {\n                        d[t][p][1] = (d[t][p][1] + d[t ^ 1][j][k]) % MOD;\n                    } else if (k + 1 <= rollMax[j]) {\n                        d[t][p][k + 1] = (d[t][p][k + 1] + d[t ^ 1][j][k]) % MOD;\n                    }\n                }\n            }\n        }\n    }\n\n    let res = 0;\n    for (let j = 0; j < 6; j++) {\n        for (let k = 1; k <= rollMax[j]; k++) {\n            res = (res + d[n & 1][j][k]) % MOD;\n        }\n    }\n    return res;\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(nm^2k)$，其中 $n$ 是掷骰子的次数，$m$ 是随机数的种类数，在本题中等于 $6$，$k$ 是 $\\textit{rollMax}$ 数组中的最大值。\n\n- 空间复杂度：$O(nmk)$。使用空间优化后的空间复杂度为 $O(mk)$。\n\n#### 方法二：状态表示优化\n\n**思路与算法**\n\n定义状态 $d[i][j]$ 表示已经完成了 $i$ 次掷骰子，且第 $i$ 次掷的是 $j$ 时的合法序列数。那么有以下状态转移方程：\n\n$$d[i][j] = \\sum_{t=1}^{\\textit{rollMax}[j]}\\sum_{\\substack{k = 0 \\\\ k != j}}^5 d[i-t][k]$$\n\n其具体含义是指，考虑从上一个不是 $j$ 的位置 $d[i - t]$ 来转移，可以覆盖到所有合法情况。此时，我们可以很容易的在 $O(nm^2k)$ 的时间复杂度内求出答案。\n\n若递推过程中顺便计算出每个 $\\sum\\limits_{k=0}^5d[i][k]$，则可以将时间复杂度加快到 $O(nmk)$。\n\n更进一步，我们发现在求解 $d[i][j]$ 和 $d[i - 1][j]$ 的过程中有很多重复运算：\n\n$$d[i][j] = \\sum_{\\substack{k = 0 \\\\ k != j}}^5(d[i - 1][k] + d[i - 2][k] + \\cdots + d[i - \\textit{rollMax}[j]][k])$$\n\n$$d[i - 1][j] = \\sum_{\\substack{k = 0 \\\\ k != j}}^5(d[i - 2][k] + d[i - 3][k] + \\cdots + d[i - \\textit{rollMax}[j] - 1][k]$$\n\n因此，我们可以直接从 $d[i - 1][j]$ 递推到 $d[i][j]$：\n\n$$d[i][j] = \\sum_{\\substack{k = 0}}^5d[i - 1][k] - \\sum_{\\substack{k = 0 \\\\ k != j}}^5d[i - \\textit{rollMax}[j] - 1][k]$$\n\n这个过程可以简单理解为求解长度是 $\\textit{rollMax}[j]$ 的一段区间和。过程中有三个边界情况需要处理：\n\n1. 若 $i - \\textit{rollMax}[j] - 1 < 0$，我们取 $0$ 作为转移点。\n2. 设 $\\textit{sum}[i] = \\sum\\limits_{j=0}^5 d[i][j]$，特殊的，我们令 $\\textit{sum}[0] = 1$。\n3. 若 $i \\le \\textit{rollMax}[j]$，我们需要额外给 $d[i][j]$ 加 $1$。\n\n**代码**\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    static constexpr int mod = 1E9 + 7;\n    int dieSimulator(int n, vector<int>& rollMax) {\n        vector d(n + 1, vector<int>(6, 0));\n        vector<int> sum(n + 1, 0);\n        sum[0] = 1;\n        for (int i = 1; i <= n; i++) {\n            for (int j = 0; j < 6; j++) {\n                int pos = max(i - rollMax[j] - 1, 0);\n                int sub = ((sum[pos] - d[pos][j]) % mod + mod) % mod;\n                d[i][j] = ((sum[i - 1] - sub) % mod + mod) % mod;\n                if (i <= rollMax[j]) {\n                    d[i][j] = (d[i][j] + 1) % mod;\n                }\n                sum[i] = (sum[i] + d[i][j]) % mod;\n            }\n        }\n        return sum[n];\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    static final int MOD = 1000000007;\n\n    public int dieSimulator(int n, int[] rollMax) {\n        int[][] d = new int[n + 1][6];\n        int[] sum = new int[n + 1];\n        sum[0] = 1;\n        for (int i = 1; i <= n; i++) {\n            for (int j = 0; j < 6; j++) {\n                int pos = Math.max(i - rollMax[j] - 1, 0);\n                int sub = ((sum[pos] - d[pos][j]) % MOD + MOD) % MOD;\n                d[i][j] = ((sum[i - 1] - sub) % MOD + MOD) % MOD;\n                if (i <= rollMax[j]) {\n                    d[i][j] = (d[i][j] + 1) % MOD;\n                }\n                sum[i] = (sum[i] + d[i][j]) % MOD;\n            }\n        }\n        return sum[n];\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    const int MOD = 1000000007;\n\n    public int DieSimulator(int n, int[] rollMax) {\n        int[][] d = new int[n + 1][];\n        for (int i = 0; i <= n; i++) {\n            d[i] = new int[6];\n        }\n        int[] sum = new int[n + 1];\n        sum[0] = 1;\n        for (int i = 1; i <= n; i++) {\n            for (int j = 0; j < 6; j++) {\n                int pos = Math.Max(i - rollMax[j] - 1, 0);\n                int sub = ((sum[pos] - d[pos][j]) % MOD + MOD) % MOD;\n                d[i][j] = ((sum[i - 1] - sub) % MOD + MOD) % MOD;\n                if (i <= rollMax[j]) {\n                    d[i][j] = (d[i][j] + 1) % MOD;\n                }\n                sum[i] = (sum[i] + d[i][j]) % MOD;\n            }\n        }\n        return sum[n];\n    }\n}\n```\n\n```C [sol2-C]\n#define MAX(a, b) ((a) > (b) ? (a) : (b))\n\nconst int mod = 1000000007;\n\nint dieSimulator(int n, int* rollMax, int rollMaxSize){\n    int d[n + 1][6];\n    int sum[n + 1];\n    memset(d, 0, sizeof(d));\n    memset(sum, 0, sizeof(sum));\n    sum[0] = 1;\n    for (int i = 1; i <= n; i++) {\n        for (int j = 0; j < 6; j++) {\n            int pos = MAX(i - rollMax[j] - 1, 0);\n            int sub = ((sum[pos] - d[pos][j]) % mod + mod) % mod;\n            d[i][j] = ((sum[i - 1] - sub) % mod + mod) % mod;\n            if (i <= rollMax[j]) {\n                d[i][j] = (d[i][j] + 1) % mod;\n            }\n            sum[i] = (sum[i] + d[i][j]) % mod;\n        }\n    }\n    return sum[n];\n}\n```\n\n```JavaScript [sol2-JavaScript]\nconst MOD = 1000000007;\nvar dieSimulator = function(n, rollMax) {\n    const d = new Array(n + 1).fill(0).map(() => new Array(6).fill(0));\n    const sum = new Array(n + 1).fill(0);\n    sum[0] = 1;\n    for (let i = 1; i <= n; i++) {\n        for (let j = 0; j < 6; j++) {\n            let pos = Math.max(i - rollMax[j] - 1, 0);\n            let sub = ((sum[pos] - d[pos][j]) % MOD + MOD) % MOD;\n            d[i][j] = ((sum[i - 1] - sub) % MOD + MOD) % MOD;\n            if (i <= rollMax[j]) {\n                d[i][j] = (d[i][j] + 1) % MOD;\n            }\n            sum[i] = (sum[i] + d[i][j]) % MOD;\n        }\n    }\n    return sum[n];\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(nm)$，其中 $n$ 是掷骰子的次数，$m$ 是随机数的种类数，在本题中等于 $6$。\n\n- 空间复杂度：$O(nm)$。",
+            "slateValue": "",
+            "slug": "zhi-tou-zi-mo-ni-by-leetcode-solution-yg0s",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "MH71qw",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 34,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-02-09T09:35:25.853764+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 思路与算法 为了方便编写程序，我们重新定义骰子模拟器每次投掷生成的随机数为 $0 \\sim 5$，且连续掷出数字 $i$ 的次数不能超过 $\\textit{rollMax}[i]$，其中 $i \\in [0, 5]$。 定义状态 $d[i][j][k]$ 表示已经完成了 $i$ 次掷骰子，第 $i$ ",
+            "topic": {
+                "id": 2102282,
+                "subscribed": false,
+                "commentCount": 55,
+                "viewCount": 1117,
+                "post": {
+                    "id": 4017518,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 47,
+            "isEditorsPick": false,
+            "hitCount": 16868,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "dice-roll-simulation",
+                "questionFrontendId": "1223"
+            },
+            "next": {
+                "slug": "jiao-ni-yi-bu-bu-si-kao-dong-tai-gui-hua-sje6",
+                "title": "教你一步步思考动态规划！（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

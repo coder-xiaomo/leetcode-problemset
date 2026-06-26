@@ -1,0 +1,104 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "ELL8hy",
+            "title": "🎦 K 个不同整数的子数组",
+            "content": "### 📺 视频讲解 \n\n>力扣君温馨小贴士：觉得视频时间长的扣友，可以在视频右下角的「设置」按钮处选择 1.5 倍速或者 2 倍速观看。\n\n![992. K 个不同整数的子数组.mp4](21472c3c-27ea-4ecf-9093-862f9b2f8e8b)\n\n#### 最初直觉使用双指针算法遇到的问题\n\n对于一个固定的左边界来说，满足「恰好存在 `K` 个不同整数的子区间」的右边界 **不唯一**，且形成区间。\n\n示例 1：左边界固定的时候，恰好存在 $2$ 个不同整数的子区间为 $[1,2],[1,2,1],[1,2,1,2]$ ，总数为 $3$。其值为下标 $3 - 1 + 1$，即区间 $[1..3]$ 的长度。\n\n![image.png](https://pic.leetcode.cn/1612775858-VWbhYR-image.png){:width=500}\n\n须要找到左边界固定的情况下，满足「恰好存在 `K` 个不同整数的子区间」最小右边界和最大右边界。对比以前我们做过的，使用双指针解决的问题的问法基本都会出现「最小」、「最大」这样的字眼。\n\n+ [76. 最小覆盖子串](/problems/minimum-window-substring/)；\n+ [209. 长度最小的子数组](/problems/minimum-size-subarray-sum/)；\n+ [159. 至多包含两个不同字符的最长子串](/problems/longest-substring-with-at-most-two-distinct-characters/)；\n+ [424. 替换后的最长重复字符](/problems/longest-repeating-character-replacement/)。\n\n#### 把原问题转换成为容易求解的问题\n\n> 友情提示：这里把 「恰好」 转换成为 「最多」须要一点求解「双指针（滑动窗口）」问题的经验。建立在熟练掌握这一类问题求解思路的基础上。\n\n把「**恰好**」改成「**最多**」就可以使用双指针一前一后交替向右的方法完成，这是因为 **对于每一个确定的左边界，最多包含 $K$ 种不同整数的右边界是唯一确定的**，并且在左边界向右移动的过程中，右边界或者在原来的地方，或者在原来地方的右边。\n\n\n\n\n而「最多存在 $K$ 个不同整数的子区间的个数」与「恰好存在 `K` 个不同整数的子区间的个数」的差恰好等于「最多存在 $K - 1$ 个不同整数的子区间的个数」。\n\n![image.png](https://pic.leetcode.cn/1612776085-sZFGqE-image.png)\n\n因为原问题就转换成为求解「最多存在 $K$ 个不同整数的子区间的个数」与 「最多存在 $K - 1$ 个不同整数的子区间的个数」，它们其实是一个问题。\n\n\n### 方法：双指针（滑动窗口）\n\n实现函数 `atMostWithKDistinct(A, K)` ，表示「最多存在 $K$ 个不同整数的子区间的个数」。于是 `atMostWithKDistinct(A, K) - atMostWithKDistinct(A, K - 1)` 即为所求。\n\n**参考代码**：\n\n```Java []\npublic class Solution {\n\n    public int subarraysWithKDistinct(int[] A, int K) {\n        return atMostKDistinct(A, K) - atMostKDistinct(A, K - 1);\n    }\n\n    /**\n     * @param A\n     * @param K\n     * @return 最多包含 K 个不同整数的子区间的个数\n     */\n    private int atMostKDistinct(int[] A, int K) {\n        int len = A.length;\n        int[] freq = new int[len + 1];\n\n        int left = 0;\n        int right = 0;\n        // [left, right) 里不同整数的个数\n        int count = 0;\n        int res = 0;\n        // [left, right) 包含不同整数的个数小于等于 K\n        while (right < len) {\n            if (freq[A[right]] == 0) {\n                count++;\n            }\n            freq[A[right]]++;\n            right++;\n\n            while (count > K) {\n                freq[A[left]]--;\n                if (freq[A[left]] == 0) {\n                    count--;\n                }\n                left++;\n            }\n            // [left, right) 区间的长度就是对结果的贡献\n            res += right - left;\n        }\n        return res;\n    }\n}\n```\n\n**说明**： `res += right - left;` 这行代码的意思：\n\n用具体的例子理解：最多包含 3 种不同整数的子区间  `[1, 3, 2, 3]` （双指针算法是在左边界固定的前提下，让右边界走到最右边），当前可以确定 `1` 开始的满足最多包含 3 种不同整数的子区间有 `[1]`、`[1, 3]`、`[1, 3, 2]`、`[1, 3, 2, 3]`。\n\n**所有的** 左边界固定前提下，根据右边界最右的下标，计算出来的子区间的个数就是整个函数要返回的值。用右边界固定的前提下，左边界最左边的下标去计算也是完全可以的。\n\n\n**复杂度分析**：\n\n+ 时间复杂度：$O(N)$，这里 $N$ 是输入数组的长度；\n+ 空间复杂度：$O(N)$，使用了常数个变量、频数数组的长度为 $N + 1$。\n\n---\n\n### 总结\n\n使用双指针（滑动窗口、两个变量一前一后交替向后移动）解决的问题通常都和这个问题要问的结果有关。以我们在题解中给出的 5 道经典问题为例：\n\n+ [3. 无重复字符的最长子串](/problems/longest-substring-without-repeating-characters/)：没有重复的子串，一定只会问「最长」，因为最短的没有重复字符的子串是只有一个字符的子串； \n+ [76. 最小覆盖子串](/problems/minimum-window-substring/)：求一个字符串的子串覆盖另一个字符串的长度一定是问「最小」，而不会问「最大」，因为最大一定是整个字符串；\n+ [209. 长度最小的子数组](/problems/minimum-size-subarray-sum/)：所有元素都是正整数，且子区间里所有元素的和大于等于定值 `s` 的子区间一定是问长度「最小」，而不会问「最多」，因为最多也一定是整个数组的长度；\n+ [159. 至多包含两个不同字符的最长子串](/problems/longest-substring-with-at-most-two-distinct-characters/)：最多包含两个不同字符一定是问「最长」才有意义，因为长度更长的子串可能会包含更多的字符；\n+ [424. 替换后的最长重复字符](/problems/longest-repeating-character-replacement/)：替换的次数 `k` 是定值，替换以后字符全部相等的子串也一定只会问「最长」。\n\n---\n\n### 练习\n\n**提示**：在做这些问题的时候，**一定要思考清楚为什么可以采用双指针（滑动窗口）算法解决如上的问题**，为什么 **左、右指针向右移动的时候可以不回头**。如果不太熟悉这一类问题思路的朋友，一定要想清楚算法为什么有效，比知道这些问题可以用双指针（滑动窗口）算法解决重要得多。\n\n思路一般是这样：固定左边界的前提下，如果较短的区间性质是什么样的，较长的区间的性质其实我们也可以推测出来。在右边界固定的前提下，我们须要将左边界右移，如此反复。这样的算法只遍历了数组两次，不用枚举所有可能的区间，把 $O(N^2)$ 的时间复杂度降到了 $O(N)$。\n\n+ [713. 乘积小于 K 的子数组](/problems/subarray-product-less-than-k/)；\n+ [904. 水果成篮](/problems/fruit-into-baskets/) ；\n+ [795. 区间子数组个数](/problems/number-of-subarrays-with-bounded-maximum/)；\n+ [1358. 包含所有三种字符的子字符串数目](/problems/number-of-substrings-containing-all-three-characters/)；\n+ [467. 环绕字符串中唯一的子字符串](/problems/unique-substrings-in-wraparound-string/)；\n+ [340. 至多包含 K 个不同字符的最长子串](/problems/longest-substring-with-at-most-k-distinct-characters/)。\n",
+            "slateValue": "",
+            "slug": "k-ge-bu-tong-zheng-shu-de-zi-shu-zu-by-l-ud34",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "ELL8hy",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 164,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 11,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 7,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Two Pointers",
+                    "nameTranslated": "双指针",
+                    "slug": "two-pointers",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Sliding Window",
+                    "nameTranslated": "滑动窗口",
+                    "slug": "sliding-window",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2021-02-08T10:38:18.980918+00:00",
+            "thumbnail": "https://pic.leetcode-cn.com/1612775858-VWbhYR-image.png",
+            "author": {
+                "username": "LeetCode",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/uploaded_files/2021/03/73c9f099-abbe-4d94-853f-f8abffd459cd/leetcode.png",
+                    "userSlug": "leetcode",
+                    "realName": "LeetCode",
+                    "reputation": 2117
+                }
+            },
+            "summary": "📺 视频讲解\n\n力扣君温馨小贴士：觉得视频时间长的扣友，可以在视频右下角的「设置」按钮处选择 1.5 倍速或者 2 倍速观看。\n\n 最初直觉使用双指针算法遇到的问题\n对于一个固定的左边界来说，满足「恰好存在 K 个不同整数的子区间」的右边界 不唯一，且形成区间。\n示例 1：左边界固定的时候，恰好存在 2 个不同整数的",
+            "topic": {
+                "id": 597667,
+                "subscribed": false,
+                "commentCount": 240,
+                "viewCount": 22940,
+                "post": {
+                    "id": 1378306,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 268,
+            "isEditorsPick": false,
+            "hitCount": 46856,
+            "videosInfo": [
+                {
+                    "videoId": "881171a6349544108749691496cb9eec",
+                    "coverUrl": "https://video.leetcode.cn/image/cover/E469BFFB14604843B78B81709B0FDAAE-6-2.png?auth_key=1782487469-4ea30538fa0241f7b54dc2fe742d9a45-0-2ba0903b50e03246be473af793a740bf",
+                    "duration": 582.4854
+                }
+            ],
+            "question": {
+                "titleSlug": "subarrays-with-k-different-integers",
+                "questionFrontendId": "992"
+            },
+            "next": {
+                "slug": "k-ge-bu-tong-zheng-shu-de-zi-shu-zu-by-l-9ylo",
+                "title": "K 个不同整数的子数组"
+            },
+            "prev": null
+        }
+    }
+}

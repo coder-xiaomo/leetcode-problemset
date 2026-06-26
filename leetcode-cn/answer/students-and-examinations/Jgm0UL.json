@@ -1,0 +1,96 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "Jgm0UL",
+            "title": "学生们参加各科测试的次数",
+            "content": "[TOC]\n\n## 解决方案\n\n---\n\n### 方法：Group by 与 Cross join\n\n#### Pandas\n\n此问题涉及多个 DataFrame，因此让我们将其分解为子问题，以使其更直观、更易于理解。\n\n首先，这道题要求我们找出每个学生参加每门课的考试次数。我们可以通过对每个 `(student_id,subject_name)` 对使用 `groupby` 方法，然后计算每个组的出现次数来实现这一点。请注意，我们在 `groupby` 中添加了两列。根据要求，我们将该列的统计命名为 `attended_exam`。\n\n```Python\ngrouped = examinations.groupby(['student_id', 'subject_name']).size().reset_index(name='attended_exams')\n```\n\n生成的 DataFrame `grouped` 看起来像这样：\n\n|   student_id  | subject_name | attended_exams |\n|:------------:|:------------:|:-------------:|\n|      1       |    Math      |       3       |\n|      1       |   Physics    |       2       |\n|      1       | Programming  |       1       |\n|      2       |    Math      |       1       |\n|      2       | Programming  |       1       |\n|     13       |    Math      |       1       |\n|     13       |   Physics    |       1       |\n|     13       | Programming  |       1       |\n\n然而，这个 DataFrame 和预期的输出不同：\n\n- 它缺少 `student_name` 列。\n- 它只统计出现**至少一次**的 `(student_id，subject_name)` 的组合，但我们需要所有可能的组合。\n\n让我们把这个 DataFrame 放在一边，考虑一下如何获得所有的组合：`student` DataFrame 包含所有的 ID，而 `subjects` DataFrame 包含所有的主题名称。因此，要获得 `(student_id，subject_name)` 的所有组合，需要进行交叉联接。\n\n```Python\nall_id_subjects = pd.merge(students, subjects, how='cross')\n```\n\n生成的 DataFrame `all_id_subjects` 现在包括所有可能的组合，但它不包含有关考试次数的信息。\n\n| student_id | student_name | subject_name |\n|:----------:|:------------:|:------------:|\n|      1     |    Alice     |     Math     |\n|      1     |    Alice     |   Physics    |\n|      1     |    Alice     | Programming |\n|      2     |     Bob      |     Math     |\n|      2     |     Bob      |   Physics    |\n|      2     |     Bob      | Programming |\n|     13     |     John     |     Math     |\n|     13     |     John     |   Physics    |\n|     13     |     John     | Programming |\n|      6     |     Alex     |     Math     |\n|      6     |     Alex     |   Physics    |\n|      6     |     Alex     | Programming |\n\n当然，我们可以将 DataFrame `all_id_subjects` 与我们从第一步获得的 `grouped` 组合在一起，后者包含每个学生参加每门课程的考试次数。为此，我们可以在两个 DataFrame 上执行左连接，这将确保保留交叉连接中的 `student_id` 和 `subject_name` 的所有组合。\n如果 DataFrame `grouped` 中不存在组合(即，没有计算该特定组合的考试)，则 `attended_exam` 列在那一行将保存值 `NA` ，表示没有参加任何考试。\n\n```Python\nid_subjects_count = pd.merge(all_id_subjects, grouped, on=['student_id', 'subject_name'], how='left')\n```\n\n我们将获得如下的 DataFrame `id_subjects_count`：\n\n| student_id | student_name | subject_name | attended_exams |\n|:----------:|:------------:|:------------:|:--------------:|\n|      1     |    Alice     |     Math     |      3.0       |\n|      1     |    Alice     |   Physics    |      2.0       |\n|      1     |    Alice     | Programming |      1.0       |\n|      2     |     Bob      |     Math     |      1.0       |\n|      2     |     Bob      |   Physics    |      NaN       |\n|      2     |     Bob      | Programming |      1.0       |\n|     13     |     John     |     Math     |      1.0       |\n|     13     |     John     |   Physics    |      1.0       |\n|     13     |     John     | Programming |      1.0       |\n|      6     |     Alex     |     Math     |      NaN       |\n|      6     |     Alex     |   Physics    |      NaN       |\n|      6     |     Alex     | Programming |      NaN       |\n\n请注意，`attended_exams` 列的数据类型从整型变为浮点型，这通常是由于 Pandas `NaN` (不是数字)的性质造成的。`NaN` 是一种特殊的浮点类型，在 Pandas 中，如果整型列包含 `NaN` 值，则整列的数据类型将被推断为 float。这是因为 DataFrame 中的整型列不能包含 `NaN` 值，因此整列被转换为 float 数据类型以容纳 `NaN`。为了解决这个问题，我们可以首先将该列中的 `NaN` 值填充为 0 ，然后通过以下方式将整列的数据类型转换为整数：\n\n```\nid_subjects_count['attended_exams'] = id_subjects_count['attended_exams'].fillna(0).astype(int)\n```\n\n| student_id | student_name | subject_name | attended_exams |\n|------------|--------------|--------------|----------------|\n| 1          | Alice        | Math         | 3              |\n| 1          | Alice        | Physics      | 2              |\n| 1          | Alice        | Programming  | 1              |\n| 2          | Bob          | Math         | 1              |\n| 2          | Bob          | Physics      | 0              |\n| 2          | Bob          | Programming  | 1              |\n| 6          | Alex         | Math         | 0              |\n| 6          | Alex         | Physics      | 0              |\n| 6          | Alex         | Programming  | 0              |\n| 13         | John         | Math         | 1              |\n| 13         | John         | Physics      | 1              |\n| 13         | John         | Programming  | 1              |\n\n最后，我们需要对`id_subjects_count`按照`studend_id`和`subject_name`列进行升序排序，完整代码如下：\n\n```Python\nimport pandas as pd\n\ndef students_and_examinations(students: pd.DataFrame, subjects: pd.DataFrame, examinations: pd.DataFrame) -> pd.DataFrame:\n    # 按 id 和科目分组，并计算考试次数。\n    grouped = examinations.groupby(['student_id', 'subject_name']).size().reset_index(name='attended_exams')\n\n    # 获取 (id, subject) 的所有组合\n    all_id_subjects = pd.merge(students, subjects, how='cross')\n\n    # 左连接以保留所有组合。\n    id_subjects_count = pd.merge(all_id_subjects, grouped, on=['student_id', 'subject_name'], how='left')\n    \n    # 数据清理\n    id_subjects_count['attended_exams'] = id_subjects_count['attended_exams'].fillna(0).astype(int)\n    \n    # 根据'student_id'，'Subject_name'以升序对 DataFrame 进行排序。\n    id_subjects_count.sort_values(['student_id', 'subject_name'], inplace=True)\n\n    return id_subjects_count[['student_id', 'student_name', 'subject_name', 'attended_exams']]\n```\n\n#### MySQL\n\n我们通过一个子查询创建了表 `grouped`，它统计每个学生参加每个科目的考试次数。\n\n```sql\nSELECT \n    student_id, subject_name, COUNT(*) AS attended_exams\nFROM \n    Examinations\nGROUP BY \n    student_id, subject_name\n```\n\n| student_id | subject_name | attended_exams |\n|------------|--------------|----------------|\n| 1          | Math         | 3              |\n| 1          | Physics      | 2              |\n| 1          | Programming  | 1              |\n| 2          | Programming  | 1              |\n| 13         | Math         | 1              |\n| 13         | Programming  | 1              |\n| 13         | Physics      | 1              |\n| 2          | Math         | 1              |\n\n为了获得 `(student_id，subject_name)` 的所有组合，我们使用交叉联接将表 `Student` 中的每一行与表 `Subject` 中的每一行组合在一起，从而得到两个表中的 `student_id` 和 `subject_name` 的所有可能组合。\n\n```sql\nSELECT \n    *\nFROM\n    Students s\nCROSS JOIN\n    Subjects sub\n```\n\n| student_id | student_name | subject_name |\n|------------|--------------|--------------|\n| 1          | Alice        | Programming  |\n| 1          | Alice        | Physics      |\n| 1          | Alice        | Math         |\n| 2          | Bob          | Programming  |\n| 2          | Bob          | Physics      |\n| 2          | Bob          | Math         |\n| 13         | John         | Programming  |\n| 13         | John         | Physics      |\n| 13         | John         | Math         |\n| 6          | Alex         | Programming  |\n| 6          | Alex         | Physics      |\n| 6          | Alex         | Math         |\n\n接下来，我们对上面的表与表 `grouped` 执行左连接，使用 `(student_id，subject_name)` 对作为标识符来保留所有组合，同时合并两个表。类似地，在左连接之后， `grouped.attended_exams` 列可能有 `null` 值，我们使用 `IFNULL()` 函数将其替换为0。\n\n下面是完整代码：\n\n```sql\nSELECT \n    s.student_id, s.student_name, sub.subject_name, IFNULL(grouped.attended_exams, 0) AS attended_exams\nFROM \n    Students s\nCROSS JOIN \n    Subjects sub\nLEFT JOIN (\n    SELECT student_id, subject_name, COUNT(*) AS attended_exams\n    FROM Examinations\n    GROUP BY student_id, subject_name\n) grouped \nON s.student_id = grouped.student_id AND sub.subject_name = grouped.subject_name\nORDER BY s.student_id, sub.subject_name;\n```",
+            "slateValue": "",
+            "slug": "students-and-examinations-by-leetcode-so-3oup",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "Jgm0UL",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 109,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Pandas",
+                    "nameTranslated": "",
+                    "slug": "pandas",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "MySQL",
+                    "nameTranslated": "",
+                    "slug": "mysql",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "SQL",
+                    "nameTranslated": "",
+                    "slug": "sql",
+                    "tagType": "ADDITIONAL_TOPIC"
+                }
+            ],
+            "createdAt": "2023-07-31T08:07:03.714670+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "解决方案 方法：Group by 与 Cross join Pandas MySQL\n 解决方案\n 方法：Group by 与 Cross join\n Pandas\n此问题涉及多个 DataFrame，因此让我们将其分解为子问题，以使其更直观、更易于理解。\n首先，这道题要求我们找出每个学生参加每门课的考试次数。我们可",
+            "topic": {
+                "id": 2366340,
+                "subscribed": false,
+                "commentCount": 179,
+                "viewCount": 652,
+                "post": {
+                    "id": 4446494,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 969,
+            "isEditorsPick": false,
+            "hitCount": 81410,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "students-and-examinations",
+                "questionFrontendId": "1280"
+            },
+            "next": {
+                "slug": "xin-shou-jie-ti-fen-xi-ti-mu-yi-bu-yi-bu-xx8g",
+                "title": "【新手解题】学生们参加各科测试的次数"
+            },
+            "prev": null
+        }
+    }
+}

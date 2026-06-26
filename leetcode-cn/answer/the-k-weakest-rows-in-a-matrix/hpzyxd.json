@@ -1,0 +1,142 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "hpzyxd",
+            "title": "矩阵中战斗力最弱的 K 行",
+            "content": "#### 前言\n\n由于本题中的矩阵行数 $m$ 和列数 $n$ 均不超过 $100$，数据规模较小，因此我们可以设计出一些时间复杂度较高的方法，例如直接对整个矩阵进行一次遍历，计算出每一行的战斗力，再进行排序并返回最弱的 $k$ 行的索引。\n\n下面我们根据矩阵的性质，给出一种时间复杂度较为优秀的方法。\n\n#### 方法一：二分查找 + 堆\n\n**思路与算法**\n\n题目描述中有一条重要的保证：\n\n> 军人**总是**排在一行中的靠前位置，也就是说 $1$ 总是出现在 $0$ 之前。\n\n因此，我们可以通过二分查找的方法，找出一行中最后的那个 $1$ 的位置。如果其位置为 $\\textit{pos}$，那么这一行 $1$ 的个数就为 $\\textit{pos} + 1$。特别地，如果这一行没有 $1$，那么令 $\\textit{pos}=-1$。\n\n当我们得到每一行的战斗力后，我们可以将它们全部放入一个小根堆中，并不断地取出堆顶的元素 $k$ 次，这样我们就得到了最弱的 $k$ 行的索引。\n\n需要注意的是，如果我们依次将每一行的战斗力以及索引（因为如果战斗力相同，索引较小的行更弱，所以我们需要在小根堆中存放战斗力和索引的二元组）放入小根堆中，那么这样做的时间复杂度是 $O(m \\log m)$ 的。一种更好的方法是使用这 $m$ 个战斗力值直接初始化一个小根堆，时间复杂度为 $O(m)$。读者可以参考《算法导论》的 $\\text{6.3}$ 节或者[「堆排序中建堆过程时间复杂度 $O(n)$ 怎么来的？」](https://www.zhihu.com/question/20729324)了解该过程时间复杂度的证明方法。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<int> kWeakestRows(vector<vector<int>>& mat, int k) {\n        int m = mat.size(), n = mat[0].size();\n        vector<pair<int, int>> power;\n        for (int i = 0; i < m; ++i) {\n            int l = 0, r = n - 1, pos = -1;\n            while (l <= r) {\n                int mid = (l + r) / 2;\n                if (mat[i][mid] == 0) {\n                    r = mid - 1;\n                }\n                else {\n                    pos = mid;\n                    l = mid + 1;\n                }\n            }\n            power.emplace_back(pos + 1, i);\n        }\n\n        priority_queue q(greater<pair<int, int>>(), move(power));\n        vector<int> ans;\n        for (int i = 0; i < k; ++i) {\n            ans.push_back(q.top().second);\n            q.pop();\n        }\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int[] kWeakestRows(int[][] mat, int k) {\n        int m = mat.length, n = mat[0].length;\n        List<int[]> power = new ArrayList<int[]>();\n        for (int i = 0; i < m; ++i) {\n            int l = 0, r = n - 1, pos = -1;\n            while (l <= r) {\n                int mid = (l + r) / 2;\n                if (mat[i][mid] == 0) {\n                    r = mid - 1;\n                } else {\n                    pos = mid;\n                    l = mid + 1;\n                }\n            }\n            power.add(new int[]{pos + 1, i});\n        }\n\n        PriorityQueue<int[]> pq = new PriorityQueue<int[]>(new Comparator<int[]>() {\n            public int compare(int[] pair1, int[] pair2) {\n                if (pair1[0] != pair2[0]) {\n                    return pair1[0] - pair2[0];\n                } else {\n                    return pair1[1] - pair2[1];\n                }\n            }\n        });\n        for (int[] pair : power) {\n            pq.offer(pair);\n        }\n        int[] ans = new int[k];\n        for (int i = 0; i < k; ++i) {\n            ans[i] = pq.poll()[1];\n        }\n        return ans;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def kWeakestRows(self, mat: List[List[int]], k: int) -> List[int]:\n        m, n = len(mat), len(mat[0])\n        power = list()\n        for i in range(m):\n            l, r, pos = 0, n - 1, -1\n            while l <= r:\n                mid = (l + r) // 2\n                if mat[i][mid] == 0:\n                    r = mid - 1\n                else:\n                    pos = mid\n                    l = mid + 1\n            power.append((pos + 1, i))\n\n        heapq.heapify(power)\n        ans = list()\n        for i in range(k):\n            ans.append(heapq.heappop(power)[1])\n        return ans\n```\n\n```go [sol1-Golang]\nfunc kWeakestRows(mat [][]int, k int) []int {\n    h := hp{}\n    for i, row := range mat {\n        pow := sort.Search(len(row), func(j int) bool { return row[j] == 0 })\n        h = append(h, pair{pow, i})\n    }\n    heap.Init(&h)\n    ans := make([]int, k)\n    for i := range ans {\n        ans[i] = heap.Pop(&h).(pair).idx\n    }\n    return ans\n}\n\ntype pair struct{ pow, idx int }\ntype hp []pair\n\nfunc (h hp) Len() int            { return len(h) }\nfunc (h hp) Less(i, j int) bool  { a, b := h[i], h[j]; return a.pow < b.pow || a.pow == b.pow && a.idx < b.idx }\nfunc (h hp) Swap(i, j int)       { h[i], h[j] = h[j], h[i] }\nfunc (h *hp) Push(v interface{}) { *h = append(*h, v.(pair)) }\nfunc (h *hp) Pop() interface{}   { a := *h; v := a[len(a)-1]; *h = a[:len(a)-1]; return v }\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(m \\log n + k \\log m)$：\n\n    - 我们需要 $O(m \\log n)$ 的时间对每一行进行二分查找。\n\n    - 我们需要 $O(m)$ 的时间建立小根堆。\n\n    - 我们需要 $O(k \\log m)$ 的时间从堆中取出 $k$ 个最小的元素。\n\n- 空间复杂度：$O(m)$，即为堆需要使用的空间。\n\n#### 方法二：二分查找 + 快速选择\n\n**思路与算法**\n\n我们也可以通过快速选择算法，在平均 $O(m)$ 的时间内不计顺序地内找出 $k$ 个最小的元素，再使用排序算法在 $O(k \\log k)$ 的时间对这 $k$ 个最小的元素进行升序排序，就可以得到最终的答案。读者可以参考[「剑指 Offer 40. 最小的k个数」官方题解](https://leetcode.cn/problems/zui-xiao-de-kge-shu-lcof/solution/zui-xiao-de-kge-shu-by-leetcode-solution/)的方法三或者[「215. 数组中的第K个最大元素」的官方题解](https://leetcode.cn/problems/kth-largest-element-in-an-array/solution/shu-zu-zhong-de-di-kge-zui-da-yuan-su-by-leetcode-/)中的方法一了解快速选择算法，下面的代码将上述题解中的快速选择算法封装成一个 $\\text{Helper}$ 类进行使用。\n\n```C++ [sol2-C++]\ntemplate<typename T>\nclass Helper {\n    static int partition(vector<T>& nums, int l, int r) {\n        T pivot = nums[r];\n        int i = l - 1;\n        for (int j = l; j <= r - 1; ++j) {\n            if (nums[j] <= pivot) {\n                i = i + 1;\n                swap(nums[i], nums[j]);\n            }\n        }\n        swap(nums[i + 1], nums[r]);\n        return i + 1;\n    }\n\n    // 基于随机的划分\n    static int randomized_partition(vector<T>& nums, int l, int r) {\n        int i = rand() % (r - l + 1) + l;\n        swap(nums[r], nums[i]);\n        return partition(nums, l, r);\n    }\n\n    static void randomized_selected(vector<T>& arr, int l, int r, int k) {\n        if (l >= r) {\n            return;\n        }\n        int pos = randomized_partition(arr, l, r);\n        int num = pos - l + 1;\n        if (k == num) {\n            return;\n        } else if (k < num) {\n            randomized_selected(arr, l, pos - 1, k);\n        } else {\n            randomized_selected(arr, pos + 1, r, k - num);\n        }\n    }\n\npublic:\n    static vector<T> getLeastNumbers(vector<T>& arr, int k) {\n        srand((unsigned)time(NULL));\n        randomized_selected(arr, 0, (int)arr.size() - 1, k);\n        vector<T> vec;\n        for (int i = 0; i < k; ++i) {\n            vec.push_back(arr[i]);\n        }\n        return vec;\n    }\n};\n\nclass Solution {\npublic:\n    vector<int> kWeakestRows(vector<vector<int>>& mat, int k) {\n        int m = mat.size(), n = mat[0].size();\n        vector<pair<int, int>> power;\n        for (int i = 0; i < m; ++i) {\n            int l = 0, r = n - 1, pos = -1;\n            while (l <= r) {\n                int mid = (l + r) / 2;\n                if (mat[i][mid] == 0) {\n                    r = mid - 1;\n                }\n                else {\n                    pos = mid;\n                    l = mid + 1;\n                }\n            }\n            power.emplace_back(pos + 1, i);\n        }\n\n        vector<pair<int, int>> minimum = Helper<pair<int, int>>::getLeastNumbers(power, k);\n        sort(minimum.begin(), minimum.begin() + k);\n        vector<int> ans;\n        for (int i = 0; i < k; ++i) {\n            ans.push_back(minimum[i].second);\n        }\n        return ans;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public int[] kWeakestRows(int[][] mat, int k) {\n        int m = mat.length, n = mat[0].length;\n        int[][] power = new int[m][2];\n        for (int i = 0; i < m; ++i) {\n            int l = 0, r = n - 1, pos = -1;\n            while (l <= r) {\n                int mid = (l + r) / 2;\n                if (mat[i][mid] == 0) {\n                    r = mid - 1;\n                } else {\n                    pos = mid;\n                    l = mid + 1;\n                }\n            }\n            power[i][0] = pos + 1;\n            power[i][1] = i;\n        }\n\n        int[][] minimum = Helper.getLeastNumbers(power, k);\n        Arrays.sort(minimum, new Comparator<int[]>() {\n            public int compare(int[] pair1, int[] pair2) {\n                if (pair1[0] != pair2[0]) {\n                    return pair1[0] - pair2[0];\n                } else {\n                    return pair1[1] - pair2[1];\n                }\n            }\n        });\n        int[] ans = new int[k];\n        for (int i = 0; i < k; ++i) {\n            ans[i] = minimum[i][1];\n        }\n        return ans;\n    }\n}\n\nclass Helper {\n    public static int[][] getLeastNumbers(int[][] arr, int k) {\n        randomizedSelected(arr, 0, arr.length - 1, k);\n        int[][] vec = new int[k][2];\n        for (int i = 0; i < k; ++i) {\n            vec[i][0] = arr[i][0];\n            vec[i][1] = arr[i][1];\n        }\n        return vec;\n    }\n\n    private static void randomizedSelected(int[][] arr, int l, int r, int k) {\n        if (l >= r) {\n            return;\n        }\n        int pos = randomizedPartition(arr, l, r);\n        int num = pos - l + 1;\n        if (k == num) {\n            return;\n        } else if (k < num) {\n            randomizedSelected(arr, l, pos - 1, k);\n        } else {\n            randomizedSelected(arr, pos + 1, r, k - num);\n        }\n    }\n\n    // 基于随机的划分\n    private static int randomizedPartition(int[][] nums, int l, int r) {\n        int i = (int) (Math.random() * (r - l + 1)) + l;\n        swap(nums, r, i);\n        return partition(nums, l, r);\n    }\n\n    private static int partition(int[][] nums, int l, int r) {\n        int[] pivot = nums[r];\n        int i = l - 1;\n        for (int j = l; j <= r - 1; ++j) {\n            if (compare(nums[j], pivot) <= 0) {\n                i = i + 1;\n                swap(nums, i, j);\n            }\n        }\n        swap(nums, i + 1, r);\n        return i + 1;\n    }\n\n    private static void swap(int[][] nums, int i, int j) {\n        int[] temp = new int[nums[i].length];\n        System.arraycopy(nums[i], 0, temp, 0, nums[i].length);\n        System.arraycopy(nums[j], 0, nums[i], 0, nums[i].length);\n        System.arraycopy(temp, 0, nums[j], 0, nums[i].length);\n    }\n\n    private static int compare(int[] pair, int[] pivot) {\n        if (pair[0] != pivot[0]) {\n            return pair[0] - pivot[0];\n        } else {\n            return pair[1] - pivot[1];\n        }\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    public int[] KWeakestRows(int[][] mat, int k) {\n        int m = mat.Length, n = mat[0].Length;\n        Tuple<int, int>[] power = new Tuple<int, int>[m];\n        for (int i = 0; i < m; ++i) {\n            int l = 0, r = n - 1, pos = -1;\n            while (l <= r) {\n                int mid = (l + r) / 2;\n                if (mat[i][mid] == 0) {\n                    r = mid - 1;\n                } else {\n                    pos = mid;\n                    l = mid + 1;\n                }\n            }\n            power[i] = new Tuple<int, int>(pos + 1, i);\n        }\n\n        Tuple<int, int>[] minimum = Helper.GetLeastNumbers(power, k);\n        Array.Sort(minimum);\n        int[] ans = new int[k];\n        for (int i = 0; i < k; ++i) {\n            ans[i] = minimum[i].Item2;\n        }\n        return ans;\n    }\n}\n\nclass Helper {\n    static Random random = new Random();\n    \n    public static Tuple<int, int>[] GetLeastNumbers(Tuple<int, int>[] arr, int k) {\n        RandomizedSelected(arr, 0, arr.Length - 1, k);\n        Tuple<int, int>[] vec = new Tuple<int, int>[k];\n        for (int i = 0; i < k; ++i) {\n            vec[i] = arr[i];\n        }\n        return vec;\n    }\n\n    static void RandomizedSelected(Tuple<int, int>[] arr, int l, int r, int k) {\n        if (l >= r) {\n            return;\n        }\n        int pos = RandomizedPartition(arr, l, r);\n        int num = pos - l + 1;\n        if (k == num) {\n            return;\n        } else if (k < num) {\n            RandomizedSelected(arr, l, pos - 1, k);\n        } else {\n            RandomizedSelected(arr, pos + 1, r, k - num);\n        }\n    }\n\n    // 基于随机的划分\n    static int RandomizedPartition(Tuple<int, int>[] nums, int l, int r) {\n        int i = random.Next(r - l + 1) + l;\n        Swap(nums, r, i);\n        return Partition(nums, l, r);\n    }\n\n    static int Partition(Tuple<int, int>[] nums, int l, int r) {\n        Tuple<int, int> pivot = nums[r];\n        int i = l - 1;\n        for (int j = l; j <= r - 1; ++j) {\n            if (Compare(nums[j], pivot) <= 0) {\n                i = i + 1;\n                Swap(nums, i, j);\n            }\n        }\n        Swap(nums, i + 1, r);\n        return i + 1;\n    }\n\n    static void Swap(Tuple<int, int>[] nums, int i, int j) {\n        Tuple<int, int> temp = nums[i];\n        nums[i] = nums[j];\n        nums[j] = temp;\n    }\n\n    static int Compare(Tuple<int, int> pair, Tuple<int, int> pivot) {\n        if (pair.Item1 != pivot.Item1) {\n            return pair.Item1 - pivot.Item1;\n        } else {\n            return pair.Item2 - pivot.Item2;\n        }\n    }\n}\n```\n\n```Python [sol2-Python3]\nclass Helper:\n    @staticmethod\n    def partition(nums: List, l: int, r: int) -> int:\n        pivot = nums[r]\n        i = l - 1\n        for j in range(l, r):\n            if nums[j] <= pivot:\n                i += 1\n                nums[i], nums[j] = nums[j], nums[i]\n        nums[i + 1], nums[r] = nums[r], nums[i + 1]\n        return i + 1\n\n    @staticmethod\n    def randomized_partition(nums: List, l: int, r: int) -> int:\n        i = random.randint(l, r)\n        nums[r], nums[i] = nums[i], nums[r]\n        return Helper.partition(nums, l, r)\n\n    @staticmethod\n    def randomized_selected(arr: List, l: int, r: int, k: int) -> None:\n        pos = Helper.randomized_partition(arr, l, r)\n        num = pos - l + 1\n        if k < num:\n            Helper.randomized_selected(arr, l, pos - 1, k)\n        elif k > num:\n            Helper.randomized_selected(arr, pos + 1, r, k - num)\n\n    @staticmethod\n    def getLeastNumbers(arr: List, k: int) -> List:\n        Helper.randomized_selected(arr, 0, len(arr) - 1, k)\n        return arr[:k]\n\n\nclass Solution:\n    def kWeakestRows(self, mat: List[List[int]], k: int) -> List[int]:\n        m, n = len(mat), len(mat[0])\n        power = list()\n        for i in range(m):\n            l, r, pos = 0, n - 1, -1\n            while l <= r:\n                mid = (l + r) // 2\n                if mat[i][mid] == 0:\n                    r = mid - 1\n                else:\n                    pos = mid\n                    l = mid + 1\n            power.append((pos + 1, i))\n\n        minimum = Helper.getLeastNumbers(power, k)[:k]\n        minimum.sort()\n        ans = [entry[1] for entry in minimum]\n        return ans\n```\n\n```go [sol2-Golang]\ntype pair struct{ pow, idx int }\n\nfunc kWeakestRows(mat [][]int, k int) []int {\n    m := len(mat)\n    pairs := make([]pair, m)\n    for i, row := range mat {\n        pow := sort.Search(len(row), func(j int) bool { return row[j] == 0 })\n        pairs[i] = pair{pow, i}\n    }\n    rand.Seed(time.Now().UnixNano())\n    randomizedSelected(pairs, 0, m-1, k)\n    pairs = pairs[:k]\n    sort.Slice(pairs, func(i, j int) bool {\n        a, b := pairs[i], pairs[j]\n        return a.pow < b.pow || a.pow == b.pow && a.idx < b.idx\n    })\n    ans := make([]int, k)\n    for i, p := range pairs {\n        ans[i] = p.idx\n    }\n    return ans\n}\n\nfunc randomizedSelected(a []pair, l, r, k int) {\n    if l >= r {\n        return\n    }\n    pos := randomPartition(a, l, r)\n    num := pos - l + 1\n    if k == num {\n        return\n    }\n    if k < num {\n        randomizedSelected(a, l, pos-1, k)\n    } else {\n        randomizedSelected(a, pos+1, r, k-num)\n    }\n}\n\nfunc randomPartition(a []pair, l, r int) int {\n    i := rand.Intn(r-l+1) + l\n    a[i], a[r] = a[r], a[i]\n    return partition(a, l, r)\n}\n\nfunc partition(a []pair, l, r int) int {\n    pivot := a[r]\n    i := l - 1\n    for j := l; j < r; j++ {\n        if a[j].pow < pivot.pow || a[j].pow == pivot.pow && a[j].idx <= pivot.idx {\n            i++\n            a[i], a[j] = a[j], a[i]\n        }\n    }\n    a[i+1], a[r] = a[r], a[i+1]\n    return i + 1\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(m \\log n + k \\log k)$：\n\n    - 我们需要 $O(m \\log n)$ 的时间对每一行进行二分查找。\n\n    - 我们需要 $O(m)$ 的时间完成快速选择算法。\n\n    - 我们需要 $O(k \\log k)$ 的时间对这 $k$ 个最小的元素进行升序排序。\n\n- 空间复杂度：$O(m)$，即为快速选择算法中的数组需要使用的空间。",
+            "slateValue": "",
+            "slug": "fang-zhen-zhong-zhan-dou-li-zui-ruo-de-k-xing-by-l",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "hpzyxd",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 46,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Divide and Conquer",
+                    "nameTranslated": "分治",
+                    "slug": "divide-and-conquer",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Matrix",
+                    "nameTranslated": "矩阵",
+                    "slug": "matrix",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Quickselect",
+                    "nameTranslated": "快速选择",
+                    "slug": "quickselect",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Heap (Priority Queue)",
+                    "nameTranslated": "堆（优先队列）",
+                    "slug": "heap-priority-queue",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2020-03-04T09:19:38.296310+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "前言 由于本题中的矩阵行数 $m$ 和列数 $n$ 均不超过 $100$，数据规模较小，因此我们可以设计出一些时间复杂度较高的方法，例如直接对整个矩阵进行一次遍历，计算出每一行的战斗力，再进行排序并返回最弱的 $k$ 行的索引。 下面我们根据矩阵的性质，给出一种时间复杂度较为优秀的方法。 方法一：二分查找 + 堆 思路",
+            "topic": {
+                "id": 130589,
+                "subscribed": false,
+                "commentCount": 165,
+                "viewCount": 30570,
+                "post": {
+                    "id": 398426,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 114,
+            "isEditorsPick": false,
+            "hitCount": 50371,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "the-k-weakest-rows-in-a-matrix",
+                "questionFrontendId": "1337"
+            },
+            "next": {
+                "slug": "gong-shui-san-xie-yi-ti-shuang-jie-po-su-7okx",
+                "title": "【宫水三叶】一题双解 :「朴素解法」&「二分 + 优先队列（堆）」"
+            },
+            "prev": null
+        }
+    }
+}

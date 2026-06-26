@@ -1,0 +1,122 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "UeIIkq",
+            "title": "二叉树的层序遍历",
+            "content": "### 📺 视频题解  \n![102. 二叉树的层次遍历.mp4](cd73eb42-8095-48a4-a1e2-d900642c6360)\n\n### 📖 文字题解\n\n#### 方法一：广度优先搜索\n\n**思路和算法**\n\n我们可以用广度优先搜索解决这个问题。\n\n我们可以想到最朴素的方法是用一个二元组 `(node, level)` 来表示状态，它表示某个节点和它所在的层数，每个新进队列的节点的 `level` 值都是父亲节点的 `level` 值加一。最后根据每个点的 `level` 对点进行分类，分类的时候我们可以利用哈希表，维护一个以 `level` 为键，对应节点值组成的数组为值，广度优先搜索结束以后按键 `level` 从小到大取出所有值，组成答案返回即可。\n\n考虑如何优化空间开销：如何不用哈希映射，并且只用一个变量 `node` 表示状态，实现这个功能呢？\n\n我们可以用一种巧妙的方法修改广度优先搜索：\n\n+ 首先根元素入队\n+ 当队列不为空的时候\n    + 求当前队列的长度 $s_i$\n    + 依次从队列中取 $s_i$ 个元素进行拓展，然后进入下一次迭代\n\n它和普通广度优先搜索的区别在于，普通广度优先搜索每次只取一个元素拓展，而这里每次取 $s_i$ 个元素。在上述过程中的第 $i$ 次迭代就得到了二叉树的第 $i$ 层的 $s_i$ 个元素。\n\n为什么这么做是对的呢？我们观察这个算法，可以归纳出这样的[循环不变式](https://baike.baidu.com/item/循环不变式)：第 $i$ 次迭代前，队列中的所有元素就是第 $i$ 层的所有元素，并且按照从左向右的顺序排列。证明它的三条性质（你也可以把它理解成数学归纳法）：\n\n+ **初始化**：$i = 1$ 的时候，队列里面只有 `root`，是唯一的层数为 $1$ 的元素，因为只有一个元素，所以也显然满足「从左向右排列」；\n+ **保持**：如果 $i = k$ 时性质成立，即第 $k$ 轮中出队 $s_k$ 的元素是第 $k$ 层的所有元素，并且顺序从左到右。因为对树进行广度优先搜索的时候由低 $k$ 层的点拓展出的点一定也只能是 $k + 1$ 层的点，并且 $k + 1$ 层的点只能由第 $k$ 层的点拓展到，所以由这 $s_k$ 个点能拓展到下一层所有的 $s_{k+1}$ 个点。又因为队列的先进先出（FIFO）特性，既然第 $k$ 层的点的出队顺序是从左向右，那么第 $k + 1$ 层也一定是从左向右。**至此，我们已经可以通过数学归纳法证明循环不变式的正确性。**\n+ **终止**：因为该循环不变式是正确的，所以按照这个方法迭代之后每次迭代得到的也就是当前层的层次遍历结果。**至此，我们证明了算法是正确的。**\n\n**代码**\n\n```cpp [sol1-C++]\nclass Solution {\npublic:\n    vector<vector<int>> levelOrder(TreeNode* root) {\n        vector <vector <int>> ret;\n        if (!root) {\n            return ret;\n        }\n\n        queue <TreeNode*> q;\n        q.push(root);\n        while (!q.empty()) {\n            int currentLevelSize = q.size();\n            ret.push_back(vector <int> ());\n            for (int i = 1; i <= currentLevelSize; ++i) {\n                auto node = q.front(); q.pop();\n                ret.back().push_back(node->val);\n                if (node->left) q.push(node->left);\n                if (node->right) q.push(node->right);\n            }\n        }\n        \n        return ret;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public List<List<Integer>> levelOrder(TreeNode root) {\n        List<List<Integer>> ret = new ArrayList<List<Integer>>();\n        if (root == null) {\n            return ret;\n        }\n\n        Queue<TreeNode> queue = new LinkedList<TreeNode>();\n        queue.offer(root);\n        while (!queue.isEmpty()) {\n            List<Integer> level = new ArrayList<Integer>();\n            int currentLevelSize = queue.size();\n            for (int i = 1; i <= currentLevelSize; ++i) {\n                TreeNode node = queue.poll();\n                level.add(node.val);\n                if (node.left != null) {\n                    queue.offer(node.left);\n                }\n                if (node.right != null) {\n                    queue.offer(node.right);\n                }\n            }\n            ret.add(level);\n        }\n        \n        return ret;\n    }\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar levelOrder = function(root) {\n    const ret = [];\n    if (!root) {\n        return ret;\n    }\n\n    const q = [];\n    q.push(root);\n    while (q.length !== 0) {\n        const currentLevelSize = q.length;\n        ret.push([]);\n        for (let i = 1; i <= currentLevelSize; ++i) {\n            const node = q.shift();\n            ret[ret.length - 1].push(node.val);\n            if (node.left) q.push(node.left);\n            if (node.right) q.push(node.right);\n        }\n    }\n        \n    return ret;\n};\n```\n\n```golang [sol1-Golang]\nfunc levelOrder(root *TreeNode) [][]int {\n    ret := [][]int{}\n    if root == nil {\n        return ret\n    }\n    q := []*TreeNode{root}\n    for i := 0; len(q) > 0; i++ {\n        ret = append(ret, []int{})\n        p := []*TreeNode{}\n        for j := 0; j < len(q); j++ {\n            node := q[j]\n            ret[i] = append(ret[i], node.Val)\n            if node.Left != nil {\n                p = append(p, node.Left)\n            }\n            if node.Right != nil {\n                p = append(p, node.Right)\n            }\n        }\n        q = p\n    }\n    return ret\n}\n```\n\n**复杂度分析**\n\n记树上所有节点的个数为 $n$。\n\n+ 时间复杂度：每个点进队出队各一次，故渐进时间复杂度为 $O(n)$。\n+ 空间复杂度：队列中元素的个数不超过 $n$ 个，故渐进空间复杂度为 $O(n)$。\n\n>本题为后端高频面试题，被收录于《[热招技术岗上岸指南](https://leetcode.cn/leetbook/detail/2021-fall-recruitment/)》\n>6 大热门技术岗位解读，尽在👇\n[![图片 6.png](https://pic.leetcode.cn/1668506469-aUEqJk-image.png){:width=100}](https://leetcode.cn/leetbook/detail/2021-fall-recruitment/)",
+            "slateValue": "",
+            "slug": "er-cha-shu-de-ceng-xu-bian-li-by-leetcode-solution",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "UeIIkq",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 350,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 31,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 17,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Tree",
+                    "nameTranslated": "树",
+                    "slug": "tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Breadth-First Search",
+                    "nameTranslated": "广度优先搜索",
+                    "slug": "breadth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-05-11T05:05:43.948479+00:00",
+            "thumbnail": "https://pic.leetcode.cn/1668506469-aUEqJk-image.png",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "📺 视频题解\n 📖 文字题解\n 方法一：广度优先搜索\n思路和算法\n我们可以用广度优先搜索解决这个问题。\n我们可以想到最朴素的方法是用一个二元组 (node, level) 来表示状态，它表示某个节点和它所在的层数，每个新进队列的节点的 level 值都是父亲节点的 level 值加一。最后根据每个点的 level 对",
+            "topic": {
+                "id": 241885,
+                "subscribed": false,
+                "commentCount": 596,
+                "viewCount": 280522,
+                "post": {
+                    "id": 633573,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 1020,
+            "isEditorsPick": false,
+            "hitCount": 702587,
+            "videosInfo": [
+                {
+                    "videoId": "affe5c0a94e64feebeb2806ef3d0d797",
+                    "coverUrl": "https://video.leetcode.cn/image/cover/2B6E56A868BF427CAD5C6E850C825305-6-2.png?auth_key=1782488363-3a10687605f043f598e35bff324cb576-0-a66bb8c30d7841e5f867dbfd441fcea7",
+                    "duration": 230.6667
+                }
+            ],
+            "question": {
+                "titleSlug": "binary-tree-level-order-traversal",
+                "questionFrontendId": "102"
+            },
+            "next": {
+                "slug": "bfs-de-shi-yong-chang-jing-zong-jie-ceng-xu-bian-l",
+                "title": "BFS 的使用场景总结：层序遍历、最短路径问题"
+            },
+            "prev": null
+        }
+    }
+}

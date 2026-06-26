@@ -1,0 +1,146 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "JP7JZe",
+            "title": "存在重复元素 III",
+            "content": "#### 方法一：滑动窗口 + 有序集合\n\n**思路及算法**\n\n对于序列中每一个元素 $x$ 左侧的至多 $k$ 个元素，如果这 $k$ 个元素中存在一个元素落在区间 $[x - t, x + t]$ 中，我们就找到了一对符合条件的元素。注意到对于两个相邻的元素，它们各自的左侧的 $k$ 个元素中有 $k - 1$ 个是重合的。于是我们可以使用滑动窗口的思路，维护一个大小为 $k$ 的滑动窗口，每次遍历到元素 $x$ 时，滑动窗口中包含元素 $x$ 前面的最多 $k$ 个元素，我们检查窗口中是否存在元素落在区间 $[x - t, x + t]$ 中即可。\n\n如果使用队列维护滑动窗口内的元素，由于元素是无序的，我们只能对于每个元素都遍历一次队列来检查是否有元素符合条件。如果数组的长度为 $n$，则使用队列的时间复杂度为 $O(nk)$，会超出时间限制。\n\n因此我们希望能够找到一个数据结构维护滑动窗口内的元素，该数据结构需要满足以下操作：\n\n- 支持添加和删除指定元素的操作，否则我们无法维护滑动窗口；\n\n- 内部元素有序，支持二分查找的操作，这样我们可以快速判断滑动窗口中是否存在元素满足条件，具体而言，对于元素 $x$，当我们希望判断滑动窗口中是否存在某个数 $y$ 落在区间 $[x - t, x + t]$ 中，只需要判断滑动窗口中所有大于等于 $x - t$ 的元素中的最小元素是否小于等于 $x + t$ 即可。\n\n我们可以使用有序集合来支持这些操作。\n\n实现方面，我们在有序集合中查找大于等于 $x - t$ 的最小的元素 $y$，如果 $y$ 存在，且 $y \\leq x + t$，我们就找到了一对符合条件的元素。完成检查后，我们将 $x$ 插入到有序集合中，如果有序集合中元素数量超过了 $k$，我们将有序集合中最早被插入的元素删除即可。\n\n**注意**\n\n如果当前有序集合中存在相同元素，那么此时程序将直接返回 $\\texttt{true}$。因此本题中的有序集合无需处理相同元素的情况。\n\n为防止整型 $\\texttt{int}$ 溢出，我们既可以使用长整型 $\\texttt{long}$，也可以对查找区间 $[x - t, x + t]$ 进行限制，使其落在 $\\texttt{int}$ 范围内。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    bool containsNearbyAlmostDuplicate(vector<int>& nums, int k, int t) {\n        int n = nums.size();\n        set<int> rec;\n        for (int i = 0; i < n; i++) {\n            auto iter = rec.lower_bound(max(nums[i], INT_MIN + t) - t);\n            if (iter != rec.end() && *iter <= min(nums[i], INT_MAX - t) + t) {\n                return true;\n            }\n            rec.insert(nums[i]);\n            if (i >= k) {\n                rec.erase(nums[i - k]);\n            }\n        }\n        return false;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public boolean containsNearbyAlmostDuplicate(int[] nums, int k, int t) {\n        int n = nums.length;\n        TreeSet<Long> set = new TreeSet<Long>();\n        for (int i = 0; i < n; i++) {\n            Long ceiling = set.ceiling((long) nums[i] - (long) t);\n            if (ceiling != null && ceiling <= (long) nums[i] + (long) t) {\n                return true;\n            }\n            set.add((long) nums[i]);\n            if (i >= k) {\n                set.remove((long) nums[i - k]);\n            }\n        }\n        return false;\n    }\n}\n```\n\n```go [sol1-Golang]\nimport \"math/rand\"\n\ntype node struct {\n    ch       [2]*node\n    priority int\n    val      int\n}\n\nfunc (o *node) cmp(b int) int {\n    switch {\n    case b < o.val:\n        return 0\n    case b > o.val:\n        return 1\n    default:\n        return -1\n    }\n}\n\nfunc (o *node) rotate(d int) *node {\n    x := o.ch[d^1]\n    o.ch[d^1] = x.ch[d]\n    x.ch[d] = o\n    return x\n}\n\ntype treap struct {\n    root *node\n}\n\nfunc (t *treap) _put(o *node, val int) *node {\n    if o == nil {\n        return &node{priority: rand.Int(), val: val}\n    }\n    d := o.cmp(val)\n    o.ch[d] = t._put(o.ch[d], val)\n    if o.ch[d].priority > o.priority {\n        o = o.rotate(d ^ 1)\n    }\n    return o\n}\n\nfunc (t *treap) put(val int) {\n    t.root = t._put(t.root, val)\n}\n\nfunc (t *treap) _delete(o *node, val int) *node {\n    if d := o.cmp(val); d >= 0 {\n        o.ch[d] = t._delete(o.ch[d], val)\n        return o\n    }\n    if o.ch[1] == nil {\n        return o.ch[0]\n    }\n    if o.ch[0] == nil {\n        return o.ch[1]\n    }\n    d := 0\n    if o.ch[0].priority > o.ch[1].priority {\n        d = 1\n    }\n    o = o.rotate(d)\n    o.ch[d] = t._delete(o.ch[d], val)\n    return o\n}\n\nfunc (t *treap) delete(val int) {\n    t.root = t._delete(t.root, val)\n}\n\nfunc (t *treap) lowerBound(val int) (lb *node) {\n    for o := t.root; o != nil; {\n        switch c := o.cmp(val); {\n        case c == 0:\n            lb = o\n            o = o.ch[0]\n        case c > 0:\n            o = o.ch[1]\n        default:\n            return o\n        }\n    }\n    return\n}\n\nfunc containsNearbyAlmostDuplicate(nums []int, k, t int) bool {\n    set := &treap{}\n    for i, v := range nums {\n        if lb := set.lowerBound(v - t); lb != nil && lb.val <= v+t {\n            return true\n        }\n        set.put(v)\n        if i >= k {\n            set.delete(nums[i-k])\n        }\n    }\n    return false\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log(\\min(n, k)))$，其中 $n$ 是给定数组的长度。每个元素至多被插入有序集合和从有序集合中删除一次，每次操作时间复杂度均为 $O(\\log(\\min(n, k))$。\n\n- 空间复杂度：$O(\\min(n, k))$，其中 $n$ 是给定数组的长度。有序集合中至多包含 $\\min(n, k + 1)$ 个元素。\n\n#### 方法二：桶\n\n**思路及算法**\n\n我们也可以使用利用桶排序的思想解决本题。我们按照元素的大小进行分桶，维护一个滑动窗口内的元素对应的元素。\n\n对于元素 $x$，其影响的区间为 $[x - t, x + t]$。于是我们可以设定桶的大小为 $t + 1$。如果两个元素同属一个桶，那么这两个元素必然符合条件。如果两个元素属于相邻桶，那么我们需要校验这两个元素是否差值不超过 $t$。如果两个元素既不属于同一个桶，也不属于相邻桶，那么这两个元素必然不符合条件。\n\n具体地，我们遍历该序列，假设当前遍历到元素 $x$，那么我们首先检查 $x$ 所属于的桶是否已经存在元素，如果存在，那么我们就找到了一对符合条件的元素，否则我们继续检查两个相邻的桶内是否存在符合条件的元素。\n\n实现方面，我们将 $\\texttt{int}$ 范围内的每一个整数 $x$ 表示为 $x = (t + 1) \\times a + b(0 \\leq b \\leq t)$ 的形式，这样 $x$ 即归属于编号为 $a$ 的桶。因为一个桶内至多只会有一个元素，所以我们使用哈希表实现即可。\n\n**代码**\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    int getID(int x, long w) {\n        return x < 0 ? (x + 1ll) / w - 1 : x / w;\n    }\n\n    bool containsNearbyAlmostDuplicate(vector<int>& nums, int k, int t) {\n        unordered_map<int, int> mp;\n        int n = nums.size();\n        for (int i = 0; i < n; i++) {\n            long x = nums[i];\n            int id = getID(x, t + 1ll);\n            if (mp.count(id)) {\n                return true;\n            }\n            if (mp.count(id - 1) && abs(x - mp[id - 1]) <= t) {\n                return true;\n            }\n            if (mp.count(id + 1) && abs(x - mp[id + 1]) <= t) {\n                return true;\n            }\n            mp[id] = x;\n            if (i >= k) {\n                mp.erase(getID(nums[i - k], t + 1ll));\n            }\n        }\n        return false;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public boolean containsNearbyAlmostDuplicate(int[] nums, int k, int t) {\n        int n = nums.length;\n        Map<Long, Long> map = new HashMap<Long, Long>();\n        long w = (long) t + 1;\n        for (int i = 0; i < n; i++) {\n            long id = getID(nums[i], w);\n            if (map.containsKey(id)) {\n                return true;\n            }\n            if (map.containsKey(id - 1) && Math.abs(nums[i] - map.get(id - 1)) < w) {\n                return true;\n            }\n            if (map.containsKey(id + 1) && Math.abs(nums[i] - map.get(id + 1)) < w) {\n                return true;\n            }\n            map.put(id, (long) nums[i]);\n            if (i >= k) {\n                map.remove(getID(nums[i - k], w));\n            }\n        }\n        return false;\n    }\n\n    public long getID(long x, long w) {\n        if (x >= 0) {\n            return x / w;\n        }\n        return (x + 1) / w - 1;\n    }\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar containsNearbyAlmostDuplicate = function(nums, k, t) {\n    const n = nums.length;\n    const mp = new Map();\n    for (let i = 0; i < n; ++i) {\n        const x = nums[i];\n        const id = getID(x, t + 1);\n        if (mp.has(id)) {\n            return true;\n        }\n        if (mp.has(id - 1) && Math.abs(x - mp.get(id - 1)) <= t) {\n            return true;\n        }\n        if (mp.has(id + 1) && Math.abs(x - mp.get(id + 1)) <= t) {\n            return true;\n        }\n        mp.set(id, x);\n        if (i >= k) {\n            mp.delete(getID(nums[i - k], t + 1));\n        }\n    }\n    return false;\n};\n\nconst getID = (x, w) => {\n    return x < 0 ? Math.ceil((x + 1) / w) - 1 : Math.floor(x / w);\n}\n```\n\n```go [sol2-Golang]\nfunc getID(x, w int) int {\n    if x >= 0 {\n        return x / w\n    }\n    return (x+1)/w - 1\n}\n\nfunc containsNearbyAlmostDuplicate(nums []int, k, t int) bool {\n    mp := map[int]int{}\n    for i, x := range nums {\n        id := getID(x, t+1)\n        if _, has := mp[id]; has {\n            return true\n        }\n        if y, has := mp[id-1]; has && abs(x-y) <= t {\n            return true\n        }\n        if y, has := mp[id+1]; has && abs(x-y) <= t {\n            return true\n        }\n        mp[id] = x\n        if i >= k {\n            delete(mp, getID(nums[i-k], t+1))\n        }\n    }\n    return false\n}\n\nfunc abs(x int) int {\n    if x < 0 {\n        return -x\n    }\n    return x\n}\n```\n\n```C [sol2-C]\nstruct HashTable {\n    int key;\n    int val;\n    UT_hash_handle hh;\n};\n\nint getID(int x, long long w) {\n    return x < 0 ? (x + 1ll) / w - 1 : x / w;\n}\n\nstruct HashTable* query(struct HashTable* hashTable, int x) {\n    struct HashTable* tmp;\n    HASH_FIND_INT(hashTable, &x, tmp);\n    return tmp;\n}\n\nbool containsNearbyAlmostDuplicate(int* nums, int numsSize, int k, int t) {\n    struct HashTable* hashTable = NULL;\n    for (int i = 0; i < numsSize; i++) {\n        long long x = nums[i];\n        int id = getID(x, t + 1ll);\n        struct HashTable* tmp;\n        tmp = query(hashTable, id - 1);\n        if (tmp != NULL && fabs(x - tmp->val) <= t) {\n            return true;\n        }\n        tmp = query(hashTable, id + 1);\n        if (tmp != NULL && fabs(x - tmp->val) <= t) {\n            return true;\n        }\n        tmp = query(hashTable, id);\n        if (tmp != NULL) {\n            return true;\n        } else {\n            tmp = malloc(sizeof(struct HashTable));\n            tmp->key = id;\n            tmp->val = x;\n            HASH_ADD_INT(hashTable, key, tmp);\n        }\n        if (i >= k) {\n            tmp = query(hashTable, getID(nums[i - k], t + 1ll));\n            HASH_DEL(hashTable, tmp);\n        }\n    }\n    return false;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是给定数组的长度。每个元素至多被插入哈希表和从哈希表中删除一次，每次操作的时间复杂度均为 $O(1)$。\n\n- 空间复杂度：$O(\\min(n, k))$，其中 $n$ 是给定数组的长度。哈希表中至多包含 $\\min(n, k + 1)$ 个元素。",
+            "slateValue": "",
+            "slug": "cun-zai-zhong-fu-yuan-su-iii-by-leetcode-bbkt",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "JP7JZe",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 165,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 5,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 3,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Bucket Sort",
+                    "nameTranslated": "桶排序",
+                    "slug": "bucket-sort",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Ordered Set",
+                    "nameTranslated": "有序集合",
+                    "slug": "ordered-set",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Sorting",
+                    "nameTranslated": "排序",
+                    "slug": "sorting",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Sliding Window",
+                    "nameTranslated": "滑动窗口",
+                    "slug": "sliding-window",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-04-16T15:53:43.335543+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：滑动窗口 + 有序集合 思路及算法 对于序列中每一个元素 [latex] 左侧的至多 [latex] 个元素，如果这 [latex] 个元素中存在一个元素落在区间 [latex] 中，我们就找到了一对符合条件的元素。注意到对于两个相邻的元素，它们各自的左侧的 [latex] 个元素中有 [latex] 个是重合",
+            "topic": {
+                "id": 726619,
+                "subscribed": false,
+                "commentCount": 278,
+                "viewCount": 59772,
+                "post": {
+                    "id": 1621777,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 385,
+            "isEditorsPick": false,
+            "hitCount": 133466,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "contains-duplicate-iii",
+                "questionFrontendId": "220"
+            },
+            "next": {
+                "slug": "gong-shui-san-xie-yi-ti-shuang-jie-hua-d-dlnv",
+                "title": "【宫水三叶】一题双解：「滑动窗口 & 二分」&「桶排序」解法"
+            },
+            "prev": null
+        }
+    }
+}

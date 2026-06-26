@@ -1,0 +1,112 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "xbkf6J",
+            "title": "组合总和 III",
+            "content": "#### 方法一：二进制（子集）枚举\n\n**思路与算法**\n\n「组合中只允许含有 $1-9$ 的正整数，并且每种组合中不存在重复的数字」意味着这个组合中最多包含 $9$ 个数字。我们可以把原问题转化成集合 $S = \\{ 1,2,3,4,5,6,7,8,9 \\}$，我们要找出 $S$ 的当中满足如下条件的子集：\n\n+ 大小为 $k$\n+ 集合中元素的和为 $n$\n\n因此我们可以用子集枚举的方法来做这道题。即原序列中有 $9$ 个数，每个数都有两种状态，「被选择到子集中」和「不被选择到子集中」，所以状态的总数为 $2^9$。我们用一个 $9$ 位二进制数 $\\rm mask$ 来记录当前所有位置的状态，从第到高第 $i$ 位为 $0$ 表示 $i$ 不被选择到子集中，为 $1$ 表示 $i$ 被选择到子集中。当我们按顺序枚举 $[0, 2^9 - 1]$ 中的所有整数的时候，就可以不重不漏地把每个状态枚举到，对于一个状态 $\\rm mask$，我们可以用位运算的方法得到对应的子集序列，然后再判断是否满足上面的两个条件，如果满足，就记录答案。\n\n如何通过位运算来得到 $\\rm mask$ 各个位置的信息？对于第 $i$ 个位置我们可以判断 `(1 << i) & mask` 是否为 $0$，如果不为 $0$ 则说明 $i$ 在子集当中。当然，这里要注意的是，一个 $9$ 位二进制数 $i$ 的范围是 $[0, 8]$，而可选择的数字是 $[1, 9]$，所以我们需要做一个映射，最简单的办法就是当我们知道 $i$ 位置不为 $0$ 的时候将 $i + 1$ 加入子集。\n\n当然，子集枚举也可以用递归实现。在「[77. 组合的官方题解](https://leetcode.cn/problems/combinations/solution/zu-he-by-leetcode-solution/)」的方法一中提及了子集枚举递归实现的基本框架，感兴趣的同学可以参考。\n\n代码如下。\n\n**代码**\n\n```cpp [sol1-C++]\nclass Solution {\npublic:\n    vector<int> temp;\n    vector<vector<int>> ans;\n\n    bool check(int mask, int k, int n) {\n        temp.clear();\n        for (int i = 0; i < 9; ++i) {\n            if ((1 << i) & mask) {\n                temp.push_back(i + 1);\n            }\n        }\n        return temp.size() == k && accumulate(temp.begin(), temp.end(), 0) == n; \n    }\n\n    vector<vector<int>> combinationSum3(int k, int n) {\n        for (int mask = 0; mask < (1 << 9); ++mask) {\n            if (check(mask, k, n)) {\n                ans.emplace_back(temp);\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    List<Integer> temp = new ArrayList<Integer>();\n    List<List<Integer>> ans = new ArrayList<List<Integer>>();\n\n    public List<List<Integer>> combinationSum3(int k, int n) {\n        for (int mask = 0; mask < (1 << 9); ++mask) {\n            if (check(mask, k, n)) {\n                ans.add(new ArrayList<Integer>(temp));\n            }\n        }\n        return ans;\n    }\n\n    public boolean check(int mask, int k, int n) {\n        temp.clear();\n        for (int i = 0; i < 9; ++i) {\n            if (((1 << i) & mask) != 0) {\n                temp.add(i + 1);\n            }\n        }\n        if (temp.size() != k) {\n            return false;\n        }\n        int sum = 0;\n        for (int num : temp) {\n            sum += num;\n        }\n        return sum == n;\n    }\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar combinationSum3 = function(k, n) {\n    let temp = [];\n    const ans = [];\n    const check = (mask, k, n) => {\n        temp = [];\n        for (let i = 0; i < 9; ++i) {\n            if ((1 << i) & mask) {\n                temp.push(i + 1);\n            }\n        }\n        return temp.length === k && temp.reduce((previous, value) => previous + value, 0) === n;\n    }\n\n    for (let mask = 0; mask < (1 << 9); ++mask) {\n        if (check(mask, k, n)) {\n            ans.push(temp);\n        }\n    }\n    return ans;\n};\n```\n\n```Golang [sol1-Golang]\nfunc combinationSum3(k int, n int) (ans [][]int) {\n\tvar temp []int\n\tcheck := func(mask int) bool {\n\t\ttemp = nil\n\t\tsum := 0\n\t\tfor i := 0; i < 9; i++ {\n\t\t\tif 1<<i&mask > 0 {\n\t\t\t\ttemp = append(temp, i+1)\n\t\t\t\tsum += i + 1\n\t\t\t}\n\t\t}\n\t\treturn len(temp) == k && sum == n\n\t}\n\n\tfor mask := 0; mask < 1<<9; mask++ {\n\t\tif check(mask) {\n\t\t\tans = append(ans, append([]int(nil), temp...))\n\t\t}\n\t}\n\treturn\n}\n```\n\n```C [sol1-C]\nint* temp;\nint tempSize;\n\nbool check(int mask, int k, int n) {\n    tempSize = 0;\n    int sum = 0;\n    for (int i = 0; i < 9; ++i) {\n        if ((1 << i) & mask) {\n            temp[tempSize++] = i + 1;\n            sum += i + 1;\n        }\n    }\n    return tempSize == k && sum == n;\n}\n\nint** combinationSum3(int k, int n, int* returnSize, int** returnColumnSizes) {\n    *returnColumnSizes = malloc(sizeof(int) * 2001);\n    int** ret = malloc(sizeof(int*) * 2001);\n    temp = malloc(sizeof(int) * 2001);\n    *returnSize = 0;\n\n    for (int mask = 0; mask < (1 << 9); ++mask) {\n        if (check(mask, k, n)) {\n            int* tmp = malloc(sizeof(int) * tempSize);\n            memcpy(tmp, temp, sizeof(int) * tempSize);\n            ret[*returnSize] = tmp;\n            (*returnColumnSizes)[(*returnSize)++] = tempSize;\n        }\n    }\n    return ret;\n}\n```\n\n**复杂度分析**\n\n+ 时间复杂度：$O(M \\times 2^M)$，其中 $M$ 为集合的大小，本题中 $M$ 固定为 $9$。一共有 $2^M$ 个状态，每个状态需要 $O(M + k) = O(M)$ 的判断 （$k \\leq M$），故时间复杂度为 $O(M \\times 2^M)$。\n+ 空间复杂度：$O(M)$。即 $\\rm temp$ 的空间代价。\n\n#### 方法二：组合枚举\n\n**思路与算法**\n\n我们可以换一个思路：我们需要在 $9$ 个数中选择 $k$ 个数，让它们的和为 $n$。\n\n这样问题就变成了一个组合枚举问题。组合枚举有两种处理方法——递归法和字典序法，在「[77. 组合的官方题解](https://leetcode.cn/problems/combinations/solution/zu-he-by-leetcode-solution/)」中有详细的说明。\n\n这里我们要做的是做一个「在 $9$ 个数中选择 $k$ 个数」的组合枚举，对于枚举到的所有组合，判断这个组合内元素之和是否为 $n$。\n\n代码如下。\n\n**代码**\n\n```cpp [sol2-C++]\nclass Solution {\npublic:\n    vector<int> temp;\n    vector<vector<int>> ans;\n\n    void dfs(int cur, int n, int k, int sum) {\n        if (temp.size() + (n - cur + 1) < k || temp.size() > k) {\n            return;\n        }\n        if (temp.size() == k && accumulate(temp.begin(), temp.end(), 0) == sum) {\n            ans.push_back(temp);\n            return;\n        }\n        temp.push_back(cur);\n        dfs(cur + 1, n, k, sum);\n        temp.pop_back();\n        dfs(cur + 1, n, k, sum);\n    }\n\n    vector<vector<int>> combinationSum3(int k, int n) {\n        dfs(1, 9, k, n);\n        return ans;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    List<Integer> temp = new ArrayList<Integer>();\n    List<List<Integer>> ans = new ArrayList<List<Integer>>();\n\n    public List<List<Integer>> combinationSum3(int k, int n) {\n        dfs(1, 9, k, n);\n        return ans;\n    }\n\n    public void dfs(int cur, int n, int k, int sum) {\n        if (temp.size() + (n - cur + 1) < k || temp.size() > k) {\n            return;\n        }\n        if (temp.size() == k) {\n            int tempSum = 0;\n            for (int num : temp) {\n                tempSum += num;\n            }\n            if (tempSum == sum) {\n                ans.add(new ArrayList<Integer>(temp));\n                return;\n            }\n        }\n        temp.add(cur);\n        dfs(cur + 1, n, k, sum);\n        temp.remove(temp.size() - 1);\n        dfs(cur + 1, n, k, sum);\n    }\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar combinationSum3 = function(k, n) {\n    const temp = [];\n    const res = [];\n    const dfs = (cur, n, k, sum, res) => {\n        if (temp.length + (n - cur + 1) < k || temp.length > k) {\n            return;\n        }        \n        if (temp.length === k && temp.reduce((previous, value) => previous + value, 0) === sum) {\n            res.push(temp.slice());\n            return;\n        }\n        temp.push(cur);\n        dfs(cur + 1, n, k, sum, res);\n        temp.pop();\n        dfs(cur + 1, n, k, sum, res);\n    }\n\n    dfs(1, 9, k, n, res);\n    return res;\n};\n```\n\n```Golang [sol2-Golang]\nfunc combinationSum3(k int, n int) (ans [][]int) {\n\tvar temp []int\n\tvar dfs func(cur, rest int)\n\tdfs = func(cur, rest int) {\n\t\t// 找到一个答案\n\t\tif len(temp) == k && rest == 0 {\n\t\t\tans = append(ans, append([]int(nil), temp...))\n\t\t\treturn\n\t\t}\n\t\t// 剪枝：跳过的数字过多，后面已经无法选到 k 个数字\n\t\tif len(temp)+10-cur < k || rest < 0 {\n\t\t\treturn\n\t\t}\n\t\t// 跳过当前数字\n\t\tdfs(cur+1, rest)\n\t\t// 选当前数字\n\t\ttemp = append(temp, cur)\n\t\tdfs(cur+1, rest-cur)\n\t\ttemp = temp[:len(temp)-1]\n\t}\n\tdfs(1, n)\n\treturn\n}\n```\n\n```C [sol2-C]\nint* temp;\nint tempSize;\n\nint** ans;\nint* ansColumnSize;\nint ansSize;\n\nint accumulate(int* tmp, int tmpSize) {\n    int ret = 0;\n    for (int i = 0; i < tmpSize; ++i) {\n        ret += tmp[i];\n    }\n    return ret;\n}\n\nvoid dfs(int cur, int n, int k, int sum) {\n    if (tempSize + (n - cur + 1) < k || tempSize > k) {\n        return;\n    }\n    if (tempSize == k && accumulate(temp, tempSize) == sum) {\n        int* tmp = malloc(sizeof(int) * tempSize);\n        memcpy(tmp, temp, sizeof(int) * tempSize);\n        ans[ansSize] = tmp;\n        ansColumnSize[ansSize++] = tempSize;\n        return;\n    }\n    temp[tempSize++] = cur;\n    dfs(cur + 1, n, k, sum);\n    tempSize--;\n    dfs(cur + 1, n, k, sum);\n}\n\nint** combinationSum3(int k, int n, int* returnSize, int** returnColumnSizes) {\n    ansColumnSize = malloc(sizeof(int) * 2001);\n    temp = malloc(sizeof(int) * 2001);\n    ans = malloc(sizeof(int*) * 2001);\n    ansSize = tempSize = 0;\n\n    dfs(1, 9, k, n);\n    *returnSize = ansSize;\n    *returnColumnSizes = ansColumnSize;\n    return ans;\n}\n```\n\n**复杂度分析**\n\n+ 时间复杂度：$O({M \\choose k} \\times k)$，其中 $M$ 为集合的大小，本题中 $M$ 固定为 $9$。一共有 $M \\choose k$ 个组合，每次判断需要的时间代价是 $O(k)$。\n+ 空间复杂度：$O(M)$。$\\rm temp$ 数组的空间代价是 $O(k)$，递归栈空间的代价是 $O(M)$，故空间复杂度为 $O(M + k) = O(M)$.",
+            "slateValue": "",
+            "slug": "zu-he-zong-he-iii-by-leetcode-solution",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "xbkf6J",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 60,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Backtracking",
+                    "nameTranslated": "回溯",
+                    "slug": "backtracking",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2020-09-10T15:51:17.573783+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：二进制（子集）枚举 思路与算法 「组合中只允许含有 $1-9$ 的正整数，并且每种组合中不存在重复的数字」意味着这个组合中最多包含 $9$ 个数字。我们可以把原问题转化成集合 $S = { 1,2,3,4,5,6,7,8,9 }$，我们要找出 $S$ 的当中满足如下条件的子集： 大小为 $k$ 集合中元素的和为",
+            "topic": {
+                "id": 409198,
+                "subscribed": false,
+                "commentCount": 256,
+                "viewCount": 42576,
+                "post": {
+                    "id": 995437,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 152,
+            "isEditorsPick": false,
+            "hitCount": 95687,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "combination-sum-iii",
+                "questionFrontendId": "216"
+            },
+            "next": {
+                "slug": "hui-su-bu-hui-xie-tao-lu-zai-ci-pythonja-feme",
+                "title": "【视频讲解】回溯+剪枝优化（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

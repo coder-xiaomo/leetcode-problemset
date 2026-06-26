@@ -1,0 +1,134 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "HXGEJK",
+            "title": "可怜的小猪",
+            "content": "#### 方法一：动态规划\n\n根据 $\\textit{minutesToDie}$ 和 $\\textit{minutesToTest}$，可以计算得到最大测试轮数 $\\textit{iterations} = \\Big\\lfloor \\dfrac{\\textit{minutesToTest}}{\\textit{minutesToDie}} \\Big\\rfloor$。\n\n问题的等价描述是：在 $\\textit{buckets}$ 桶液体中恰好有一桶有毒，至少需要多少只小猪才能在 $\\textit{iterations}$ 轮测试中确定有毒的是哪一桶。\n\n这个问题很难直接计算，可以从另一个角度考虑：用 $f(i, j)$ 表示 $i$ 只小猪测试 $j$ 轮最多可以在多少桶液体中确定有毒的是哪一桶。在确定最大测试轮数为 $\\textit{iterations}$ 的情况下，需要计算使得 $f(i, \\textit{iterations}) \\ge \\textit{buckets}$ 成立的最小的 $i$。\n\n如果测试轮数是 $0$ 或者小猪数量是 $0$，则不能进行测试，如果有超过 $1$ 桶液体则无法确定有毒的是哪一桶，此时最多只能在 $1$ 桶液体中确定有毒的是这唯一的一桶。因此对任意 $i$ 都有 $f(i, 0) = 1$，对任意 $j$ 都有 $f(0, j) = 1$。\n\n当 $i$ 和 $j$ 都大于 $0$ 时，可以通过递推的方法计算 $f(i, j)$ 的值。\n\n当剩下 $i$ 只小猪和 $j$ 轮测试时，如果在一轮测试之后有 $k$ 只小猪存活，则剩下 $k$ 只小猪和 $j - 1$ 轮测试。由于 $k$ 只小猪和 $j - 1$ 轮测试可以判断的最大桶数是 $f(k, j - 1)$，$i$ 只小猪中有 $k$ 只小猪存活的组合数是 $C(i, k)$，因此剩下 $k$ 只小猪和 $j - 1$ 轮测试时，可以判断的最大桶数是 $f(k, j - 1) \\times C(i, k)$。由于 $0 \\le k \\le i$，因此 $f(i, j)$ 的计算如下：\n\n$$\nf(i, j) = \\sum\\limits_{k = 0}^i f(k, j - 1) \\times C(i, k)\n$$\n\n其中 $C(i, k)$ 表示从 $i$ 个不同元素中取出 $k$ 个元素的组合，$i$ 和 $k$ 满足 $0 \\le k \\le i$。特别地，$C(0, 0) = 1$。\n\n当 $i \\ge 1$ 时，组合数的计算如下：\n\n- $C(i, 0) = C(i, i) = 1$；\n\n- 当 $0 < j < i$ 时，$C(i, j) = C(i - 1, j - 1) + C(i - 1, j)$。\n\n当小猪数量等于 $\\textit{buckets} - 1$ 时，可以将 $\\textit{buckets} - 1$ 桶液体分别给每只小猪喝一桶，剩下一桶液体没有小猪喝，如果有一只小猪死了则这只小猪喝的一桶液体有毒，如果小猪都存活则剩下一桶没有小猪喝的液体有毒，此时可以在一轮内确定有毒的是哪一桶。因此最多需要的小猪数量是 $\\textit{buckets} - 1$，$i$ 的取值范围是 $0 \\le i < \\textit{buckets}$。\n\n由于最大测试轮数 $\\textit{iterations}$ 可以根据 $\\textit{minutesToDie}$ 和 $\\textit{minutesToTest}$ 计算得到，因此最大测试轮数可以看成已知，任何情况下的测试轮数都不能超过最大测试轮数，$j$ 的取值范围是 $0 \\le j \\le \\textit{iterations}$。\n\n为了计算 $f$ 的值，一种做法是预先计算组合数，然后计算 $f$ 的值，但是题目的数据规模是 $\\textit{buckets} \\le 1000$，如果预先计算所有 $0 \\le j \\le i \\le \\textit{buckets}$ 的组合数则可能导致结果溢出。为了避免溢出，可以在计算 $f$ 的同时计算组合数。\n\n具体做法是，对于 $1 \\le i < \\textit{buckets}$ 的每个 $i$，首先计算满足 $0 \\le j \\le i$ 的所有组合数 $C(i, j)$，然后计算所有满足 $1 \\le j \\le \\textit{iterations}$ 的 $f(i, j)$。计算过程中，找到使得 $f(i, \\textit{iterations}) \\ge \\textit{buckets}$ 成立的最小的 $i$ 并返回，该返回值即为至少需要的小猪数量。\n\n特别地，当 $\\textit{buckets} = 1$ 时，不需要进行测试即可知道这唯一的一桶液体一定有毒，此时不需要任何小猪，返回 $0$。\n\n下面用一个例子说明 $f$ 的计算。假设有 $3$ 只小猪和 $4$ 轮测试，$f(3, 4) = 125$，即最多可以在 $125$ 桶液体中确定有毒的是哪一桶。\n\n将 $125$ 桶液体排成 $5 \\times 5 \\times 5$ 的正方体，每桶液体都可以用唯一的坐标 $(x, y, z)$ 表示，其中 $x$、$y$、$z$ 都是整数且取值范围都是 $[0, 4]$。\n\n> 排成棱长为 $5$ 的正方体是因为 $4$ 轮测试对应 $5$ 种状态，前 $4$ 种状态分别是在 $4$ 轮当中的某一轮喝，最后一种状态是不喝。\n\n在第 $i$ 轮测试中，第 $0$ 只小猪喝 $x = i$ 平面内的全部液体，第 $1$ 只小猪喝 $y = i$ 平面内的全部液体，第 $2$ 只小猪喝 $z = i$ 平面内的全部液体，其中 $0 \\le i < 4$。\n\n考虑第 $0$ 轮之后存活的小猪数量。\n\n- 第 $0$ 轮之后没有小猪存活。有毒的液体位于 $(0, 0, 0)$，有毒的液体的可能位置有 $f(0, 3) \\times C(3, 0) = 1$ 个。\n\n- 第 $0$ 轮之后有 $1$ 只小猪存活。假设存活的是第 $0$ 只小猪，则有毒的液体的坐标 $(x, y, z)$ 满足 $x \\ne 0$、$y = 0$ 且 $z = 0$，此时 $x$ 有 $4$ 种取值，因此有毒的液体的可能位置有 $f(1, 3) = 4$ 个。\n\n   - 由于有 $1$ 只小猪存活的组合数是 $C(3, 1) = 3$，因此有毒的液体的所有可能位置有 $f(1, 3) \\times C(3, 1) = 12$ 个。\n\n- 第 $0$ 轮之后有 $2$ 只小猪存活。假设存活的是第 $0$ 只小猪和第 $1$ 只小猪，则有毒的液体的坐标 $(x, y, z)$ 满足 $x \\ne 0$、$y \\ne 0$ 且 $z = 0$，此时 $x$ 和 $y$ 各有 $4$ 种取值，因此有毒的液体的可能位置有 $f(2, 3) = 16$ 个。\n\n   - 由于有 $2$ 只小猪存活的组合数是 $C(3, 2) = 3$，因此有毒的液体的所有可能位置有 $f(2, 3) \\times C(3, 2) = 48$ 个。\n\n- 第 $0$ 轮之后有 $3$ 只小猪存活。有毒的液体的坐标 $(x, y, z)$ 满足 $x \\ne 0$、$y \\ne 0$ 且 $z \\ne 0$，此时 $x$、$y$ 和 $z$ 各有 $4$ 种取值，因此有毒的液体的可能位置有 $f(3, 3) \\times C(3, 3) = 64$。\n\n因此 $f(3, 4) = 1 + 12 + 48 + 64 = 125$。\n\n```Java [sol1-Java]\nclass Solution {\n    public int poorPigs(int buckets, int minutesToDie, int minutesToTest) {\n        if (buckets == 1) {\n            return 0;\n        }\n        int[][] combinations = new int[buckets + 1][buckets + 1];\n        combinations[0][0] = 1;\n        int iterations = minutesToTest / minutesToDie;\n        int[][] f = new int[buckets][iterations + 1];\n        for (int i = 0; i < buckets; i++) {\n            f[i][0] = 1;\n        }\n        for (int j = 0; j <= iterations; j++) {\n            f[0][j] = 1;\n        }\n        for (int i = 1; i < buckets; i++) {\n            combinations[i][0] = 1;\n            combinations[i][i] = 1;\n            for (int j = 1; j < i; j++) {\n                combinations[i][j] = combinations[i - 1][j - 1] + combinations[i - 1][j];\n            }\n            for (int j = 1; j <= iterations; j++) {\n                for (int k = 0; k <= i; k++) {\n                    f[i][j] += f[k][j - 1] * combinations[i][i - k];\n                }\n            }\n            if (f[i][iterations] >= buckets) {\n                return i;\n            }\n        }\n        return 0;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int PoorPigs(int buckets, int minutesToDie, int minutesToTest) {\n        if (buckets == 1) {\n            return 0;\n        }\n        int[,] combinations = new int[buckets + 1, buckets + 1];\n        combinations[0, 0] = 1;\n        int iterations = minutesToTest / minutesToDie;\n        int[,] f = new int[buckets, iterations + 1];\n        for (int i = 0; i < buckets; i++) {\n            f[i, 0] = 1;\n        }\n        for (int j = 0; j <= iterations; j++) {\n            f[0, j] = 1;\n        }\n        for (int i = 1; i < buckets; i++) {\n            combinations[i, 0] = 1;\n            combinations[i, i] = 1;\n            for (int j = 1; j < i; j++) {\n                combinations[i, j] = combinations[i - 1, j - 1] + combinations[i - 1, j];\n            }\n            for (int j = 1; j <= iterations; j++) {\n                for (int k = 0; k <= i; k++) {\n                    f[i, j] += f[k, j - 1] * combinations[i, i - k];\n                }\n            }\n            if (f[i, iterations] >= buckets) {\n                return i;\n            }\n        }\n        return 0;\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int poorPigs(int buckets, int minutesToDie, int minutesToTest) {\n        if (buckets == 1) {\n            return 0;\n        }\n        vector<vector<int>> combinations(buckets + 1,vector<int>(buckets + 1));\n        combinations[0][0] = 1;\n        int iterations = minutesToTest / minutesToDie;\n        vector<vector<int>> f(buckets,vector<int>(iterations + 1));\n        for (int i = 0; i < buckets; i++) {\n            f[i][0] = 1;\n        }\n        for (int j = 0; j <= iterations; j++) {\n            f[0][j] = 1;\n        }\n        for (int i = 1; i < buckets; i++) {\n            combinations[i][0] = 1;\n            combinations[i][i] = 1;\n            for (int j = 1; j < i; j++) {\n                combinations[i][j] = combinations[i - 1][j - 1] + combinations[i - 1][j];\n            }\n            for (int j = 1; j <= iterations; j++) {\n                for (int k = 0; k <= i; k++) {\n                    f[i][j] += f[k][j - 1] * combinations[i][i - k];\n                }\n            }\n            if (f[i][iterations] >= buckets) {\n                return i;\n            }\n        }\n        return 0;\n    }\n};\n```\n\n```go [sol1-Golang]\nfunc poorPigs(buckets, minutesToDie, minutesToTest int) int {\n    if buckets == 1 {\n        return 0\n    }\n\n    combinations := make([][]int, buckets+1)\n    for i := range combinations {\n        combinations[i] = make([]int, buckets+1)\n    }\n    combinations[0][0] = 1\n\n    iterations := minutesToTest / minutesToDie\n    f := make([][]int, buckets)\n    for i := range f {\n        f[i] = make([]int, iterations+1)\n    }\n    for i := 0; i < buckets; i++ {\n        f[i][0] = 1\n    }\n    for j := 0; j <= iterations; j++ {\n        f[0][j] = 1\n    }\n\n    for i := 1; i < buckets; i++ {\n        combinations[i][0] = 1\n        for j := 1; j < i; j++ {\n            combinations[i][j] = combinations[i-1][j-1] + combinations[i-1][j]\n        }\n        combinations[i][i] = 1\n        for j := 1; j <= iterations; j++ {\n            for k := 0; k <= i; k++ {\n                f[i][j] += f[k][j-1] * combinations[i][i-k]\n            }\n        }\n        if f[i][iterations] >= buckets {\n            return i\n        }\n    }\n    return 0\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def poorPigs(self, buckets: int, minutesToDie: int, minutesToTest: int) -> int:\n        if buckets == 1:\n            return 0\n        combinations = [[0] * (buckets + 1) for _ in range(buckets + 1)]\n        combinations[0][0] = 1\n        iterations = minutesToTest // minutesToDie\n        f = [[1] * (iterations + 1)] + [[1] + [0] * iterations for _ in range(buckets - 1)]\n        for i in range(1, buckets):\n            combinations[i][0] = 1\n            for j in range(1, i):\n                combinations[i][j] = combinations[i - 1][j - 1] + combinations[i - 1][j]\n            combinations[i][i] = 1\n            for j in range(1, iterations + 1):\n                for k in range(i + 1):\n                    f[i][j] += f[k][j - 1] * combinations[i][i - k]\n            if f[i][iterations] >= buckets:\n                return i\n        return 0\n```\n\n```JavaScript [sol1-JavaScript]\nvar poorPigs = function(buckets, minutesToDie, minutesToTest) {\n    if (buckets === 1) {\n        return 0;\n    }\n    const combinations = new Array(buckets + 1).fill(0).map(() => new Array(buckets + 1).fill(0));\n    combinations[0][0] = 1;\n    const iterations = Math.floor(minutesToTest / minutesToDie);\n    const f = new Array(buckets).fill(0).map(() => new Array(iterations + 1).fill(0));\n    for (let i = 0; i < buckets; i++) {\n        f[i][0] = 1;\n    }\n    for (let j = 0; j <= iterations; j++) {\n        f[0][j] = 1;\n    }\n    for (let i = 1; i < buckets; i++) {\n        combinations[i][0] = 1;\n        combinations[i][i] = 1;\n        for (let j = 1; j < i; j++) {\n            combinations[i][j] = combinations[i - 1][j - 1] + combinations[i - 1][j];\n        }\n        for (let j = 1; j <= iterations; j++) {\n            for (let k = 0; k <= i; k++) {\n                f[i][j] += f[k][j - 1] * combinations[i][i - k];\n            }\n        }\n        if (f[i][iterations] >= buckets) {\n            return i;\n        }\n    }\n    return 0;\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(\\textit{buckets} \\times (\\textit{buckets} + \\textit{iterations}\\times\\textit{buckets}))$，其中 $\\textit{iterations} = \\Big\\lfloor \\dfrac{\\textit{minutesToTest}}{\\textit{minutesToDie}} \\Big\\rfloor$ 为最大测试轮数。最多需要循环 $O(\\textit{buckets})$ 轮，对于每一轮循环，需要 $O(\\textit{buckets})$ 的时间计算组合数，以及需要 $O(\\textit{iterations}\\times\\textit{buckets})$ 的时间计算 $f$ 的状态值。\n\n- 空间复杂度：$O(\\textit{buckets}^2 + \\textit{buckets} \\times \\textit{iterations})$，其中 $\\textit{iterations} = \\Big\\lfloor \\dfrac{\\textit{minutesToTest}}{\\textit{minutesToDie}} \\Big\\rfloor$ 为最大测试轮数。需要创建二维数组 $\\textit{combinations}$ 和 $f$。\n\n#### 方法二：数学\n\n方法一的动态规划需要计算 $f$ 的每个状态，也可以直接推导 $f$ 的每个元素的表达式。\n\n当最大测试轮数是 $1$ 时，$i$ 只小猪可以判断的最大桶数是 $f(i, 1)$。根据递推关系，有\n\n$$\n\\begin{aligned}\nf(i, 1) &= \\sum\\limits_{k = 0}^i f(k, 0) \\times C(i, k) \\\\\n&= \\sum\\limits_{k = 0}^i C(i, k) \\\\\n&= 2^i\n\\end{aligned}\n$$\n\n当最大测试轮数是 $2$ 时，$i$ 只小猪可以判断的最大桶数是 $f(i, 2)$。根据递推关系，有\n\n$$\n\\begin{aligned}\nf(i, 2) &= \\sum\\limits_{k = 0}^i f(k, 1) \\times C(i, k) \\\\\n&= \\sum\\limits_{k = 0}^i 2^k \\times C(i, k) \\\\\n&= 3^i\n\\end{aligned}\n$$\n\n推广到一般情况，当最大测试轮数是 $j$ 时，$i$ 只小猪可以判断的最大桶数是 $f(i, j)$。根据递推关系，有\n\n$$\n\\begin{aligned}\nf(i, j) &= \\sum\\limits_{k = 0}^i f(k, j - 1) \\times C(i, k) \\\\\n&= \\sum\\limits_{k = 0}^i j^k \\times C(i, k) \\\\\n&= (j + 1)^i\n\\end{aligned}\n$$\n\n上述结论可以通过二项式定理证明。\n\n当最大测试轮数为 $\\textit{iterations}$ 时，需要找到使得 $(\\textit{iterations} + 1)^i \\ge \\textit{buckets}$ 成立的最小的 $i$，即为至少需要的小猪数量。令 $\\textit{states} = \\textit{iterations} + 1$，则至少需要的小猪数量是 $\\lceil \\log_{\\textit{states}} \\textit{buckets} \\rceil$。\n\n实现方面需要注意浮点数的精度问题。\n\n```Java [sol2-Java]\nclass Solution {\n    public int poorPigs(int buckets, int minutesToDie, int minutesToTest) {\n        int states = minutesToTest / minutesToDie + 1;\n        int pigs = (int) Math.ceil(Math.log(buckets) / Math.log(states) - 1e-5);\n        return pigs;\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    public int PoorPigs(int buckets, int minutesToDie, int minutesToTest) {\n        int states = minutesToTest / minutesToDie + 1;\n        int pigs = (int) Math.Ceiling(Math.Log(buckets) / Math.Log(states) - 1e-5);\n        return pigs;\n    }\n}\n```\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    int poorPigs(int buckets, int minutesToDie, int minutesToTest) {\n        int states = minutesToTest / minutesToDie + 1;\n        int pigs = ceil(log(buckets) / log(states) - 1e-5);\n        return pigs;\n    }\n};\n```\n\n```go [sol2-Golang]\nfunc poorPigs(buckets, minutesToDie, minutesToTest int) int {\n    states := minutesToTest/minutesToDie + 1\n    return int(math.Ceil(math.Log(float64(buckets)) / math.Log(float64(states)) - 1e-5))\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def poorPigs(self, buckets: int, minutesToDie: int, minutesToTest: int) -> int:\n        states = minutesToTest // minutesToDie + 1\n        return ceil(log(buckets) / log(states) - 1e-5)\n```\n\n```JavaScript [sol2-JavaScript]\nvar poorPigs = function(buckets, minutesToDie, minutesToTest) {\n    const states = Math.floor(minutesToTest / minutesToDie) + 1;\n    const pigs = Math.ceil(Math.log(buckets) / Math.log(states) - 1e-5);\n    return pigs;\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(1)$。\n\n- 空间复杂度：$O(1)$。",
+            "slateValue": "",
+            "slug": "ke-lian-de-xiao-zhu-by-leetcode-solution-z0h7",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "HXGEJK",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 68,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 6,
+                    "reactionType": "CONFUSED"
+                },
+                {
+                    "count": 3,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Combinatorics",
+                    "nameTranslated": "组合数学",
+                    "slug": "combinatorics",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-11-24T02:56:58.191176+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 根据 $\\textit{minutesToDie}$ 和 $\\textit{minutesToTest}$，可以计算得到最大测试轮数 $\\textit{iterations} = \\Big\\lfloor \\dfrac{\\textit{minutesToTest}}{\\textit{minutesToD",
+            "topic": {
+                "id": 1119222,
+                "subscribed": false,
+                "commentCount": 161,
+                "viewCount": 23628,
+                "post": {
+                    "id": 2365869,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 153,
+            "isEditorsPick": false,
+            "hitCount": 44649,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "poor-pigs",
+                "questionFrontendId": "458"
+            },
+            "next": {
+                "slug": "hua-jie-suan-fa-458-ke-lian-de-xiao-zhu-by-guanpen",
+                "title": "画解算法：458. 可怜的小猪"
+            },
+            "prev": null
+        }
+    }
+}

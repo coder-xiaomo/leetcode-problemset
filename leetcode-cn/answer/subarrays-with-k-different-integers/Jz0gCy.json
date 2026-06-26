@@ -1,0 +1,137 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "Jz0gCy",
+            "title": "K 个不同整数的子数组",
+            "content": "#### 方法一：滑动窗口\n\n**思路及算法**\n\n我们容易发现，对于任意一个右端点，可能存在一系列左端点与其对应，满足两端点所指区间对应的子数组内恰有 $k$ 个不同整数。因此可能有 $O(n^2)$ 个子数组满足条件。因此无法暴力解决该题。\n\n分析这些左端点，我们可以证明：对于任意一个右端点，能够与其对应的左端点们必然相邻。\n\n证明非常直观，假设区间 $[l_1,r]$ 和 $[l_2,r]$ 为满足条件的数组（不失一般性，设 $l_1\\leq l_2$）。现在我们设存在一个 $l$ 满足 $l_1 \\leq l \\leq l_2$，那么区间 $[l,r]$ 作为 $[l_1,r]$ 的子数组，其中的不同整数数量必然不超过 $k$。同理，区间 $[l,r]$ 作为 $[l_2,r]$ 的父数组，其中的不同整数数量必然不少于 $k$。那么可知区间 $[l,r]$ 中的不同整数数量即为 $k$。\n\n这样我们就可以用一个区间 $[l_1,l_2]$ 来代表能够与右端点 $r$ 对应的左端点们。\n\n同时，我们可以发现：当右端点向右移动时，左端点区间也同样向右移动。因为当我们在原有区间的右侧添加元素时，区间中的不同整数数量不会减少而只会不变或增加，因此我们需要在区间左侧删除一定元素，以保证区间内整数数量仍然为 $k$。\n\n于是我们可以用滑动窗口解决本题，和普通的滑动窗口解法的不同之处在于，我们需要记录两个左指针 $\\textit{left}_1$ 与 $\\textit{left}_2$ 来表示左端点区间 $[\\textit{left}_1,\\textit{left}_2)$。第一个左指针表示极大的包含 $k$ 个不同整数的区间的左端点，第二个左指针则表示极大的包含 $k-1$ 个不同整数的区间的左端点。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int subarraysWithKDistinct(vector<int>& nums, int k) {\n        int n = nums.size();\n        vector<int> num1(n + 1), num2(n + 1);\n        int tot1 = 0, tot2 = 0;\n        int left1 = 0, left2 = 0, right = 0;\n        int ret = 0;\n        while (right < n) {\n            if (!num1[nums[right]]) {\n                tot1++;\n            }\n            num1[nums[right]]++;\n            if (!num2[nums[right]]) {\n                tot2++;\n            }\n            num2[nums[right]]++;\n            while (tot1 > k) {\n                num1[nums[left1]]--;\n                if (!num1[nums[left1]]) {\n                    tot1--;\n                }\n                left1++;\n            }\n            while (tot2 > k - 1) {\n                num2[nums[left2]]--;\n                if (!num2[nums[left2]]) {\n                    tot2--;\n                }\n                left2++;\n            }\n            ret += left2 - left1;\n            right++;\n        }\n        return ret;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int subarraysWithKDistinct(int[] nums, int k) {\n        int n = nums.length;\n        int[] num1 = new int[n + 1];\n        int[] num2 = new int[n + 1];\n        int tot1 = 0, tot2 = 0;\n        int left1 = 0, left2 = 0, right = 0;\n        int ret = 0;\n        while (right < n) {\n            if (num1[nums[right]] == 0) {\n                tot1++;\n            }\n            num1[nums[right]]++;\n            if (num2[nums[right]] == 0) {\n                tot2++;\n            }\n            num2[nums[right]]++;\n            while (tot1 > k) {\n                num1[nums[left1]]--;\n                if (num1[nums[left1]] == 0) {\n                    tot1--;\n                }\n                left1++;\n            }\n            while (tot2 > k - 1) {\n                num2[nums[left2]]--;\n                if (num2[nums[left2]] == 0) {\n                    tot2--;\n                }\n                left2++;\n            }\n            ret += left2 - left1;\n            right++;\n        }\n        return ret;\n    }\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar subarraysWithKDistinct = function(nums, k) {\n    const n = nums.length;\n    const num1 = new Array(n + 1).fill(0);\n    const num2 = new Array(n + 1).fill(0);\n    let tot1 = 0, tot2 = 0;\n    let left1 = 0, left2 = 0, right = 0;\n    let ret = 0;\n    while (right < n) {\n        if (num1[nums[right]] == 0) {\n            tot1++;\n        }\n        num1[nums[right]]++;\n        if (num2[nums[right]] == 0) {\n            tot2++;\n        }\n        num2[nums[right]]++;\n        while (tot1 > k) {\n            num1[nums[left1]]--;\n            if (num1[nums[left1]] == 0) {\n                tot1--;\n            }\n            left1++;\n        }\n        while (tot2 > k - 1) {\n            num2[nums[left2]]--;\n            if (num2[nums[left2]] == 0) {\n                tot2--;\n            }\n            left2++;\n        }\n        ret += left2 - left1;\n        right++;\n    }\n    return ret;\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def subarraysWithKDistinct(self, nums: List[int], k: int) -> int:\n        n = len(nums)\n        num1, num2 = collections.Counter(), collections.Counter()\n        tot1 = tot2 = 0\n        left1 = left2 = right = 0\n        ret = 0\n\n        for right, num in enumerate(nums):\n            if num1[num] == 0:\n                tot1 += 1\n            num1[num] += 1\n            if num2[num] == 0:\n                tot2 += 1\n            num2[num] += 1\n            \n            while tot1 > k:\n                num1[nums[left1]] -= 1\n                if num1[nums[left1]] == 0:\n                    tot1 -= 1\n                left1 += 1\n            while tot2 > k - 1:\n                num2[nums[left2]] -= 1\n                if num2[nums[left2]] == 0:\n                    tot2 -= 1\n                left2 += 1\n            \n            ret += left2 - left1\n        \n        return ret\n```\n\n```go [sol1-Golang]\nfunc subarraysWithKDistinct(nums []int, k int) (ans int) {\n    n := len(nums)\n    num1 := make([]int, n+1)\n    num2 := make([]int, n+1)\n    var tot1, tot2, left1, left2 int\n    for _, v := range nums {\n        if num1[v] == 0 {\n            tot1++\n        }\n        num1[v]++\n        if num2[v] == 0 {\n            tot2++\n        }\n        num2[v]++\n        for tot1 > k {\n            num1[nums[left1]]--\n            if num1[nums[left1]] == 0 {\n                tot1--\n            }\n            left1++\n        }\n        for tot2 > k-1 {\n            num2[nums[left2]]--\n            if num2[nums[left2]] == 0 {\n                tot2--\n            }\n            left2++\n        }\n        ans += left2 - left1\n    }\n    return ans\n}\n```\n\n```C [sol1-C]\nint subarraysWithKDistinct(int* nums, int numsSize, int k) {\n    int num1[numsSize + 1], num2[numsSize + 1];\n    memset(num1, 0, sizeof(int) * (numsSize + 1));\n    memset(num2, 0, sizeof(int) * (numsSize + 1));\n    int tot1 = 0, tot2 = 0;\n    int left1 = 0, left2 = 0, right = 0;\n    int ret = 0;\n    while (right < numsSize) {\n        if (!num1[nums[right]]) {\n            tot1++;\n        }\n        num1[nums[right]]++;\n        if (!num2[nums[right]]) {\n            tot2++;\n        }\n        num2[nums[right]]++;\n        while (tot1 > k) {\n            num1[nums[left1]]--;\n            if (!num1[nums[left1]]) {\n                tot1--;\n            }\n            left1++;\n        }\n        while (tot2 > k - 1) {\n            num2[nums[left2]]--;\n            if (!num2[nums[left2]]) {\n                tot2--;\n            }\n            left2++;\n        }\n        ret += left2 - left1;\n        right++;\n    }\n    return ret;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是数组长度。我们至多只需要遍历该数组三次（右指针和两个左指针各一次）。\n\n- 空间复杂度：$O(n)$，其中 $n$ 是数组长度。我们需要记录每一个数的出现次数，本题中数的大小不超过数组长度。",
+            "slateValue": "",
+            "slug": "k-ge-bu-tong-zheng-shu-de-zi-shu-zu-by-l-9ylo",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "Jz0gCy",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 40,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 3,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Sliding Window",
+                    "nameTranslated": "滑动窗口",
+                    "slug": "sliding-window",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Counting",
+                    "nameTranslated": "计数",
+                    "slug": "counting",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2021-02-08T15:39:25.914659+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：滑动窗口 思路及算法 我们容易发现，对于任意一个右端点，可能存在一系列左端点与其对应，满足两端点所指区间对应的子数组内恰有 $k$ 个不同整数。因此可能有 $O(n^2)$ 个子数组满足条件。因此无法暴力解决该题。 分析这些左端点，我们可以证明：对于任意一个右端点，能够与其对应的左端点们必然相邻。 证明非常直观",
+            "topic": {
+                "id": 598045,
+                "subscribed": false,
+                "commentCount": 51,
+                "viewCount": 13593,
+                "post": {
+                    "id": 1379004,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 46,
+            "isEditorsPick": false,
+            "hitCount": 25501,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "subarrays-with-k-different-integers",
+                "questionFrontendId": "992"
+            },
+            "next": {
+                "slug": "cong-zui-jian-dan-de-wen-ti-yi-bu-bu-tuo-7f4v",
+                "title": "从最简单的问题一步步拓展，理解之后发现本题并不难"
+            },
+            "prev": {
+                "slug": "k-ge-bu-tong-zheng-shu-de-zi-shu-zu-by-l-ud34",
+                "title": "🎦 K 个不同整数的子数组"
+            }
+        }
+    }
+}

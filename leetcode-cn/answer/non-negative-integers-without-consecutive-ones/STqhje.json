@@ -1,0 +1,122 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "STqhje",
+            "title": "不含连续1的非负整数",
+            "content": "#### 方法一：动态规划\n\n**思路**\n\n因为正整数 $n$ 可以取到 $10^9$，所以显然是不可能通过暴力遍历从 $1$ 到 $n$ 的所有正整数来计算答案的。直观上，我们也可以感觉到，在暴力遍历的过程中，有非常多的计算是重复的。因此，我们考虑通过优化暴力遍历来解决这个问题。\n\n为了形象地将重复计算的部分找出来，我们不妨将小于等于 $n$ 的非负整数用 $01$ 字典树的形式表示，其中的每一条从根结点到叶结点的路径都是一个小于等于 $n$ 的非负整数（包含前导 $0$）。\n\n于是，题目可以转化为：在由所有小于等于 $n$ 的非负整数构成的 $01$ 字典树中，找出不包含连续 $1$ 的从根结点到叶结点的路径数量。\n\n![g1](https://assets.leetcode.cn/solution-static/600/g1.png)\n\n以 $n = 6 = (110)_2$ 为例，我们可以发现：\n\n* 对于 $01$ 字典树中的两个节点 $n_1$ 和 $n_2$，如果它们的高度相同，节点的值也相同，并且以它们为根结点的两棵子树都是满二叉树，那么它们包含的无连续 $1$ 的从根结点到叶结点的路径个数是相同的。\n* 对于 $01$ 字典树中的两个结点 $n_1$ 和 $n_2$，如果 $n_2$ 是 $n_1$ 的子结点，并且它们的值都是 $1$，那么所有经过 $n_1$ 和 $n_2$ 的从根结点到叶结点的路径都一定包含连续的 $1$。\n\n注意到由小于等于 $n$ 的非负整数构成的 $01$ 字典树是完全二叉树。于是有：如果某个结点包含两个子结点，那么其左子结点为根结点是 $0$ 的满二叉树，其右子结点为根结点是 $1$ 的完全二叉树；如果某个结点只有一个子结点，那么其左子结点为根结点是 $0$ 的完全二叉树。\n\n我们在计算不包含连续 $1$ 的从根结点到叶结点的路径数量时，可以不断地将字典树拆分为根结点为 $0$ 的满二叉树和根结点不定的完全二叉树。\n\n于是，题目被拆分为以下两个子问题：\n\n* 问题 $1$：如何计算根结点为 $0$ 的满二叉树中，不包含连续 $1$ 的从根结点到叶结点的路径数量。\n* 问题 $2$：如何将将字典树拆分为根结点为 $0$ 的满二叉树和根结点不定的完全二叉树。\n\n**算法**\n\n首先解决第 $1$ 个问题。\n\n我们发现，在高度为 $t$、根结点为 $0$ 的满二叉树中：其左子结点是高度为 $t-1$、根结点为 $0$ 的满二叉树。其右子结点是高度为 $t-1$、根结点为 $1$ 的满二叉树；但是因为路径中不能有连续 $1$，所以右子结点下只有其左子结点包含的从根结点到叶结点的路径才符合要求，而其左子结点是高度为 $t-2$、根结点为 $0$ 的满二叉树。\n\n于是，高度为 $t$、根结点为 $0$ 的满二叉树中不包含连续 $1$ 的从根结点到叶结点的路径数量，等于高度为 $t-1$、根结点为 $0$ 的满二叉树中的路径数量与高度为 $t-2$，根结点为 $0$ 的满二叉树中的路径数量之和。因此，这个问题可以通过动态规划解决：\n\n状态：$\\textit{dp}[t]$。$\\textit{dp}[t]$ 表示高度为 $t-1$、根结点为 $0$ 的满二叉树中，不包含连续 $1$ 的从根结点到叶结点的路径数量。\n\n状态转移方程：\n$$\ndp[t] = \n\\begin{cases}\ndp[t-1] + dp[t-2], \\quad t \\ge 2 \\\\\n1, \\quad t < 2\n\\end{cases}\n$$\n接着解决第 $2$ 个问题。\n\n考虑到 $01$ 字典树作为完全二叉树所具有的性质，我们可以从根结点开始处理。如果当前结点包含两个子结点，则用问题 $1$ 的解决方法计算其左子结点中不包含连续 $1$ 的从根结点到叶结点的路径数量，并继续处理其右子结点；如果当前结点只包含一个左子结点，那么继续处理其左子结点。\n\n在实现中，需要注意如果已经出现连续 $1$ 则不用继续处理；另外，叶结点没有子结点，需要作为特殊情况单独处理。\n\n**代码**\n\n```Python [sol1-Python3]\nclass Solution:\n    def findIntegers(self, n: int) -> int:\n        dp = [0] * 31\n        dp[0] = 1\n        dp[1] = 1\n        for i in range(2, 31):\n            dp[i] = dp[i - 1] + dp[i - 2]\n\n        pre = 0\n        res = 0\n\n        for i in range(29, -1, -1):\n            val = (1 << i)\n            if n & val:\n                res += dp[i + 1]\n                if pre == 1:\n                    break\n                pre = 1\n            else:\n                pre = 0\n\n            if i == 0:\n                res += 1\n\n        return res\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int findIntegers(int n) {\n        int[] dp = new int[31];\n        dp[0] = dp[1] = 1;\n        for (int i = 2; i < 31; ++i) {\n            dp[i] = dp[i - 1] + dp[i - 2];\n        }\n\n        int pre = 0, res = 0;\n        for (int i = 29; i >= 0; --i) {\n            int val = 1 << i;\n            if ((n & val) != 0) {\n                res += dp[i + 1];\n                if (pre == 1) {\n                    break;\n                }\n                pre = 1;\n            } else {\n                pre = 0;\n            }\n\n            if (i == 0) {\n                ++res;\n            }\n        }\n\n        return res;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int FindIntegers(int n) {\n        int[] dp = new int[31];\n        dp[0] = dp[1] = 1;\n        for (int i = 2; i < 31; ++i) {\n            dp[i] = dp[i - 1] + dp[i - 2];\n        }\n\n        int pre = 0, res = 0;\n        for (int i = 29; i >= 0; --i) {\n            int val = 1 << i;\n            if ((n & val) != 0) {\n                res += dp[i + 1];\n                if (pre == 1) {\n                    break;\n                }\n                pre = 1;\n            } else {\n                pre = 0;\n            }\n\n            if (i == 0) {\n                ++res;\n            }\n        }\n\n        return res;\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int findIntegers(int n) {\n        vector<int> dp(31);\n        dp[0] = dp[1] = 1;\n        for (int i = 2; i < 31; ++i) {\n            dp[i] = dp[i - 1] + dp[i - 2];\n        }\n\n        int pre = 0, res = 0;\n        for (int i = 29; i >= 0; --i) {\n            int val = 1 << i;\n            if ((n & val) != 0) {\n                res += dp[i + 1];\n                if (pre == 1) {\n                    break;\n                }\n                pre = 1;\n            } else {\n                pre = 0;\n            }\n\n            if (i == 0) {\n                ++res;\n            }\n        }\n\n        return res;\n    }\n};\n```\n\n```JavaScript [sol1-JavaScript]\nvar findIntegers = function(n) {\n    const dp = new Array(31).fill(0);\n    dp[0] = dp[1] = 1;\n    for (let i = 2; i < 31; ++i) {\n        dp[i] = dp[i - 1] + dp[i - 2];\n    }\n\n    let pre = 0, res = 0;\n    for (let i = 29; i >= 0; --i) {\n        let val = 1 << i;\n        if ((n & val) !== 0) {\n            res += dp[i + 1];\n            if (pre === 1) {\n                break;\n            }\n            pre = 1;\n        } else {\n            pre = 0;\n        }\n\n        if (i === 0) {\n            ++res;\n        }\n    }\n\n    return res;\n};\n```\n\n```go [sol1-Golang]\nfunc findIntegers(n int) (ans int) {\n    dp := [31]int{1, 1}\n    for i := 2; i < 31; i++ {\n        dp[i] = dp[i-1] + dp[i-2]\n    }\n    for i, pre := 29, 0; i >= 0; i-- {\n        val := 1 << i\n        if n&val > 0 {\n            ans += dp[i+1]\n            if pre == 1 {\n                break\n            }\n            pre = 1\n        } else {\n            pre = 0\n        }\n        if i == 0 {\n            ans++\n        }\n    }\n    return\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(\\log (n_{\\max}))$，其中 $n_{\\max}$ 表示 $n$ 的最大值，本题中 $n=10^9$，$\\log (n_{\\max}) \\approx 30$。我们需要 $O(\\log (n_{\\max}))$ 的时间来计算根结点为 $0$ 的满二叉树中不包含连续 $1$ 的从根结点到叶结点的路径数量，以及 $O(\\log (n_{\\max}))$ 的时间来迭代地处理每一个二进制位。\n\n- 空间复杂度：$O(\\log (n_{\\max}))$。我们需要额外的一个数组保存根结点为 $0$ 的满二叉树中不包含连续 $1$ 的路径数量。",
+            "slateValue": "",
+            "slug": "bu-han-lian-xu-1de-fei-fu-zheng-shu-by-l-9l86",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "STqhje",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 94,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 20,
+                    "reactionType": "CONFUSED"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-09-10T15:51:09.897815+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 思路 因为正整数 $n$ 可以取到 $10^9$，所以显然是不可能通过暴力遍历从 $1$ 到 $n$ 的所有正整数来计算答案的。直观上，我们也可以感觉到，在暴力遍历的过程中，有非常多的计算是重复的。因此，我们考虑通过优化暴力遍历来解决这个问题。 为了形象地将重复计算的部分找出来，我们不妨将小于等于 $",
+            "topic": {
+                "id": 990719,
+                "subscribed": false,
+                "commentCount": 178,
+                "viewCount": 23807,
+                "post": {
+                    "id": 2119592,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 180,
+            "isEditorsPick": false,
+            "hitCount": 57359,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "non-negative-integers-without-consecutive-ones",
+                "questionFrontendId": "600"
+            },
+            "next": {
+                "slug": "by-endlesscheng-1egu",
+                "title": "数位 DP（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

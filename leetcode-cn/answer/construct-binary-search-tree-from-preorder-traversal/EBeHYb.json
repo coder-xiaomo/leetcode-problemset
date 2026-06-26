@@ -1,0 +1,110 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "EBeHYb",
+            "title": "前序遍历构造二叉搜索树",
+            "content": "#### 方法一：使用先序遍历和中序遍历构造二叉树\n\n**分析**\n\n由于树是「二叉搜索树」，我们知道「二叉搜索树」的中序遍历的结果是有序序列。我们可以对「前序遍历」的结果 **排序** 得到「中序遍历」的结果。于是问题就转换成为 [105. 从前序与中序遍历序列构造二叉树](/problems/construct-binary-tree-from-preorder-and-inorder-traversal/)，该题也是一道非常经典的二叉树问题，读者可以参考 [官方题解](https://leetcode.cn/problems/construct-binary-tree-from-preorder-and-inorder-traversal/solution/cong-qian-xu-yu-zhong-xu-bian-li-xu-lie-gou-zao-9/)。\n\n\n**代码**\n\n```Java []\nimport java.util.Arrays;\nimport java.util.HashMap;\nimport java.util.Map;\n\npublic class Solution {\n\n    public TreeNode bstFromPreorder(int[] preorder) {\n        int len = preorder.length;\n        Map<Integer, Integer> hashMap = new HashMap<>();\n\n        int[] inorder = new int[len];\n        System.arraycopy(preorder, 0, inorder, 0, len);\n        Arrays.sort(inorder);\n\n        int index = 0;\n        for (Integer value : inorder) {\n            hashMap.put(value, index);\n            index++;\n        }\n        return dfs(0, len - 1, 0, len - 1, preorder, hashMap);\n    }\n\n    public TreeNode dfs(int preLeft, int preRight, int inLeft, int inRight, int[] preorder, Map<Integer, Integer> hashMap) {\n        if (preLeft > preRight || inLeft > inRight) {\n            return null;\n        }\n        int pivot = preorder[preLeft];\n        TreeNode root = new TreeNode(pivot);\n        int pivotIndex = hashMap.get(pivot);\n        root.left = dfs(preLeft + 1, pivotIndex - inLeft + preLeft,\n                inLeft, pivotIndex - 1, preorder, hashMap);\n        root.right = dfs(pivotIndex - inLeft + preLeft + 1, preRight,\n                pivotIndex + 1, inRight, preorder, hashMap);\n        return root;\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(N \\log N)$。对先序遍历进行排序的时间复杂度为 $O(N \\log N)$，构造二叉搜索树的时间复杂度为 $O(N)$，因此总的时间复杂度为 $O(N \\log N)$。\n- 空间复杂度：$O(N)$，中序遍历使用的数组的空间为 $O(N)$。\n\n---\n\n#### 方法二：二分查找左右子树的分界线递归构建左右子树\n\n当我们「先序遍历序列」排序得到「中序遍历序列」时，我们花费了 $O(N \\log N)$ 的时间复杂度。但事实上并没有得到任何额外的信息。可以直接跳过生成中序遍历的步骤，根据先序遍历直接构造出二叉树。\n\n根据「前序遍历」的定义：前序遍历的第 1 个结点一定是二叉树的根结点。\n\n再根据「二叉搜索树」的定义：根据前序遍历的第 1 个结点的值可以把「前序遍历」序列除了第 1 个结点以外后面的部分，分为两个区间：\n\n+ 第 1 个子区间里所有的元素都严格小于根结点，我们可以递归构建成根结点的左子树；\n+ 第 2 个子区间里所有的元素都严格大于根结点，我们可以递归构建成根结点的右子树。\n\n找到这两个子区间的分界线，可以使用二分查找。下面我们通过具体例子向大家展示这种方法。\n\n<![1.png](https://pic.leetcode.cn/1617689842-ptVRHZ-1.png),![2.png](https://pic.leetcode.cn/1617689842-eyVuCz-2.png),![3.png](https://pic.leetcode.cn/1617689842-RnDGCZ-3.png),![4.png](https://pic.leetcode.cn/1617689842-nyGiDG-4.png),![5.png](https://pic.leetcode.cn/1617689842-nsSgHL-5.png)>\n\n\n**代码**\n\n```Java []\npublic class Solution {\n\n    public TreeNode bstFromPreorder(int[] preorder) {\n        int len = preorder.length;\n        if (len == 0) {\n            return null;\n        }\n        return dfs(preorder, 0, len - 1);\n    }\n\n    /**\n     * 根据 preorder 的子区间 [left..right] 构建二叉树\n     *\n     * @param preorder\n     * @param left\n     * @param right\n     * @return\n     */\n    private TreeNode dfs(int[] preorder, int left, int right) {\n        if (left > right) {\n            return null;\n        }\n\n        TreeNode root = new TreeNode(preorder[left]);\n        if (left == right) {\n            return root;\n        }\n\n        // 在区间 [left..right] 里找最后一个小于 preorder[left] 的下标\n        // 注意这里设置区间的左边界为 left ，不能是 left + 1\n        // 这是因为考虑到区间只有 2 个元素 [left, right] 的情况，第 1 个部分为空区间，第 2 部分只有一个元素 right\n        int l = left;\n        int r = right;\n\n        while (l < r) {\n            int mid = l + (r - l + 1) / 2;\n            if (preorder[mid] < preorder[left]) {\n                // 下一轮搜索区间是 [mid, r]\n                l = mid;\n            } else {\n                // 下一轮搜索区间是 [l, mid - 1]\n                r = mid - 1;\n            }\n        }\n        \n        TreeNode leftTree = dfs(preorder, left + 1, l);\n        TreeNode rightTree = dfs(preorder, l + 1, right);\n        root.left = leftTree;\n        root.right = rightTree;\n        return root;\n    }\n}\n```\n\n\n**复杂度分析**：\n\n+ 时间复杂度：$O(N \\log N)$，在找左右子树分界线的时候时间复杂度为 $O(\\log N)$；\n+ 空间复杂度：$O(N)$。\n\n---\n\n\n\n#### 方法三：根据数值上下界递归构建左右子树\n\n**分析**\n\n由于题目中的二叉树是二叉搜索树，因此 **根据先序遍历构造出的二叉树才是唯一的**。\n\n我们使用递归的方法，在扫描先序遍历的同时构造出二叉树。我们在递归时维护一个 `(lower, upper)` 二元组，表示当前位置可以插入的节点的值的上下界。如果此时先序遍历位置的值处于上下界中，就将这个值作为新的节点插入到当前位置，并递归地处理当前位置的左右孩子的两个位置。否则回溯到当前位置的父节点。\n\n**算法**\n\n- 将 `lower` 和 `upper` 的初始值分别设置为负无穷和正无穷，因为根节点的值可以为任意值。\n- 从先序遍历的第一个元素 `idx = 0` 开始构造二叉树，构造使用的函数名为 `helper(lower, upper)`：\n  - 如果 `idx = n`，即先序遍历中的所有元素已经被添加到二叉树中，那么此时构造已经完成；\n  - 如果当前 `idx` 对应的先序遍历中的元素 `val = preorder[idx]` 的值不在 `[lower, upper]` 范围内，则进行回溯；\n  - 如果 `idx` 对应的先序遍历中的元素 `val = preorder[idx]` 的值在 `[lower, upper]` 范围内，则新建一个节点 `root`，并对其左孩子递归处理 `helper(lower, val)`，对其右孩子递归处理 `helper(val, upper)`。\n\n下图展示了这个过程。\n\n![bla](https://pic.leetcode.cn/Figures/1008/recursion2.png){:width=600}\n{:align=center}\n\n\n**代码**\n\n```Java []\npublic class Solution {\n\n    private int index = 0;\n    private int[] preorder;\n    private int len;\n\n    /**\n     * 深度优先遍历，遍历的时候把左右边界的值传下去\n     *\n     * @param preorder\n     * @return\n     */\n    public TreeNode bstFromPreorder(int[] preorder) {\n        this.preorder = preorder;\n        this.len = preorder.length;\n        return dfs(Integer.MIN_VALUE, Integer.MAX_VALUE);\n    }\n\n    /**\n     * 通过下限和上限来控制指针移动的范围\n     *\n     * @param lowerBound\n     * @param upperBound\n     * @return\n     */\n    private TreeNode dfs(int lowerBound, int upperBound) {\n        // 所有的元素都已经添加到了二叉树中\n        if (index == len) {\n            return null;\n        }\n\n        int cur = preorder[index];\n        if (cur < lowerBound || cur > upperBound) {\n            return null;\n        }\n\n        index++;\n        TreeNode root = new TreeNode(cur);\n        root.left = dfs(lowerBound, cur);\n        root.right = dfs(cur, upperBound);\n        return root;\n    }\n}\n```\n\n**复杂度分析**\n\n+ 时间复杂度：$O(N)$，这里 $N$ 是输入数组的长度。\n+ 空间复杂度：$O(N)$。\n\n\n---\n\n#### 方法四：迭代\n\n方法三中的递归可以借助「栈」迭代实现「递归」的功能。\n\n**算法**\n\n+ 将先序遍历中的第一个元素作为二叉树的根节点，即 `root = new TreeNode(preorder[0])`，并将其放入栈中。\n+ 使用 `for` 循环迭代先序遍历中剩下的所有元素：\n  + 将栈顶的元素作为父节点，当前先序遍历中的元素作为子节点。如果栈顶的元素值小于子节点的元素值，则将栈顶的元素弹出并作为新的父节点，直到栈空或栈顶的元素值大于子节点的元素值。注意，这里作为父节点的是最后一个被弹出栈的元素，而不是此时栈顶的元素；\n  + 如果父节点的元素值小于子节点的元素值，则子节点为右孩子，否则为左孩子；\n  + 将子节点放入栈中。\n\n下面的动画展示了这个过程。\n\n\n<![1200](https://pic.leetcode.cn/Figures/1008/1008_slide_1.png),![1200](https://pic.leetcode.cn/Figures/1008/1008_slide_2.png),![1200](https://pic.leetcode.cn/Figures/1008/1008_slide_3.png),![1200](https://pic.leetcode.cn/Figures/1008/1008_slide_4.png),![1200](https://pic.leetcode.cn/Figures/1008/1008_slide_5.png),![1200](https://pic.leetcode.cn/Figures/1008/1008_slide_6.png),![1200](https://pic.leetcode.cn/Figures/1008/1008_slide_7.png),![1200](https://pic.leetcode.cn/Figures/1008/1008_slide_8.png),![1200](https://pic.leetcode.cn/Figures/1008/1008_slide_9.png),![1200](https://pic.leetcode.cn/Figures/1008/1008_slide_10.png),![1200](https://pic.leetcode.cn/Figures/1008/1008_slide_11.png),![1200](https://pic.leetcode.cn/Figures/1008/1008_slide_12.png)>\n\n**代码**\n\n```Java []\nimport java.util.ArrayDeque;\nimport java.util.Deque;\n\npublic class Solution {\n\n    public TreeNode bstFromPreorder(int[] preorder) {\n        int len = preorder.length;\n        if (len == 0) {\n            return null;\n        }\n\n        TreeNode root = new TreeNode(preorder[0]);\n        Deque<TreeNode> stack = new ArrayDeque<>();\n        stack.push(root);\n\n        for (int i = 1; i < len; i++) {\n            // 将栈的最后一个元素作为父元素，并从下一个前序遍历的节点创建子节点\n            TreeNode node = stack.peekLast();\n            TreeNode currentNode = new TreeNode(preorder[i]);\n            \n            // 栈中小于当前节点值的元素全部出栈，当前节点连接到最后一个弹出栈的结点的右边\n            while (!stack.isEmpty() && stack.peekLast().val < currentNode.val) {\n                node = stack.removeLast();\n            }\n            \n            if (node.val < currentNode.val) {\n                node.right = currentNode;\n            } else {\n                node.left = currentNode;\n            }\n            stack.addLast(currentNode);\n        }\n        return root;\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(N)$，仅扫描前序遍历一次。\n- 空间复杂度：$O(N)$，用来存储栈和二叉树。",
+            "slateValue": "",
+            "slug": "jian-kong-er-cha-shu-by-leetcode",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "EBeHYb",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 61,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 4,
+                    "reactionType": "CONFUSED"
+                },
+                {
+                    "count": 3,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Binary Search Tree",
+                    "nameTranslated": "二叉搜索树",
+                    "slug": "binary-search-tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Recursion",
+                    "nameTranslated": "递归",
+                    "slug": "recursion",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2019-01-22T02:44:29.644916+00:00",
+            "thumbnail": "https://pic.leetcode-cn.com/Figures/1008/recursion2.png",
+            "author": {
+                "username": "LeetCode",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/uploaded_files/2021/03/73c9f099-abbe-4d94-853f-f8abffd459cd/leetcode.png",
+                    "userSlug": "leetcode",
+                    "realName": "LeetCode",
+                    "reputation": 2117
+                }
+            },
+            "summary": "方法一：使用先序遍历和中序遍历构造二叉树\n分析\n由于树是「二叉搜索树」，我们知道「二叉搜索树」的中序遍历的结果是有序序列。我们可以对「前序遍历」的结果 排序 得到「中序遍历」的结果。于是问题就转换成为 105. 从前序与中序遍历序列构造二叉树，该题也是一道非常经典的二叉树问题，读者可以参考 官方题解。\n代码\n复杂度分",
+            "topic": {
+                "id": 3596,
+                "subscribed": false,
+                "commentCount": 67,
+                "viewCount": 16659,
+                "post": {
+                    "id": 65885,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 121,
+            "isEditorsPick": false,
+            "hitCount": 34261,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "construct-binary-search-tree-from-preorder-traversal",
+                "questionFrontendId": "1008"
+            },
+            "next": {
+                "slug": "dan-diao-zhan-di-gui-by-zhe-shi-ni-cheng-xs7l",
+                "title": "单调栈/递归"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,124 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "xwnTpI",
+            "title": "🎦 水位上升的泳池中游泳",
+            "content": "\n\n### 📺 视频讲解 \n\n>力扣君温馨小贴士：觉得视频时间长的扣友，可以在视频右下角的「设置」按钮处选择 1.5 倍速或者 2 倍速观看。\n\n![778. 水位上升的泳池中游泳.mp4](d1e26a33-1e0d-4699-a1fc-3ae3df29f613)\n\n### 📖 文字解析\n\n注意题目中的重要信息：假定你可以 **瞬间移动** 无限距离，**游动不耗时**。当前这个问题就转换成为：找一个时刻 `t`，使得这个二维网格上数值 **小于等于** `t` 的部分，存在一条从左上角到右下角的路径。即：经过了时间 `t` 以后，可以瞬间从左上角（坐标 `[0, 0]`）游到右下角（坐标 `[N - 1, N - 1]`）。\n\n### 方法一：二分查找 + 遍历\n\n根据题目中的描述：\n\n+ 如果等待的时间 `t` 越少，网格上可以游泳的部分就越少，存在从左上角到右下角的一条路径的可能性越小；\n+ 如果等待的时间 `t` 越多，网格上可以游泳的部分就越多，存在从左上角到右下角的一条路径的可能性越大。\n\n![image.png](https://pic.leetcode.cn/1611930245-xLAomV-image.png)\n\n这是本问题具有的 **单调性**。因此可以使用二分查找定位到最短等待时间。具体来说：在区间 `[0, N * N - 1]` 里猜一个整数，针对这个整数从起点（左上角）开始做一次深度优先遍历或者广度优先遍历。\n\n+ 当小于等于该数值时，如果存在一条从左上角到右下角的路径，说明答案可能是这个数值，也可能更小；\n+ 当小于等于该数值时，如果不存在一条从左上角到右下角的路径，说明答案一定比这个数值更大。\n\n按照这种方式不断缩小搜索的区间，最终找到最少等待时间。\n\n**参考代码 1**：\n\n说明：选项卡一使用深度优先遍历，选项卡二使用广度优先遍历。\n\n```Java []\npublic class Solution {\n\n    private int N;\n\n    public static final int[][] DIRECTIONS = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}};\n\n    public int swimInWater(int[][] grid) {\n        this.N = grid.length;\n\n        int left = 0;\n        int right = N * N - 1;\n        while (left < right) {\n            // left + right 不会溢出\n            int mid = (left + right) / 2;\n            boolean[][] visited = new boolean[N][N];\n            if (grid[0][0] <= mid && dfs(grid, 0, 0, visited, mid)) {\n                // mid 可以，尝试 mid 小一点是不是也可以呢？下一轮搜索的区间 [left, mid]\n                right = mid;\n            } else {\n                left = mid + 1;\n            }\n        }\n        return left;\n    }\n\n    /**\n     * 使用深度优先遍历得到从 (x, y) 开始向四个方向的所有小于等于 threshold 且与 (x, y) 连通的结点\n     *\n     * @param grid\n     * @param x\n     * @param y\n     * @param visited\n     * @param threshold\n     * @return\n     */\n    private boolean dfs(int[][] grid, int x, int y, boolean[][] visited, int threshold) {\n        visited[x][y] = true;\n        for (int[] direction : DIRECTIONS) {\n            int newX = x + direction[0];\n            int newY = y + direction[1];\n            if (inArea(newX, newY) && !visited[newX][newY] && grid[newX][newY] <= threshold) {\n                if (newX == N - 1 && newY == N - 1) {\n                    return true;\n                }\n\n                if (dfs(grid, newX, newY, visited, threshold)) {\n                    return true;\n                }\n            }\n        }\n        return false;\n    }\n\n    private boolean inArea(int x, int y) {\n        return x >= 0 && x < N && y >= 0 && y < N;\n    }\n}\n```\n```Java []\nimport java.util.LinkedList;\nimport java.util.Queue;\n\npublic class Solution {\n\n    private int N;\n\n    public static final int[][] DIRECTIONS = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}};\n\n    public int swimInWater(int[][] grid) {\n        this.N = grid.length;\n\n        int left = 0;\n        int right = N * N - 1;\n        while (left < right) {\n            int mid = (left + right) / 2;\n\n            if (grid[0][0] <= mid && bfs(grid, mid)) {\n                // mid 可以，尝试 mid 小一点是不是也可以呢？// [left, mid]\n                right = mid;\n            } else {\n                left = mid + 1;\n            }\n        }\n        return left;\n    }\n\n\n    /**\n     * 使用广度优先遍历得到从 (x, y) 开始向四个方向的所有小于等于 threshold 且与 (x, y) 连通的结点\n     *\n     * @param grid\n     * @param threshold\n     * @return\n     */\n    private boolean bfs(int[][] grid, int threshold) {\n        Queue<int[]> queue = new LinkedList<>();\n        queue.offer(new int[]{0, 0});\n        boolean[][] visited = new boolean[N][N];\n        visited[0][0] = true;\n\n        while (!queue.isEmpty()) {\n            int[] front = queue.poll();\n            int x = front[0];\n            int y = front[1];\n            for (int[] direction : DIRECTIONS) {\n                int newX = x + direction[0];\n                int newY = y + direction[1];\n                if (inArea(newX, newY) && !visited[newX][newY] && grid[newX][newY] <= threshold) {\n                    if (newX == N - 1 && newY == N - 1) {\n                        return true;\n                    }\n\n                    queue.offer(new int[]{newX, newY});\n                    visited[newX][newY] = true;\n                }\n            }\n        }\n        return false;\n    }\n\n    private boolean inArea(int x, int y) {\n        return x >= 0 && x < N && y >= 0 && y < N;\n    }\n\n}\n```\n\n\n**复杂度分析**：\n\n- 时间复杂度：$O(N^2 \\log N)$。\n其中 $N$ 是方格的边长。最差情况下进行 $\\log N^2$ 次二分查找，每一次二分查找最差情况下要遍历所有单元格一次，时间复杂度为 $O(N^2)$。总的时间复杂度为 $O(N^2 \\log N^2) = O(2N^2 \\log N) = O(N^2 \\log N)$；\n- 空间复杂度：$O(N^2)$。\n数组 `visited` 的大小为 $N^2$ ，如果使用深度优先遍历，须要使用的栈的大小最多为 $N^2$ ，如果使用广度优先遍历，须要使用的栈的大小最多为 $N^2$。\n\n---\n\n关于连通性的问题，如果只问结果，不问具体怎么连起来的，还可以考虑使用并查集。\n\n### 方法二：并查集\n\n由于题目要我们找的是最少等待时间，可以模拟下雨的过程，把网格抽象成一个无权图，每经过一个时刻，就考虑此时和雨水高度相等的单元格，考虑这个单元格的上、下、左、右、四个方向，并且高度更低的单元格，把它们在并查集中进行合并。\n\n![0778 - unionfind.gif](https://pic.leetcode.cn/1611932131-mvdock-0778%20-%20unionfind.gif)\n\n**参考代码 2**：\n\n\n```Java []\npublic class Solution {\n\n    private int N;\n\n    public static final int[][] DIRECTIONS = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}};\n\n    public int swimInWater(int[][] grid) {\n        this.N = grid.length;\n\n        int len = N * N;\n        // 下标：方格的高度，值：对应在方格中的坐标\n        int[] index = new int[len];\n        for (int i = 0; i < N; i++) {\n            for (int j = 0; j < N; j++) {\n                index[grid[i][j]] = getIndex(i, j);\n            }\n        }\n\n        UnionFind unionFind = new UnionFind(len);\n        for (int i = 0; i < len; i++) {\n            int x = index[i] / N;\n            int y = index[i] % N;\n\n            for (int[] direction : DIRECTIONS) {\n                int newX = x + direction[0];\n                int newY = y + direction[1];\n                if (inArea(newX, newY) && grid[newX][newY] <= i) {\n                    unionFind.union(index[i], getIndex(newX, newY));\n                }\n\n                if (unionFind.isConnected(0, len - 1)) {\n                    return i;\n                }\n            }\n        }\n        return -1;\n    }\n\n    private int getIndex(int x, int y) {\n        return x * N + y;\n    }\n\n    private boolean inArea(int x, int y) {\n        return x >= 0 && x < N && y >= 0 && y < N;\n    }\n\n    private class UnionFind {\n\n        private int[] parent;\n\n        public UnionFind(int n) {\n            this.parent = new int[n];\n            for (int i = 0; i < n; i++) {\n                parent[i] = i;\n            }\n        }\n\n        public int root(int x) {\n            while (x != parent[x]) {\n                parent[x] = parent[parent[x]];\n                x = parent[x];\n            }\n            return x;\n        }\n\n        public boolean isConnected(int x, int y) {\n            return root(x) == root(y);\n        }\n\n        public void union(int p, int q) {\n            if (isConnected(p, q)) {\n                return;\n            }\n            parent[root(p)] = root(q);\n        }\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(N^2 \\log N)$，其中 $N$ 是方格的边长，计数排序 $O(N^2)$，合并四周、检查起点和终点是否同属于一个连通分量 $O(\\log N^2)$，总的时间复杂度为 $O(N^2 + N^2\\log N^2) = O(N^2 + 2N^2 \\log N) = O(N^2 \\log N)$；\n- 空间复杂度：$O(N^2)$，数组 `index` 的长度，并查集底层的长度均为 $N^2$。\n\n---\n\n### 方法三：Dijkstra 算法\n\n注意这个问题求的是从一个源点到目标顶点的最短路径，并且**这条路径上的边没有负数**（**这一点非常重要，单元格的高度大于等于 $0$**），符合 Dijkstra 算法的应用场景。为此我们可以把问题抽象成一个带权有向图，权值是有向边指向的顶点的高度。如下图所示：\n\n![image.png](https://pic.leetcode.cn/1611933432-mFrHGY-image.png){:width=400}\n\nDijkstra 算法是应用很广泛的求解 **没有负权边** 的单源最短路径算法，《算法（第 4 版）》对这个算法做了详细的介绍，大家还可以阅读这本书的配套英文教程的 [ 4.4 Shortest Paths](https://algs4.cs.princeton.edu/44sp/) 进行学习。没有负权边是应用 Dijkstra 算法的前提，也是理解 Dijkstra 算法执行流程的关键。\n\nDijkstra 算法应用在示例 2 寻找最短路径的过程如下图所示：\n\n![0778 - Dijkstra.gif](https://pic.leetcode.cn/1611935856-wrgFkn-0778%20-%20Dijkstra.gif)\n\n\n\n\n\n**参考代码 3**：\n\n\n```Java []\nimport java.util.Arrays;\nimport java.util.Comparator;\nimport java.util.PriorityQueue;\nimport java.util.Queue;\n\npublic class Solution {\n\n    // Dijkstra 算法（应用前提：没有负权边，找单源最短路径）\n\n    public int swimInWater(int[][] grid) {\n        int n = grid.length;\n\n        Queue<int[]> minHeap = new PriorityQueue<>(Comparator.comparingInt(o -> grid[o[0]][o[1]]));\n        minHeap.offer(new int[]{0, 0});\n\n        boolean[][] visited = new boolean[n][n];\n        // distTo[i][j] 表示：到顶点 [i, j] 须要等待的最少的时间\n        int[][] distTo = new int[n][n];\n        for (int[] row : distTo) {\n            Arrays.fill(row, n * n);\n        }\n        distTo[0][0] = grid[0][0];\n\n        int[][] directions = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}};\n        while (!minHeap.isEmpty()) {\n            // 找最短的边\n            int[] front = minHeap.poll();\n            int currentX = front[0];\n            int currentY = front[1];\n            if (visited[currentX][currentY]) {\n                continue;\n            }\n\n            // 确定最短路径顶点\n            visited[currentX][currentY] = true;\n            if (currentX == n - 1 && currentY == n - 1) {\n                return distTo[n - 1][n - 1];\n            }\n\n            // 更新\n            for (int[] direction : directions) {\n                int newX = currentX + direction[0];\n                int newY = currentY + direction[1];\n                if (inArea(newX, newY, n) && !visited[newX][newY] &&\n                        Math.max(distTo[currentX][currentY], grid[newX][newY]) < distTo[newX][newY]) {\n                    distTo[newX][newY] = Math.max(distTo[currentX][currentY], grid[newX][newY]);\n                    minHeap.offer(new int[]{newX, newY});\n                }\n            }\n        }\n        return -1;\n    }\n\n    private boolean inArea(int x, int y, int n) {\n        return x >= 0 && x < n && y >= 0 && y < n;\n    }\n}\n```\n\n**复杂度分析**：\n\n\n+ 时间复杂度：$O(N^2 \\log N)$。\n使用了优先队列的 Dijkstra 算法的时间复杂度是 $O(E \\log E)$ ，这里 $E$ 是边数，至多是顶点数的 $4$ 倍，顶点数为 $N^2$，因此 $O(E \\log E) = O(4N^2 \\log N^2)  = O(N^2 \\log N)$；\n+ 空间复杂度：$O(N^2)$。\n数组 `visited` 、`distTo` 的大小为 $O(N^2)$，优先队列中保存的边的总数也是 $N^2$ 级别的。",
+            "slateValue": "",
+            "slug": "shui-wei-shang-sheng-de-yong-chi-zhong-y-862o",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "xwnTpI",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 80,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 7,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Heap",
+                    "nameTranslated": "堆",
+                    "slug": "heap",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Depth-First Search",
+                    "nameTranslated": "深度优先搜索",
+                    "slug": "depth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Breadth-First Search",
+                    "nameTranslated": "广度优先搜索",
+                    "slug": "breadth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Union Find",
+                    "nameTranslated": "并查集",
+                    "slug": "union-find",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Shortest Path",
+                    "nameTranslated": "最短路",
+                    "slug": "shortest-path",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2021-01-29T10:45:44.459775+00:00",
+            "thumbnail": "https://pic.leetcode-cn.com/1611930245-xLAomV-image.png",
+            "author": {
+                "username": "LeetCode",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/uploaded_files/2021/03/73c9f099-abbe-4d94-853f-f8abffd459cd/leetcode.png",
+                    "userSlug": "leetcode",
+                    "realName": "LeetCode",
+                    "reputation": 2117
+                }
+            },
+            "summary": "📺 视频讲解\n\n力扣君温馨小贴士：觉得视频时间长的扣友，可以在视频右下角的「设置」按钮处选择 1.5 倍速或者 2 倍速观看。\n\n📖 文字解析\n注意题目中的重要信息：假定你可以 瞬间移动 无限距离，游动不耗时。当前这个问题就转换成为：找一个时刻 t，使得这个二维网格上数值 小于等于 t 的部分，存在一条从左上角到右",
+            "topic": {
+                "id": 582250,
+                "subscribed": false,
+                "commentCount": 146,
+                "viewCount": 17934,
+                "post": {
+                    "id": 1348246,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 92,
+            "isEditorsPick": false,
+            "hitCount": 37926,
+            "videosInfo": [
+                {
+                    "videoId": "276e862537444b6a8d84918faa2fcdc9",
+                    "coverUrl": "https://video.leetcode.cn/image/cover/99FE3ACCF1C64929A250D6E63181F887-6-2.png?auth_key=1782487697-59249367820e42caa8ce4c7c8d94dc9c-0-bac8dbf1d6be4a03c617388c9143cf74",
+                    "duration": 1176.768
+                }
+            ],
+            "question": {
+                "titleSlug": "swim-in-rising-water",
+                "questionFrontendId": "778"
+            },
+            "next": {
+                "slug": "shui-wei-shang-sheng-de-yong-chi-zhong-y-xm9i",
+                "title": "水位上升的泳池中游泳"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,144 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "Sh3qo3",
+            "title": "分裂二叉树的最大乘积",
+            "content": "#### 方法一：数学\n\n记二叉树中所有元素的值之和为 `sum_r`。\n\n假设我们删除的边的两个端点为 `u` 和 `v`，其中 `u` 是 `v` 的父节点，那么在这条边删除之后，其中的一棵子树以 `v` 为根节点，记其中所有元素之和为 `sum_v`；另一棵子树以原二叉树的根节点 `root` 为根节点，其中元素之和为 `sum_r - sum_v`。我们需要找到一个节点 `v`，使得 `(sum_v) * (sum_r - sum_v)` 的值最大。\n\n那么我们如何找到这个节点呢？我们首先使用深度优先搜索计算出 `sum_r`，即遍历二叉树中的每一个节点，将其对应的元素值进行累加。随后我们再次使用深度优先搜索，通过递归的方式计算出每一个节点 `v` 对应的子树元素之和 `sum_v`，并求出所有 `(sum_v) * (sum_r - sum_v)` 中的最大值，就可以得到答案。\n\n由于题目中需要将结果对 `10^9+7` 取模，我们需要注意的是，不能在计算 `(sum_v) * (sum_r - sum_v)` 时将其直接对 `10^9+7` 取模，这是因为原先较大的数，取模之后不一定仍然较大。这一步可以有两种解决方案：\n\n- 我们用 64 位的整数类型（例如 `long`，`long long` 等）计算和存储 `(sum_v) * (sum_r - sum_v)` 的值，并在最后对 `10^9+7` 取模；\n\n- 我们使用均值不等式的知识，当 `sum_r` 为定值时，`sum_v` 越接近 `sum_r` 的一半，`(sum_v) * (sum_r - sum_v)` 的值越大。我们只需要存储最接近 `sum_r` 的一半的那个 `sum_v`，在最后计算 `(sum_v) * (sum_r - sum_v)` 的值并对 `10^9+7` 取模。\n\n\n```C++ [sol1-C++]\nclass Solution {\nprivate:\n    int sum = 0;\n    int best = 0;\n\npublic:\n    void dfs(TreeNode* node) {\n        if (!node) {\n            return;\n        }\n        sum += node->val;\n        dfs(node->left);\n        dfs(node->right);\n    }\n\n    int dfs2(TreeNode* node) {\n        if (!node) {\n            return 0;\n        }\n        int cur = dfs2(node->left) + dfs2(node->right) + node->val;\n        if (abs(cur*2 - sum) < abs(best*2 - sum)) {\n            best = cur;\n        }\n        return cur;\n    }\n\n    int maxProduct(TreeNode* root) {\n        dfs(root);\n        dfs2(root);\n        return (long long)best * (sum - best) % 1000000007;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    private int sum = 0;\n    private int best = 0;\n\n    public int maxProduct(TreeNode root) {\n        dfs(root);\n        dfs2(root);\n        return (int)((long)best * (sum - best) % 1000000007);\n    }\n\n    private void dfs(TreeNode node) {\n        if (node == null) {\n            return;\n        }\n        sum += node.val;\n        dfs(node.left);\n        dfs(node.right);\n    }\n\n    private int dfs2(TreeNode node) {\n        if (node == null) {\n            return 0;\n        }\n        int cur = dfs2(node.left) + dfs2(node.right) + node.val;\n        if (Math.abs(cur * 2 - sum) < Math.abs(best * 2 - sum)) {\n            best = cur;\n        }\n        return cur;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    private int sum = 0;\n    private int best = 0;\n\n    public int MaxProduct(TreeNode root) {\n        Dfs(root);\n        Dfs2(root);\n        return (int)((long)best * (sum - best) % 1000000007);\n    }\n\n    private void Dfs(TreeNode node) {\n        if (node == null) {\n            return;\n        }\n        sum += node.val;\n        Dfs(node.left);\n        Dfs(node.right);\n    }\n\n    private int Dfs2(TreeNode node) {\n        if (node == null) {\n            return 0;\n        }\n        int cur = Dfs2(node.left) + Dfs2(node.right) + node.val;\n        if (Math.Abs(cur * 2 - sum) < Math.Abs(best * 2 - sum)) {\n            best = cur;\n        }\n        return cur;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc maxProduct(root *TreeNode) int {\n    sum := 0\n    best := 0\n    \n    var dfs func(*TreeNode)\n    dfs = func(node *TreeNode) {\n        if node == nil {\n            return\n        }\n        sum += node.Val\n        dfs(node.Left)\n        dfs(node.Right)\n    }\n    \n    var dfs2 func(*TreeNode) int\n    dfs2 = func(node *TreeNode) int {\n        if node == nil {\n            return 0\n        }\n        cur := dfs2(node.Left) + dfs2(node.Right) + node.Val\n        if abs(cur*2 - sum) < abs(best*2 - sum) {\n            best = cur\n        }\n        return cur\n    }\n    \n    dfs(root)\n    dfs2(root)\n    return best * (sum - best) % 1000000007\n}\n\nfunc abs(x int) int {\n    if x < 0 {\n        return -x\n    }\n    return x\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def maxProduct(self, root: Optional[TreeNode]) -> int:\n        self.sum = 0\n        self.best = 0\n        \n        def dfs(node):\n            if not node:\n                return\n            self.sum += node.val\n            dfs(node.left)\n            dfs(node.right)\n        \n        def dfs2(node):\n            if not node:\n                return 0\n            cur = dfs2(node.left) + dfs2(node.right) + node.val\n            if abs(cur * 2 - self.sum) < abs(self.best * 2 - self.sum):\n                self.best = cur\n            return cur\n        \n        dfs(root)\n        dfs2(root)\n        return self.best * (self.sum - self.best) % 1000000007\n```\n\n```C [sol1-C]\nvoid dfs(struct TreeNode* node, int *sum) {\n    if (!node) {\n        return;\n    }\n    *sum += node->val;\n    dfs(node->left, sum);\n    dfs(node->right, sum);\n}\n\nint dfs2(struct TreeNode* node, int *sum, int *best) {\n    if (!node) {\n        return 0;\n    }\n    int cur = dfs2(node->left, sum, best) + dfs2(node->right, sum, best) + node->val;\n    if (abs(cur * 2 - *sum) < abs(*best * 2 - *sum)) {\n        *best = cur;\n    }\n    return cur;\n}\n\nint maxProduct(struct TreeNode* root) {\n    int sum = 0, best = 0;\n    best = 0;\n    dfs(root, &sum);\n    dfs2(root, &sum, &best);\n    return (long long)best * (sum - best) % 1000000007;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar maxProduct = function(root) {\n    let sum = 0;\n    let best = 0;\n    \n    const dfs = (node) => {\n        if (!node) return;\n        sum += node.val;\n        dfs(node.left);\n        dfs(node.right);\n    };\n    \n    const dfs2 = (node) => {\n        if (!node) return 0;\n        const cur = dfs2(node.left) + dfs2(node.right) + node.val;\n        if (Math.abs(cur * 2 - sum) < Math.abs(best * 2 - sum)) {\n            best = cur;\n        }\n        return cur;\n    };\n    \n    dfs(root);\n    dfs2(root);\n    return Number((BigInt(best) * BigInt(sum - best)) % 1000000007n);\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction maxProduct(root: TreeNode | null): number {\n    let sum = 0;\n    let best = 0;\n    \n    const dfs = (node: TreeNode | null): void => {\n        if (!node) return;\n        sum += node.val;\n        dfs(node.left);\n        dfs(node.right);\n    };\n    \n    const dfs2 = (node: TreeNode | null): number => {\n        if (!node) return 0;\n        const cur = dfs2(node.left) + dfs2(node.right) + node.val;\n        if (Math.abs(cur * 2 - sum) < Math.abs(best * 2 - sum)) {\n            best = cur;\n        }\n        return cur;\n    };\n    \n    dfs(root);\n    dfs2(root);\n    return Number((BigInt(best) * BigInt(sum - best)) % 1000000007n);\n}\n```\n\n```Rust [sol1-Rust]\nuse std::rc::Rc;\nuse std::cell::RefCell;\n\nimpl Solution {\n    pub fn max_product(root: Option<Rc<RefCell<TreeNode>>>) -> i32 {\n        let mut sum = 0;\n        let mut best = 0;\n        \n        fn dfs(node: &Option<Rc<RefCell<TreeNode>>>, sum: &mut i32) {\n            if let Some(n) = node {\n                let node_ref = n.borrow();\n                *sum += node_ref.val;\n                dfs(&node_ref.left, sum);\n                dfs(&node_ref.right, sum);\n            }\n        }\n        \n        fn dfs2(node: &Option<Rc<RefCell<TreeNode>>>, sum: i32, best: &mut i32) -> i32 {\n            if let Some(n) = node {\n                let node_ref = n.borrow();\n                let cur = dfs2(&node_ref.left, sum, best) + \n                         dfs2(&node_ref.right, sum, best) + \n                         node_ref.val;\n                if (cur * 2 - sum).abs() < (*best * 2 - sum).abs() {\n                    *best = cur;\n                }\n                cur\n            } else {\n                0\n            }\n        }\n        \n        dfs(&root, &mut sum);\n        dfs2(&root, sum, &mut best);\n        ((best as i64) * ((sum - best) as i64) % 1000000007) as i32\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(N)$，其中 $N$ 是二叉树的节点个数。\n\n- 空间复杂度：$O(1)$。",
+            "slateValue": "",
+            "slug": "fen-lie-er-cha-shu-de-zui-da-cheng-ji-by-leetcode",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "Sh3qo3",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 20,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Tree",
+                    "nameTranslated": "树",
+                    "slug": "tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Tree",
+                    "nameTranslated": "二叉树",
+                    "slug": "binary-tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-03-04T09:22:15.386525+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：数学 记二叉树中所有元素的值之和为 sum_r。 假设我们删除的边的两个端点为 u 和 v，其中 u 是 v 的父节点，那么在这条边删除之后，其中的一棵子树以 v 为根节点，记其中所有元素之和为 sum_v；另一棵子树以原二叉树的根节点 root 为根节点，其中元素之和为 sum_r - sum_v。我们需要找",
+            "topic": {
+                "id": 130598,
+                "subscribed": false,
+                "commentCount": 66,
+                "viewCount": 7795,
+                "post": {
+                    "id": 398438,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 43,
+            "isEditorsPick": false,
+            "hitCount": 20774,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "maximum-product-of-splitted-binary-tree",
+                "questionFrontendId": "1339"
+            },
+            "next": {
+                "slug": "liang-ci-dfshuo-zhe-ti-qian-bao-cun-zi-s-uo4x",
+                "title": "两次 DFS，或者提前保存子树和（Python/Java/C++/C/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,152 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "LPEsN2",
+            "title": "滑动谜题",
+            "content": "#### 方法一：广度优先搜索\n\n**思路与算法**\n\n我们可以使用广度优先搜索，找出从初始状态 $\\textit{board}$ 到目标状态 $[[1,2,3],[4,5,0]]$ 的最小交换次数。\n\n具体地，我们在一开始将 $(\\textit{board}, 0)$ 加入队列，并使用该队列进行广度优先搜索。在搜索的过程中，设当前搜索到的状态为 $\\textit{status}$，操作的次数为 $\\textit{step}$，我们可以枚举 $\\textit{status}$ 通过一次操作得到的状态。设其中的某个状态为 $\\textit{next\\_status}$，如果其没有被搜索过，我们就将 $(\\textit{next\\_status}, \\textit{step} + 1)$ 加入队列。如果搜索到了 $\\textit{target}$，我们就返回其对应的操作次数。\n\n在搜索的过程中，我们需要一个哈希表存储所有搜索到的状态，避免重复搜索。\n\n如果搜索完成后，我们仍没有搜索到 $[[1,2,3],[4,5,0]]$，说明我们无法解开谜板，返回 $-1$。\n\n**细节**\n\n本题中，搜索的状态 $\\textit{status}$ 是一个 $2\\times 3$ 的二维数组，在很多语言中，我们无法将数组直接放入哈希表中，可行的解决方案有两种：\n\n- 自行实现数组的哈希函数；\n\n- 将数组转换成语言中可以直接进行哈希的类型。\n\n在问题中，我们使用第二种解决方案，将 $\\textit{status}$ 按照**行优先**的顺序拼接成一个长度为 $2\\times 3=6$ 的字符串。例如目标状态 $[[1,2,3],[4,5,0]]$ 可以表示为 $123450$。\n\n在确定了解决方案后，我们还需要考虑如何有效地找出 $\\textit{status}$ 通过一次操作得到的所有状态。根据题目中的规定，每一次操作可以将 $\\textit{status}$ 中的 $0$ 与**相邻**位置的数字进行交换，因此我们同样可以按照**行优先**的顺序给 $2\\times 3$ 的谜板进行编号：\n\n![fig1](https://assets.leetcode.cn/solution-static/773/1.png){:width=\"50%\"}\n\n这样一来，我们可以预处理出每一个位置的所有相邻位置，即：\n\n- $0$ 的相邻位置是 $1, 3$；\n- $1$ 的相邻位置是 $0, 2, 4$；\n- $2$ 的相邻位置是 $1, 5$；\n- $3$ 的相邻位置是 $0, 4$；\n- $4$ 的相邻位置是 $1, 3, 5$；\n- $5$ 的相邻位置是 $2, 4$。\n\n因此，我们在 $\\textit{status}$ 中找出 $0$ 所在的位置 $x$，对于每一个与 $x$ 相邻的位置 $y$，我们将 $\\textit{status}[x]$ 与 $\\textit{status}[y]$ 进行交换，即等同于进行了一次操作。注意：这里的 $\\textit{status}$ 是已经拼接完成的字符串。\n\n最后我们还需要注意一个细节：如果 $\\textit{board}$ 就是目标状态 $[[1,2,3],[4,5,0]]$，那么直接返回答案 $0$。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\nprivate:\n    vector<vector<int>> neighbors = {{1, 3}, {0, 2, 4}, {1, 5}, {0, 4}, {1, 3, 5}, {2, 4}};\n\npublic:\n    int slidingPuzzle(vector<vector<int>>& board) {\n        // 枚举 status 通过一次交换操作得到的状态\n        auto get = [&](string& status) -> vector<string> {\n            vector<string> ret;\n            int x = status.find('0');\n            for (int y: neighbors[x]) {\n                swap(status[x], status[y]);\n                ret.push_back(status);\n                swap(status[x], status[y]);\n            }\n            return ret;\n        };\n\n        string initial;\n        for (int i = 0; i < 2; ++i) {\n            for (int j = 0; j < 3; ++j) {\n                initial += char(board[i][j] + '0');\n            }\n        }\n        if (initial == \"123450\") {\n            return 0;\n        }\n\n        queue<pair<string, int>> q;\n        q.emplace(initial, 0);\n        unordered_set<string> seen = {initial};\n\n        while (!q.empty()) {\n            auto [status, step] = q.front();\n            q.pop();\n            for (auto&& next_status: get(status)) {\n                if (!seen.count(next_status)) {\n                    if (next_status == \"123450\") {\n                        return step + 1;\n                    }\n                    q.emplace(next_status, step + 1);\n                    seen.insert(move(next_status));\n                }\n            }\n        }\n\n        return -1;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    int[][] neighbors = {{1, 3}, {0, 2, 4}, {1, 5}, {0, 4}, {1, 3, 5}, {2, 4}};\n\n    public int slidingPuzzle(int[][] board) {\n        StringBuffer sb = new StringBuffer();\n        for (int i = 0; i < 2; ++i) {\n            for (int j = 0; j < 3; ++j) {\n                sb.append(board[i][j]);\n            }\n        }\n        String initial = sb.toString();\n        if (\"123450\".equals(initial)) {\n            return 0;\n        }\n\n        int step = 0;\n        Queue<String> queue = new LinkedList<String>();\n        queue.offer(initial);\n        Set<String> seen = new HashSet<String>();\n        seen.add(initial);\n\n        while (!queue.isEmpty()) {\n            ++step;\n            int size = queue.size();\n            for (int i = 0; i < size; ++i) {\n                String status = queue.poll();\n                for (String nextStatus : get(status)) {\n                    if (!seen.contains(nextStatus)) {\n                        if (\"123450\".equals(nextStatus)) {\n                            return step;\n                        }\n                        queue.offer(nextStatus);\n                        seen.add(nextStatus);\n                    }\n                }\n            }\n        }\n\n        return -1;\n    }\n\n    // 枚举 status 通过一次交换操作得到的状态\n    public List<String> get(String status) {\n        List<String> ret = new ArrayList<String>();\n        char[] array = status.toCharArray();\n        int x = status.indexOf('0');\n        for (int y : neighbors[x]) {\n            swap(array, x, y);\n            ret.add(new String(array));\n            swap(array, x, y);\n        }\n        return ret;\n    }\n\n    public void swap(char[] array, int x, int y) {\n        char temp = array[x];\n        array[x] = array[y];\n        array[y] = temp;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    int[][] neighbors = new int[6][]{new[]{1, 3}, new[]{0, 2, 4}, new[]{1, 5}, new[]{0, 4}, new[]{1, 3, 5}, new[]{2, 4}};\n\n    public int SlidingPuzzle(int[][] board) {\n        StringBuilder sb = new StringBuilder();\n        for (int i = 0; i < 2; ++i) {\n            for (int j = 0; j < 3; ++j) {\n                sb.Append(board[i][j]);\n            }\n        }\n        string initial = sb.ToString();\n        if (\"123450\".Equals(initial)) {\n            return 0;\n        }\n\n        int step = 0;\n        Queue<string> queue = new Queue<string>();\n        queue.Enqueue(initial);\n        ISet<string> seen = new HashSet<string>();\n        seen.Add(initial);\n\n        while (queue.Count > 0) {\n            ++step;\n            int size = queue.Count;\n            for (int i = 0; i < size; ++i) {\n                string status = queue.Dequeue();\n                foreach (string nextStatus in Get(status)) {\n                    if (!seen.Contains(nextStatus)) {\n                        if (\"123450\".Equals(nextStatus)) {\n                            return step;\n                        }\n                        queue.Enqueue(nextStatus);\n                        seen.Add(nextStatus);\n                    }\n                }\n            }\n        }\n\n        return -1;\n    }\n\n    // 枚举 status 通过一次交换操作得到的状态\n    public IList<string> Get(string status) {\n        IList<string> ret = new List<string>();\n        char[] array = status.ToCharArray();\n        int x = status.IndexOf('0');\n        foreach (int y in neighbors[x]) {\n            Swap(array, x, y);\n            ret.Add(new string(array));\n            Swap(array, x, y);\n        }\n        return ret;\n    }\n\n    public void Swap(char[] array, int x, int y) {\n        char temp = array[x];\n        array[x] = array[y];\n        array[y] = temp;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    NEIGHBORS = [[1, 3], [0, 2, 4], [1, 5], [0, 4], [1, 3, 5], [2, 4]]\n\n    def slidingPuzzle(self, board: List[List[int]]) -> int:\n        # 枚举 status 通过一次交换操作得到的状态\n        def get(status: str) -> Generator[str, None, None]:\n            s = list(status)\n            x = s.index(\"0\")\n            for y in Solution.NEIGHBORS[x]:\n                s[x], s[y] = s[y], s[x]\n                yield \"\".join(s)\n                s[x], s[y] = s[y], s[x]\n\n        initial = \"\".join(str(num) for num in sum(board, []))\n        if initial == \"123450\":\n            return 0\n\n        q = deque([(initial, 0)])\n        seen = {initial}\n        while q:\n            status, step = q.popleft()\n            for next_status in get(status):\n                if next_status not in seen:\n                    if next_status == \"123450\":\n                        return step + 1\n                    q.append((next_status, step + 1))\n                    seen.add(next_status)\n        \n        return -1\n```\n\n```JavaScript [sol1-JavaScript]\nvar slidingPuzzle = function(board) {\n    const neighbors = [[1, 3], [0, 2, 4], [1, 5], [0, 4], [1, 3, 5], [2, 4]];\n\n    const sb = [];\n    for (let i = 0; i < 2; ++i) {\n        for (let j = 0; j < 3; ++j) {\n            sb.push(board[i][j]);\n        }\n    }\n    const initial = sb.join('');\n    if (\"123450\" === initial) {\n        return 0;\n    }\n\n    let step = 0;\n    const queue = [];\n    queue.push(initial);\n    const seen = new Set();\n    seen.add(initial);\n\n    // 枚举 status 通过一次交换操作得到的状态\n    const get = (status) => {\n        const ret = [];\n        const array = Array.from(status);\n        const x = status.indexOf('0');\n        for (const y of neighbors[x]) {\n            [array[x], array[y]] = [array[y], array[x]];\n            ret.push(array.join(''));\n            [array[x], array[y]] = [array[y], array[x]];\n        }\n        return ret;\n    }\n\n    while (queue.length) {\n        ++step;\n        const size = queue.length;\n        for (let i = 0; i < size; ++i) {\n            const status = queue.shift();\n            for (const nextStatus of get(status)) {\n                if (!seen.has(nextStatus)) {\n                    if (\"123450\" === nextStatus) {\n                        return step;\n                    }\n                    queue.push(nextStatus);\n                    seen.add(nextStatus);\n                }\n            }\n        }\n    }\n\n    return -1;\n};\n```\n\n```go [sol1-Golang]\nvar neighbors = [6][]int{{1, 3}, {0, 2, 4}, {1, 5}, {0, 4}, {1, 3, 5}, {2, 4}}\n\nfunc slidingPuzzle(board [][]int) int {\n    const target = \"123450\"\n\n    s := make([]byte, 0, 6)\n    for _, r := range board {\n        for _, v := range r {\n            s = append(s, '0'+byte(v))\n        }\n    }\n    start := string(s)\n    if start == target {\n        return 0\n    }\n\n    // 枚举 status 通过一次交换操作得到的状态\n    get := func(status string) (ret []string) {\n        s := []byte(status)\n        x := strings.Index(status, \"0\")\n        for _, y := range neighbors[x] {\n            s[x], s[y] = s[y], s[x]\n            ret = append(ret, string(s))\n            s[x], s[y] = s[y], s[x]\n        }\n        return\n    }\n\n    type pair struct {\n        status string\n        step   int\n    }\n    q := []pair{{start, 0}}\n    seen := map[string]bool{start: true}\n    for len(q) > 0 {\n        p := q[0]\n        q = q[1:]\n        for _, nxt := range get(p.status) {\n            if !seen[nxt] {\n                if nxt == target {\n                    return p.step + 1\n                }\n                seen[nxt] = true\n                q = append(q, pair{nxt, p.step + 1})\n            }\n        }\n    }\n    return -1\n}\n```\n\n```C [sol1-C]\nstruct HashTable {\n    char str[7];\n    UT_hash_handle hh;\n};\n\nstruct Node {\n    char str[7];\n    int val;\n};\n\nconst int neighbors[6][3] = {{1, 3, -1}, {0, 2, 4}, {1, 5, -1}, {0, 4, -1}, {1, 3, 5}, {2, 4, -1}};\n\nvoid swap(char* x, char* y) {\n    char t = *x;\n    *x = *y, *y = t;\n}\n\n// 枚举 status 通过一次旋转得到的数字\nchar** getNextStatus(char* status, int* retSize) {\n    char** ret = malloc(sizeof(char*) * 3);\n    *retSize = 0;\n    int x = 0;\n    while (status[x] != '0') {\n        x++;\n    }\n    for (int i = 0; i < 3 && neighbors[x][i] != -1; i++) {\n        int y = neighbors[x][i];\n        swap(&status[x], &status[y]);\n        ret[(*retSize)] = malloc(sizeof(char) * 7);\n        strcpy(ret[(*retSize)++], status);\n        swap(&status[x], &status[y]);\n    }\n    return ret;\n}\n\nint slidingPuzzle(int** board, int boardSize, int* boardColSize) {\n    char str_0[] = \"123450\";\n    char initial[7];\n    for (int i = 0; i < 2; ++i) {\n        for (int j = 0; j < 3; ++j) {\n            initial[i * 3 + j] = (char)(board[i][j] + '0');\n        }\n    }\n    initial[6] = '\\0';\n    if (strcmp(initial, str_0) == 0) {\n        return 0;\n    }\n\n    struct Node q[10001];\n    int left = 0, right = 0;\n    strcpy(q[right].str, initial);\n    q[right++].val = 0;\n\n    struct HashTable* seen = NULL;\n    struct HashTable* tmp = malloc(sizeof(struct HashTable));\n    strcpy(tmp->str, initial);\n    HASH_ADD(hh, seen, str, sizeof(char) * 7, tmp);\n\n    while (left < right) {\n        char* status = q[left].str;\n        int step = q[left++].val;\n        int nextStatusSize;\n        char** nextStatus = getNextStatus(status, &nextStatusSize);\n        for (int i = 0; i < nextStatusSize; i++) {\n            HASH_FIND(hh, seen, nextStatus[i], sizeof(char) * 5, tmp);\n            if (tmp == NULL) {\n                if (strcmp(nextStatus[i], str_0) == 0) {\n                    return step + 1;\n                }\n                strcpy(q[right].str, nextStatus[i]);\n                q[right++].val = step + 1;\n                tmp = malloc(sizeof(struct HashTable));\n                strcpy(tmp->str, nextStatus[i]);\n                HASH_ADD(hh, seen, str, sizeof(char) * 5, tmp);\n            }\n        }\n    }\n\n    return -1;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O((mn)! \\cdot mn)$，其中 $m$ 和 $n$ 分别是谜板的行数和列数，在本题中 $m=2$，$n=3$。谜板的状态的可能性一共有 $(mn)!$ 种，这也是我们可以搜索到的状态数上限。对于每一个状态，我们需要 $O(mn)$ 的时间找出 $0$ 的位置，其最多可以和四个方向上相邻的数字进行交换，共需要 $O(4mn) = O(mn)$ 的时间生成操作后的新状态，因此广度优先搜索的总时间复杂度为 $O((mn)! \\cdot mn)$。\n\n- 空间复杂度：$O((mn)! \\cdot mn)$。我们最多需要在队列中存储 $O((mn)!)$ 个长度为 $mn$ 的字符串。\n\n#### 方法二：启发式搜索\n\n**概念**\n\n我们可以使用启发式搜索更快地找到最小旋转次数。这里我们可以使用 $\\text{A*}$ 算法。\n\n读者可以自行查阅资料学习关于 $\\text{A*}$ 算法的基础知识，例如 [Wikipedia - A* search algorithm](https://en.wikipedia.org/wiki/A*_search_algorithm) 或 [oi-wiki - A*](https://oi-wiki.org/search/astar/)。它不是本题解的重点，因此这里不再赘述。读者可以阅读下面的段落检验自己的学习成果：\n\n在 $\\text{A*}$ 算法中，我们需要使用四个距离函数 $F(x), G(x), H(x), H^*(x)$，其中 $F(x), G(x), H(x)$ 是可以求出的，而 $H^*(x)$ 是无法求出的，我们需要用 $H(x)$ 近似 $H^*(x)$。设起点为 $s$，终点为 $t$，这些距离函数的意义如下：\n\n- $G(x)$ 表示从起点 $s$ 到节点 $x$ 的「实际」路径长度，注意 $G(x)$ 并不一定是最短的；\n\n- $H(x)$ 表示从节点 $x$ 到终点 $t$ 的「估计」最短路径长度，称为**启发函数**；\n\n- $H^*(x)$ 表示从节点 $x$ 到终点 $t$ 的「实际」最短路径长度，这是我们在广度优先搜索的过程中无法求出的，我们需要用 $H(x)$ 近似 $H^*(x)$；\n\n- $F(x)$ 满足 $F(x) = G(x) + H(x)$，即为从起点 $s$ 到终点 $t$ 的「估计」路径长度。我们总是挑选出最小的 $F(x)$ 对应的 $x$ 进行搜索，因此 $\\text{A*}$ 算法需要借助**优先队列**来实现。\n\n如果读者熟悉求解最短路的 $\\text{Dijkstra}$ 算法，就可以发现 $\\text{Dijkstra}$ 算法是 $\\text{A*}$ 算法在 $H(x) \\equiv 0$ 时的特殊情况。\n\n$\\text{A*}$ 算法具有两个性质：\n\n- 如果对于任意的节点 $x$，$H(x) \\leq H^*(x)$ 恒成立，即我们「估计」出的从节点 $x$ 到终点 $t$ 的最短路径长度总是不超过「实际」的最短路径长度，那么称启发函数 $H(x)$ 是可接纳的（admissible heuristic）。在这种情况下，$\\text{A*}$ 算法一定能找到最短路，但同一节点可能需要加入优先队列并搜索多次，即当我们从优先队列中取出节点 $x$ 时，$G(x)$ 并不一定等于从起点到节点 $x$ 的「实际」**最短**路径的长度；\n\n- 如果对于任意的两个节点 $x$ 和 $y$，并且 $x$ 到 $y$ 有一条长度为 $D(x, y)$ 的有向边，$H(x) - H(y) \\leq D(x, y)$ 恒成立，并且 $H(t)=0$，那么称启发函数 $H(x)$ 是一致的（consistent heuristic）。可以证明，一致的启发函数一定也是可接纳的。在这种情况下，同一节点只会被加入优先队列一次，并搜索不超过一次，即当我们从优先队列中取出节点 $x$ 时，$G(x)$ 一定等于从起点到节点 $x$ 的「实际」**最短**路径的长度。\n\n**思路与算法**\n\n我们可以设计如下的启发函数：\n\n$$\nH(\\textit{status}) = \\sum_{i=1}^5\n\\big(\\textit{status}~ 中数字 ~i~ 的位置与目标状态中数字 ~i~ 的位置之间的曼哈顿距离\\big)\n$$\n\n在一次操作中，我们交换数字 $0$ 和数字 $i$，非 $0$ 的数字中**只有**数字 $i$ 的位置发生了变化。那么要想将数字 $i$ 从初始状态中的位置移动到目标状态中的位置，我们至少需要进行「这两个位置之间的曼哈顿距离」次操作，因此我们解开谜板的需要的最少操作次数的下界为 $H(\\textit{status})$。\n\n根据定义，对于状态 $\\textit{status}$ 和其通过一次操作得到的状态 $\\textit{next\\_status}$，$H(\\textit{status}) - H(\\textit{next\\_status})$ 要么为 $1$（数字 $i$ 与其在目标状态中位置的曼哈顿距离减少了 $1$），要么为 $-1$（数字 $i$ 与其在目标状态中位置的曼哈顿距离增加了 $1$），而 $D(\\textit{status}, \\textit{next\\_status}) = 1$，因此我们设计的启发函数是一致的。\n\n我们在 $\\text{A*}$ 算法中使用该启发函数，即可得到最小的移动次数。\n\n**细节**\n\n我们可以预处理出任意两个位置的曼哈顿距离，位置的编号与方法一中的一致。距离矩阵如下：\n\n$$\n\\begin{bmatrix}\n0 & 1 & 2 & 1 & 2 & 3 \\\\\n1 & 0 & 1 & 2 & 1 & 2 \\\\\n2 & 1 & 0 & 3 & 2 & 1 \\\\\n1 & 2 & 3 & 0 & 1 & 2 \\\\\n2 & 1 & 2 & 1 & 0 & 1 \\\\\n3 & 2 & 1 & 2 & 1 & 0\n\\end{bmatrix}\n$$\n\n**代码**\n\n```C++ [sol2-C++]\nstruct AStar {\n    // 曼哈顿距离\n    static constexpr array<array<int, 6>, 6> dist = {{\n        {0, 1, 2, 1, 2, 3},\n        {1, 0, 1, 2, 1, 2},\n        {2, 1, 0, 3, 2, 1},\n        {1, 2, 3, 0, 1, 2},\n        {2, 1, 2, 1, 0, 1},\n        {3, 2, 1, 2, 1, 0}\n    }};\n\n    // 计算启发函数\n    static int getH(const string& status) {\n        int ret = 0;\n        for (int i = 0; i < 6; ++i) {\n            if (status[i] != '0') {\n                ret += dist[i][status[i] - '1'];\n            }\n        }\n        return ret;\n    };\n\n    AStar(const string& status, int g): status_{status}, g_{g}, h_{getH(status)} {\n        f_ = g_ + h_;\n    }\n\n    bool operator< (const AStar& that) const {\n        return f_ > that.f_;\n    }\n\n    string status_;\n    int f_, g_, h_;\n};\n\nclass Solution {\nprivate:\n    vector<vector<int>> neighbors = {{1, 3}, {0, 2, 4}, {1, 5}, {0, 4}, {1, 3, 5}, {2, 4}};;\n\npublic:\n    int slidingPuzzle(vector<vector<int>>& board) {\n        // 枚举 status 通过一次交换操作得到的状态\n        auto get = [&](string& status) -> vector<string> {\n            vector<string> ret;\n            int x = status.find('0');\n            for (int y: neighbors[x]) {\n                swap(status[x], status[y]);\n                ret.push_back(status);\n                swap(status[x], status[y]);\n            }\n            return ret;\n        };\n\n        string initial;\n        for (int i = 0; i < 2; ++i) {\n            for (int j = 0; j < 3; ++j) {\n                initial += char(board[i][j] + '0');\n            }\n        }\n        if (initial == \"123450\") {\n            return 0;\n        }\n\n        priority_queue<AStar> q;\n        q.emplace(initial, 0);\n        unordered_set<string> seen = {initial};\n\n        while (!q.empty()) {\n            AStar node = q.top();\n            q.pop();\n            for (auto&& next_status: get(node.status_)) {\n                if (!seen.count(next_status)) {\n                    if (next_status == \"123450\") {\n                        return node.g_ + 1;\n                    }\n                    q.emplace(next_status, node.g_ + 1);\n                    seen.insert(move(next_status));\n                }\n            }\n        }\n\n        return -1;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    int[][] neighbors = {{1, 3}, {0, 2, 4}, {1, 5}, {0, 4}, {1, 3, 5}, {2, 4}};\n\n    public int slidingPuzzle(int[][] board) {\n        StringBuffer sb = new StringBuffer();\n        for (int i = 0; i < 2; ++i) {\n            for (int j = 0; j < 3; ++j) {\n                sb.append(board[i][j]);\n            }\n        }\n        String initial = sb.toString();\n        if (\"123450\".equals(initial)) {\n            return 0;\n        }\n\n        PriorityQueue<AStar> pq = new PriorityQueue<AStar>((a, b) -> a.f - b.f);\n        pq.offer(new AStar(initial, 0));\n        Set<String> seen = new HashSet<String>();\n        seen.add(initial);\n\n        while (!pq.isEmpty()) {\n            AStar node = pq.poll();\n            for (String nextStatus : get(node.status)) {\n                if (!seen.contains(nextStatus)) {\n                    if (\"123450\".equals(nextStatus)) {\n                        return node.g + 1;\n                    }\n                    pq.offer(new AStar(nextStatus, node.g + 1));\n                    seen.add(nextStatus);\n                }\n            }\n        }\n\n        return -1;\n    }\n\n    // 枚举 status 通过一次交换操作得到的状态\n    public List<String> get(String status) {\n        List<String> ret = new ArrayList<String>();\n        char[] array = status.toCharArray();\n        int x = status.indexOf('0');\n        for (int y : neighbors[x]) {\n            swap(array, x, y);\n            ret.add(new String(array));\n            swap(array, x, y);\n        }\n        return ret;\n    }\n\n    public void swap(char[] array, int x, int y) {\n        char temp = array[x];\n        array[x] = array[y];\n        array[y] = temp;\n    }\n}\n\nclass AStar {\n    // 曼哈顿距离\n    public static int[][] dist = {\n        {0, 1, 2, 1, 2, 3},\n        {1, 0, 1, 2, 1, 2},\n        {2, 1, 0, 3, 2, 1},\n        {1, 2, 3, 0, 1, 2},\n        {2, 1, 2, 1, 0, 1},\n        {3, 2, 1, 2, 1, 0}\n    };\n\n    public String status;\n    public int f, g, h;\n\n    public AStar(String status, int g) {\n        this.status = status;\n        this.g = g;\n        this.h = getH(status);\n        this.f = this.g + this.h;\n    }\n\n    // 计算启发函数\n    public static int getH(String status) {\n        int ret = 0;\n        for (int i = 0; i < 6; ++i) {\n            if (status.charAt(i) != '0') {\n                ret += dist[i][status.charAt(i) - '1'];\n            }\n        }\n        return ret;\n    }\n}\n```\n\n```Python [sol2-Python3]\nclass AStar:\n    DIST = [\n        [0, 1, 2, 1, 2, 3],\n        [1, 0, 1, 2, 1, 2],\n        [2, 1, 0, 3, 2, 1],\n        [1, 2, 3, 0, 1, 2],\n        [2, 1, 2, 1, 0, 1],\n        [3, 2, 1, 2, 1, 0],\n    ]\n\n    # 计算启发函数\n    @staticmethod\n    def getH(status: str) -> int:\n        ret = 0\n        for i in range(6):\n            if status[i] != \"0\":\n                ret += AStar.DIST[i][int(status[i]) - 1]\n        return ret\n\n    def __init__(self, status: str, g: str) -> None:\n        self.status = status\n        self.g = g\n        self.h = AStar.getH(status)\n        self.f = self.g + self.h\n    \n    def __lt__(self, other: \"AStar\") -> bool:\n        return self.f < other.f\n\nclass Solution:\n    NEIGHBORS = [[1, 3], [0, 2, 4], [1, 5], [0, 4], [1, 3, 5], [2, 4]]\n\n    def slidingPuzzle(self, board: List[List[int]]) -> int:\n        # 枚举 status 通过一次交换操作得到的状态\n        def get(status: str) -> Generator[str, None, None]:\n            s = list(status)\n            x = s.index(\"0\")\n            for y in Solution.NEIGHBORS[x]:\n                s[x], s[y] = s[y], s[x]\n                yield \"\".join(s)\n                s[x], s[y] = s[y], s[x]\n\n        initial = \"\".join(str(num) for num in sum(board, []))\n        if initial == \"123450\":\n            return 0\n\n        q = [AStar(initial, 0)]\n        seen = {initial}\n        while q:\n            node = heapq.heappop(q)\n            for next_status in get(node.status):\n                if next_status not in seen:\n                    if next_status == \"123450\":\n                        return node.g + 1\n                    heapq.heappush(q, AStar(next_status, node.g + 1))\n                    seen.add(next_status)\n        \n        return -1\n```\n\n```go [sol2-Golang]\ntype astar struct {\n    g, h   int\n    status string\n}\ntype hp []astar\n\nfunc (h hp) Len() int            { return len(h) }\nfunc (h hp) Less(i, j int) bool  { return h[i].g+h[i].h < h[j].g+h[j].h }\nfunc (h hp) Swap(i, j int)       { h[i], h[j] = h[j], h[i] }\nfunc (h *hp) Push(v interface{}) { *h = append(*h, v.(astar)) }\nfunc (h *hp) Pop() interface{}   { a := *h; v := a[len(a)-1]; *h = a[:len(a)-1]; return v }\n\n// 曼哈顿距离\nvar dist = [6][6]int{\n    {0, 1, 2, 1, 2, 3},\n    {1, 0, 1, 2, 1, 2},\n    {2, 1, 0, 3, 2, 1},\n    {1, 2, 3, 0, 1, 2},\n    {2, 1, 2, 1, 0, 1},\n    {3, 2, 1, 2, 1, 0},\n}\n\n// 计算启发函数\nfunc getH(status string) (ret int) {\n    for i, ch := range status {\n        if ch != '0' {\n            ret += dist[i][ch-'1']\n        }\n    }\n    return\n}\n\nvar neighbors = [6][]int{{1, 3}, {0, 2, 4}, {1, 5}, {0, 4}, {1, 3, 5}, {2, 4}}\n\nfunc slidingPuzzle(board [][]int) int {\n    const target = \"123450\"\n\n    s := make([]byte, 0, 6)\n    for _, r := range board {\n        for _, v := range r {\n            s = append(s, '0'+byte(v))\n        }\n    }\n    start := string(s)\n    if start == target {\n        return 0\n    }\n\n    // 枚举 status 通过一次交换操作得到的状态\n    get := func(status string) (ret []string) {\n        s := []byte(status)\n        x := strings.Index(status, \"0\")\n        for _, y := range neighbors[x] {\n            s[x], s[y] = s[y], s[x]\n            ret = append(ret, string(s))\n            s[x], s[y] = s[y], s[x]\n        }\n        return\n    }\n\n    type pair struct {\n        status string\n        step   int\n    }\n    h := hp{{0, getH(start), start}}\n    seen := map[string]bool{start: true}\n    for len(h) > 0 {\n        node := heap.Pop(&h).(astar)\n        for _, nxt := range get(node.status) {\n            if !seen[nxt] {\n                if nxt == target {\n                    return node.g + 1\n                }\n                seen[nxt] = true\n                heap.Push(&h, astar{node.g + 1, getH(nxt), nxt})\n            }\n        }\n    }\n    return -1\n}\n```\n\n**复杂度分析**\n\n启发式搜索不讨论时空复杂度。",
+            "slateValue": "",
+            "slug": "hua-dong-mi-ti-by-leetcode-solution-q8dn",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "LPEsN2",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 64,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "CONFUSED"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Breadth-First Search",
+                    "nameTranslated": "广度优先搜索",
+                    "slug": "breadth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Matrix",
+                    "nameTranslated": "矩阵",
+                    "slug": "matrix",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Heap (Priority Queue)",
+                    "nameTranslated": "堆（优先队列）",
+                    "slug": "heap-priority-queue",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2021-06-25T15:30:48.260382+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：广度优先搜索 思路与算法 我们可以使用广度优先搜索，找出从初始状态 $\\textit{board}$ 到目标状态 $[[1,2,3],[4,5,0]]$ 的最小交换次数。 具体地，我们在一开始将 $(\\textit{board}, 0)$ 加入队列，并使用该队列进行广度优先搜索。在搜索的过程中，设当前搜索到的状",
+            "topic": {
+                "id": 845064,
+                "subscribed": false,
+                "commentCount": 123,
+                "viewCount": 18517,
+                "post": {
+                    "id": 1845431,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 113,
+            "isEditorsPick": false,
+            "hitCount": 37950,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "sliding-puzzle",
+                "questionFrontendId": "773"
+            },
+            "next": {
+                "slug": "773-hua-dong-mi-ti-by-larrychen-wjgf",
+                "title": "773. 滑动谜题"
+            },
+            "prev": null
+        }
+    }
+}

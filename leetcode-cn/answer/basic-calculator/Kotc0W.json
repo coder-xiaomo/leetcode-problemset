@@ -1,0 +1,134 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "Kotc0W",
+            "title": "基本计算器",
+            "content": "#### 方法一：括号展开 + 栈\n\n由于字符串除了数字与括号外，只有加号和减号两种运算符。因此，如果展开表达式中所有的括号，则得到的新表达式中，数字本身不会发生变化，只是每个数字前面的符号会发生变化。\n\n因此，我们考虑使用一个取值为 $\\{-1,+1\\}$ 的整数 $\\textit{sign}$ 代表「当前」的符号。根据括号表达式的性质，它的取值：\n- 与字符串中当前位置的运算符有关；\n- 如果当前位置处于一系列括号之内，则也与这些括号前面的运算符有关：每当遇到一个以 $-$ 号开头的括号，则意味着此后的符号都要被「翻转」。\n\n考虑到第二点，我们需要维护一个栈 $\\textit{ops}$，其中栈顶元素记录了当前位置所处的每个括号所「共同形成」的符号。例如，对于字符串 $\\text{1+2+(3-(4+5))}$：\n- 扫描到 $\\text{1+2}$ 时，由于当前位置没有被任何括号所包含，则栈顶元素为初始值 $+1$；\n- 扫描到 $\\text{1+2+(3}$ 时，当前位置被一个括号所包含，该括号前面的符号为 $+$ 号，因此栈顶元素依然 $+1$；\n- 扫描到 $\\text{1+2+(3-(4}$ 时，当前位置被两个括号所包含，分别对应着 $+$ 号和 $-$ 号，由于 $+$ 号和 $-$ 号合并的结果为 $-$ 号，因此栈顶元素变为 $-1$。\n\n在得到栈 $\\textit{ops}$ 之后， $\\textit{sign}$ 的取值就能够确定了：如果当前遇到了 $+$ 号，则更新 $\\textit{sign} \\leftarrow \\text{ops.top()}$；如果遇到了遇到了 $-$ 号，则更新 $\\textit{sign} \\leftarrow -\\text{ops.top()}$。\n\n然后，每当遇到 $($ 时，都要将当前的 $\\textit{sign}$ 取值压入栈中；每当遇到 $)$ 时，都从栈中弹出一个元素。这样，我们能够在扫描字符串的时候，即时地更新 $\\textit{ops}$ 中的元素。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int calculate(string s) {\n        stack<int> ops;\n        ops.push(1);\n        int sign = 1;\n\n        int ret = 0;\n        int n = s.length();\n        int i = 0;\n        while (i < n) {\n            if (s[i] == ' ') {\n                i++;\n            } else if (s[i] == '+') {\n                sign = ops.top();\n                i++;\n            } else if (s[i] == '-') {\n                sign = -ops.top();\n                i++;\n            } else if (s[i] == '(') {\n                ops.push(sign);\n                i++;\n            } else if (s[i] == ')') {\n                ops.pop();\n                i++;\n            } else {\n                long num = 0;\n                while (i < n && s[i] >= '0' && s[i] <= '9') {\n                    num = num * 10 + s[i] - '0';\n                    i++;\n                }\n                ret += sign * num;\n            }\n        }\n        return ret;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int calculate(String s) {\n        Deque<Integer> ops = new LinkedList<Integer>();\n        ops.push(1);\n        int sign = 1;\n\n        int ret = 0;\n        int n = s.length();\n        int i = 0;\n        while (i < n) {\n            if (s.charAt(i) == ' ') {\n                i++;\n            } else if (s.charAt(i) == '+') {\n                sign = ops.peek();\n                i++;\n            } else if (s.charAt(i) == '-') {\n                sign = -ops.peek();\n                i++;\n            } else if (s.charAt(i) == '(') {\n                ops.push(sign);\n                i++;\n            } else if (s.charAt(i) == ')') {\n                ops.pop();\n                i++;\n            } else {\n                long num = 0;\n                while (i < n && Character.isDigit(s.charAt(i))) {\n                    num = num * 10 + s.charAt(i) - '0';\n                    i++;\n                }\n                ret += sign * num;\n            }\n        }\n        return ret;\n    }\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar calculate = function(s) {\n    const ops = [1];\n    let sign = 1;\n\n    let ret = 0;\n    const n = s.length;\n    let i = 0;\n    while (i < n) {\n        if (s[i] === ' ') {\n            i++;\n        } else if (s[i] === '+') {\n            sign = ops[ops.length - 1];\n            i++;\n        } else if (s[i] === '-') {\n            sign = -ops[ops.length - 1];\n            i++;\n        } else if (s[i] === '(') {\n            ops.push(sign);\n            i++;\n        } else if (s[i] === ')') {\n            ops.pop();\n            i++;\n        } else {\n            let num = 0;\n            while (i < n && !(isNaN(Number(s[i]))) && s[i] !== ' ') {\n                num = num * 10 + s[i].charCodeAt() - '0'.charCodeAt();\n                i++;\n            }\n            ret += sign * num;\n        }\n    }\n    return ret;\n};\n```\n\n```go [sol1-Golang]\nfunc calculate(s string) (ans int) {\n    ops := []int{1}\n    sign := 1\n    n := len(s)\n    for i := 0; i < n; {\n        switch s[i] {\n        case ' ':\n            i++\n        case '+':\n            sign = ops[len(ops)-1]\n            i++\n        case '-':\n            sign = -ops[len(ops)-1]\n            i++\n        case '(':\n            ops = append(ops, sign)\n            i++\n        case ')':\n            ops = ops[:len(ops)-1]\n            i++\n        default:\n            num := 0\n            for ; i < n && '0' <= s[i] && s[i] <= '9'; i++ {\n                num = num*10 + int(s[i]-'0')\n            }\n            ans += sign * num\n        }\n    }\n    return\n}\n```\n\n```C [sol1-C]\nint calculate(char* s) {\n    int n = strlen(s);\n    int ops[n], top = 0;\n    int sign = 1;\n    ops[top++] = sign;\n\n    int ret = 0;\n    int i = 0;\n    while (i < n) {\n        if (s[i] == ' ') {\n            i++;\n        } else if (s[i] == '+') {\n            sign = ops[top - 1];\n            i++;\n        } else if (s[i] == '-') {\n            sign = -ops[top - 1];\n            i++;\n        } else if (s[i] == '(') {\n            ops[top++] = sign;\n            i++;\n        } else if (s[i] == ')') {\n            top--;\n            i++;\n        } else {\n            long num = 0;\n            while (i < n && s[i] >= '0' && s[i] <= '9') {\n                num = num * 10 + s[i] - '0';\n                i++;\n            }\n            ret += sign * num;\n        }\n    }\n    return ret;\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def calculate(self, s: str) -> int:\n        ops = [1]\n        sign = 1\n\n        ret = 0\n        n = len(s)\n        i = 0\n        while i < n:\n            if s[i] == ' ':\n                i += 1\n            elif s[i] == '+':\n                sign = ops[-1]\n                i += 1\n            elif s[i] == '-':\n                sign = -ops[-1]\n                i += 1\n            elif s[i] == '(':\n                ops.append(sign)\n                i += 1\n            elif s[i] == ')':\n                ops.pop()\n                i += 1\n            else:\n                num = 0\n                while i < n and s[i].isdigit():\n                    num = num * 10 + ord(s[i]) - ord('0')\n                    i += 1\n                ret += num * sign\n        return ret\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 为字符串 $s$ 的长度。需要遍历字符串 $s$ 一次，计算表达式的值。\n\n- 空间复杂度：$O(n)$，其中 $n$ 为字符串 $s$ 的长度。空间复杂度主要取决于栈的空间，栈中的元素数量不超过 $n$。\n\n#### 备注\n\n本题有多种基于栈这一数据结构的解法，每种解法基于相近的思路，但具有完全不同的实现方式。感兴趣的读者可以尝试阅读其他基于栈的解法，本题解不再一一列举。",
+            "slateValue": "",
+            "slug": "ji-ben-ji-suan-qi-by-leetcode-solution-jvir",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "Kotc0W",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 251,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 6,
+                    "reactionType": "CONFUSED"
+                },
+                {
+                    "count": 5,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Stack",
+                    "nameTranslated": "栈",
+                    "slug": "stack",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-03-09T15:06:57.599500+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：括号展开 + 栈 由于字符串除了数字与括号外，只有加号和减号两种运算符。因此，如果展开表达式中所有的括号，则得到的新表达式中，数字本身不会发生变化，只是每个数字前面的符号会发生变化。 因此，我们考虑使用一个取值为 ${-1,+1}$ 的整数 $\\textit{sign}$ 代表「当前」的符号。根据括号表达式的性",
+            "topic": {
+                "id": 646369,
+                "subscribed": false,
+                "commentCount": 455,
+                "viewCount": 82166,
+                "post": {
+                    "id": 1469878,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 698,
+            "isEditorsPick": false,
+            "hitCount": 238652,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "basic-calculator",
+                "questionFrontendId": "224"
+            },
+            "next": {
+                "slug": "shuang-zhan-jie-jue-tong-yong-biao-da-sh-olym",
+                "title": "【进阶补充】双栈解决通用「表达式计算」问题"
+            },
+            "prev": null
+        }
+    }
+}

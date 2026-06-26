@@ -1,0 +1,134 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "UAJZuV",
+            "title": "盈利计划",
+            "content": "#### 方法一：动态规划\n\n本题与经典背包问题非常相似。两者不同点在于经典背包问题只有一种容量限制，而本题却有两种限制：集团员工人数上限 $n$，以及工作产生的利润下限 $\\textit{minProfit}$。\n\n通过经典背包问题的练习，我们已知经典背包问题可以使用二维动态规划求解：两个维度分别代表物品和容量的限制标准。对于本题上述的两种限制，我们可以想到使用三维动态规划求解。本题解法的三个维度分别为：当前**可选择**的工作，**已选择**的小组员工人数，以及**目前状态的工作获利下限**。\n\n根据上述分析，我们可以定义一个三维数组 $\\textit{dp}$ 作为动态规划的状态，其中 $\\textit{dp}[i][j][k]$ 表示在前 $i$ 个工作中选择了 $j$ 个员工，并且满足工作利润至少为 $k$ 的情况下的盈利计划的总数目。假设 $\\textit{group}$ 数组长度为 $\\textit{len}$，那么不考虑取模运算的情况下，最终答案为：\n\n$$\n\\sum_{i=0}^{n}\\textit{dp}[\\textit{len}][i][\\textit{minProfit}]\n$$\n\n所以我们可以新建一个三维数组 $\\textit{dp}[\\textit{len} + 1][n + 1][\\textit{minProfit} + 1]$，初始化 $\\textit{dp}[0][0][0] = 1$。接下来分析状态转移方程，对于每个工作 $i$，我们根据当前工作人数上限 $j$，有**能够开展当前工作**和**无法开展当前工作**两种情况：\n\n- 如果无法开展当前工作 $i$，那么显然：\n\n    $$\n    \\textit{dp}[i][j][k] = \\textit{dp}[i - 1][j][k]\n    $$\n\n- 如果能够开展当前工作 $i$，设当前小组人数为 $\\textit{group}[i]$，工作获利为 $\\textit{profit}[i]$，那么不考虑取模运算的情况下，则有：\n\n    $$\n    \\textit{dp}[i][j][k] = \\textit{dp}[i - 1][j][k] + \\textit{dp}[i - 1][j - \\textit{group}[i]][\\max(0, k - \\textit{profit}[i])]\n    $$\n\n由于我们定义的第三维是**工作利润至少为 $k$** 而不是 **工作利润恰好为 $k$**，因此上述状态转移方程中右侧的第三维是 $\\max(0, k - \\textit{profit}[i])$ 而不是 $k - \\textit{profit}[i]$。读者可以思考这一步的妙处所在。\n\n根据上述思路，参考代码如下：\n\n```Java [sol11-Java]\nclass Solution {\n    public int profitableSchemes(int n, int minProfit, int[] group, int[] profit) {\n        int len = group.length, MOD = (int)1e9 + 7;\n        int[][][] dp = new int[len + 1][n + 1][minProfit + 1];\n        dp[0][0][0] = 1;\n        for (int i = 1; i <= len; i++) {\n            int members = group[i - 1], earn = profit[i - 1];\n            for (int j = 0; j <= n; j++) {\n                for (int k = 0; k <= minProfit; k++) {\n                    if (j < members) {\n                        dp[i][j][k] = dp[i - 1][j][k];\n                    } else {\n                        dp[i][j][k] = (dp[i - 1][j][k] + dp[i - 1][j - members][Math.max(0, k - earn)]) % MOD;\n                    }\n                }\n            }\n        }\n        int sum = 0;\n        for (int j = 0; j <= n; j++) {\n            sum = (sum + dp[len][j][minProfit]) % MOD;\n        }\n        return sum;\n    }\n}\n```\n\n```C# [sol11-C#]\npublic class Solution {\n    public int ProfitableSchemes(int n, int minProfit, int[] group, int[] profit) {\n        int len = group.Length, MOD = (int)1e9 + 7;\n        int[,,] dp = new int[len + 1, n + 1, minProfit + 1];\n        dp[0, 0, 0] = 1;\n        for (int i = 1; i <= len; i++) {\n            int members = group[i - 1], earn = profit[i - 1];\n            for (int j = 0; j <= n; j++) {\n                for (int k = 0; k <= minProfit; k++) {\n                    if (j < members) {\n                        dp[i, j, k] = dp[i - 1, j, k];\n                    } else {\n                        dp[i, j, k] = (dp[i - 1, j, k] + dp[i - 1, j - members, Math.Max(0, k - earn)]) % MOD;\n                    }\n                }\n            }\n        }\n        int sum = 0;\n        for (int j = 0; j <= n; j++) {\n            sum = (sum + dp[len, j, minProfit]) % MOD;\n        }\n        return sum;\n    }\n}\n```\n\n```JavaScript [sol11-JavaScript]\nvar profitableSchemes = function(n, minProfit, group, profit) {\n    const len = group.length, MOD = 1e9 + 7;\n    const dp = new Array(len + 1).fill(0).map(() => new Array(n + 1).fill(0).map(() => new Array(minProfit + 1).fill(0)));\n    dp[0][0][0] = 1;\n    for (let i = 1; i <= len; i++) {\n        const members = group[i - 1], earn = profit[i - 1];\n        for (let j = 0; j <= n; j++) {\n            for (let k = 0; k <= minProfit; k++) {\n                if (j < members) {\n                    dp[i][j][k] = dp[i - 1][j][k];\n                } else {\n                    dp[i][j][k] = (dp[i - 1][j][k] + dp[i - 1][j - members][Math.max(0, k - earn)]) % MOD;\n                }\n            }\n        }\n    }\n    let sum = 0;\n    for (let j = 0; j <= n; j++) {\n        sum = (sum + dp[len][j][minProfit]) % MOD;\n    }\n    return sum;\n};\n```\n\n```Python [sol11-Python3]\nclass Solution:\n    def profitableSchemes(self, n: int, minProfit: int, group: List[int], profit: List[int]) -> int:\n        MOD = 10**9 + 7\n        \n        length = len(group)\n        dp = [[[0] * (minProfit + 1) for _ in range(n + 1)] for _ in range(length + 1)]\n        dp[0][0][0] = 1\n        for i in range(1, length + 1):\n            members, earn = group[i - 1], profit[i - 1]\n            for j in range(n + 1):\n                for k in range(minProfit + 1):\n                    if j < members:\n                        dp[i][j][k] = dp[i - 1][j][k]\n                    else:\n                        dp[i][j][k] = (dp[i - 1][j][k] + dp[i - 1][j - members][max(0, k - earn)]) % MOD\n        \n        total = sum(dp[length][j][minProfit] for j in range(n + 1))\n        return total % MOD\n```\n\n```C++ [sol11-C++]\nclass Solution {\npublic:\n    int profitableSchemes(int n, int minProfit, vector<int>& group, vector<int>& profit) {\n        int len = group.size(), MOD = (int)1e9 + 7;\n        vector<vector<vector<int>>> dp(len + 1, vector<vector<int>>(n + 1, vector<int>(minProfit + 1)));\n        dp[0][0][0] = 1;\n        for (int i = 1; i <= len; i++) {\n            int members = group[i - 1], earn = profit[i - 1];\n            for (int j = 0; j <= n; j++) {\n                for (int k = 0; k <= minProfit; k++) {\n                    if (j < members) {\n                        dp[i][j][k] = dp[i - 1][j][k];\n                    } else {\n                        dp[i][j][k] = (dp[i - 1][j][k] + dp[i - 1][j - members][max(0, k - earn)]) % MOD;\n                    }\n                }\n            }\n        }\n        int sum = 0;\n        for (int j = 0; j <= n; j++) {\n            sum = (sum + dp[len][j][minProfit]) % MOD;\n        }\n        return sum;\n    }\n};\n```\n\n```C [sol11-C]\nint profitableSchemes(int n, int minProfit, int* group, int groupSize, int* profit, int profitSize) {\n    int len = groupSize, MOD = (int)1e9 + 7;\n    int dp[len + 1][n + 1][minProfit + 1];\n    memset(dp, 0, sizeof(dp));\n    dp[0][0][0] = 1;\n    for (int i = 1; i <= len; i++) {\n        int members = group[i - 1], earn = profit[i - 1];\n        for (int j = 0; j <= n; j++) {\n            for (int k = 0; k <= minProfit; k++) {\n                if (j < members) {\n                    dp[i][j][k] = dp[i - 1][j][k];\n                } else {\n                    dp[i][j][k] = (dp[i - 1][j][k] + dp[i - 1][j - members][(int)fmax(0, k - earn)]) % MOD;\n                }\n            }\n        }\n    }\n    int sum = 0;\n    for (int j = 0; j <= n; j++) {\n        sum = (sum + dp[len][j][minProfit]) % MOD;\n    }\n    return sum;\n}\n```\n\n```go [sol11-Golang]\nfunc profitableSchemes(n, minProfit int, group, profit []int) (sum int) {\n    const mod int = 1e9 + 7\n    ng := len(group)\n    dp := make([][][]int, ng+1)\n    for i := range dp {\n        dp[i] = make([][]int, n+1)\n        for j := range dp[i] {\n            dp[i][j] = make([]int, minProfit+1)\n        }\n    }\n    dp[0][0][0] = 1\n    for i, members := range group {\n        earn := profit[i]\n        for j := 0; j <= n; j++ {\n            for k := 0; k <= minProfit; k++ {\n                if j < members {\n                    dp[i+1][j][k] = dp[i][j][k]\n                } else {\n                    dp[i+1][j][k] = (dp[i][j][k] + dp[i][j-members][max(0, k-earn)]) % mod\n                }\n            }\n        }\n    }\n    for _, d := range dp[ng] {\n        sum = (sum + d[minProfit]) % mod\n    }\n    return\n}\n\nfunc max(a, b int) int {\n    if a > b {\n        return a\n    }\n    return b\n}\n```\n\n可以发现 $\\textit{dp}[i][j][k]$ 仅与 $\\textit{dp}[i - 1][..][..]$ 有关，所以本题可以用二维动态规划解决。当采用二维动态规划解法时，对于最小工作利润为 $0$ 的情况，无论当前在工作的员工有多少人，我们总能提供一种方案，所以初始化 $\\textit{dp}[i][0] = 1$。此外，降维之后 $\\textit{dp}$ 数组的遍历顺序应为**逆序**，与背包问题降维解法类似，因为这样才能保证求状态 $\\textit{dp}[j][k]$ 时, 用到的 $\\textit{dp}[j - \\textit{members}][\\max(0, k - \\textit{earn})]$ **是上一时刻的值**，而正序遍历则会改写该值。参考代码如下：\n\n```Java [sol12-Java]\nclass Solution {\n    public int profitableSchemes(int n, int minProfit, int[] group, int[] profit) {\n        int[][] dp = new int[n + 1][minProfit + 1];\n        for (int i = 0; i <= n; i++) {\n            dp[i][0] = 1;\n        }\n        int len = group.length, MOD = (int)1e9 + 7;\n        for (int i = 1; i <= len; i++) {\n            int members = group[i - 1], earn = profit[i - 1];\n            for (int j = n; j >= members; j--) {\n                for (int k = minProfit; k >= 0; k--) {\n                    dp[j][k] = (dp[j][k] + dp[j - members][Math.max(0, k - earn)]) % MOD;\n                }\n            }\n        }\n        return dp[n][minProfit];\n    }\n}\n```\n\n```C# [sol12-C#]\npublic class Solution {\n    public int ProfitableSchemes(int n, int minProfit, int[] group, int[] profit) {\n        int[,] dp = new int[n + 1, minProfit + 1];\n        for (int i = 0; i <= n; i++) {\n            dp[i, 0] = 1;\n        }\n        int len = group.Length, MOD = (int)1e9 + 7;\n        for (int i = 1; i <= len; i++) {\n            int members = group[i - 1], earn = profit[i - 1];\n            for (int j = n; j >= members; j--) {\n                for (int k = minProfit; k >= 0; k--) {\n                    dp[j, k] = (dp[j, k] + dp[j - members, Math.Max(0, k - earn)]) % MOD;\n                }\n            }\n        }\n        return dp[n, minProfit];\n    }\n}\n```\n\n```Python [sol12-Python3]\nclass Solution:\n    def profitableSchemes(self, n: int, minProfit: int, group: List[int], profit: List[int]) -> int:\n        MOD = 10**9 + 7\n        dp = [[0] * (minProfit + 1) for _ in range(n + 1)]\n        for i in range(0, n + 1):\n            dp[i][0] = 1\n        for earn, members in zip(profit, group):\n            for j in range(n, members - 1, -1):\n                for k in range(minProfit, -1, -1):\n                    dp[j][k] = (dp[j][k] + dp[j - members][max(0, k - earn)]) % MOD;\n        return dp[n][minProfit]\n```\n\n```JavaScript [sol12-JavaScript]\nvar profitableSchemes = function(n, minProfit, group, profit) {\n    const dp = new Array(n + 1).fill(0).map(() => new Array(minProfit + 1).fill(0));\n    for (let i = 0; i <= n; i++) {\n        dp[i][0] = 1;\n    }\n    const len = group.length, MOD = 1e9 + 7;\n    for (let i = 1; i <= len; i++) {\n        const members = group[i - 1], earn = profit[i - 1];\n        for (let j = n; j >= members; j--) {\n            for (let k = minProfit; k >= 0; k--) {\n                dp[j][k] = (dp[j][k] + dp[j - members][Math.max(0, k - earn)]) % MOD;\n            }\n        }\n    }\n    return dp[n][minProfit];\n};\n```\n\n```C++ [sol12-C++]\nclass Solution {\npublic:\n    int profitableSchemes(int n, int minProfit, vector<int>& group, vector<int>& profit) {\n        vector<vector<int>> dp(n + 1, vector<int>(minProfit + 1));\n        for (int i = 0; i <= n; i++) {\n            dp[i][0] = 1;\n        }\n        int len = group.size(), MOD = (int)1e9 + 7;\n        for (int i = 1; i <= len; i++) {\n            int members = group[i - 1], earn = profit[i - 1];\n            for (int j = n; j >= members; j--) {\n                for (int k = minProfit; k >= 0; k--) {\n                    dp[j][k] = (dp[j][k] + dp[j - members][max(0, k - earn)]) % MOD;\n                }\n            }\n        }\n        return dp[n][minProfit];\n    }\n};\n```\n\n```C [sol12-C]\nint profitableSchemes(int n, int minProfit, int* group, int groupSize, int* profit, int profitSize) {\n    int dp[n + 1][minProfit + 1];\n    memset(dp, 0, sizeof(dp));\n    for (int i = 0; i <= n; i++) {\n        dp[i][0] = 1;\n    }\n    int len = groupSize, MOD = (int)1e9 + 7;\n    for (int i = 1; i <= len; i++) {\n        int members = group[i - 1], earn = profit[i - 1];\n        for (int j = n; j >= members; j--) {\n            for (int k = minProfit; k >= 0; k--) {\n                dp[j][k] = (dp[j][k] + dp[j - members][(int)fmax(0, k - earn)]) % MOD;\n            }\n        }\n    }\n    return dp[n][minProfit];\n}\n```\n\n```go [sol12-Golang]\nfunc profitableSchemes(n, minProfit int, group, profit []int) (sum int) {\n    const mod int = 1e9 + 7\n    dp := make([][]int, n+1)\n    for i := range dp {\n        dp[i] = make([]int, minProfit+1)\n        dp[i][0] = 1\n    }\n    for i, members := range group {\n        earn := profit[i]\n        for j := n; j >= members; j-- {\n            for k := minProfit; k >= 0; k-- {\n                dp[j][k] = (dp[j][k] + dp[j-members][max(0, k-earn)]) % mod\n            }\n        }\n    }\n    return dp[n][minProfit]\n}\n\nfunc max(a, b int) int {\n    if a > b {\n        return a\n    }\n    return b\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(\\textit{len} \\times n \\times \\textit{minProfit})$，其中 $\\textit{len}$ 为数组 $\\textit{group}$ 的长度。\n    动态规划需要计算的状态总数是 $O(\\textit{len} \\times n \\times \\textit{minProfit})$，每个状态的值需要 $O(1)$ 的时间计算。\n\n- 空间复杂度：$O(n \\times \\textit{minProfit})$。\n    使用空间优化的实现，需要创建 $n + 1$ 行，$\\textit{minProfit} + 1$ 列的二维数组 $\\textit{dp}$。",
+            "slateValue": "",
+            "slug": "ying-li-ji-hua-by-leetcode-solution-3t8o",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "UAJZuV",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 96,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 4,
+                    "reactionType": "CONFUSED"
+                },
+                {
+                    "count": 4,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-06-08T15:35:54.337371+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 本题与经典背包问题非常相似。两者不同点在于经典背包问题只有一种容量限制，而本题却有两种限制：集团员工人数上限 $n$，以及工作产生的利润下限 $\\textit{minProfit}$。 通过经典背包问题的练习，我们已知经典背包问题可以使用二维动态规划求解：两个维度分别代表物品和容量的限制标准。对于本题",
+            "topic": {
+                "id": 819654,
+                "subscribed": false,
+                "commentCount": 220,
+                "viewCount": 22282,
+                "post": {
+                    "id": 1797619,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 145,
+            "isEditorsPick": false,
+            "hitCount": 50752,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "profitable-schemes",
+                "questionFrontendId": "879"
+            },
+            "next": {
+                "slug": "gong-shui-san-xie-te-shu-duo-wei-fei-yon-7su9",
+                "title": "【宫水三叶】特殊多维费用背包问题解决方案"
+            },
+            "prev": null
+        }
+    }
+}

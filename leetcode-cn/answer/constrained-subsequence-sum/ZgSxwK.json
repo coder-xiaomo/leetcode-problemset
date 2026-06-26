@@ -1,0 +1,100 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "ZgSxwK",
+            "title": "带限制的子序列和",
+            "content": "#### 方法一：动态规划 + 单调队列优化\n\n我们用 $f[i]$ 表示在数组的前 $i$ 个数中进行选择，并且恰好选择了第 $i$ 个数，可以得到的最大和。那么 $f[i]$ 的状态转移分为两种：\n\n- 如果我们在前 $i$ 个数中只选择了 $\\textit{nums}[i]$，那么和即为；\n\n    $$\n    f[i] = \\textit{nums}[i]\n    $$\n\n- 如果我们还选择了其它的数，那么我们可以枚举上一个选择的数 $\\textit{nums}[j]$，并通过 $f[j]$ 进行状态转移。具体地，根据题目的要求，相邻两个被选择的整数在数组中的下标之差必须小于等于 $k$，也就是 $0 < i - j \\leq k$，因此可以写出如下的状态转移方程：\n\n    $$\n    f[i] = \\max_{\\max(i-k, 0) \\leq j < i}(f[j]) + \\textit{nums}[i]\n    $$\n\n将两种情况写在一起，就可以得到状态转移方程：\n\n$$\nf[i] = \\max\\left(\\max_{\\max(i-k, 0) \\leq j < i}(f[j]), 0\\right) + \\textit{nums}[i]\n$$\n\n这个状态转移方程看上去很吓人，但我们可以从最简单的方法开始想起。对于每一个 $f[i]$，我们只要枚举与 $i$ 的差值是否小于等于 $k$ 的所有 $j$，并在这些 $j$ 中选择一个最大的 $f[j]$ 进行状态转移即可。如果最大的 $f[j]$ 小于 $0$，那么我们不进行状态转移，只选择 $\\textit{nums}[i]$。\n\n然而这样做的时间复杂度为 $O(nk)$，会超出时间限制，因为枚举 $i$ 和 $j$ 的时间复杂度分别为 $O(n)$ 和 $O(k)$。那么我们如何进行优化呢？\n\n观察上面的状态转移方程，我们大致有一个这样的想法：\n\n> 对于每一个 $i$，我们选择的都是满足要求的 $j$ 中最大的 $f[j]$ 值。那么如果 $f[i]$ 是从 $f[j]$ 转移而来的，只要 $j$ 与 $i+1$ 相差不超过 $k$，$f[i+1]$ 也很有可能从 $f[j]$ 转移而来。\n\n这个想法也就是我们熟知的「单调栈」或者「单调队列」。如果读者对这两个名词的概念已经十分清楚，那么不妨试着使用它们对状态转移方程进行优化。对于不太了解的读者，这里会给出详细的推导过程。\n\n**单调队列优化**\n\n在从小到大枚举 $i$ 的过程中，假设我们有两个位置 $j_1$ 和 $j_2$ 可以考虑进行转移，并且 $j_1 < j_2$。如果 $f[j_1] \\leq f[j_2]$，那么我们可以断定，对于以后会枚举到的所有 $i$，$j_1$ 都不会优于 $j_2$ 了。换句话说，我们可以直接「扔掉」$j_1$，因为它不会转移到后续的任何状态。\n\n这是为什么呢？我们这样想，对于任意一个满足 $j_1 < j_2 < i$ 的 $i$，如果它从 $j_1$ 转移而来，那么它一定也能从 $j_2$ 转移而来，这是因为转移的**唯一要求**是 $i$ 和 $j$ 相差不超过 $k$，那么在 $i$ 和 $j_1$ 满足要求的前提下，$i$ 和 $j_2$ 也一定满足要求。并且 $f[j_1] \\leq f[j_2]$，那么 $j_2$ 一定不比 $j_1$ 差。那么在「有生之年」，我们在进行转移时就不需要考虑 $j_1$ 了。\n\n因此，我们可以考虑使用一个「单调栈」来维护所有**可能**会考虑的 $j$。为什么它是一个「栈」呢？我们来看看它的具体维护方法：\n\n> 假设我们当前维护了这样的一个「单调栈」，它包含 $j_1, j_2, \\cdots, j_x$，并且 $j_1 < j_2 < \\cdots < j_x$。根据上面提到的性质，必定有 $f[j_1] > f[j_2] > \\cdots > f[j_x]$。如果我们需要将一个新的 $j$ 值 $j_y$ 放入单调栈中，那么我们从栈顶元素开始考虑：如果 $f[j_x] \\leq f[j_y]$，那么根据上文的推导，我们可以直接「扔掉」$j_x$，也就是将栈顶元素弹出。以此类推，我们可以不断地弹出栈顶元素，直到栈顶元素对应的 $f$ 值大于 $f[j_y]$ 或者栈为空。此时我们再将 $j_y$ 放入栈顶，就得到了一个新的「单调栈」。\n\n这样以来，栈底的 $j$ 对应着最大的 $f[j]$ 值，我们用它来转移到 $f[i]$ 就行了。\n\n然而，这样的设计存在两个问题：\n\n- 我们使用的是一个「栈」，在仅使用栈的 API 的前提下，而我们并没有办法获得「栈底」的元素；\n\n- 栈底的 $j$ 可能与当前的 $i$ 值的差大于 $k$。\n\n因此，我们需要用「队列」来代替栈，即单调队列。对于第一个问题，我们可以通过获取队首元素解决。对于第二个问题，我们要做的是不断地将队首的元素弹出，直到队首的 $j$ 与当前的 $i$ 值的差小于 $k$ 为止。由于我们需要「取出队首元素」「取出队尾元素」这两种操作，因此我们使用的是「双端队列」。\n\n**算法流程**\n\n我们使用单调队列进行优化的动态规划的算法流程如下：\n\n- 我们用一个双端队列来维护所有可能会进行转移的 $j$ 值。在队列中，这些 $j$ 值单调递增，但是它们对应的 $f[j]$ 值是单调递减的；\n\n- 我们从小到大枚举 $i$。在枚举的每一步中，单调队列的队首元素就是最优的转移选择。但由于题目要求相邻的两个数的位置最多间隔 $k$，因此我们需要从队首弹出元素，直到队首的 $j$ 值与 $i$ 的差值小于等于 $k$；\n\n- 在计算出 $f[i]$ 后，我们将 $i$ 根据规则放入单调队列的队尾。在放入之前，可能会弹出若干队尾的元素。\n\n- 最终的答案即为所有 $f[i]$ 中的最大值。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int constrainedSubsetSum(vector<int>& nums, int k) {\n        int n = nums.size();\n        // 存储动态规划结果的数组\n        vector<int> f(n);\n        // 我们直接放入 f[0] 的值，防止处理边界情况\n        f[0] = nums[0];\n        // 单调队列\n        deque<int> q;\n        // 一开始唯一的 j 为 0\n        q.push_back(0);\n        \n        int ans = nums[0];\n        for (int i = 1; i < n; ++i) {\n            // 如果队首的 j 与 i 的差值大于 k，则不满足要求，弹出\n            while (!q.empty() && i - q.front() > k) {\n                q.pop_front();\n            }\n            // 此时队首的 j 即为最优的 j 值\n            f[i] = max(f[q.front()], 0) + nums[i];\n            ans = max(ans, f[i]);\n            // 维护队列的单调性，不断从队尾弹出元素\n            while (!q.empty() && f[i] >= f[q.back()]) {\n                q.pop_back();\n            }\n            // 将 i 作为之后的新 j 值放入队尾\n            q.push_back(i);\n        }\n        return ans;\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def constrainedSubsetSum(self, nums: List[int], k: int) -> int:\n        n = len(nums)\n        # 存储动态规划结果的数组\n        # 我们直接放入 f[0] 的值，防止处理边界情况\n        f = [nums[0]] + [0] * (n - 1)\n        # 单调队列\n        # 一开始唯一的 j 为 0\n        q = collections.deque([0])\n        \n        ans = nums[0]\n        for i in range(1, n):\n            # 如果队首的 j 与 i 的差值大于 k，则不满足要求，弹出\n            while q and i - q[0] > k:\n                q.popleft()\n            # 此时队首的 j 即为最优的 j 值\n            f[i] = max(f[q[0]], 0) + nums[i]\n            ans = max(ans, f[i])\n            # 维护队列的单调性，不断从队尾弹出元素\n            while q and f[i] >= f[q[-1]]:\n                q.pop()\n            # 将 i 作为之后的新 j 值放入队尾\n            q.append(i)\n        return ans\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int constrainedSubsetSum(int[] nums, int k) {\n        int n = nums.length;\n        int[] f = new int[n];\n        f[0] = nums[0];\n        Deque<Integer> q = new ArrayDeque<Integer>();\n        q.addLast(0);\n        int ans = nums[0];\n        for (int i = 1; i < n; ++i) {\n            // 如果队首的 j 与 i 的差值大于 k，则不满足要求，弹出\n            while (!q.isEmpty() && i - q.peekFirst() > k) {\n                q.removeFirst();\n            }\n            // 此时队首的 j 即为最优的 j 值\n            f[i] = Math.max(f[q.peekFirst()], 0) + nums[i];\n            ans = Math.max(ans, f[i]);\n            // 维护队列的单调性，不断从队尾弹出元素\n            while (!q.isEmpty() && f[i] >= f[q.peekLast()]) {\n                q.removeLast();\n            }\n            // 将 i 作为之后的新 j 值放入队尾\n            q.addLast(i);\n        }\n        return ans;\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是数组 $\\textit{nums}$ 的长度。每一个数组下标都被放入队列一次，并且被弹出队列最多一次，因此处理队列的时间总计为 $O(n)$，与枚举 $i$ 的时间 $O(n)$ 相加仍然为 $O(n)$。\n\n- 空间复杂度：$O(n)$，数组 $f$ 和单调队列各需要 $O(n)$ 的空间。",
+            "slateValue": "",
+            "slug": "dai-xian-zhi-de-zi-xu-lie-he-by-leetcode-k5dw",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "ZgSxwK",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 15,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-12-08T15:24:20.604370+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 + 单调队列优化 我们用 $f[i]$ 表示在数组的前 $i$ 个数中进行选择，并且恰好选择了第 $i$ 个数，可以得到的最大和。那么 $f[i]$ 的状态转移分为两种： 如果我们在前 $i$ 个数中只选择了 $\\textit{nums}[i]$，那么和即为； f[i] = \\textit{nums}",
+            "topic": {
+                "id": 514353,
+                "subscribed": false,
+                "commentCount": 15,
+                "viewCount": 3297,
+                "post": {
+                    "id": 1213131,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 31,
+            "isEditorsPick": false,
+            "hitCount": 8497,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "constrained-subsequence-sum",
+                "questionFrontendId": "1425"
+            },
+            "next": {
+                "slug": "dpdan-diao-zhan-you-hua-xiang-jie-by-wangdh15",
+                "title": "DP+单调队列优化 详解"
+            },
+            "prev": null
+        }
+    }
+}

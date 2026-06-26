@@ -1,0 +1,148 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "A1GA8N",
+            "title": "非重叠矩形中的随机点",
+            "content": "#### 方法一：前缀和 + 二分查找\n\n**思路**\n\n记 $\\textit{rects}$ 的长度为 $n$。矩形 $\\textit{rects}[i]$ 的左下角点为 $(a_i, b_i)$, 右上角点为 $(x_i, y_i)$，则它覆盖的整数点有 $s_i = (x_i-a_i+1)\\times(y_i-b_i+1)$ 个。数组 $\\textit{rects}$ 表示的 $n$ 个矩形一共覆盖 $S = \\sum\\limits_{i=0}^{n-1}s_i$ 个整数点。我们将这些整数点进行编号为 $0$ 至 $S-1$。其中 $\\textit{rects}[0]$ 覆盖的点编号为 $0$ 至 $s_0-1$，$\\textit{rects}[1]$ 覆盖的整数点为接下去 $s_1$ 个，编号为 $s_0$ 至 $s_0+s_1-1$，依此类推。在同一个矩形中，整数点一共有 $(y_i-b_i+1)$ 行，$(x_i-a_i+1)$ 列。在同一个矩形中的编号，左下角为 $0$，并在同一行中，随着横坐标的增加，编号增加，右下角点 $(x_i, b_i)$ 在这个矩形中的编号为 $(x_i-a_i)$。接着逐行向上进行编号。\n\n编号完成后，可以进行随机取点。在所有编号内等概率随机取整数 $k$，先确定它位于哪个矩形中，然后再确定它在矩形中的位置。确定矩形编号时，可以采用预处理前缀和和二分搜索的方式。前缀和可以记录某个矩形覆盖的整数点的编号范围。因为不同矩形覆盖的整数点编号是单调的，利用二分搜索根据整数点编号快速确定矩形编号。确定矩形编号后，原整数点编号可以转换为矩形内整数点编号，然后定位具体的点的坐标。\n\n**代码**\n\n```Python [sol1-Python3]\nclass Solution:\n    def __init__(self, rects: List[List[int]]):\n        self.rects = rects\n        self.sum = [0]\n        for a, b, x, y in rects:\n            self.sum.append(self.sum[-1] + (x - a + 1) * (y - b + 1))\n\n    def pick(self) -> List[int]:\n        k = randrange(self.sum[-1])\n        rectIndex = bisect_right(self.sum, k) - 1\n        a, b, _, y = self.rects[rectIndex]\n        da, db = divmod(k - self.sum[rectIndex], y - b + 1)\n        return [a + da, b + db]\n```\n\n```Java [sol1-Java]\nclass Solution {\n    Random rand;\n    List<Integer> arr;\n    int[][] rects;\n\n    public Solution(int[][] rects) {\n        rand = new Random();\n        arr = new ArrayList<Integer>();\n        arr.add(0);\n        this.rects = rects;\n        for (int[] rect : rects) {\n            int a = rect[0], b = rect[1], x = rect[2], y = rect[3];\n            arr.add(arr.get(arr.size() - 1) + (x - a + 1) * (y - b + 1));\n        }\n    }\n\n    public int[] pick() {\n        int k = rand.nextInt(arr.get(arr.size() - 1));\n        int rectIndex = binarySearch(arr, k + 1) - 1;\n        k -= arr.get(rectIndex);\n        int[] rect = rects[rectIndex];\n        int a = rect[0], b = rect[1], y = rect[3];\n        int col = y - b + 1;\n        int da = k / col;\n        int db = k - col * da;\n        return new int[]{a + da, b + db};\n    }\n\n    private int binarySearch(List<Integer> arr, int target) {\n        int low = 0, high = arr.size() - 1;\n        while (low <= high) {\n            int mid = (high - low) / 2 + low;\n            int num = arr.get(mid);\n            if (num == target) {\n                return mid;\n            } else if (num > target) {\n                high = mid - 1;\n            } else {\n                low = mid + 1;\n            }\n        }\n        return low;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    Random rand;\n    IList<int> arr;\n    int[][] rects;\n\n    public Solution(int[][] rects) {\n        rand = new Random();\n        arr = new List<int>();\n        arr.Add(0);\n        this.rects = rects;\n        foreach (int[] rect in rects) {\n            int a = rect[0], b = rect[1], x = rect[2], y = rect[3];\n            arr.Add(arr[arr.Count - 1] + (x - a + 1) * (y - b + 1));\n        }\n    }\n\n    public int[] Pick() {\n        int k = rand.Next(arr[arr.Count - 1]);\n        int rectIndex = BinarySearch(arr, k + 1) - 1;\n        k -= arr[rectIndex];\n        int[] rect = rects[rectIndex];\n        int a = rect[0], b = rect[1], y = rect[3];\n        int col = y - b + 1;\n        int da = k / col;\n        int db = k - col * da;\n        return new int[]{a + da, b + db};\n    }\n\n    private int BinarySearch(IList<int> arr, int target) {\n        int low = 0, high = arr.Count - 1;\n        while (low <= high) {\n            int mid = (high - low) / 2 + low;\n            int num = arr[mid];\n            if (num == target) {\n                return mid;\n            } else if (num > target) {\n                high = mid - 1;\n            } else {\n                low = mid + 1;\n            }\n        }\n        return low;\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    Solution(vector<vector<int>>& rects) : rects{rects} {\n        this->arr.emplace_back(0);\n        for (auto & rect : rects) {\n            this->arr.emplace_back(arr.back() + (rect[2] - rect[0] + 1) * (rect[3] - rect[1] + 1));\n        }\n    }\n    \n    vector<int> pick() {\n        uniform_int_distribution<int> dis(0, arr.back() - 1);\n        int k = dis(gen) % arr.back();\n        int rectIndex = upper_bound(arr.begin(), arr.end(), k) - arr.begin() - 1;\n        k = k - arr[rectIndex];\n        int a = rects[rectIndex][0], b = rects[rectIndex][1];\n        int y = rects[rectIndex][3];\n        int col = y - b + 1;\n        int da = k / col;\n        int db = k - col * da;\n        return {a + da, b + db};\n    }    \nprivate:\n    vector<int> arr;\n    vector<vector<int>>& rects;\n    mt19937 gen{random_device{}()};\n};\n```\n\n```C [sol1-C]\ntypedef struct {\n    int *arr;\n    int **rects;\n    int rectsSize;\n} Solution;\n\nSolution* solutionCreate(int** rects, int rectsSize, int* rectsColSize) {\n    srand(time(NULL));\n    Solution *obj = (Solution *)malloc(sizeof(Solution));\n    obj->rects = rects;\n    obj->rectsSize = rectsSize;\n    obj->arr = (int *)malloc(sizeof(int) * (rectsSize + 1));\n    memset(obj->arr, 0, sizeof(int) * (rectsSize + 1));\n    for (int i = 0; i < rectsSize; i++) {\n        obj->arr[i + 1] = obj->arr[i] + (rects[i][2] - rects[i][0] + 1) * \\\n                                        (rects[i][3] - rects[i][1] + 1);\n    }\n    return obj;\n}\n\nint* solutionPick(Solution* obj, int* retSize) {\n    int k = rand() % obj->arr[obj->rectsSize];\n    int left = 0, right = obj->rectsSize;\n    int rectIndex = 0;\n    while (left <= right) {\n        int mid = (left + right) >> 1;\n        if (obj->arr[mid] > k) {\n            rectIndex = mid - 1;\n            right = mid - 1;\n        } else {\n            left = mid + 1;\n        }\n    }\n    k = k - obj->arr[rectIndex];\n    int a = obj->rects[rectIndex][0], b = obj->rects[rectIndex][1];\n    int y = obj->rects[rectIndex][3];\n    int col = y - b + 1;\n    int da = k / col;\n    int db = k - col * da;\n    int *res = (int *)malloc(sizeof(int) * 2);\n    res[0] = a + da;\n    res[1] = b + db;\n    *retSize = 2;\n    return res;\n}\n\nvoid solutionFree(Solution* obj) {\n    free(obj->arr);\n    free(obj);\n}\n```\n\n```go [sol1-Golang]\ntype Solution struct {\n    rects [][]int\n    sum   []int\n}\n\nfunc Constructor(rects [][]int) Solution {\n    sum := make([]int, len(rects)+1)\n    for i, r := range rects {\n        a, b, x, y := r[0], r[1], r[2], r[3]\n        sum[i+1] = sum[i] + (x-a+1)*(y-b+1)\n    }\n    return Solution{rects, sum}\n}\n\nfunc (s *Solution) Pick() []int {\n    k := rand.Intn(s.sum[len(s.sum)-1])\n    rectIndex := sort.SearchInts(s.sum, k+1) - 1\n    r := s.rects[rectIndex]\n    a, b, y := r[0], r[1], r[3]\n    da := (k - s.sum[rectIndex]) / (y - b + 1)\n    db := (k - s.sum[rectIndex]) % (y - b + 1)\n    return []int{a + da, b + db}\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar Solution = function(rects) {\n    this.arr = [0];\n    this.rects = rects;\n    for (const rect of rects) {\n        const a = rect[0], b = rect[1], x = rect[2], y = rect[3];\n        this.arr.push(this.arr[this.arr.length - 1] + (x - a + 1) * (y - b + 1));\n    }\n};\n\nSolution.prototype.pick = function() {\n    let k = Math.floor(Math.random() * this.arr[this.arr.length - 1]);\n    const rectIndex = binarySearch(this.arr, k + 1) - 1;\n    k -= this.arr[rectIndex];\n    const rect = this.rects[rectIndex];\n    const a = rect[0], b = rect[1], y = rect[3];\n    const col = y - b + 1;\n    const da = Math.floor(k / col);\n    const db = k - col * da;\n    return [a + da, b + db];\n};\n\nconst binarySearch = (arr, target) => {\n    let low = 0, high = arr.length - 1;\n    while (low <= high) {\n        const mid = Math.floor((high - low) / 2) + low;\n        const num = arr[mid];\n        if (num === target) {\n            return mid;\n        } else if (num > target) {\n            high = mid - 1;\n        } else {\n            low = mid + 1;\n        }\n    }\n    return low;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：构造函数复杂度为 $O(n)$，$\\textit{pick}$ 函数复杂度为 $O(\\log n)$，其中 $n$ 为 $\\textit{rects}$ 的长度。构造函数需要构造前缀和数组，$\\textit{pick}$ 函数需要在前缀和数组内进行二分。\n\n- 空间复杂度：构造函数复杂度为 $O(n)$，$\\textit{pick}$ 函数复杂度为 $O(1)$，其中 $n$ 为 $\\textit{rects}$ 的长度。构造函数需要构造前缀和数组，$\\textit{pick}$ 函数只需要使用常数空间。",
+            "slateValue": "",
+            "slug": "fei-zhong-die-ju-xing-zhong-de-sui-ji-di-6s33",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "A1GA8N",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 36,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Prefix Sum",
+                    "nameTranslated": "前缀和",
+                    "slug": "prefix-sum",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Randomized",
+                    "nameTranslated": "随机化",
+                    "slug": "randomized",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2022-06-08T01:56:19.951232+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：前缀和 + 二分查找 思路 记 $\\textit{rects}$ 的长度为 $n$。矩形 $\\textit{rects}[i]$ 的左下角点为 $(a_i, b_i)$, 右上角点为 $(x_i, y_i)$，则它覆盖的整数点有 $s_i = (x_i-a_i+1)\\times(y_i-b_i+1)$ 个。数组",
+            "topic": {
+                "id": 1541444,
+                "subscribed": false,
+                "commentCount": 137,
+                "viewCount": 16724,
+                "post": {
+                    "id": 3141953,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 40,
+            "isEditorsPick": false,
+            "hitCount": 32406,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "random-point-in-non-overlapping-rectangles",
+                "questionFrontendId": "497"
+            },
+            "next": {
+                "slug": "shui-tang-chou-yang-by-xiaohu9527-7b3d",
+                "title": "水塘抽样 -> 前缀和二分[动图演示]"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,128 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "Mdf6Au",
+            "title": "树中距离之和",
+            "content": "#### 方法一：树形动态规划\n\n**思路与算法**\n\n首先我们来考虑一个节点的情况，即每次题目指定一棵树，以 $\\textit{root}$ 为根，询问节点 $\\textit{root}$ 与其他所有节点的距离之和。\n\n很容易想到一个树形动态规划：定义 $\\textit{dp}[u]$ 表示以 $u$ 为根的子树，它的所有子节点到它的距离之和，同时定义 $\\textit{sz}[u]$ 表示以 $u$ 为根的子树的节点数量，不难得出如下的转移方程：\n$$\n\\textit{dp}[u]=\\sum_{v\\in \\textit{son}[u]}\\textit{dp}[v] + \\textit{sz}[v]\n$$\n其中 $\\textit{son}[u]$ 表示 $u$ 的所有后代节点集合。转移方程表示的含义就是考虑每个后代节点 $v$，已知 $v$ 的所有子节点到它的距离之和为 $\\textit{dp}[v]$，那么这些节点到 $u$ 的距离之和还要考虑 $u\\rightarrow v$ 这条边的贡献。考虑这条边长度为 $1$，一共有 $sz[v]$ 个节点到节点 $u$ 的距离会包含这条边，因此贡献即为 $1\\times \\textit{sz}[v]=\\textit{sz}[v]$。我们遍历整棵树，从叶子节点开始自底向上递推到根节点 $\\textit{root}$ 即能得出最后的答案为 $\\textit{dp}[\\textit{root}]$。\n\n回到本题中，题目要求的其实是上题的扩展，即要求我们求出每个节点为根节点的时候，它与其他所有节点的距离之和。暴力的角度我们可以考虑对每个节点都做一次如上的树形动态规划，这样时间复杂度即为 $O(n^2)$，那么有没有更优雅的方法呢？\n\n经过一次树形动态规划后其实我们获得了在 $u$ 为根的树中，每个节点为根的子树的答案 $\\textit{dp}$，我们可以利用这些已有信息来优化时间复杂度。\n\n假设 $u$ 的某个后代节点为 $v$，如果要算 $v$ 的答案，本来我们要以 $v$ 为根来进行一次树形动态规划。但是利用已有的信息，我们可以考虑树的形态做一次改变，**让 $v$ 换到根的位置，$u$ 变为其孩子节点，同时维护原有的 $\\textit{dp}$ 信息**。在这一次的转变中，我们观察到除了 $u$ 和 $v$ 的 $\\textit{dp}$ 值，其他节点的 $\\textit{dp}$ 值都不会改变，因此只要更新 $\\textit{dp}[u]$ 和 $\\textit{dp}[v]$ 的值即可。\n\n那么我们来看 $v$ 换到根的位置的时候怎么利用已有信息求出 $\\textit{dp}[u]$ 和 $\\textit{dp}[v]$ 的值。重新回顾第一次树形动态规划的转移方程，我们可以知道当 $u$ 变为 $v$ 的孩子的时候 $v$ 不在 $u$ 的后代集合 $\\textit{son}[u]$ 中了，因此此时 $\\textit{dp}[u]$ 需要减去 $v$ 的贡献，即\n$$\n\\textit{dp}[u]=\\textit{dp}[u]-(\\textit{dp}[v]+\\textit{sz}[v])\n$$\n同时 $\\textit{sz}[u]$ 也要相应减去 $\\textit{sz}[v]$。\n\n而 $v$ 的后代节点集合中多出了 $u$，因此 $\\textit{dp}[v]$ 的值要由 $u$ 更新上来，即\n$$\n\\textit{dp}[v]=\\textit{dp}[v]+(\\textit{dp}[u]+\\textit{sz}[u])\n$$\n同时 $\\textit{sz}[v]$ 也要相应加上 $\\textit{sz}[u]$。\n\n至此我们完成了一次「换根」操作，在 $O(1)$ 的时间内维护了 $\\textit{dp}$ 的信息，且此时的树结构以 $v$ 为根。那么接下来我们不断地进行换根的操作，即能在 $O(n)$ 的时间内求出每个节点为根的答案，实现了时间复杂度的优化。\n\n<![ppt1](https://assets.leetcode.cn/solution-static/834/1.png),![ppt2](https://assets.leetcode.cn/solution-static/834/2.png),![ppt3](https://assets.leetcode.cn/solution-static/834/3.png),![ppt4](https://assets.leetcode.cn/solution-static/834/4.png),![ppt5](https://assets.leetcode.cn/solution-static/834/5.png),![ppt6](https://assets.leetcode.cn/solution-static/834/6.png),![ppt7](https://assets.leetcode.cn/solution-static/834/7.png)>\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<int> ans, sz, dp;\n    vector<vector<int>> graph;\n\n    void dfs(int u, int f) {\n        sz[u] = 1;\n        dp[u] = 0;\n        for (auto& v: graph[u]) {\n            if (v == f) {\n                continue;\n            }\n            dfs(v, u);\n            dp[u] += dp[v] + sz[v];\n            sz[u] += sz[v];\n        }\n    }\n\n    void dfs2(int u, int f) {\n        ans[u] = dp[u];\n        for (auto& v: graph[u]) {\n            if (v == f) {\n                continue;\n            }\n            int pu = dp[u], pv = dp[v];\n            int su = sz[u], sv = sz[v];\n\n            dp[u] -= dp[v] + sz[v];\n            sz[u] -= sz[v];\n            dp[v] += dp[u] + sz[u];\n            sz[v] += sz[u];\n\n            dfs2(v, u);\n\n            dp[u] = pu, dp[v] = pv;\n            sz[u] = su, sz[v] = sv;\n        }\n    }\n\n    vector<int> sumOfDistancesInTree(int n, vector<vector<int>>& edges) {\n        ans.resize(n, 0);\n        sz.resize(n, 0);\n        dp.resize(n, 0);\n        graph.resize(n, {});\n        for (auto& edge: edges) {\n            int u = edge[0], v = edge[1];\n            graph[u].emplace_back(v);\n            graph[v].emplace_back(u);\n        }\n        dfs(0, -1);\n        dfs2(0, -1);\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    int[] ans;\n    int[] sz;\n    int[] dp;\n    List<List<Integer>> graph;\n\n    public int[] sumOfDistancesInTree(int n, int[][] edges) {\n        ans = new int[n];\n        sz = new int[n];\n        dp = new int[n];\n        graph = new ArrayList<List<Integer>>();\n        for (int i = 0; i < n; ++i) {\n            graph.add(new ArrayList<Integer>());\n        }\n        for (int[] edge: edges) {\n            int u = edge[0], v = edge[1];\n            graph.get(u).add(v);\n            graph.get(v).add(u);\n        }\n        dfs(0, -1);\n        dfs2(0, -1);\n        return ans;\n    }\n\n    public void dfs(int u, int f) {\n        sz[u] = 1;\n        dp[u] = 0;\n        for (int v: graph.get(u)) {\n            if (v == f) {\n                continue;\n            }\n            dfs(v, u);\n            dp[u] += dp[v] + sz[v];\n            sz[u] += sz[v];\n        }\n    }\n\n    public void dfs2(int u, int f) {\n        ans[u] = dp[u];\n        for (int v: graph.get(u)) {\n            if (v == f) {\n                continue;\n            }\n            int pu = dp[u], pv = dp[v];\n            int su = sz[u], sv = sz[v];\n\n            dp[u] -= dp[v] + sz[v];\n            sz[u] -= sz[v];\n            dp[v] += dp[u] + sz[u];\n            sz[v] += sz[u];\n\n            dfs2(v, u);\n\n            dp[u] = pu;\n            dp[v] = pv;\n            sz[u] = su;\n            sz[v] = sv;\n        }\n    }\n}\n```\n\n```JavaScript [sol1-JavaScript]\nlet ans, sz, dp, graph;\nconst dfs = (u, f) => {\n    sz[u] = 1;\n    dp[u] = 0;\n    for (const v of graph[u]) {\n        if (v === f) {\n            continue;\n        }\n        dfs(v, u);\n        dp[u] += dp[v] + sz[v];\n        sz[u] += sz[v];\n    }\n}\nconst dfs2 = (u, f) => {\n    ans[u] = dp[u];\n    for (const v of graph[u]) {\n        if (v === f) {\n            continue;\n        }\n        const pu = dp[u], pv = dp[v];\n        const su = sz[u], sv = sz[v];\n\n        dp[u] -= dp[v] + sz[v];\n        sz[u] -= sz[v];\n        dp[v] += dp[u] + sz[u];\n        sz[v] += sz[u];\n\n        dfs2(v, u);\n\n        dp[u] = pu, dp[v] = pv;\n        sz[u] = su, sz[v] = sv;\n    }\n}\nvar sumOfDistancesInTree = function(n, edges) {\n    ans = new Array(n).fill(0);\n    sz = new Array(n).fill(0);\n    dp = new Array(n).fill(0);\n    graph = new Array(n).fill(0).map(v => []);\n    for (const [u, v] of edges) {\n        graph[u].push(v);\n        graph[v].push(u);\n    }\n    dfs(0, -1);\n    dfs2(0, -1);\n    return ans;\n};\n```\n\n```Golang [sol1-Golang]\nfunc sumOfDistancesInTree(n int, edges [][]int) []int {\n    graph := make([][]int, n)\n    for _, e := range edges {\n        u, v := e[0], e[1]\n        graph[u] = append(graph[u], v)\n        graph[v] = append(graph[v], u)\n    }\n\n    sz := make([]int, n)\n    dp := make([]int, n)\n    var dfs func(u, f int)\n    dfs = func(u, f int) {\n        sz[u] = 1\n        for _, v := range graph[u] {\n            if v == f {\n                continue\n            }\n            dfs(v, u)\n            dp[u] += dp[v] + sz[v]\n            sz[u] += sz[v]\n        }\n    }\n    dfs(0, -1)\n\n    ans := make([]int, n)\n    var dfs2 func(u, f int)\n    dfs2 = func(u, f int) {\n        ans[u] = dp[u]\n        for _, v := range graph[u] {\n            if v == f {\n                continue\n            }\n            pu, pv := dp[u], dp[v]\n            su, sv := sz[u], sz[v]\n\n            dp[u] -= dp[v] + sz[v]\n            sz[u] -= sz[v]\n            dp[v] += dp[u] + sz[u]\n            sz[v] += sz[u]\n\n            dfs2(v, u)\n\n            dp[u], dp[v] = pu, pv\n            sz[u], sz[v] = su, sv\n        }\n    }\n    dfs2(0, -1)\n    return ans\n}\n```\n\n```C [sol1-C]\nint *ans, *sz, *dp;\nint *hd, *nx, *e;\n\nvoid dfs(int u, int f) {\n    sz[u] = 1;\n    dp[u] = 0;\n    for (int i = hd[u]; i; i = nx[i]) {\n        int v = e[i];\n        if (v == f) {\n            continue;\n        }\n        dfs(v, u);\n        dp[u] += dp[v] + sz[v];\n        sz[u] += sz[v];\n    }\n}\n\nvoid dfs2(int u, int f) {\n    ans[u] = dp[u];\n    for (int i = hd[u]; i; i = nx[i]) {\n        int v = e[i];\n        if (v == f) {\n            continue;\n        }\n        int pu = dp[u], pv = dp[v];\n        int su = sz[u], sv = sz[v];\n\n        dp[u] -= dp[v] + sz[v];\n        sz[u] -= sz[v];\n        dp[v] += dp[u] + sz[u];\n        sz[v] += sz[u];\n\n        dfs2(v, u);\n\n        dp[u] = pu, dp[v] = pv;\n        sz[u] = su, sz[v] = sv;\n    }\n}\n\nint* sumOfDistancesInTree(int n, int** edges, int edgesSize, int* edgesColSize, int* returnSize) {\n    ans = malloc(sizeof(int) * n);\n    sz = malloc(sizeof(int) * n);\n    dp = malloc(sizeof(int) * n);\n    hd = malloc(sizeof(int) * n);\n    nx = malloc(sizeof(int) * (edgesSize * 2 + 1));\n    e = malloc(sizeof(int) * (edgesSize * 2 + 1));\n    for (int i = 0; i < n; i++) {\n        ans[i] = sz[i] = dp[i] = hd[i] = 0;\n    }\n    for (int i = 0, num = 0; i < edgesSize; i++) {\n        int u = edges[i][0], v = edges[i][1];\n        nx[++num] = hd[u], hd[u] = num, e[num] = v;\n        nx[++num] = hd[v], hd[v] = num, e[num] = u;\n    }\n    dfs(0, -1);\n    dfs2(0, -1);\n    *returnSize = n;\n    return ans;\n}\n```\n\n**复杂度分析**\n\n* 时间复杂度：$O(n)$，其中 $n$ 是树中的节点个数。我们只需要遍历整棵树两次即可得到答案，其中每个节点被访问两次，因此时间复杂度为 $O(2n)=O(n)$。\n\n* 空间复杂度：$O(n)$。我们需要线性的空间存图，$n$ 个节点的树包含 $n-1$ 条边，数组 $\\textit{dp}$ 和 $\\textit{sz}$ 的长度均为 $n$。",
+            "slateValue": "",
+            "slug": "shu-zhong-ju-chi-zhi-he-by-leetcode-solution",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "Mdf6Au",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 85,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 5,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 4,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Tree",
+                    "nameTranslated": "树",
+                    "slug": "tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Depth-First Search",
+                    "nameTranslated": "深度优先搜索",
+                    "slug": "depth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-10-05T14:43:59.598318+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：树形动态规划 思路与算法 首先我们来考虑一个节点的情况，即每次题目指定一棵树，以 $\\textit{root}$ 为根，询问节点 $\\textit{root}$ 与其他所有节点的距离之和。 很容易想到一个树形动态规划：定义 $\\textit{dp}[u]$ 表示以 $u$ 为根的子树，它的所有子节点到它的距离之",
+            "topic": {
+                "id": 437205,
+                "subscribed": false,
+                "commentCount": 175,
+                "viewCount": 21791,
+                "post": {
+                    "id": 1053772,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 151,
+            "isEditorsPick": false,
+            "hitCount": 48448,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "sum-of-distances-in-tree",
+                "questionFrontendId": "834"
+            },
+            "next": {
+                "slug": "tu-jie-yi-zhang-tu-miao-dong-huan-gen-dp-6bgb",
+                "title": "【图解】一张图秒懂换根 DP！（Python/Java/C++/Go/JS）"
+            },
+            "prev": null
+        }
+    }
+}

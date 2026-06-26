@@ -1,0 +1,152 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "PELJNJ",
+            "title": "寻找重复的子树",
+            "content": "#### 方法一：使用序列化进行唯一表示\n\n**思路与算法**\n\n一种容易想到的方法是将每一棵子树都「序列化」成一个字符串，并且保证：\n\n- 相同的子树会被序列化成相同的子串；\n- 不同的子树会被序列化成不同的子串。\n\n那么我们只要使用一个哈希表存储所有子树的序列化结果，如果某一个结果出现了超过一次，我们就发现了一类重复子树。\n\n序列化一棵二叉树的方法可以参考[「剑指 Offer 37. 序列化二叉树」的官方题解](https://leetcode.cn/problems/xu-lie-hua-er-cha-shu-lcof/solution/xu-lie-hua-er-cha-shu-by-leetcode-soluti-4duq/)，这里也给出两种常用的序列化方法：\n\n- 第一种方法是使用层序遍历的方法进行序列化，例如**示例 1**中的二叉树可以序列化为：\n\n    $$\n    \\text{1,2,3,4,null,2,4,null,null,4}\n    $$\n\n    这也是力扣平台上测试代码时输入一棵二叉树的默认方法。\n\n- 第二种方法是使用递归的方法进行序列化。我们可以将一棵以 $x$ 为根节点值的子树序列化为：\n\n    $$\n    \\text{x(左子树的序列化结果)(右子树的序列化结果)}\n    $$\n\n    左右子树分别递归地进行序列化。如果子树为空，那么序列化结果为空串。**示例 1**中的二叉树可以序列化为：\n\n    $$\n    1(2(4()())())(3(2(4()())())(4()()))\n    $$\n\n下面的代码使用的是第二种方法。我们需要使用一个哈希映射 $\\textit{seen}$ 存储序列到子树的映射。如果在计算序列时，通过 $\\textit{seen}$ 查找到了已经出现过的序列，那么就可以把对应的子树放到哈希集合 $\\textit{repeat}$ 中，这样就可以保证同一类的重复子树只会被存储在答案中一次。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<TreeNode*> findDuplicateSubtrees(TreeNode* root) {\n        dfs(root);\n        return {repeat.begin(), repeat.end()};\n    }\n\n    string dfs(TreeNode* node) {\n        if (!node) {\n            return \"\";\n        }\n        string serial = to_string(node->val) + \"(\" + dfs(node->left) + \")(\" + dfs(node->right) + \")\";\n        if (auto it = seen.find(serial); it != seen.end()) {\n            repeat.insert(it->second);\n        }\n        else {\n            seen[serial] = node;\n        }\n        return serial;\n    }\n\nprivate:\n    unordered_map<string, TreeNode*> seen;\n    unordered_set<TreeNode*> repeat;\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    Map<String, TreeNode> seen = new HashMap<String, TreeNode>();\n    Set<TreeNode> repeat = new HashSet<TreeNode>();\n\n    public List<TreeNode> findDuplicateSubtrees(TreeNode root) {\n        dfs(root);\n        return new ArrayList<TreeNode>(repeat);\n    }\n\n    public String dfs(TreeNode node) {\n        if (node == null) {\n            return \"\";\n        }\n        StringBuilder sb = new StringBuilder();\n        sb.append(node.val);\n        sb.append(\"(\");\n        sb.append(dfs(node.left));\n        sb.append(\")(\");\n        sb.append(dfs(node.right));\n        sb.append(\")\");\n        String serial = sb.toString();\n        if (seen.containsKey(serial)) {\n            repeat.add(seen.get(serial));\n        } else {\n            seen.put(serial, node);\n        }\n        return serial;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    Dictionary<string, TreeNode> seen = new Dictionary<string, TreeNode>();\n    ISet<TreeNode> repeat = new HashSet<TreeNode>();\n\n    public IList<TreeNode> FindDuplicateSubtrees(TreeNode root) {\n        DFS(root);\n        return new List<TreeNode>(repeat);\n    }\n\n    public string DFS(TreeNode node) {\n        if (node == null) {\n            return \"\";\n        }\n        StringBuilder sb = new StringBuilder();\n        sb.Append(node.val);\n        sb.Append(\"(\");\n        sb.Append(DFS(node.left));\n        sb.Append(\")(\");\n        sb.Append(DFS(node.right));\n        sb.Append(\")\");\n        string serial = sb.ToString();\n        if (seen.ContainsKey(serial)) {\n            repeat.Add(seen[serial]);\n        } else {\n            seen.Add(serial, node);\n        }\n        return serial;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def findDuplicateSubtrees(self, root: Optional[TreeNode]) -> List[Optional[TreeNode]]:\n        def dfs(node: Optional[TreeNode]) -> str:\n            if not node:\n                return \"\"\n            \n            serial = \"\".join([str(node.val), \"(\", dfs(node.left), \")(\", dfs(node.right), \")\"])\n            if (tree := seen.get(serial, None)):\n                repeat.add(tree)\n            else:\n                seen[serial] = node\n            \n            return serial\n        \n        seen = dict()\n        repeat = set()\n\n        dfs(root)\n        return list(repeat)\n```\n\n```C [sol1-C]\ntypedef struct {\n    char *key;\n    struct TreeNode *val;\n    UT_hash_handle hh;\n} HashMapItem; \n\ntypedef struct {\n    void *key;\n    UT_hash_handle hh;\n} HashSetItem; \n\nchar* dfs(struct TreeNode* node, HashMapItem **seen, HashSetItem **repeat) {\n    if (!node) {\n        return \"\";\n    }\n    char *str1 = dfs(node->left, seen, repeat);\n    char *str2 = dfs(node->right, seen, repeat);\n    char *serial = (char *)malloc(sizeof(char *) * (8 + strlen(str1) + strlen(str2)));\n    sprintf(serial, \"%d(%s)(%s)\", node->val, str1, str2);\n    HashMapItem *pHashMapEntry = NULL;\n    HASH_FIND_STR(*seen, serial, pHashMapEntry);\n    if (pHashMapEntry) {\n        HashSetItem *pHashSetEntry = NULL;\n        HASH_FIND_PTR(*repeat, &(pHashMapEntry->val), pHashSetEntry);\n        if (pHashSetEntry == NULL) {\n            pHashSetEntry = (HashSetItem *)malloc(sizeof(HashSetItem));\n            pHashSetEntry->key = (void *)pHashMapEntry->val;\n            HASH_ADD_PTR(*repeat, key, pHashSetEntry);\n        }\n    } else {\n        pHashMapEntry = (HashMapItem *)malloc(sizeof(HashMapItem));\n        pHashMapEntry->key = serial;\n        pHashMapEntry->val = node;\n        HASH_ADD_STR(*seen, key, pHashMapEntry);\n    }\n    return serial;\n}\n\nstruct TreeNode** findDuplicateSubtrees(struct TreeNode* root, int* returnSize){\n    HashMapItem *seen = NULL;\n    HashSetItem *repeat = NULL;\n    dfs(root, &seen, &repeat);\n\n    int count = HASH_COUNT(repeat), pos = 0;\n    struct TreeNode** ret = (struct TreeNode**)malloc(sizeof(struct TreeNode*) * count);\n    HashSetItem *cur, *tmp;\n    HASH_ITER(hh, repeat, cur, tmp) {\n        ret[pos++] = (struct TreeNode*)cur->key;\n        HASH_DEL(repeat, cur);\n        free(cur);            \n    }\n    *returnSize = count;\n    HashMapItem *curMap, *tmpMap;\n    HASH_ITER(hh, seen, curMap, tmpMap) {\n        HASH_DEL(seen, curMap);  \n        free(curMap->key);\n        free(curMap);             \n    }\n    return ret;\n}\n```\n\n```go [sol1-Golang]\nfunc findDuplicateSubtrees(root *TreeNode) []*TreeNode {\n    repeat := map[*TreeNode]struct{}{}\n    seen := map[string]*TreeNode{}\n    var dfs func(*TreeNode) string\n    dfs = func(node *TreeNode) string {\n        if node == nil {\n            return \"\"\n        }\n        serial := fmt.Sprintf(\"%d(%s)(%s)\", node.Val, dfs(node.Left), dfs(node.Right))\n        if n, ok := seen[serial]; ok {\n            repeat[n] = struct{}{}\n        } else {\n            seen[serial] = node\n        }\n        return serial\n    }\n    dfs(root)\n    ans := make([]*TreeNode, 0, len(repeat))\n    for node := range repeat {\n        ans = append(ans, node)\n    }\n    return ans\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar findDuplicateSubtrees = function(root) {\n    const seen = new Map();\n    const repeat = new Set();\n    const dfs = (node) => {\n        if (!node) {\n            return \"\";\n        }\n        let sb = '';\n        sb += node.val;\n        sb += \"(\";\n        sb += dfs(node.left);\n        sb += \")(\";\n        sb += dfs(node.right);\n        sb += \")\";\n        if (seen.has(sb)) {\n            repeat.add(seen.get(sb));\n        } else {\n            seen.set(sb, node);\n        }\n        return sb;\n    }\n    dfs(root);\n    return [...repeat];\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n^2)$，其中 $n$ 是树中节点的数目。在最坏情况下，树呈现链状的结构，而每一个节点都会在其左右子树序列的基础上再增加最多 $9$ 个字符（两组括号以及节点本身的值），那么所有子树的序列长度之和为 $\\sum_{i=1}^n 9n = O(n^2)$。构造出这些序列就需要 $O(n^2)$ 的时间。\n\n- 空间复杂度：$O(n^2)$，即为哈希表需要使用的空间。\n\n#### 方法二：使用三元组进行唯一表示\n\n**思路与算法**\n\n通过方法一中的递归序列化技巧，我们可以进一步进行优化。\n\n我们可以用一个三元组直接表示一棵子树，即 $(x, l, r)$，它们分别表示：\n\n- 根节点的值为 $x$；\n\n- 左子树的**序号**为 $l$；\n\n- 右子树的**序号**为 $r$。\n\n这里的「序号」指的是：每当我们发现一棵新的子树，就给这棵子树一个序号，用来表示其结构。那么两棵树是重复的，当且仅当它们对应的三元组完全相同。\n\n使用「序号」的好处在于同时减少了时间复杂度和空间复杂度。方法一的瓶颈在于生成的序列会变得非常长，而使用序号替换整个左子树和右子树的序列，可以使得每一个节点只使用常数大小的空间。\n\n**代码**\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    vector<TreeNode*> findDuplicateSubtrees(TreeNode* root) {\n        dfs(root);\n        return {repeat.begin(), repeat.end()};\n    }\n\n    int dfs(TreeNode* node) {\n        if (!node) {\n            return 0;\n        }\n        auto tri = tuple{node->val, dfs(node->left), dfs(node->right)};\n        if (auto it = seen.find(tri); it != seen.end()) {\n            repeat.insert(it->second.first);\n            return it->second.second;\n        }\n        else {\n            seen[tri] = {node, ++idx};\n            return idx;\n        }\n    }\n\nprivate:\n    static constexpr auto tri_hash = [fn = hash<int>()](const tuple<int, int, int>& o) -> size_t {\n        auto&& [x, y, z] = o;\n        return (fn(x) << 24) ^ (fn(y) << 8) ^ fn(z);\n    };\n\n    unordered_map<tuple<int, int, int>, pair<TreeNode*, int>, decltype(tri_hash)> seen{0, tri_hash};\n    unordered_set<TreeNode*> repeat;\n    int idx = 0;\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    Map<String, Pair<TreeNode, Integer>> seen = new HashMap<String, Pair<TreeNode, Integer>>();\n    Set<TreeNode> repeat = new HashSet<TreeNode>();\n    int idx = 0;\n\n    public List<TreeNode> findDuplicateSubtrees(TreeNode root) {\n        dfs(root);\n        return new ArrayList<TreeNode>(repeat);\n    }\n\n    public int dfs(TreeNode node) {\n        if (node == null) {\n            return 0;\n        }\n        int[] tri = {node.val, dfs(node.left), dfs(node.right)};\n        String hash = Arrays.toString(tri);\n        if (seen.containsKey(hash)) {\n            Pair<TreeNode, Integer> pair = seen.get(hash);\n            repeat.add(pair.getKey());\n            return pair.getValue();\n        } else {\n            seen.put(hash, new Pair<TreeNode, Integer>(node, ++idx));\n            return idx;\n        }\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    Dictionary<string, Tuple<TreeNode, int>> seen = new Dictionary<string, Tuple<TreeNode, int>>();\n    ISet<TreeNode> repeat = new HashSet<TreeNode>();\n    int idx = 0;\n\n    public IList<TreeNode> FindDuplicateSubtrees(TreeNode root) {\n        DFS(root);\n        return new List<TreeNode>(repeat);\n    }\n\n    public int DFS(TreeNode node) {\n        if (node == null) {\n            return 0;\n        }\n        Tuple<int, int, int> tri = new Tuple<int, int, int>(node.val, DFS(node.left), DFS(node.right));\n        string hash = tri.ToString();\n        if (seen.ContainsKey(hash)) {\n            Tuple<TreeNode, int> pair = seen[hash];\n            repeat.Add(pair.Item1);\n            return pair.Item2;\n        } else {\n            seen.Add(hash, new Tuple<TreeNode, int>(node, ++idx));\n            return idx;\n        }\n    }\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def findDuplicateSubtrees(self, root: Optional[TreeNode]) -> List[Optional[TreeNode]]:\n        def dfs(node: Optional[TreeNode]) -> int:\n            if not node:\n                return 0\n            \n            tri = (node.val, dfs(node.left), dfs(node.right))\n            if tri in seen:\n                (tree, index) = seen[tri]\n                repeat.add(tree)\n                return index\n            else:\n                nonlocal idx\n                idx += 1\n                seen[tri] = (node, idx)\n                return idx\n        \n        idx = 0\n        seen = dict()\n        repeat = set()\n\n        dfs(root)\n        return list(repeat)\n```\n\n```C [sol2-C]\n#define MAX_STR_LEN 32\n\nstatic inline char* tri_hash(int x, int y, int z) {\n    char *str = (char *)malloc(sizeof(char) * MAX_STR_LEN);\n    sprintf(str, \"%d,%d,%d\", x, y, z);\n    return str;\n}\n\ntypedef struct {\n    char key[MAX_STR_LEN];\n    struct TreeNode *node;\n    int idx;\n    UT_hash_handle hh;\n} HashMapItem; \n\ntypedef struct {\n    void *key;\n    UT_hash_handle hh;\n} HashSetItem; \n\nint dfs(struct TreeNode* node, HashMapItem **seen, HashSetItem **repeat, int *idx) {\n    if (!node) {\n        return 0;\n    }\n    int ret1 = dfs(node->left, seen, repeat, idx);\n    int ret2 = dfs(node->right, seen, repeat, idx);\n    HashMapItem *pHashMapEntry = NULL;\n    char *hashKey = tri_hash(node->val, ret1, ret2);\n    HASH_FIND_STR(*seen, hashKey, pHashMapEntry);\n    if (pHashMapEntry) {\n        HashSetItem *pHashSetEntry = NULL;\n        HASH_FIND_PTR(*repeat, &(pHashMapEntry->node), pHashSetEntry);\n        if (pHashSetEntry == NULL) {\n            pHashSetEntry = (HashSetItem *)malloc(sizeof(HashSetItem));\n            pHashSetEntry->key = (void *)pHashMapEntry->node;\n            HASH_ADD_PTR(*repeat, key, pHashSetEntry);\n        }\n        free(hashKey);\n        return pHashMapEntry->idx;\n    } else {\n        pHashMapEntry = (HashMapItem *)malloc(sizeof(HashMapItem));\n        strcpy(pHashMapEntry->key, hashKey);\n        pHashMapEntry->node = node;\n        pHashMapEntry->idx = ++(*idx);\n        HASH_ADD_STR(*seen, key, pHashMapEntry);\n        free(hashKey);\n        return *idx;\n    }\n}\n\nstruct TreeNode** findDuplicateSubtrees(struct TreeNode* root, int* returnSize){\n    HashMapItem *seen = NULL;\n    HashSetItem *repeat = NULL;\n    int idx = 0;\n    dfs(root, &seen, &repeat, &idx);\n\n    int count = HASH_COUNT(repeat), pos = 0;\n    struct TreeNode** ret = (struct TreeNode**)malloc(sizeof(struct TreeNode*) * count);\n    HashSetItem *cur, *tmp;\n    HASH_ITER(hh, repeat, cur, tmp) {\n        ret[pos++] = (struct TreeNode*)cur->key;\n        HASH_DEL(repeat, cur);\n        free(cur);            \n    }\n    *returnSize = count;\n    HashMapItem *curMap, *tmpMap;\n    HASH_ITER(hh, seen, curMap, tmpMap) {\n        HASH_DEL(seen, curMap);  \n        free(curMap);             \n    }\n    return ret;\n}\n```\n\n```go [sol2-Golang]\nfunc findDuplicateSubtrees(root *TreeNode) []*TreeNode {\n    type pair struct {\n        node *TreeNode\n        idx  int\n    }\n    repeat := map[*TreeNode]struct{}{}\n    seen := map[[3]int]pair{}\n    idx := 0\n    var dfs func(*TreeNode) int\n    dfs = func(node *TreeNode) int {\n        if node == nil {\n            return 0\n        }\n        tri := [3]int{node.Val, dfs(node.Left), dfs(node.Right)}\n        if p, ok := seen[tri]; ok {\n            repeat[p.node] = struct{}{}\n            return p.idx\n        }\n        idx++\n        seen[tri] = pair{node, idx}\n        return idx\n    }\n    dfs(root)\n    ans := make([]*TreeNode, 0, len(repeat))\n    for node := range repeat {\n        ans = append(ans, node)\n    }\n    return ans\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar findDuplicateSubtrees = function(root) {\n    const seen = new Map();\n    const repeat = new Set();\n    let idx = 0;\n    const dfs = (node) => {\n        if (!node) {\n            return 0;\n        }\n        const tri = [node.val, dfs(node.left), dfs(node.right)];\n        const hash = tri.toString();\n        if (seen.has(hash)) {\n            const pair = seen.get(hash);\n            repeat.add(pair[0]);\n            return pair[1];\n        } else {\n            seen.set(hash, [node, ++idx]);\n            return idx;\n        }\n    }\n    dfs(root);\n    return [...repeat];\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是树中节点的数目。\n\n- 空间复杂度：$O(n)$，即为哈希表需要使用的空间。",
+            "slateValue": "",
+            "slug": "xun-zhao-zhong-fu-de-zi-shu-by-leetcode-zoncw",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "PELJNJ",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 116,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 8,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Tree",
+                    "nameTranslated": "树",
+                    "slug": "tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Depth-First Search",
+                    "nameTranslated": "深度优先搜索",
+                    "slug": "depth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Tree",
+                    "nameTranslated": "二叉树",
+                    "slug": "binary-tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-09-04T01:59:26.382771+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：使用序列化进行唯一表示 思路与算法 一种容易想到的方法是将每一棵子树都「序列化」成一个字符串，并且保证： 相同的子树会被序列化成相同的子串； 不同的子树会被序列化成不同的子串。 那么我们只要使用一个哈希表存储所有子树的序列化结果，如果某一个结果出现了超过一次，我们就发现了一类重复子树。 序列化一棵二叉树的方法可",
+            "topic": {
+                "id": 1798953,
+                "subscribed": false,
+                "commentCount": 138,
+                "viewCount": 25931,
+                "post": {
+                    "id": 3536085,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 189,
+            "isEditorsPick": false,
+            "hitCount": 61119,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "find-duplicate-subtrees",
+                "questionFrontendId": "652"
+            },
+            "next": {
+                "slug": "by-ac_oier-ly58",
+                "title": "【宫水三叶】常规 DFS + 哈希表运用题"
+            },
+            "prev": null
+        }
+    }
+}

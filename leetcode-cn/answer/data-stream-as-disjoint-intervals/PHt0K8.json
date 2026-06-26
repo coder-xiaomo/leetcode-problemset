@@ -1,0 +1,112 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "PHt0K8",
+            "title": "将数据流变为多个不相交区间",
+            "content": "#### 方法一：使用有序映射维护区间\n\n**思路与算法**\n\n假设我们使用某一数据结构维护这些不相交的区间，在设计具体的数据结构之前，我们需要先明确 $\\texttt{void addNum(int val)}$ 这一操作会使得当前的区间集合发生何种变化：\n\n- 情况一：如果存在一个区间 $[l, r]$，它完全包含 $\\textit{val}$，即 $l \\leq \\textit{val} \\leq r$，那么在加入 $\\textit{val}$ 之后，区间集合不会有任何变化；\n\n- 情况二：如果存在一个区间 $[l, r]$，它的右边界 $r$「紧贴着」$\\textit{val}$，即 $r + 1 = \\textit{val}$，那么在加入 $\\textit{val}$ 之后，该区间会从 $[l, r]$ 变为 $[l, r+1]$；\n\n- 情况三：如果存在一个区间 $[l, r]$，它的左边界 $l$「紧贴着」$\\textit{val}$，即 $l - 1 = \\textit{val}$，那么在加入 $\\textit{val}$ 之后，该区间会从 $[l, r]$ 变为 $[l - 1, r]$；\n\n- 情况四：如果情况二和情况三同时满足，即存在一个区间 $[l_0, r_0]$ 满足 $r_0+1 = \\textit{val}$，并且存在一个区间 $[l_1, r_1]$ 满足 $l_1-1 = \\textit{val}$，那么在加入 $\\textit{val}$ 之后，这两个区间会合并成一个大区间 $[l_0, r_1]$；\n\n- 情况五：在上述四种情况均不满足的情况下，$\\textit{val}$ 会单独形成一个新的区间 $[\\textit{val}, \\textit{val}]$。\n\n根据上面的五种情况，我们需要找到离 $\\textit{val}$ 最近的两个区间。用严谨的语言可以表述为：\n\n> 对于给定的 $\\textit{val}$，我们需要找到区间 $[l_0, r_0]$，使得 $l_0$ 是**最大的**满足 $l_0 \\leq \\textit{val}$ 的区间。同时，我们需要找到区间 $[l_1, r_1]$，使得 $l_1$ 是**最小的**满足 $l_1 > \\textit{val}$ 的区间。\n\n如果我们的数据结构能够快速找到这两个区间，那么上面的五种情况分别对应为：\n\n- 情况一：$l_0 \\leq \\textit{val} \\leq l_1$；\n- 情况二：$r_0 + 1 = \\textit{val}$；\n- 情况三：$l_1 - 1 = \\textit{val}$；\n- 情况四：$r_0 + 1 = \\textit{val}$ 并且 $l_1 - 1 = \\textit{val}$；\n- 情况五：上述情况均不满足。\n\n一种可以找到「最近」区间的数据结构是有序映射。有序映射中的键和值分别表示区间的左边界 $l$ 和右边界 $r$。由于有序映射支持查询「最大的比某个元素小的键」以及「最小的比某个元素大的键」这两个操作，因此我们可以快速地定位区间 $[l_0, r_0]$ 和 $[l_1, r_1]$。\n\n除此之外，对于 $\\texttt{int[][] getIntervals()}$ 操作，我们只需要对有序映射进行遍历，将所有的键值对返回即可。\n\n**细节**\n\n在实际的代码编写中，需要注意 $[l_0, r_0]$ 或 $[l_1, r_1]$ 不存在的情况。\n\n**代码**\n\n```C++ [sol1-C++]\nclass SummaryRanges {\nprivate:\n    map<int, int> intervals;\n\npublic:\n    SummaryRanges() {}\n    \n    void addNum(int val) {\n        // 找到 l1 最小的且满足 l1 > val 的区间 interval1 = [l1, r1]\n        // 如果不存在这样的区间，interval1 为尾迭代器\n        auto interval1 = intervals.upper_bound(val);\n        // 找到 l0 最大的且满足 l0 <= val 的区间 interval0 = [l0, r0]\n        // 在有序集合中，interval0 就是 interval1 的前一个区间\n        // 如果不存在这样的区间，interval0 为尾迭代器\n        auto interval0 = (interval1 == intervals.begin() ? intervals.end() : prev(interval1));\n\n        if (interval0 != intervals.end() && interval0->first <= val && val <= interval0->second) {\n            // 情况一\n            return;\n        }\n        else {\n            bool left_aside = (interval0 != intervals.end() && interval0->second + 1 == val);\n            bool right_aside = (interval1 != intervals.end() && interval1->first - 1 == val);\n            if (left_aside && right_aside) {\n                // 情况四\n                int left = interval0->first, right = interval1->second;\n                intervals.erase(interval0);\n                intervals.erase(interval1);\n                intervals.emplace(left, right);\n            }\n            else if (left_aside) {\n                // 情况二\n                ++interval0->second;\n            }\n            else if (right_aside) {\n                // 情况三\n                int right = interval1->second;\n                intervals.erase(interval1);\n                intervals.emplace(val, right);\n            }\n            else {\n                // 情况五\n                intervals.emplace(val, val);\n            }\n        }\n    }\n    \n    vector<vector<int>> getIntervals() {\n        vector<vector<int>> ans;\n        for (const auto& [left, right]: intervals) {\n            ans.push_back({left, right});\n        }\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass SummaryRanges {\n    TreeMap<Integer, Integer> intervals;\n\n    public SummaryRanges() {\n        intervals = new TreeMap<Integer, Integer>();\n    }\n    \n    public void addNum(int val) {\n        // 找到 l1 最小的且满足 l1 > val 的区间 interval1 = [l1, r1]\n        // 如果不存在这样的区间，interval1 为尾迭代器\n        Map.Entry<Integer, Integer> interval1 = intervals.ceilingEntry(val + 1);\n        // 找到 l0 最大的且满足 l0 <= val 的区间 interval0 = [l0, r0]\n        // 在有序集合中，interval0 就是 interval1 的前一个区间\n        // 如果不存在这样的区间，interval0 为尾迭代器\n        Map.Entry<Integer, Integer> interval0 = intervals.floorEntry(val);\n\n        if (interval0 != null && interval0.getKey() <= val && val <= interval0.getValue()) {\n            // 情况一\n            return;\n        } else {\n            boolean leftAside = interval0 != null && interval0.getValue() + 1 == val;\n            boolean rightAside = interval1 != null && interval1.getKey() - 1 == val;\n            if (leftAside && rightAside) {\n                // 情况四\n                int left = interval0.getKey(), right = interval1.getValue();\n                intervals.remove(interval0.getKey());\n                intervals.remove(interval1.getKey());\n                intervals.put(left, right);\n            } else if (leftAside) {\n                // 情况二\n                intervals.put(interval0.getKey(), interval0.getValue() + 1);\n            } else if (rightAside) {\n                // 情况三\n                int right = interval1.getValue();\n                intervals.remove(interval1.getKey());\n                intervals.put(val, right);\n            } else {\n                // 情况五\n                intervals.put(val, val);\n            }\n        }\n    }\n    \n    public int[][] getIntervals() {\n        int size = intervals.size();\n        int[][] ans = new int[size][2];\n        int index = 0;\n        for (Map.Entry<Integer, Integer> entry : intervals.entrySet()) {\n            int left = entry.getKey(), right = entry.getValue();\n            ans[index][0] = left;\n            ans[index][1] = right;\n            ++index;\n        }\n        return ans;\n    }\n}\n```\n\n```Python [sol1-Python3]\nfrom sortedcontainers import SortedDict\n\nclass SummaryRanges:\n\n    def __init__(self):\n        self.intervals = SortedDict()\n\n    def addNum(self, val: int) -> None:\n        intervals_ = self.intervals\n        keys_ = self.intervals.keys()\n        values_ = self.intervals.values()\n\n        # 找到 l1 最小的且满足 l1 > val 的区间 interval1 = [l1, r1]\n        # 如果不存在这样的区间，interval1 为 len(intervals)\n        interval1 = intervals_.bisect_right(val)\n        # 找到 l0 最大的且满足 l0 <= val 的区间 interval0 = [l0, r0]\n        # 在有序集合中，interval0 就是 interval1 的前一个区间\n        # 如果不存在这样的区间，interval0 为尾迭代器\n        interval0 = (len(intervals_) if interval1 == 0 else interval1 - 1)\n\n        if interval0 != len(intervals_) and keys_[interval0] <= val <= values_[interval0]:\n            # 情况一\n            return\n        else:\n            left_aside = (interval0 != len(intervals_) and values_[interval0] + 1 == val)\n            right_aside = (interval1 != len(intervals_) and keys_[interval1] - 1 == val)\n            if left_aside and right_aside:\n                # 情况四\n                left, right = keys_[interval0], values_[interval1]\n                intervals_.popitem(interval1)\n                intervals_.popitem(interval0)\n                intervals_[left] = right\n            elif left_aside:\n                # 情况二\n                intervals_[keys_[interval0]] += 1\n            elif right_aside:\n                # 情况三\n                right = values_[interval1]\n                intervals_.popitem(interval1)\n                intervals_[val] = right\n            else:\n                # 情况五\n                intervals_[val] = val\n\n    def getIntervals(self) -> List[List[int]]:\n        # 这里实际上返回的是 List[Tuple[int, int]] 类型\n        # 但 Python 的类型提示不是强制的，因此也可以通过\n        return list(self.intervals.items())\n```\n\n```go [sol1-Golang]\ntype SummaryRanges struct {\n    *redblacktree.Tree\n}\n\nfunc Constructor() SummaryRanges {\n    return SummaryRanges{redblacktree.NewWithIntComparator()}\n}\n\nfunc (ranges *SummaryRanges) AddNum(val int) {\n    // 找到 l0 最大的且满足 l0 <= val 的区间 interval0 = [l0, r0]\n    interval0, has0 := ranges.Floor(val)\n    if has0 && val <= interval0.Value.(int) {\n        // 情况一\n        return\n    }\n\n    // 找到 l1 最小的且满足 l1 > val 的区间 interval1 = [l1, r1]\n    // 在有序集合中，interval1 就是 interval0 的后一个区间\n    interval1 := ranges.Iterator()\n    if has0 {\n        interval1 = ranges.IteratorAt(interval0)\n    }\n    has1 := interval1.Next()\n\n    leftAside := has0 && interval0.Value.(int)+1 == val\n    rightAside := has1 && interval1.Key().(int)-1 == val\n    if leftAside && rightAside {\n        // 情况四\n        interval0.Value = interval1.Value().(int)\n        ranges.Remove(interval1.Key())\n    } else if leftAside {\n        // 情况二\n        interval0.Value = val\n    } else if rightAside {\n        // 情况三\n        right := interval1.Value().(int)\n        ranges.Remove(interval1.Key())\n        ranges.Put(val, right)\n    } else {\n        // 情况五\n        ranges.Put(val, val)\n    }\n}\n\nfunc (ranges *SummaryRanges) GetIntervals() [][]int {\n    ans := make([][]int, 0, ranges.Size())\n    for it := ranges.Iterator(); it.Next(); {\n        ans = append(ans, []int{it.Key().(int), it.Value().(int)})\n    }\n    return ans\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：\n    - $\\texttt{void addNum(int val)}$ 的时间复杂度为 $O(\\log n)$，即为对有序映射进行常数次添加、删除、修改操作需要的时间。\n    \n    - $\\texttt{int[][] getIntervals()}$ 的时间复杂度为 $O(n)$，即为对有序映射进行一次遍历需要的时间。\n\n- 空间复杂度：$O(n)$。在最坏情况下，数据流中的 $n$ 个元素分别独自形成一个区间，有序映射中包含 $n$ 个键值对。",
+            "slateValue": "",
+            "slug": "jiang-shu-ju-liu-bian-wei-duo-ge-bu-xian-hm1r",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "PHt0K8",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 38,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 3,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Design",
+                    "nameTranslated": "设计",
+                    "slug": "design",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Ordered Set",
+                    "nameTranslated": "有序集合",
+                    "slug": "ordered-set",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-10-08T15:40:39.212561+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：使用有序映射维护区间 思路与算法 假设我们使用某一数据结构维护这些不相交的区间，在设计具体的数据结构之前，我们需要先明确 $\\texttt{void addNum(int val)}$ 这一操作会使得当前的区间集合发生何种变化： 情况一：如果存在一个区间 $[l, r]$，它完全包含 $\\textit{val}",
+            "topic": {
+                "id": 1037200,
+                "subscribed": false,
+                "commentCount": 112,
+                "viewCount": 16385,
+                "post": {
+                    "id": 2208871,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 41,
+            "isEditorsPick": false,
+            "hitCount": 28575,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "data-stream-as-disjoint-intervals",
+                "questionFrontendId": "352"
+            },
+            "next": {
+                "slug": "gong-shui-san-xie-yi-ti-shuang-jie-er-fe-afrk",
+                "title": "【宫水三叶】一题双解 :「二分 + 朴素维护区间」&「二分 + 优化维护区间」"
+            },
+            "prev": null
+        }
+    }
+}

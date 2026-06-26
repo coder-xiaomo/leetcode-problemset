@@ -1,0 +1,128 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "fzz8m3",
+            "title": "奇怪的打印机",
+            "content": "#### 方法一：动态规划\n\n**思路及算法**\n\n我们可以使用动态规划解决本题，令 $f[i][j]$ 表示打印完成区间 $[i,j]$ 的最少操作数。\n\n当我们尝试计算出 $f[i][j]$ 时，需要考虑两种情况：\n\n1. $s[i]=s[j]$，即区间两端的字符相同，那么当我们打印左侧字符 $s[i]$ 时，可以顺便打印右侧字符 $s[j]$，这样我们即可忽略右侧字符对该区间的影响，只需要考虑如何尽快打印完区间 $[i,j-1]$ 即可，即此时有 $f[i][j]=f[i][j-1]$。\n   - 我们无需关心区间 $[i,j-1]$ 的具体打印方案，因为我们总可以第一步完成 $s[i]$ 的打印，此时可以顺便完成 $s[j]$ 的打印，不会影响打印完成区间 $[i,j-1]$ 的最少操作数。\n2. $s[i] \\neq s[j]$，即区间两端的字符不同，那么我们需要分别完成该区间的左右两部分的打印。我们记两部分分别为区间 $[i,k]$ 和区间 $[k+1,j]$（其中 $i \\leq k < j$），此时 $f[i][j]=\\min_{k=i}^{j-1}{f[i][k]+f[k+1][j]}$。\n\n总结状态转移方程为：\n\n$$\nf[i][j] =\n\\begin{cases}\nf[i][j-1],& s[i]=s[j] \\\\\n\\min_{k=i}^{j-1}{f[i][k]+f[k+1][j]},& s[i]\\neq s[j]\n\\end{cases}\n$$\n\n边界条件为 $f[i][i]=1$，对于长度为 $1$ 的区间，需要打印 $1$ 次。最后的答案为 $f[0][n-1]$。\n\n注意到 $f[i][j]$ 的计算需要用到 $f[i][k]$ 和 $f[k+1][j]$（其中 $i\\leq k< j$）。为了保证动态规划的计算过程满足无后效性，在实际代码中，我们需要改变动态规划的计算顺序，从大到小地枚举 $i$，并从小到大地枚举 $j$，这样可以保证当计算 $f[i][j]$ 时，$f[i][k]$ 和 $f[k+1][j]$ 都已经被计算过。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int strangePrinter(string s) {\n        int n = s.length();\n        vector<vector<int>> f(n, vector<int>(n));\n        for (int i = n - 1; i >= 0; i--) {\n            f[i][i] = 1;\n            for (int j = i + 1; j < n; j++) {\n                if (s[i] == s[j]) {\n                    f[i][j] = f[i][j - 1];\n                } else {\n                    int minn = INT_MAX;\n                    for (int k = i; k < j; k++) {\n                        minn = min(minn, f[i][k] + f[k + 1][j]);\n                    }\n                    f[i][j] = minn;\n                }\n            }\n        }\n        return f[0][n - 1];\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int strangePrinter(String s) {\n        int n = s.length();\n        int[][] f = new int[n][n];\n        for (int i = n - 1; i >= 0; i--) {\n            f[i][i] = 1;\n            for (int j = i + 1; j < n; j++) {\n                if (s.charAt(i) == s.charAt(j)) {\n                    f[i][j] = f[i][j - 1];\n                } else {\n                    int minn = Integer.MAX_VALUE;\n                    for (int k = i; k < j; k++) {\n                        minn = Math.min(minn, f[i][k] + f[k + 1][j]);\n                    }\n                    f[i][j] = minn;\n                }\n            }\n        }\n        return f[0][n - 1];\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int StrangePrinter(string s) {\n        int n = s.Length;\n        int[,] f = new int[n, n];\n        for (int i = n - 1; i >= 0; i--) {\n            f[i, i] = 1;\n            for (int j = i + 1; j < n; j++) {\n                if (s[i] == s[j]) {\n                    f[i, j] = f[i, j - 1];\n                } else {\n                    int minn = int.MaxValue;\n                    for (int k = i; k < j; k++) {\n                        minn = Math.Min(minn, f[i, k] + f[k + 1, j]);\n                    }\n                    f[i, j] = minn;\n                }\n            }\n        }\n        return f[0, n - 1];\n    }\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar strangePrinter = function(s) {\n    const n = s.length;\n    const f = new Array(n).fill(0).map(() => new Array(n).fill(0));\n    for (let i = n - 1; i >= 0; i--) {\n        f[i][i] = 1;\n        for (let j = i + 1; j < n; j++) {\n            if (s[i] == s[j]) {\n                f[i][j] = f[i][j - 1];\n            } else {\n                let minn = Number.MAX_SAFE_INTEGER;\n                for (let k = i; k < j; k++) {\n                    minn = Math.min(minn, f[i][k] + f[k + 1][j]);\n                }\n                f[i][j] = minn;\n            }\n        }\n    }\n    return f[0][n - 1];\n};\n```\n\n```go [sol1-Golang]\nfunc strangePrinter(s string) int {\n    n := len(s)\n    f := make([][]int, n)\n    for i := range f {\n        f[i] = make([]int, n)\n    }\n    for i := n - 1; i >= 0; i-- {\n        f[i][i] = 1\n        for j := i + 1; j < n; j++ {\n            if s[i] == s[j] {\n                f[i][j] = f[i][j-1]\n            } else {\n                f[i][j] = math.MaxInt64\n                for k := i; k < j; k++ {\n                    f[i][j] = min(f[i][j], f[i][k]+f[k+1][j])\n                }\n            }\n        }\n    }\n    return f[0][n-1]\n}\n\nfunc min(a, b int) int {\n    if a < b {\n        return a\n    }\n    return b\n}\n```\n\n```C [sol1-C]\nint strangePrinter(char* s) {\n    int n = strlen(s);\n    int f[n][n];\n    for (int i = n - 1; i >= 0; i--) {\n        f[i][i] = 1;\n        for (int j = i + 1; j < n; j++) {\n            if (s[i] == s[j]) {\n                f[i][j] = f[i][j - 1];\n            } else {\n                int minn = INT_MAX;\n                for (int k = i; k < j; k++) {\n                    minn = fmin(minn, f[i][k] + f[k + 1][j]);\n                }\n                f[i][j] = minn;\n            }\n        }\n    }\n    return f[0][n - 1];\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n^3)$，其中 $n$ 是字符串的长度。\n\n- 空间复杂度：$O(n^2)$，其中 $n$ 是字符串的长度。我们需要保存所有 $n^2$ 个状态。",
+            "slateValue": "",
+            "slug": "qi-guai-de-da-yin-ji-by-leetcode-solutio-ogbu",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "fzz8m3",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 101,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 5,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 5,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-05-23T15:51:26.853932+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 思路及算法 我们可以使用动态规划解决本题，令 $f[i][j]$ 表示打印完成区间 $[i,j]$ 的最少操作数。 当我们尝试计算出 $f[i][j]$ 时，需要考虑两种情况： $s[i]=s[j]$，即区间两端的字符相同，那么当我们打印左侧字符 $s[i]$ 时，可以顺便打印右侧字符 $s[j]$，",
+            "topic": {
+                "id": 792236,
+                "subscribed": false,
+                "commentCount": 144,
+                "viewCount": 25189,
+                "post": {
+                    "id": 1745691,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 104,
+            "isEditorsPick": false,
+            "hitCount": 47087,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "strange-printer",
+                "questionFrontendId": "664"
+            },
+            "next": {
+                "slug": "xin-shou-pian-cong-xiao-wen-ti-zai-dao-q-qifh",
+                "title": "新手篇 -- 从小问题再到全局"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,140 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "cFbZVv",
+            "title": "从前序与中序遍历序列构造二叉树",
+            "content": "### 📺视频题解  \n![...从前序与中序遍历序列构造二叉树.mp4](96352760-d012-4677-8631-c77e23687479)\n\n### 📖文字题解\n\n#### 前言\n\n二叉树前序遍历的顺序为：\n\n- 先遍历根节点；\n\n- 随后递归地遍历左子树；\n\n- 最后递归地遍历右子树。\n\n二叉树中序遍历的顺序为：\n\n- 先递归地遍历左子树；\n\n- 随后遍历根节点；\n\n- 最后递归地遍历右子树。\n\n在「递归」地遍历某个子树的过程中，我们也是将这颗子树看成一颗全新的树，按照上述的顺序进行遍历。挖掘「前序遍历」和「中序遍历」的性质，我们就可以得出本题的做法。\n\n#### 方法一：递归\n\n**思路**\n\n对于任意一颗树而言，前序遍历的形式总是\n\n```\n[ 根节点, [左子树的前序遍历结果], [右子树的前序遍历结果] ]\n```\n\n即根节点总是前序遍历中的第一个节点。而中序遍历的形式总是\n\n```\n[ [左子树的中序遍历结果], 根节点, [右子树的中序遍历结果] ]\n```\n\n只要我们在中序遍历中**定位**到根节点，那么我们就可以分别知道左子树和右子树中的节点数目。由于同一颗子树的前序遍历和中序遍历的长度显然是相同的，因此我们就可以对应到前序遍历的结果中，对上述形式中的所有**左右括号**进行定位。\n\n这样以来，我们就知道了左子树的前序遍历和中序遍历结果，以及右子树的前序遍历和中序遍历结果，我们就可以递归地对构造出左子树和右子树，再将这两颗子树接到根节点的左右位置。\n\n**细节**\n\n在中序遍历中对根节点进行定位时，一种简单的方法是直接扫描整个中序遍历的结果并找出根节点，但这样做的时间复杂度较高。我们可以考虑使用哈希表来帮助我们快速地定位根节点。对于哈希映射中的每个键值对，键表示一个元素（节点的值），值表示其在中序遍历中的出现位置。在构造二叉树的过程之前，我们可以对中序遍历的列表进行一遍扫描，就可以构造出这个哈希映射。在此后构造二叉树的过程中，我们就只需要 $O(1)$ 的时间对根节点进行定位了。\n\n下面的代码给出了详细的注释。\n\n```C++ [sol1-C++]\nclass Solution {\nprivate:\n    unordered_map<int, int> index;\n\npublic:\n    TreeNode* myBuildTree(const vector<int>& preorder, const vector<int>& inorder, int preorder_left, int preorder_right, int inorder_left, int inorder_right) {\n        if (preorder_left > preorder_right) {\n            return nullptr;\n        }\n        \n        // 前序遍历中的第一个节点就是根节点\n        int preorder_root = preorder_left;\n        // 在中序遍历中定位根节点\n        int inorder_root = index[preorder[preorder_root]];\n        \n        // 先把根节点建立出来\n        TreeNode* root = new TreeNode(preorder[preorder_root]);\n        // 得到左子树中的节点数目\n        int size_left_subtree = inorder_root - inorder_left;\n        // 递归地构造左子树，并连接到根节点\n        // 先序遍历中「从 左边界+1 开始的 size_left_subtree」个元素就对应了中序遍历中「从 左边界 开始到 根节点定位-1」的元素\n        root->left = myBuildTree(preorder, inorder, preorder_left + 1, preorder_left + size_left_subtree, inorder_left, inorder_root - 1);\n        // 递归地构造右子树，并连接到根节点\n        // 先序遍历中「从 左边界+1+左子树节点数目 开始到 右边界」的元素就对应了中序遍历中「从 根节点定位+1 到 右边界」的元素\n        root->right = myBuildTree(preorder, inorder, preorder_left + size_left_subtree + 1, preorder_right, inorder_root + 1, inorder_right);\n        return root;\n    }\n\n    TreeNode* buildTree(vector<int>& preorder, vector<int>& inorder) {\n        int n = preorder.size();\n        // 构造哈希映射，帮助我们快速定位根节点\n        for (int i = 0; i < n; ++i) {\n            index[inorder[i]] = i;\n        }\n        return myBuildTree(preorder, inorder, 0, n - 1, 0, n - 1);\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    private Map<Integer, Integer> indexMap;\n\n    public TreeNode myBuildTree(int[] preorder, int[] inorder, int preorder_left, int preorder_right, int inorder_left, int inorder_right) {\n        if (preorder_left > preorder_right) {\n            return null;\n        }\n\n        // 前序遍历中的第一个节点就是根节点\n        int preorder_root = preorder_left;\n        // 在中序遍历中定位根节点\n        int inorder_root = indexMap.get(preorder[preorder_root]);\n        \n        // 先把根节点建立出来\n        TreeNode root = new TreeNode(preorder[preorder_root]);\n        // 得到左子树中的节点数目\n        int size_left_subtree = inorder_root - inorder_left;\n        // 递归地构造左子树，并连接到根节点\n        // 先序遍历中「从 左边界+1 开始的 size_left_subtree」个元素就对应了中序遍历中「从 左边界 开始到 根节点定位-1」的元素\n        root.left = myBuildTree(preorder, inorder, preorder_left + 1, preorder_left + size_left_subtree, inorder_left, inorder_root - 1);\n        // 递归地构造右子树，并连接到根节点\n        // 先序遍历中「从 左边界+1+左子树节点数目 开始到 右边界」的元素就对应了中序遍历中「从 根节点定位+1 到 右边界」的元素\n        root.right = myBuildTree(preorder, inorder, preorder_left + size_left_subtree + 1, preorder_right, inorder_root + 1, inorder_right);\n        return root;\n    }\n\n    public TreeNode buildTree(int[] preorder, int[] inorder) {\n        int n = preorder.length;\n        // 构造哈希映射，帮助我们快速定位根节点\n        indexMap = new HashMap<Integer, Integer>();\n        for (int i = 0; i < n; i++) {\n            indexMap.put(inorder[i], i);\n        }\n        return myBuildTree(preorder, inorder, 0, n - 1, 0, n - 1);\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def buildTree(self, preorder: List[int], inorder: List[int]) -> TreeNode:\n        def myBuildTree(preorder_left: int, preorder_right: int, inorder_left: int, inorder_right: int):\n            if preorder_left > preorder_right:\n                return None\n            \n            # 前序遍历中的第一个节点就是根节点\n            preorder_root = preorder_left\n            # 在中序遍历中定位根节点\n            inorder_root = index[preorder[preorder_root]]\n            \n            # 先把根节点建立出来\n            root = TreeNode(preorder[preorder_root])\n            # 得到左子树中的节点数目\n            size_left_subtree = inorder_root - inorder_left\n            # 递归地构造左子树，并连接到根节点\n            # 先序遍历中「从 左边界+1 开始的 size_left_subtree」个元素就对应了中序遍历中「从 左边界 开始到 根节点定位-1」的元素\n            root.left = myBuildTree(preorder_left + 1, preorder_left + size_left_subtree, inorder_left, inorder_root - 1)\n            # 递归地构造右子树，并连接到根节点\n            # 先序遍历中「从 左边界+1+左子树节点数目 开始到 右边界」的元素就对应了中序遍历中「从 根节点定位+1 到 右边界」的元素\n            root.right = myBuildTree(preorder_left + size_left_subtree + 1, preorder_right, inorder_root + 1, inorder_right)\n            return root\n        \n        n = len(preorder)\n        # 构造哈希映射，帮助我们快速定位根节点\n        index = {element: i for i, element in enumerate(inorder)}\n        return myBuildTree(0, n - 1, 0, n - 1)\n```\n\n```golang [sol1-Golang]\nfunc buildTree(preorder []int, inorder []int) *TreeNode {\n    if len(preorder) == 0 {\n        return nil\n    }\n    root := &TreeNode{preorder[0], nil, nil}\n    i := 0\n    for ; i < len(inorder); i++ {\n        if inorder[i] == preorder[0] {\n            break\n        }\n    }\n    root.Left = buildTree(preorder[1:len(inorder[:i])+1], inorder[:i])\n    root.Right = buildTree(preorder[len(inorder[:i])+1:], inorder[i+1:])\n    return root\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是树中的节点个数。\n\n- 空间复杂度：$O(n)$，除去返回的答案需要的 $O(n)$ 空间之外，我们还需要使用 $O(n)$ 的空间存储哈希映射，以及 $O(h)$（其中 $h$ 是树的高度）的空间表示递归时栈空间。这里 $h < n$，所以总空间复杂度为 $O(n)$。\n\n#### 方法二：迭代\n\n**思路**\n\n迭代法是一种非常巧妙的实现方法。\n\n对于前序遍历中的任意两个连续节点 $u$ 和 $v$，根据前序遍历的流程，我们可以知道 $u$ 和 $v$ 只有两种可能的关系：\n\n- $v$ 是 $u$ 的左儿子。这是因为在遍历到 $u$ 之后，下一个遍历的节点就是 $u$ 的左儿子，即 $v$；\n\n- $u$ 没有左儿子，并且 $v$ 是 $u$ 的某个祖先节点（或者 $u$ 本身）的右儿子。如果 $u$ 没有左儿子，那么下一个遍历的节点就是 $u$ 的右儿子。如果 $u$ 没有右儿子，我们就会向上回溯，直到遇到第一个有右儿子（且 $u$ 不在它的右儿子的子树中）的节点 $u_a$，那么 $v$ 就是 $u_a$ 的右儿子。\n\n第二种关系看上去有些复杂。我们举一个例子来说明其正确性，并在例子中给出我们的迭代算法。\n\n**例子**\n\n我们以树\n\n```\n        3\n       / \\\n      9  20\n     /  /  \\\n    8  15   7\n   / \\\n  5  10\n /\n4\n```\n\n为例，它的前序遍历和中序遍历分别为\n\n```\npreorder = [3, 9, 8, 5, 4, 10, 20, 15, 7]\ninorder = [4, 5, 8, 10, 9, 3, 15, 20, 7]\n```\n\n我们用一个栈 `stack` 来维护「当前节点的所有还没有考虑过右儿子的祖先节点」，栈顶就是当前节点。也就是说，只有在栈中的节点才可能连接一个新的右儿子。同时，我们用一个指针 `index` 指向中序遍历的某个位置，初始值为 `0`。`index` 对应的节点是「当前节点不断往左走达到的最终节点」，这也是符合中序遍历的，它的作用在下面的过程中会有所体现。\n\n首先我们将根节点 `3` 入栈，再初始化 `index` 所指向的节点为 `4`，随后对于前序遍历中的每个节点，我们依次判断它是栈顶节点的左儿子，还是栈中某个节点的右儿子。\n\n- 我们遍历 `9`。`9` 一定是栈顶节点 `3` 的左儿子。我们使用反证法，假设 `9` 是 `3` 的右儿子，那么 `3` 没有左儿子，`index` 应该恰好指向 `3`，但实际上为 `4`，因此产生了矛盾。所以我们将 `9` 作为 `3` 的左儿子，并将 `9` 入栈。\n\n    - `stack = [3, 9]`\n    - `index -> inorder[0] = 4`\n\n- 我们遍历 `8`，`5` 和 `4`。同理可得它们都是上一个节点（栈顶节点）的左儿子，所以它们会依次入栈。\n\n    - `stack = [3, 9, 8, 5, 4]`\n    - `index -> inorder[0] = 4`\n\n- 我们遍历 `10`，这时情况就不一样了。我们发现 `index` 恰好指向当前的栈顶节点 `4`，也就是说 `4` 没有左儿子，那么 `10` 必须为栈中某个节点的右儿子。那么如何找到这个节点呢？栈中的节点的顺序和它们在前序遍历中出现的顺序是一致的，而且每一个节点的右儿子都还没有被遍历过，**那么这些节点的顺序和它们在中序遍历中出现的顺序一定是相反的**。\n\n    > 这是因为栈中的任意两个相邻的节点，前者都是后者的某个祖先。并且我们知道，栈中的任意一个节点的右儿子还没有被遍历过，说明后者一定是前者左儿子的子树中的节点，那么后者就先于前者出现在中序遍历中。\n\n    因此我们可以把 `index` 不断向右移动，并与栈顶节点进行比较。如果 `index` 对应的元素恰好等于栈顶节点，那么说明我们在中序遍历中找到了栈顶节点，所以将 `index` 增加 `1` 并弹出栈顶节点，直到 `index` 对应的元素不等于栈顶节点。按照这样的过程，我们弹出的最后一个节点 `x` 就是 `10` 的双亲节点，**这是因为 `10` 出现在了 `x` 与 `x` 在栈中的下一个节点的中序遍历之间**，因此 `10` 就是 `x` 的右儿子。\n\n    回到我们的例子，我们会依次从栈顶弹出 `4`，`5` 和 `8`，并且将 `index` 向右移动了三次。我们将 `10` 作为最后弹出的节点 `8` 的右儿子，并将 `10` 入栈。\n\n    - `stack = [3, 9, 10]`\n    - `index -> inorder[3] = 10`\n\n- 我们遍历 `20`。同理，`index` 恰好指向当前栈顶节点 `10`，那么我们会依次从栈顶弹出 `10`，`9` 和 `3`，并且将 `index` 向右移动了三次。我们将 `20` 作为最后弹出的节点 `3` 的右儿子，并将 `20` 入栈。\n\n    - `stack = [20]`\n    - `index -> inorder[6] = 15`\n\n- 我们遍历 `15`，将 `15` 作为栈顶节点 `20` 的左儿子，并将 `15` 入栈。\n\n    - `stack = [20, 15]`\n    - `index -> inorder[6] = 15`\n\n- 我们遍历 `7`。`index` 恰好指向当前栈顶节点 `15`，那么我们会依次从栈顶弹出 `15` 和 `20`，并且将 `index` 向右移动了两次。我们将 `7` 作为最后弹出的节点 `20` 的右儿子，并将 `7` 入栈。\n\n    - `stack = [7]`\n    - `index -> inorder[8] = 7`\n\n此时遍历结束，我们就构造出了正确的二叉树。\n\n**算法**\n\n我们归纳出上述例子中的算法流程：\n\n- 我们用一个栈和一个指针辅助进行二叉树的构造。初始时栈中存放了根节点（前序遍历的第一个节点），指针指向中序遍历的第一个节点；\n\n- 我们依次枚举前序遍历中除了第一个节点以外的每个节点。如果 `index` 恰好指向栈顶节点，那么我们不断地弹出栈顶节点并向右移动 `index`，并将当前节点作为最后一个弹出的节点的右儿子；如果 `index` 和栈顶节点不同，我们将当前节点作为栈顶节点的左儿子；\n\n- 无论是哪一种情况，我们最后都将当前的节点入栈。\n\n最后得到的二叉树即为答案。\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    TreeNode* buildTree(vector<int>& preorder, vector<int>& inorder) {\n        if (!preorder.size()) {\n            return nullptr;\n        }\n        TreeNode* root = new TreeNode(preorder[0]);\n        stack<TreeNode*> stk;\n        stk.push(root);\n        int inorderIndex = 0;\n        for (int i = 1; i < preorder.size(); ++i) {\n            int preorderVal = preorder[i];\n            TreeNode* node = stk.top();\n            if (node->val != inorder[inorderIndex]) {\n                node->left = new TreeNode(preorderVal);\n                stk.push(node->left);\n            }\n            else {\n                while (!stk.empty() && stk.top()->val == inorder[inorderIndex]) {\n                    node = stk.top();\n                    stk.pop();\n                    ++inorderIndex;\n                }\n                node->right = new TreeNode(preorderVal);\n                stk.push(node->right);\n            }\n        }\n        return root;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public TreeNode buildTree(int[] preorder, int[] inorder) {\n        if (preorder == null || preorder.length == 0) {\n            return null;\n        }\n        TreeNode root = new TreeNode(preorder[0]);\n        Deque<TreeNode> stack = new LinkedList<TreeNode>();\n        stack.push(root);\n        int inorderIndex = 0;\n        for (int i = 1; i < preorder.length; i++) {\n            int preorderVal = preorder[i];\n            TreeNode node = stack.peek();\n            if (node.val != inorder[inorderIndex]) {\n                node.left = new TreeNode(preorderVal);\n                stack.push(node.left);\n            } else {\n                while (!stack.isEmpty() && stack.peek().val == inorder[inorderIndex]) {\n                    node = stack.pop();\n                    inorderIndex++;\n                }\n                node.right = new TreeNode(preorderVal);\n                stack.push(node.right);\n            }\n        }\n        return root;\n    }\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def buildTree(self, preorder: List[int], inorder: List[int]) -> TreeNode:\n        if not preorder:\n            return None\n\n        root = TreeNode(preorder[0])\n        stack = [root]\n        inorderIndex = 0\n        for i in range(1, len(preorder)):\n            preorderVal = preorder[i]\n            node = stack[-1]\n            if node.val != inorder[inorderIndex]:\n                node.left = TreeNode(preorderVal)\n                stack.append(node.left)\n            else:\n                while stack and stack[-1].val == inorder[inorderIndex]:\n                    node = stack.pop()\n                    inorderIndex += 1\n                node.right = TreeNode(preorderVal)\n                stack.append(node.right)\n\n        return root\n```\n\n```golang [sol2-Golang]\nfunc buildTree(preorder []int, inorder []int) *TreeNode {\n    if len(preorder) == 0 {\n        return nil\n    }\n    root := &TreeNode{preorder[0], nil, nil}\n    stack := []*TreeNode{}\n    stack = append(stack, root)\n    var inorderIndex int\n    for i := 1; i < len(preorder); i++ {\n        preorderVal := preorder[i]\n        node := stack[len(stack)-1]\n        if node.Val != inorder[inorderIndex] {\n            node.Left = &TreeNode{preorderVal, nil, nil}\n            stack = append(stack, node.Left)\n        } else {\n            for len(stack) != 0 && stack[len(stack)-1].Val == inorder[inorderIndex] {\n                node = stack[len(stack)-1]\n                stack = stack[:len(stack)-1]\n                inorderIndex++\n            }\n            node.Right = &TreeNode{preorderVal, nil, nil}\n            stack = append(stack, node.Right)\n        }\n    }\n    return root\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是树中的节点个数。\n\n- 空间复杂度：$O(n)$，除去返回的答案需要的 $O(n)$ 空间之外，我们还需要使用 $O(h)$（其中 $h$ 是树的高度）的空间存储栈。这里 $h < n$，所以（在最坏情况下）总空间复杂度为 $O(n)$。",
+            "slateValue": "",
+            "slug": "cong-qian-xu-yu-zhong-xu-bian-li-xu-lie-gou-zao-9",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "cFbZVv",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 806,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 39,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 26,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Tree",
+                    "nameTranslated": "树",
+                    "slug": "tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Depth-First Search",
+                    "nameTranslated": "深度优先搜索",
+                    "slug": "depth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Binary Tree",
+                    "nameTranslated": "二叉树",
+                    "slug": "binary-tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Divide and Conquer",
+                    "nameTranslated": "分治",
+                    "slug": "divide-and-conquer",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2020-05-21T06:37:44.265944+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "📺视频题解 📖文字题解 前言 二叉树前序遍历的顺序为： 先遍历根节点； 随后递归地遍历左子树； 最后递归地遍历右子树。 二叉树中序遍历的顺序为： 先递归地遍历左子树； 随后遍历根节点； 最后递归地遍历右子树。 在「递归」地遍历某个子树的过程中，我们也是将这颗子树看成一颗全新的树，按照上述的顺序进行遍历。挖掘「前序遍历」",
+            "topic": {
+                "id": 255811,
+                "subscribed": false,
+                "commentCount": 805,
+                "viewCount": 225544,
+                "post": {
+                    "id": 662513,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 2624,
+            "isEditorsPick": false,
+            "hitCount": 720063,
+            "videosInfo": [
+                {
+                    "videoId": "9d5c9f53db074a3883cfcb417a234283",
+                    "coverUrl": "https://video.leetcode.cn/image/cover/8698AC8FC38A45E3BE49A85EEED7BC94-6-2.png?auth_key=1782488360-d8d99d0bcf7d4892a4282b710d1e1ebc-0-f7129ef70b0a45629b0e96a4cd69cf9d",
+                    "duration": 612.672
+                }
+            ],
+            "question": {
+                "titleSlug": "construct-binary-tree-from-preorder-and-inorder-traversal",
+                "questionFrontendId": "105"
+            },
+            "next": {
+                "slug": "105-cong-qian-xu-yu-zhong-xu-bian-li-xu-4lvkz",
+                "title": "105. 从前序与中序遍历序列构造二叉树（分治，清晰图解）"
+            },
+            "prev": null
+        }
+    }
+}

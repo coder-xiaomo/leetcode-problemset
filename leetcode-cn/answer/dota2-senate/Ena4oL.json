@@ -1,0 +1,124 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "Ena4oL",
+            "title": "Dota2 参议院",
+            "content": "#### 方法一：贪心 + 「循环」队列\n\n**思路与算法**\n\n我们以天辉方的议员为例。当一名天辉方的议员行使权利时：\n\n- 如果目前所有的议员都为天辉方，那么该议员可以直接宣布天辉方取得胜利；\n\n- 如果目前仍然有夜魇方的议员，那么这名天辉方的议员只能行使「禁止一名参议员的权利」这一项权利。显然，该议员不会令一名同为天辉方的议员丧失权利，所以他一定会挑选一名夜魇方的议员。那么应该挑选哪一名议员呢？容易想到的是，**应该贪心地挑选按照投票顺序的下一名夜魇方的议员**。这也是很容易形象化地证明的：既然只能挑选**一名**夜魇方的议员，那么就应该挑最早可以进行投票的那一名议员；如果挑选了其他较晚投票的议员，那么等到最早可以进行投票的那一名议员行使权利时，一名天辉方议员就会丧失权利，这样就得不偿失了。\n\n由于我们总要挑选投票顺序最早的议员，因此我们可以使用两个队列 $\\textit{radiant}$ 和 $\\textit{dire}$ 分别**按照投票顺序**存储天辉方和夜魇方每一名议员的投票时间。随后我们就可以开始模拟整个投票的过程：\n\n- 如果此时 $\\textit{radiant}$ 或者 $\\textit{dire}$ 为空，那么就可以宣布另一方获得胜利；\n\n- 如果均不为空，那么比较这两个队列的首元素，就可以确定当前行使权利的是哪一名议员。如果 $\\textit{radiant}$ 的首元素较小，那说明轮到天辉方的议员行使权利，其会挑选 $\\textit{dire}$ 的首元素对应的那一名议员。因此，我们会将 $\\textit{dire}$ 的首元素永久地弹出，并将 $\\textit{radiant}$ 的首元素弹出，增加 $n$ 之后再重新放回队列，这里 $n$ 是给定的字符串 $\\textit{senate}$ 的长度，即表示该议员会参与下一轮的投票。\n\n    > 为什么这里是固定地增加 $n$，而不是增加与当前剩余议员数量相关的一个数？读者可以思考一下这里的正确性。\n\n    同理，如果 $\\textit{dire}$ 的首元素较小，那么会永久弹出 $\\textit{radiant}$ 的首元素，剩余的处理方法也是类似的。\n\n这样一来，我们就模拟了整个投票的过程，也就可以得到最终的答案了。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    string predictPartyVictory(string senate) {\n        int n = senate.size();\n        queue<int> radiant, dire;\n        for (int i = 0; i < n; ++i) {\n            if (senate[i] == 'R') {\n                radiant.push(i);\n            }\n            else {\n                dire.push(i);\n            }\n        }\n        while (!radiant.empty() && !dire.empty()) {\n            if (radiant.front() < dire.front()) {\n                radiant.push(radiant.front() + n);\n            }\n            else {\n                dire.push(dire.front() + n);\n            }\n            radiant.pop();\n            dire.pop();\n        }\n        return !radiant.empty() ? \"Radiant\" : \"Dire\";\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public String predictPartyVictory(String senate) {\n        int n = senate.length();\n        Queue<Integer> radiant = new LinkedList<Integer>();\n        Queue<Integer> dire = new LinkedList<Integer>();\n        for (int i = 0; i < n; ++i) {\n            if (senate.charAt(i) == 'R') {\n                radiant.offer(i);\n            } else {\n                dire.offer(i);\n            }\n        }\n        while (!radiant.isEmpty() && !dire.isEmpty()) {\n            int radiantIndex = radiant.poll(), direIndex = dire.poll();\n            if (radiantIndex < direIndex) {\n                radiant.offer(radiantIndex + n);\n            } else {\n                dire.offer(direIndex + n);\n            }\n        }\n        return !radiant.isEmpty() ? \"Radiant\" : \"Dire\";\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def predictPartyVictory(self, senate: str) -> str:\n        n = len(senate)\n        radiant = collections.deque()\n        dire = collections.deque()\n        \n        for i, ch in enumerate(senate):\n            if ch == \"R\":\n                radiant.append(i)\n            else:\n                dire.append(i)\n        \n        while radiant and dire:\n            if radiant[0] < dire[0]:\n                radiant.append(radiant[0] + n)\n            else:\n                dire.append(dire[0] + n)\n            radiant.popleft()\n            dire.popleft()\n        \n        return \"Radiant\" if radiant else \"Dire\"\n```\n\n```Golang [sol1-Golang]\nfunc predictPartyVictory(senate string) string {\n    var radiant, dire []int\n    for i, s := range senate {\n        if s == 'R' {\n            radiant = append(radiant, i)\n        } else {\n            dire = append(dire, i)\n        }\n    }\n    for len(radiant) > 0 && len(dire) > 0 {\n        if radiant[0] < dire[0] {\n            radiant = append(radiant, radiant[0]+len(senate))\n        } else {\n            dire = append(dire, dire[0]+len(senate))\n        }\n        radiant = radiant[1:]\n        dire = dire[1:]\n    }\n    if len(radiant) > 0 {\n        return \"Radiant\"\n    }\n    return \"Dire\"\n}\n```\n\n```C [sol1-C]\nchar* predictPartyVictory(char* senate) {\n    int n = strlen(senate);\n    int radiant[n], dire[n];\n    int left_r = 0, right_r = 0;\n    int left_d = 0, right_d = 0;\n    for (int i = 0; i < n; ++i) {\n        if (senate[i] == 'R') {\n            radiant[right_r++] = i;\n        } else {\n            dire[right_d++] = i;\n        }\n    }\n    while (left_r < right_r && left_d < right_d) {\n        if (radiant[left_r] < dire[left_d]) {\n            radiant[right_r++] = radiant[left_r] + n;\n        } else {\n            dire[right_d++] = dire[left_d] + n;\n        }\n        left_r++;\n        left_d++;\n    }\n    int* ret;\n    if (left_r < right_r) {\n        ret = malloc(sizeof(char) * 8);\n        ret = \"Radiant\";\n    } else {\n        ret = malloc(sizeof(char) * 5);\n        ret = \"Dire\";\n    }\n    return ret;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar predictPartyVictory = function(senate) {\n    const n = senate.length;\n    const radiant = [], dire = [];\n\n    for (const [i, ch] of Array.from(senate).entries()) {\n        if (ch === 'R') {\n            radiant.push(i);\n        } else {\n            dire.push(i);\n        }\n    }\n\n    while (radiant.length && dire.length) {\n            if (radiant[0] < dire[0]) {\n                radiant.push(radiant[0] + n);\n            } else {\n                dire.push(dire[0] + n);\n            }\n            radiant.shift();\n            dire.shift();\n        }\n    return radiant.length ? \"Radiant\" : \"Dire\";\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是字符串 $\\textit{senate}$ 的长度。在模拟整个投票过程的每一步，我们进行的操作的时间复杂度均为 $O(1)$，并且会弹出一名天辉方或夜魇方的议员。由于议员的数量为 $n$，因此模拟的步数不会超过 $n$，时间复杂度即为 $O(n)$。\n\n- 空间复杂度：$O(n)$，即为两个队列需要使用的空间。",
+            "slateValue": "",
+            "slug": "dota2-can-yi-yuan-by-leetcode-solution-jb7l",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "Ena4oL",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 135,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 5,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Queue",
+                    "nameTranslated": "队列",
+                    "slug": "queue",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Greedy",
+                    "nameTranslated": "贪心",
+                    "slug": "greedy",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2020-12-10T15:51:02.280969+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：贪心 + 「循环」队列 思路与算法 我们以天辉方的议员为例。当一名天辉方的议员行使权利时： 如果目前所有的议员都为天辉方，那么该议员可以直接宣布天辉方取得胜利； 如果目前仍然有夜魇方的议员，那么这名天辉方的议员只能行使「禁止一名参议员的权利」这一项权利。显然，该议员不会令一名同为天辉方的议员丧失权利，所以他一定",
+            "topic": {
+                "id": 517088,
+                "subscribed": false,
+                "commentCount": 289,
+                "viewCount": 23126,
+                "post": {
+                    "id": 1218600,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": true,
+            "favoriteCount": 180,
+            "isEditorsPick": false,
+            "hitCount": 59095,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "dota2-senate",
+                "questionFrontendId": "649"
+            },
+            "next": {
+                "slug": "bu-yong-dui-lie-yuan-di-zi-fu-biao-ji-o-za6mn",
+                "title": "不用队列！原地字符标记・O (1) 空间模拟多轮投票"
+            },
+            "prev": null
+        }
+    }
+}

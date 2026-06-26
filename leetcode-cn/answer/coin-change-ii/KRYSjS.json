@@ -1,0 +1,128 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "KRYSjS",
+            "title": "零钱兑换 II",
+            "content": "#### 方法一：动态规划\n\n这道题中，给定总金额 $\\textit{amount}$ 和数组 $\\textit{coins}$，要求计算金额之和等于 $\\textit{amount}$ 的硬币组合数。其中，$\\textit{coins}$ 的每个元素可以选取多次，且不考虑选取元素的顺序，因此这道题需要计算的是选取硬币的**组合**数。\n\n可以通过动态规划的方法计算可能的组合数。用 $\\textit{dp}[x]$ 表示金额之和等于 $x$ 的硬币组合数，目标是求 $\\textit{dp}[\\textit{amount}]$。\n\n动态规划的边界是 $\\textit{dp}[0]=1$。只有当不选取任何硬币时，金额之和才为 $0$，因此只有 $1$ 种硬币组合。\n\n对于面额为 $\\textit{coin}$ 的硬币，当 $\\textit{coin} \\le i \\le \\textit{amount}$ 时，如果存在一种硬币组合的金额之和等于 $i - \\textit{coin}$，则在该硬币组合中增加一个面额为 $\\textit{coin}$ 的硬币，即可得到一种金额之和等于 $i$ 的硬币组合。因此需要遍历 $\\textit{coins}$，对于其中的每一种面额的硬币，更新数组 $\\textit{dp}$ 中的每个大于或等于该面额的元素的值。\n\n由此可以得到动态规划的做法：\n\n- 初始化 $\\textit{dp}[0]=1$；\n\n- 遍历 $\\textit{coins}$，对于其中的每个元素 $\\textit{coin}$，进行如下操作：\n\n   - 遍历 $i$ 从 $\\textit{coin}$ 到 $\\textit{amount}$，将 $\\textit{dp}[i - \\textit{coin}]$ 的值加到 $\\textit{dp}[i]$。\n\n- 最终得到 $\\textit{dp}[\\textit{amount}]$ 的值即为答案。\n\n上述做法不会重复计算不同的排列。因为外层循环是遍历数组 $\\textit{coins}$ 的值，内层循环是遍历不同的金额之和，在计算 $\\textit{dp}[i]$ 的值时，可以确保金额之和等于 $i$ 的硬币面额的顺序，由于顺序确定，因此不会重复计算不同的排列。\n\n例如，$\\textit{coins}=[1,2]$，对于 $\\textit{dp}[3]$ 的计算，一定是先遍历硬币面额 $1$ 后遍历硬币面额 $2$，只会出现以下 $2$ 种组合：\n\n$$\n\\begin{aligned}\n3 &= 1+1+1 \\\\\n3 &= 1+2\n\\end{aligned}\n$$\n\n硬币面额 $2$ 不可能出现在硬币面额 $1$ 之前，即不会重复计算 $3=2+1$ 的情况。\n\n注意，虽然结果保证在 32 位带符号整数范围内，但当最后结果为 0 时，中间计算过程可能会溢出。所以，我们可以先使用相同的动态规划方法求出是否有有效解，如果没有则直接返回。\n\n```Java [sol1-Java]\nclass Solution {\n    public int change(int amount, int[] coins) {\n        int[] dp = new int[amount + 1];\n        boolean[] valid = new boolean[amount + 1];\n        dp[0] = 1;\n        valid[0] = true;\n        for (int coin : coins) {\n            for (int i = coin; i <= amount; i++) {\n                valid[i] |= valid[i - coin];\n            }\n        }\n        if(!valid[amount]) return 0;\n        for (int coin : coins) {\n            for (int i = coin; i <= amount; i++) {\n                dp[i] += dp[i - coin];\n            }\n        }\n        return dp[amount];\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int Change(int amount, int[] coins) {\n        int[] dp = new int[amount + 1];\n        bool[] valid = new bool[amount + 1];\n        dp[0] = 1;\n        valid[0] = true;\n        foreach (int coin in coins) {\n            for (int i = coin; i <= amount; i++) {\n                valid[i] |= valid[i - coin];\n            }\n        }\n        if(!valid[amount]) return 0;\n        foreach (int coin in coins) {\n            for (int i = coin; i <= amount; i++) {\n                dp[i] += dp[i - coin];\n            }\n        }\n        return dp[amount];\n    }\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar change = function (amount, coins) {\n    const dp = new Array(amount + 1).fill(0);\n    const valid = new Array(amount + 1).fill(false);\n    dp[0] = 1;\n    valid[0] = true;\n    for (const coin of coins) {\n        for (let i = coin; i <= amount; i++) {\n            valid[i] |= valid[i - coin];\n        }\n    }\n    if (!valid[amount]) return 0;\n    for (const coin of coins) {\n        for (let i = coin; i <= amount; i++) {\n            dp[i] += dp[i - coin];\n        }\n    }\n    return dp[amount];\n};\n```\n\n```go [sol1-Golang]\nfunc change(amount int, coins []int) int {\n\tdp := make([]int, amount+1)\n\tvalid := make([]bool, amount+1)\n\tdp[0] = 1\n\tvalid[0] = true\n\tfor _, coin := range coins {\n\t\tfor i := coin; i <= amount; i++ {\n\t\t\tvalid[i] = valid[i] || valid[i-coin]\n\t\t}\n\t}\n    if !valid[amount]{\n        return 0\n    }\n\tfor _, coin := range coins {\n\t\tfor i := coin; i <= amount; i++ {\n\t\t\tdp[i] += dp[i-coin]\n\t\t}\n\t}\n\treturn dp[amount]\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int change(int amount, vector<int>& coins) {\n        vector<int> dp(amount + 1), valid(amount + 1);\n        dp[0] = 1;\n        valid[0] = 1;\n        for (int& coin : coins) {\n            for (int i = coin; i <= amount; i++) {\n                valid[i] |= valid[i - coin];\n            }\n        }\n        if (!valid[amount])\n            return 0;\n        for (int& coin : coins) {\n            for (int i = coin; i <= amount; i++) {\n                dp[i] += dp[i - coin];\n            }\n        }\n        return dp[amount];\n    }\n};\n```\n\n```C [sol1-C]\nint change(int amount, int* coins, int coinsSize) {\n    int dp[amount + 1];\n    bool valid[amount + 1];\n    memset(dp, 0, sizeof(dp));\n    memset(valid, false, sizeof(valid));\n    dp[0] = 1;\n    valid[0] = true;\n    for (int i = 0; i < coinsSize; i++) {\n        for (int j = coins[i]; j <= amount; j++) {\n            valid[j] |= valid[j - coins[i]];\n        }\n    }\n    if (!valid[amount])\n        return 0;\n    for (int i = 0; i < coinsSize; i++) {\n        for (int j = coins[i]; j <= amount; j++) {\n            dp[j] += dp[j - coins[i]];\n        }\n    }\n    return dp[amount];\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(\\textit{amount} \\times n)$，其中 $\\textit{amount}$ 是总金额，$n$ 是数组 $\\textit{coins}$ 的长度。需要使用数组 $\\textit{coins}$ 中的每个元素遍历并更新数组 $\\textit{dp}$ 中的每个元素的值。\n\n- 空间复杂度：$O(\\textit{amount})$，其中 $\\textit{amount}$ 是总金额。需要创建长度为 $\\textit{amount}+1$ 的数组 $\\textit{dp}$。",
+            "slateValue": "",
+            "slug": "ling-qian-dui-huan-ii-by-leetcode-soluti-f7uh",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "KRYSjS",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 211,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 5,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 3,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-06-09T15:24:01.403499+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 这道题中，给定总金额 [latex] 和数组 [latex]，要求计算金额之和等于 [latex] 的硬币组合数。其中，[latex] 的每个元素可以选取多次，且不考虑选取元素的顺序，因此这道题需要计算的是选取硬币的组合数。 可以通过动态规划的方法计算可能的组合数。用 [latex] 表示金额之和等于",
+            "topic": {
+                "id": 821278,
+                "subscribed": false,
+                "commentCount": 392,
+                "viewCount": 80584,
+                "post": {
+                    "id": 1800707,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 514,
+            "isEditorsPick": false,
+            "hitCount": 216064,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "coin-change-ii",
+                "questionFrontendId": "518"
+            },
+            "next": {
+                "slug": "shi-pin-wan-quan-bei-bao-cong-ji-yi-hua-o3ew0",
+                "title": "【视频】完全背包：从记忆化搜索到递推，附题单！（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

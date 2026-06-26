@@ -1,0 +1,136 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "rR6aKi",
+            "title": "表现良好的最长时间段",
+            "content": "#### 方法一：贪心\n\n**思路与算法**\n\n我们记工作小时数大于 $8$ 的为 $1$ 分，否则为 $-1$ 分。那么原问题可以看做求解区间分数和大于 $0$ 的最长区间长度。为了方便计算区间分数和，我们首先预处理分数前缀和 $s$：\n\n1. 令 $s[0]$ 等于 $0$\n2. 设 $n$ 为 $\\textit{hours}$ 的长度，从小到大遍历 $i~(1 \\le i \\le n)$，若 $\\textit{hours}[i - 1] > 8$，则令 $s[i] = s[i - 1] + 1$，否则令 $s[i] = s[i - 1] - 1$。\n\n至此，我们只需求解最长的一段区间 $[l, r]$ 使得 $s[r] - s[l] > 0$，其中 $0 \\le l \\le r \\le n$。我们固定 $r$，目标找到一个最小的 $l$ 使得 $s[l] < s[r]$。倘若有 $l_1 \\le l_2$，并且 $s[l_1] \\le s[l_2]$，那么 $l_1$ 要比 $l_2$ 更优，$l_2$ 永远不会成为任意一个 $r$ 的候选。\n\n因此，我们维护一个栈 $\\textit{stk}$，栈中元素为 $s[0] \\sim s[r-1]$ 的递减项。具体的，我们遍历 $i ~ (0 \\le i \\le r - 1)$，如果 $\\textit{stk}$ 为空或者栈顶元素大于 $s[i]$，则将 $s[i]$ 入栈。求解 $l$ 时，我们不断的弹出栈顶元素，直到栈顶元素是最后一个小于 $s[r]$ 的元素，此时栈顶元素所在位置即为我们要求的 $l$。\n\n由于过程中弹出的元素值都要比当前栈顶元素值小，因此这些弹出的元素仍然可能成为后面 $r$ 的候选。如果按照从左到右的顺序去遍历 $r$，我们仍需将这些弹出的元素值再次入栈。这样做的代价是昂贵的，我们不妨试试从大到小遍历 $r$，整个求解过程如下：\n\n1. 我们遍历整个 $s$，求出维护递减序列的栈 $\\textit{stk}$，注意它并不是我们通常意义上的单调栈。\n2. 倒序遍历 $r$，对于每个 $r$：\n   1. 如果当前 $\\textit{stk}$ 不为空并且栈顶元素小于 $s[r]$，我们设栈顶元素在原数组的下标为 $l$，用 $r - l$ 更新答案，再令栈顶元素出栈。该过程不断循环直到条件不被满足。\n   2. 否则，继续考虑下一个 $r$。\n\n这样做的正确性在于：\n\n1. 如果有 $r_1 \\lt r_2$，并且 $s[r_1] > s[r_2]$，那么 $r_1$ 所匹配的左端点 $l_1$ 和 $r_2$ 所匹配的左端点 $l_2$ 一定有 $l_1 \\le l_2$。在 $\\textit{stk}$ 中， $l_2$ 相比 $l_1$ 更靠近栈顶，倘若求解 $l_2$ 的过程中弹出了某些元素，也不会影响 $l_1$ 的求解。对于 $l_1 = l_2$ 的情况，由于此时满足 $r_2 - l_2 > r_1 - l_1$，因此我们将 $l_2$ 弹出栈也不会影响最终答案的求解。\n2. 如果有 $r_1 \\lt r_2$，并且 $s[r_1] \\le s[r_2]$，那么 $r_1$ 永远不会成为最优答案的右端点。\n\n至此，我们通过维护一个栈 $\\textit{stk}$，倒序遍历 $r$ 求解可能成为最优区间的左端点 $l$，在 $O(n)$ 的时间复杂度内得到答案。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int longestWPI(vector<int>& hours) {\n        int n = hours.size();\n        vector<int> s(n + 1);\n        stack<int> stk;\n        stk.push(0);\n        for (int i = 1; i <= n; i++) {\n            s[i] = s[i - 1] + (hours[i - 1] > 8 ? 1 : -1);\n            if (s[stk.top()] > s[i]) {\n                stk.push(i);\n            }\n        }\n\n        int res = 0;\n        for (int r = n; r >= 1; r--) {\n            while (stk.size() && s[stk.top()] < s[r]) {\n                res = max(res, r - stk.top());\n                stk.pop();\n            }\n        }\n        return res;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int longestWPI(int[] hours) {\n        int n = hours.length;\n        int[] s = new int[n + 1];\n        Deque<Integer> stk = new ArrayDeque<Integer>();\n        stk.push(0);\n        for (int i = 1; i <= n; i++) {\n            s[i] = s[i - 1] + (hours[i - 1] > 8 ? 1 : -1);\n            if (s[stk.peek()] > s[i]) {\n                stk.push(i);\n            }\n        }\n\n        int res = 0;\n        for (int r = n; r >= 1; r--) {\n            while (!stk.isEmpty() && s[stk.peek()] < s[r]) {\n                res = Math.max(res, r - stk.pop());\n            }\n        }\n        return res;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int LongestWPI(int[] hours) {\n        int n = hours.Length;\n        int[] s = new int[n + 1];\n        Stack<int> stk = new Stack<int>();\n        stk.Push(0);\n        for (int i = 1; i <= n; i++) {\n            s[i] = s[i - 1] + (hours[i - 1] > 8 ? 1 : -1);\n            if (s[stk.Peek()] > s[i]) {\n                stk.Push(i);\n            }\n        }\n\n        int res = 0;\n        for (int r = n; r >= 1; r--) {\n            while (stk.Count > 0 && s[stk.Peek()] < s[r]) {\n                res = Math.Max(res, r - stk.Pop());\n            }\n        }\n        return res;\n    }\n}\n```\n\n```C [sol1-C]\n#define MAX(a, b) ((a) > (b) ? (a) : (b))\n\nint longestWPI(int* hours, int hoursSize) {\n    int s[hoursSize + 1];\n    int stk[hoursSize + 1];\n    int top = 0;\n    stk[top++] = 0;\n    s[0] = 0;\n    for (int i = 1; i <= hoursSize; i++) {\n        s[i] = s[i - 1] + (hours[i - 1] > 8 ? 1 : -1);\n        if (s[stk[top - 1]] > s[i]) {\n            stk[top++] = i;\n        }\n    }\n\n    int res = 0;\n    for (int r = hoursSize; r >= 1; r--) {\n        while (top && s[stk[top - 1]] < s[r]) {\n            res = MAX(res, r - stk[top - 1]);\n            top--;\n        }\n    }\n    return res;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar longestWPI = function(hours) {\n    const n = hours.length;\n    const s = new Array(n + 1).fill(0);\n    const stk = [0];\n    for (let i = 1; i <= n; i++) {\n        s[i] = s[i - 1] + (hours[i - 1] > 8 ? 1 : -1);\n        if (s[stk[stk.length - 1]] > s[i]) {\n            stk.push(i);\n        }\n    }\n\n    let res = 0;\n    for (let r = n; r >= 1; r--) {\n        while (stk.length && s[stk[stk.length - 1]] < s[r]) {\n            res = Math.max(res, r - stk.pop());\n        }\n    }\n    return res;\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 为 $\\textit{hours}$ 的长度。每个元素最多入栈和出栈一次，因此时间复杂度为 $O(n)$。\n\n- 空间复杂度：$O(n)$，其中 $n$ 为 $\\textit{hours}$ 的长度。\n\n#### 方法二：哈希表\n\n**思路与算法**\n\n在方法一中，我们记工作小时数大于 $8$ 的为 $1$ 分，小于等于 $8$ 的为 $-1$ 分，原问题由求解最长的「表现良好的时间段」长度转变为求解分数和大于 $0$ 的最长区间长度。\n\n我们仍然使用前缀和 $s$，对于某个下标 $i$（从 $0$ 开始），我们期待找到最小的 $j~(j < i)$，满足 $s[j] < s[i]$。接下来，我们按照 $s[i]$ 是否大于 $0$ 来分情况讨论：\n\n1. 如果 $s[i] > 0$，那么前 $i + 1$ 项元素之和大于 $0$，表示有一个长度为 $i + 1$ 的大于 $0$ 的区间。\n2. 如果 $s[i] < 0$，我们在前面试图寻找一个下标 $j$，满足 $s[j] = s[i] - 1$。如果有，则表示区间 $[j + 1, i]$ 是我们要找的以 $i$ 结尾的最长区间。\n\n为什么第 $2$ 种情况要找 $s[i] - 1$，而不是 $s[i] - 2$ 或更小的一项？因为在本题中分数只有 $1$ 或者 $-1$，如果前缀和数组中在 $i$ 之前要出现小于 $s[i]$ 的元素，它的值一定是 $s[i] - 1$。也就是说当 $s[i] < 0$ 时，我们要找到 $j$ 使得 $s[j] < s[i]$，如果有这样的 $j$ 存在，这个 $j$ 一定满足 $s[j] = s[i] - 1$。\n\n实现过程中，我们可以使用哈希表记录每一个前缀和第一次出现的位置，即可在 $O(1)$ 的时间内判断前缀和等于 $s[i] - 1$ 的位置 $j$ 是否存在。\n\n**代码**\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    int longestWPI(vector<int>& hours) {\n        int n = hours.size();\n        unordered_map<int, int> ump;\n        int s = 0, res = 0;\n        for (int i = 0; i < n; i++) {\n            s += hours[i] > 8 ? 1 : -1;\n            if (s > 0) {\n                res = max(res, i + 1);\n            } else {\n                if (ump.count(s - 1)) {\n                    res = max(res, i - ump[s - 1]);\n                }\n            }\n            if (!ump.count(s)) {\n                ump[s] = i;\n            }\n        }\n        return res;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public int longestWPI(int[] hours) {\n        int n = hours.length;\n        Map<Integer, Integer> map = new HashMap<Integer, Integer>();\n        int s = 0, res = 0;\n        for (int i = 0; i < n; i++) {\n            s += hours[i] > 8 ? 1 : -1;\n            if (s > 0) {\n                res = Math.max(res, i + 1);\n            } else {\n                if (map.containsKey(s - 1)) {\n                    res = Math.max(res, i - map.get(s - 1));\n                }\n            }\n            if (!map.containsKey(s)) {\n                map.put(s, i);\n            }\n        }\n        return res;\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    public int LongestWPI(int[] hours) {\n        int n = hours.Length;\n        IDictionary<int, int> dictionary = new Dictionary<int, int>();\n        int s = 0, res = 0;\n        for (int i = 0; i < n; i++) {\n            s += hours[i] > 8 ? 1 : -1;\n            if (s > 0) {\n                res = Math.Max(res, i + 1);\n            } else {\n                if (dictionary.ContainsKey(s - 1)) {\n                    res = Math.Max(res, i - dictionary[s - 1]);\n                }\n            }\n            if (!dictionary.ContainsKey(s)) {\n                dictionary.Add(s, i);\n            }\n        }\n        return res;\n    }\n}\n```\n\n```C [sol2-C]\n#define MAX(a, b) ((a) > (b) ? (a) : (b))\n\ntypedef struct {\n    int key;\n    int val;\n    UT_hash_handle hh;\n} HashItem; \n\nHashItem *hashFindItem(HashItem **obj, int key) {\n    HashItem *pEntry = NULL;\n    HASH_FIND_INT(*obj, &key, pEntry);\n    return pEntry;\n}\n\nbool hashAddItem(HashItem **obj, int key, int val) {\n    if (hashFindItem(obj, key)) {\n        return false;\n    }\n    HashItem *pEntry = (HashItem *)malloc(sizeof(HashItem));\n    pEntry->key = key;\n    pEntry->val = val;\n    HASH_ADD_INT(*obj, key, pEntry);\n    return true;\n}\n\nint hashGetItem(HashItem **obj, int key, int defaultVal) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        return defaultVal;\n    }\n    return pEntry->val;\n}\n\nvoid hashFree(HashItem **obj) {\n    HashItem *curr = NULL, *tmp = NULL;\n    HASH_ITER(hh, *obj, curr, tmp) {\n        HASH_DEL(*obj, curr);  \n        free(curr);             \n    }\n}\n\nint longestWPI(int* hours, int hoursSize) {\n    HashItem *ump = NULL;\n    int s = 0, res = 0;\n    for (int i = 0; i < hoursSize; i++) {\n        s += hours[i] > 8 ? 1 : -1;\n        if (s > 0) {\n            res = MAX(res, i + 1);\n        } else {\n            if (hashFindItem(&ump, s - 1)) {\n                res = MAX(res, i - hashGetItem(&ump, s - 1, 0));\n            }\n        }\n        if (!hashFindItem(&ump, s)) {\n            hashAddItem(&ump, s, i);\n        }\n    }\n    hashFree(&ump);\n    return res;\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar longestWPI = function(hours) {\n    const n = hours.length;\n    const map = new Map();\n    let s = 0, res = 0;\n    for (let i = 0; i < n; i++) {\n        s += hours[i] > 8 ? 1 : -1;\n        if (s > 0) {\n            res = Math.max(res, i + 1);\n        } else {\n            if (map.has(s - 1)) {\n                res = Math.max(res, i - map.get(s - 1));\n            }\n        }\n        if (!map.has(s)) {\n            map.set(s, i);\n        }\n    }\n    return res;\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 为 $\\textit{hours}$ 的长度。\n\n- 空间复杂度：$O(n)$，其中 $n$ 为 $\\textit{hours}$ 的长度。",
+            "slateValue": "",
+            "slug": "biao-xian-liang-hao-de-zui-chang-shi-jia-rlij",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "rR6aKi",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 85,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 3,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Stack",
+                    "nameTranslated": "栈",
+                    "slug": "stack",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Greedy",
+                    "nameTranslated": "贪心",
+                    "slug": "greedy",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Prefix Sum",
+                    "nameTranslated": "前缀和",
+                    "slug": "prefix-sum",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-02-13T10:11:47.157378+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：贪心\n思路与算法\n我们记工作小时数大于 8 的为 1 分，否则为 -1 分。那么原问题可以看做求解区间分数和大于 0 的最长区间长度。为了方便计算区间分数和，我们首先预处理分数前缀和 s：\n\n令 s[0] 等于 0\n设 n 为 \\textit{hours} 的长度，从小到大遍历 i~(1 \\le i \\le",
+            "topic": {
+                "id": 2109622,
+                "subscribed": false,
+                "commentCount": 101,
+                "viewCount": 1932,
+                "post": {
+                    "id": 4029506,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 126,
+            "isEditorsPick": false,
+            "hitCount": 34992,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "longest-well-performing-interval",
+                "questionFrontendId": "1124"
+            },
+            "next": {
+                "slug": "liang-chong-zuo-fa-liang-zhang-tu-miao-d-hysl",
+                "title": "两种做法，两张图秒懂！（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

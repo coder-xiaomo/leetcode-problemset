@@ -1,0 +1,104 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "bDZBDs",
+            "title": "🎦 399. 除法求值",
+            "content": "### 📺 视频讲解  \n![399-除法求值 (1).mp4](53572ecf-b4f0-44ae-b175-aec6670d918c)\n\n### 📖 文字解析\n这道题是在「力扣」第 990 题（[等式方程的可满足性](https://leetcode.cn/problems/satisfiability-of-equality-equations)）的基础上，在变量和变量之间有了倍数关系。由于 **变量之间的倍数关系具有传递性**，处理有传递性关系的问题，可以使用「并查集」，我们需要在并查集的「合并」与「查询」操作中 **维护这些变量之间的倍数关系**。\n\n**说明**：请大家注意看一下题目中的「注意」和「数据范围」，例如：每个 `Ai` 或 `Bi` 是一个表示单个变量的字符串。所以用例 `equation = [\"ab\", \"cd\"]` ，这里的 `ab` 视为一个变量，不表示 `a * b`。如果面试中遇到这样的问题，一定要和面试官确认清楚题目的条件。还有 `1 <= equations.length <= 20` 和 `values[i] > 0.0` 可以避免一些特殊情况的讨论。\n\n\n### 方法：并查集\n\n分析示例 1：\n\n+  `a / b = 2.0` 说明 $a = 2b$， `a` 和 `b` 在同一个集合中；\n\n+  `b / c = 3.0` 说明 $b = 3c$ ，`b` 和 `c` 在同一个集合中。\n\n求 $\\cfrac{a}{c}$ ，可以把 $a = 2b$，$b = 3c$ 依次代入，得到 $\\cfrac{a}{c} = \\cfrac{2b} {c} = \\cfrac{2 \\cdot 3c} {c} = 6.0$；\n\n求 $\\cfrac{b}{a}$ ，很显然根据 $a = 2b$，知道 $\\cfrac{b}{a} = 0.5$，也可以把 $b$ 和 $a$ 都转换成为 $c$ 的倍数，$\\cfrac{b}{a} = \\cfrac{b} {2b} = \\cfrac{3c} {6c} = \\cfrac{1}{2} = 0.5$；\n\n我们计算了两个结果，不难知道：可以将题目给出的 `equation` 中的两个变量所在的集合进行「合并」，**同在一个集合中的两个变量就可以通过某种方式计算出它们的比值**。具体来说，可以把 **不同的变量的比值转换成为相同的变量的比值**，这样在做除法的时候就可以消去相同的变量，然后再计算转换成相同变量以后的系数的比值，就是题目要求的结果。**统一了比较的标准**，可以以 $O(1)$ 的时间复杂度完成计算。\n\n如果两个变量不在同一个集合中， 返回 $-1.0$。并且根据题目的意思，如果两个变量中 **至少有一个** 变量没有出现在所有 `equations` 出现的字符集合中，也返回 $-1.0$。\n\n#### 构建有向图\n\n通过例 1 的分析，我们就知道了，题目给出的 `equations` 和 `values` 可以表示成一个图，`equations` 中出现的变量就是图的顶点，「分子」于「分母」的比值可以表示成一个有向关系（因为「分子」和「分母」是有序的，不可以对换），并且这个图是一个带权图，`values` 就是对应的有向边的权值。例 1 中给出的 `equations` 和 `values`  表示的「图形表示」、「数学表示」和「代码表示」如下表所示。其中 `parent[a] = b` 表示：结点 `a` 的（直接）父亲结点是 `b`，与之对应的有向边的权重，记为 `weight[a] = 2.0`，即 `weight[a]` 表示结点 `a` 到它的 **直接父亲结点** 的有向边的权重。\n\n![](https://pic.leetcode.cn/1609860627-dZoDYx-image.png){:width=400}\n\n#### 「统一变量」与「路径压缩」的关系\n\n刚刚在分析例 1 的过程中，提到了：可以把一个一个 `query` 中的不同变量转换成 **同一个变量**，这样在计算 `query` 的时候就可以以 $O(1)$ 的时间复杂度计算出结果，在「并查集」的一个优化技巧中，「路径压缩」就恰好符合了这样的应用场景。\n\n为了避免并查集所表示的树形结构高度过高，影响查询性能。「路径压缩」就是针对树的高度的优化。「路径压缩」的效果是：在查询一个结点 `a` 的根结点同时，把结点 `a` 到根结点的沿途所有结点的父亲结点都指向根结点。如下图所示，除了根结点以外，所有的结点的父亲结点都指向了根结点。特别地，也可以认为根结点的父亲结点就是根结点自己。如下国所示：路径压缩前后，并查集所表示的两棵树形结构等价，路径压缩以后的树的高度为 $2$，查询性能最好。\n\n![image.png](https://pic.leetcode.cn/1609861184-fXdaCo-image.png){:width=400}\n\n由于有「路径压缩」的优化，两个同在一个连通分量中的不同的变量，它们分别到根结点（父亲结点）的权值的比值，就是题目的要求的结果。\n\n#### 如何在「查询」操作的「路径压缩」优化中维护权值变化\n\n如下图所示，我们在结点 `a` 执行一次「查询」操作。路径压缩会先一层一层向上先找到根结点 `d`，然后依次把 `c`、`b` 、`a` 的父亲结点指向根结点 `d`。\n\n+ `c` 的父亲结点已经是根结点了，它的权值不用更改；\n+ `b` 的父亲结点要修改成根结点，它的权值就是从当前结点到根结点经过的所有有向边的权值的乘积，因此是 $3.0$ 乘以 $4.0$ 也就是 $12.0$；\n+ `a` 的父亲结点要修改成根结点，它的权值就是依然是从当前结点到根结点经过的所有有向边的权值的乘积，但是我们 **没有必要把这三条有向边的权值乘起来**，这是因为 `b` 到 `c`，`c` 到 `d` 这两条有向边的权值的乘积，我们在把 `b`  指向 `d` 的时候已经计算出来了。因此，`a` 到根结点的权值就等于 `b` 到根结点 `d` 的新的权值乘以 `a` 到 `b` 的原来的有向边的权值。\n\n![image.png](https://pic.leetcode.cn/1609861645-DbxMDs-image.png)\n\n#### 如何在「合并」操作中维护权值的变化\n\n「合并」操作基于这样一个 **很重要的前提**：我们将要合并的两棵树的高度最多为 $2$，换句话说两棵树都必需是「路径压缩」以后的效果，两棵树的叶子结点到根结点最多只需要经过一条有向边。\n\n例如已知 $\\cfrac{a}{b} = 3.0$，$\\cfrac{d}{c} = 4.0$ ，又已知 $\\cfrac{a}{d} = 6.0$ ，现在合并结点 `a` 和 `d` 所在的集合，其实就是把 `a` 的根结点 `b` 指向 `d` 的根结 `c`，那么如何计算 b 指向 c 的这条有向边的权重呢？\n\n根据 `a` 经过 `b` 可以到达 `c`，`a` 经过 `d` 也可以到达 `c`，因此 **两条路径上的有向边的权值的乘积是一定相等的**。设 `b` 到 `c` 的权值为 $x$，那么 $3.0 \\cdot x = 6.0 \\cdot 4.0$ ，得 $x = 8.0$。\n\n![image.png](https://pic.leetcode.cn/1609862151-XZgKGY-image.png){:width=400}\n\n### 一个容易忽略的细节\n\n接下来还有一个小的细节问题：在合并以后，产生了一棵高度为 $3$ 的树，那么我们在执行查询的时候，例如下图展示的绿色结点和黄色结点，绿色结点并不直接指向根结点，在计算这两个变量的比值的时候，计算边的权值的比值得到的结果是不对的。\n\n![image.png](https://pic.leetcode.cn/1609862263-LAsiiW-image.png){:width=400}\n\n但其实不用担心这个问题，**并查集的「查询」操作会执行「路径压缩」**，所以真正在计算两个变量的权值的时候，绿色结点已经指向了根结点，和黄色结点的根结点相同。因此可以用它们指向根结点的有向边的权值的比值作为两个变量的比值。\n\n![image.png](https://pic.leetcode.cn/1609862467-jtZvlE-image.png){:width=400}\n\n我们通过这个细节向大家强调：一边查询一边修改结点指向是并查集的特色。\n\n**参考代码**：\n\n```Java []\nimport java.util.HashMap;\nimport java.util.List;\nimport java.util.Map;\n\npublic class Solution {\n\n    public double[] calcEquation(List<List<String>> equations, double[] values, List<List<String>> queries) {\n        int equationsSize = equations.size();\n\n        UnionFind unionFind = new UnionFind(2 * equationsSize);\n        // 第 1 步：预处理，将变量的值与 id 进行映射，使得并查集的底层使用数组实现，方便编码\n        Map<String, Integer> hashMap = new HashMap<>(2 * equationsSize);\n        int id = 0;\n        for (int i = 0; i < equationsSize; i++) {\n            List<String> equation = equations.get(i);\n            String var1 = equation.get(0);\n            String var2 = equation.get(1);\n\n            if (!hashMap.containsKey(var1)) {\n                hashMap.put(var1, id);\n                id++;\n            }\n            if (!hashMap.containsKey(var2)) {\n                hashMap.put(var2, id);\n                id++;\n            }\n            unionFind.union(hashMap.get(var1), hashMap.get(var2), values[i]);\n        }\n\n        // 第 2 步：做查询\n        int queriesSize = queries.size();\n        double[] res = new double[queriesSize];\n        for (int i = 0; i < queriesSize; i++) {\n            String var1 = queries.get(i).get(0);\n            String var2 = queries.get(i).get(1);\n\n            Integer id1 = hashMap.get(var1);\n            Integer id2 = hashMap.get(var2);\n\n            if (id1 == null || id2 == null) {\n                res[i] = -1.0d;\n            } else {\n                res[i] = unionFind.isConnected(id1, id2);\n            }\n        }\n        return res;\n    }\n\n    private class UnionFind {\n\n        private int[] parent;\n\n        /**\n         * 指向的父结点的权值\n         */\n        private double[] weight;\n\n\n        public UnionFind(int n) {\n            this.parent = new int[n];\n            this.weight = new double[n];\n            for (int i = 0; i < n; i++) {\n                parent[i] = i;\n                weight[i] = 1.0d;\n            }\n        }\n\n        public void union(int x, int y, double value) {\n            int rootX = find(x);\n            int rootY = find(y);\n            if (rootX == rootY) {\n                return;\n            }\n\n            parent[rootX] = rootY;\n          \t// 关系式的推导请见「参考代码」下方的示意图\n            weight[rootX] = weight[y] * value / weight[x];\n        }\n\n        /**\n         * 路径压缩\n         *\n         * @param x\n         * @return 根结点的 id\n         */\n        public int find(int x) {\n            if (x != parent[x]) {\n                int origin = parent[x];\n                parent[x] = find(parent[x]);\n                weight[x] *= weight[origin];\n            }\n            return parent[x];\n        }\n\n        public double isConnected(int x, int y) {\n            int rootX = find(x);\n            int rootY = find(y);\n            if (rootX == rootY) {\n                return weight[x] / weight[y];\n            } else {\n                return -1.0d;\n            }\n        }\n    }\n}\n```\n\n**说明**：代码 `weight[rootX] = weight[y] * value / weight[x];` 的推导过程，主要需要明白各个变量的含义，由两条路径有向边的权值乘积相等得到相等关系，然后做等价变换即可。\n\n![image.png](https://pic.leetcode.cn/1609863006-GhibcH-image.png){:width=500}\n\n\n**复杂度分析**：\n\n+ 时间复杂度：$O((N + Q)\\log A)$，\n  + 构建并查集 $O(N \\log A)$ ，这里 $N$ 为输入方程 `equations` 的长度，每一次执行合并操作的时间复杂度是 $O(\\log A)$，这里 $A$ 是 `equations` 里不同字符的个数；\n  + 查询并查集 $O(Q \\log A)$，这里 $Q$ 为查询数组 `queries` 的长度，每一次查询时执行「路径压缩」的时间复杂度是 $O(\\log A)$。\n\n+ 空间复杂度：$O(A)$：创建字符与 `id` 的对应关系 `hashMap` 长度为 $A$，并查集底层使用的两个数组 `parent` 和 `weight` 存储每个变量的连通分量信息，`parent` 和 `weight` 的长度均为 $A$。\n\n### 练习\n\n+ 「力扣」第 547 题：[省份数量](https://leetcode.cn/problems/number-of-provinces)（中等）；\n+ 「力扣」第 684 题：[冗余连接](https://leetcode.cn/problems/redundant-connection)（中等）；\n+ 「力扣」第 1319 题：[连通网络的操作次数](https://leetcode.cn/problems/number-of-operations-to-make-network-connected)（中等）；\n+ 「力扣」第 1631 题：[最小体力消耗路径](https://leetcode.cn/problems/path-with-minimum-effort)（中等）；\n+ 「力扣」第 959 题：[由斜杠划分区域](https://leetcode.cn/problems/regions-cut-by-slashes)（中等）；\n+ 「力扣」第 1202 题：[交换字符串中的元素](https://leetcode.cn/problems/smallest-string-with-swaps)（中等）；\n+ 「力扣」第 947 题：[移除最多的同行或同列石头](https://leetcode.cn/problems/most-stones-removed-with-same-row-or-column)（中等）；\n+ 「力扣」第 721 题：[账户合并](https://leetcode.cn/problems/accounts-merge)（中等）；\n+ 「力扣」第 803 题：[打砖块](https://leetcode.cn/problems/bricks-falling-when-hit)（困难）；\n+ 「力扣」第 1579 题：[保证图可完全遍历](https://leetcode.cn/problems/remove-max-number-of-edges-to-keep-graph-fully-traversable)（困难）;\n+ 「力扣」第 778 题：[水位上升的泳池中游泳](https://leetcode.cn/problems/swim-in-rising-water)（困难）。\n\n\n\n",
+            "slateValue": "",
+            "slug": "399-chu-fa-qiu-zhi-nan-du-zhong-deng-286-w45d",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "bDZBDs",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 504,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 35,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 17,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Union Find",
+                    "nameTranslated": "并查集",
+                    "slug": "union-find",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Graph",
+                    "nameTranslated": "图",
+                    "slug": "graph",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-01-05T16:29:56.616812+00:00",
+            "thumbnail": "https://pic.leetcode-cn.com/1609860627-dZoDYx-image.png",
+            "author": {
+                "username": "LeetCode",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/uploaded_files/2021/03/73c9f099-abbe-4d94-853f-f8abffd459cd/leetcode.png",
+                    "userSlug": "leetcode",
+                    "realName": "LeetCode",
+                    "reputation": 2117
+                }
+            },
+            "summary": "📺 视频讲解\n📖 文字解析\n这道题是在「力扣」第 990 题（等式方程的可满足性）的基础上，在变量和变量之间有了倍数关系。由于 变量之间的倍数关系具有传递性，处理有传递性关系的问题，可以使用「并查集」，我们需要在并查集的「合并」与「查询」操作中 维护这些变量之间的倍数关系。\n说明：请大家注意看一下题目中的「注意」和",
+            "topic": {
+                "id": 548634,
+                "subscribed": false,
+                "commentCount": 410,
+                "viewCount": 69462,
+                "post": {
+                    "id": 1282576,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 1201,
+            "isEditorsPick": false,
+            "hitCount": 193708,
+            "videosInfo": [
+                {
+                    "videoId": "761aa76cb49148ada942726eddfe7746",
+                    "coverUrl": "https://video.leetcode.cn/image/cover/3598B15747CB4200A92564DBE851510F-6-2.png?auth_key=1782488066-cc8fd4641f3b4dfd8c80e310edf44215-0-d79809b7b0a8080cf8a5a5cc086ba77f",
+                    "duration": 1322.9226
+                }
+            ],
+            "question": {
+                "titleSlug": "evaluate-division",
+                "questionFrontendId": "399"
+            },
+            "next": {
+                "slug": "chu-fa-qiu-zhi-by-leetcode-solution-8nxb",
+                "title": "除法求值"
+            },
+            "prev": null
+        }
+    }
+}

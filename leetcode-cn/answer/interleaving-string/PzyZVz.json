@@ -1,0 +1,116 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "PzyZVz",
+            "title": "交错字符串",
+            "content": "#### 方法一：动态规划\n\n记 $|s_1| = n$，$|s_2| = m$。\n\n**思路与算法**\n\n**双指针法错在哪里？** 也许有同学看到这道题目的第一反应是使用双指针法解决这个问题，指针 $p_1$ 一开始指向 $s_1$ 的头部，指针 $p_2$ 一开始指向 $s_2$ 的头部，指针 $p_3$ 指向 $s_3$ 的头部，每次观察 $p_1$ 和 $p_2$ 指向的元素哪一个和 $p_3$ 指向的元素相等，相等则匹配并后移指针。样例就是一个很好的反例，用这种方法判断 $s_1 = {\\rm aabcc}$，$s_2 = {\\rm dbbca}$，$s_3 = {\\rm aadbbcbcac}$ 时，得到的结果是 $\\rm False$，实际应该是 $\\rm True$。\n\n**解决这个问题的正确方法是动态规划。** 首先如果 $|s_1| + |s_2| \\neq |s_3|$，那 $s_3$ 必然不可能由 $s_1$ 和 $s_2$ 交错组成。在 $|s_1| + |s_2| = |s_3|$ 时，我们可以用动态规划来求解。我们定义 $f(i, j)$ 表示 $s_1$ 的前 $i$ 个元素和 $s_2$ 的前 $j$ 个元素是否能交错组成 $s_3$ 的前 $i + j$ 个元素。如果 $s_1$ 的第 $i$ 个元素和 $s_3$ 的第 $i + j$ 个元素相等，那么 $s_1$ 的前 $i$ 个元素和 $s_2$ 的前 $j$ 个元素是否能交错组成 $s_3$ 的前 $i + j$ 个元素取决于 $s_1$ 的前 $i - 1$ 个元素和 $s_2$ 的前 $j$ 个元素是否能交错组成 $s_3$ 的前 $i + j - 1$ 个元素，即此时 $f(i, j)$ 取决于 $f(i - 1, j)$，在此情况下如果 $f(i - 1, j)$ 为真，则 $f(i, j)$ 也为真。同样的，如果 $s_2$ 的第 $j$ 个元素和 $s_3$ 的第 $i + j$ 个元素相等并且 $f(i, j - 1)$ 为真，则 $f(i, j)$ 也为真。于是我们可以推导出这样的动态规划转移方程：\n\n\n$$f(i, j) = [f(i - 1, j) \\, {\\rm and} \\, s_1(i - 1) = s_3(p)] \\, {\\rm or} \\, [f(i, j - 1) \\, {\\rm and} \\, s_2(j - 1) = s_3(p)]$$\n\n\n其中 $p = i + j - 1$。边界条件为 $f(0, 0) = {\\rm True}$。至此，我们很容易可以给出这样一个实现：\n\n```cpp [sol0-C++]\nclass Solution {\npublic:\n    bool isInterleave(string s1, string s2, string s3) {\n        auto f = vector < vector <int> > (s1.size() + 1, vector <int> (s2.size() + 1, false));\n\n        int n = s1.size(), m = s2.size(), t = s3.size();\n\n        if (n + m != t) {\n            return false;\n        }\n\n        f[0][0] = true;\n        for (int i = 0; i <= n; ++i) {\n            for (int j = 0; j <= m; ++j) {\n                int p = i + j - 1;\n                if (i > 0) {\n                    f[i][j] |= (f[i - 1][j] && s1[i - 1] == s3[p]);\n                }\n                if (j > 0) {\n                    f[i][j] |= (f[i][j - 1] && s2[j - 1] == s3[p]);\n                }\n            }\n        }\n\n        return f[n][m];\n    }\n};\n```\n\n```Java [sol0-Java]\nclass Solution {\n    public boolean isInterleave(String s1, String s2, String s3) {\n        int n = s1.length(), m = s2.length(), t = s3.length();\n\n        if (n + m != t) {\n            return false;\n        }\n\n        boolean[][] f = new boolean[n + 1][m + 1];\n\n        f[0][0] = true;\n        for (int i = 0; i <= n; ++i) {\n            for (int j = 0; j <= m; ++j) {\n                int p = i + j - 1;\n                if (i > 0) {\n                    f[i][j] = f[i][j] || (f[i - 1][j] && s1.charAt(i - 1) == s3.charAt(p));\n                }\n                if (j > 0) {\n                    f[i][j] = f[i][j] || (f[i][j - 1] && s2.charAt(j - 1) == s3.charAt(p));\n                }\n            }\n        }\n\n        return f[n][m];\n    }\n}\n```\n\n```golang [sol0-Golang]\nfunc isInterleave(s1 string, s2 string, s3 string) bool {\n    n, m, t := len(s1), len(s2), len(s3)\n    if (n + m) != t {\n        return false\n    }\n    f := make([][]bool, n + 1)\n    for i := 0; i <= n; i++ {\n        f[i] = make([]bool, m + 1)\n    }\n    f[0][0] = true\n    for i := 0; i <= n; i++ {\n        for j := 0; j <= m; j++ {\n            p := i + j - 1\n            if i > 0 {\n                f[i][j] = f[i][j] || (f[i-1][j] && s1[i-1] == s3[p])\n            }\n            if j > 0 {\n                f[i][j] = f[i][j] || (f[i][j-1] && s2[j-1] == s3[p])\n            }\n        }\n    }\n    return f[n][m]\n}\n```\n\n```C [sol0-C]\nbool isInterleave(char* s1, char* s2, char* s3) {\n    int n = strlen(s1), m = strlen(s2), t = strlen(s3);\n\n    int f[n + 1][m + 1];\n    memset(f, 0, sizeof(f));\n\n    if (n + m != t) {\n        return false;\n    }\n\n    f[0][0] = true;\n    for (int i = 0; i <= n; ++i) {\n        for (int j = 0; j <= m; ++j) {\n            int p = i + j - 1;\n            if (i > 0) {\n                f[i][j] |= (f[i - 1][j] && s1[i - 1] == s3[p]);\n            }\n            if (j > 0) {\n                f[i][j] |= (f[i][j - 1] && s2[j - 1] == s3[p]);\n            }\n        }\n    }\n\n    return f[n][m];\n}\n```\n\n不难看出这个实现的时间复杂度和空间复杂度都是 $O(nm)$。\n\n**使用滚动数组优化空间复杂度。** 因为这里数组 $f$ 的第 $i$ 行只和第 $i - 1$ 行相关，所以我们可以用滚动数组优化这个动态规划，这样空间复杂度可以变成 $O(m)$。**敲黑板：我们又遇到「滚动数组」优化啦！不会的同学一定要学习哟。如果还没有做过这几个题建议大家做一下，都可以使用这个思想进行优化：**\n\n+ [63. 不同路径 II](https://leetcode.cn/problems/unique-paths-ii/)\n+ [70. 爬楼梯](https://leetcode.cn/problems/climbing-stairs/)\n+ [剑指 Offer 46. 把数字翻译成字符串](https://leetcode.cn/problems/ba-shu-zi-fan-yi-cheng-zi-fu-chuan-lcof/)\n\n下面给出滚动数组优化的代码。\n\n**代码**\n\n```cpp [sol1-C++]\nclass Solution {\npublic:\n    bool isInterleave(string s1, string s2, string s3) {\n        auto f = vector <int> (s2.size() + 1, false);\n\n        int n = s1.size(), m = s2.size(), t = s3.size();\n\n        if (n + m != t) {\n            return false;\n        }\n\n        f[0] = true;\n        for (int i = 0; i <= n; ++i) {\n            for (int j = 0; j <= m; ++j) {\n                int p = i + j - 1;\n                if (i > 0) {\n                    f[j] &= (s1[i - 1] == s3[p]);\n                }\n                if (j > 0) {\n                    f[j] |= (f[j - 1] && s2[j - 1] == s3[p]);\n                }\n            }\n        }\n\n        return f[m];\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public boolean isInterleave(String s1, String s2, String s3) {\n        int n = s1.length(), m = s2.length(), t = s3.length();\n\n        if (n + m != t) {\n            return false;\n        }\n\n        boolean[] f = new boolean[m + 1];\n\n        f[0] = true;\n        for (int i = 0; i <= n; ++i) {\n            for (int j = 0; j <= m; ++j) {\n                int p = i + j - 1;\n                if (i > 0) {\n                    f[j] = f[j] && s1.charAt(i - 1) == s3.charAt(p);\n                }\n                if (j > 0) {\n                    f[j] = f[j] || (f[j - 1] && s2.charAt(j - 1) == s3.charAt(p));\n                }\n            }\n        }\n\n        return f[m];\n    }\n}\n```\n\n```golang [sol1-Golang]\nfunc isInterleave(s1 string, s2 string, s3 string) bool {\n    n, m, t := len(s1), len(s2), len(s3)\n    if (n + m) != t {\n        return false\n    }\n    f := make([]bool, m + 1)\n    f[0] = true\n    for i := 0; i <= n; i++ {\n        for j := 0; j <= m; j++ {\n            p := i + j - 1\n            if i > 0 {\n                f[j] = f[j] && s1[i-1] == s3[p]\n            }\n            if j > 0 {\n                f[j] = f[j] || f[j-1] && s2[j-1] == s3[p]\n            }\n        }\n    }\n    return f[m]\n}\n```\n\n```C [sol1-C]\nbool isInterleave(char* s1, char* s2, char* s3) {\n    int n = strlen(s1), m = strlen(s2), t = strlen(s3);\n\n    int f[m + 1];\n    memset(f, 0, sizeof(f));\n\n    if (n + m != t) {\n        return false;\n    }\n\n    f[0] = true;\n    for (int i = 0; i <= n; ++i) {\n        for (int j = 0; j <= m; ++j) {\n            int p = i + j - 1;\n            if (i > 0) {\n                f[j] &= (s1[i - 1] == s3[p]);\n            }\n            if (j > 0) {\n                f[j] |= (f[j - 1] && s2[j - 1] == s3[p]);\n            }\n        }\n    }\n\n    return f[m];\n}\n```\n\n**复杂度分析**\n\n+ 时间复杂度：$O(nm)$，两重循环的时间代价为 $O(nm)$。\n+ 空间复杂度：$O(m)$，即 $s_2$ 的长度。",
+            "slateValue": "",
+            "slug": "jiao-cuo-zi-fu-chuan-by-leetcode-solution",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "PzyZVz",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 230,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 4,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-07-17T15:04:31.431852+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划\n记 |s_1| = n，|s_2| = m。\n思路与算法\n双指针法错在哪里？ 也许有同学看到这道题目的第一反应是使用双指针法解决这个问题，指针 p_1 一开始指向 s_1 的头部，指针 p_2 一开始指向 s_2 的头部，指针 p_3 指向 s_3 的头部，每次观察 p_1 和 p_2 指向的元素哪",
+            "topic": {
+                "id": 335373,
+                "subscribed": false,
+                "commentCount": 465,
+                "viewCount": 76855,
+                "post": {
+                    "id": 833544,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 702,
+            "isEditorsPick": false,
+            "hitCount": 217977,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "interleaving-string",
+                "questionFrontendId": "97"
+            },
+            "next": {
+                "slug": "dong-tai-gui-hua-zhu-xing-jie-shi-python3-by-zhu-3",
+                "title": "动态规划 逐行解释 python3"
+            },
+            "prev": null
+        }
+    }
+}

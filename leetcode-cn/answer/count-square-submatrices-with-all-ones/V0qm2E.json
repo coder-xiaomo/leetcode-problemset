@@ -1,0 +1,140 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "V0qm2E",
+            "title": "统计全为 1 的正方形子矩阵",
+            "content": "#### 方法一：动态规划\n\n**思路**\n\n我们用 $f[i][j]$ 表示以 $(i, j)$ 为右下角的正方形的最大边长，那么除此定义之外，$f[i][j] = x$ 也表示以 $(i, j)$ 为右下角的正方形的数目为 $x$（即边长为 $1, 2, \\cdots, x$ 的正方形各一个）。在计算出所有的 $f[i][j]$ 后，我们将它们进行累加，就可以得到矩阵中正方形的数目。\n\n我们尝试挖掘 $f[i][j]$ 与相邻位置的关系来计算出 $f[i][j]$ 的值。\n\n![fig1](https://assets.leetcode.cn/solution-static/1277/1.png)\n\n如上图所示，若对于位置 $(i, j)$ 有 $f[i][j] = 4$，我们将以 $(i, j)$ 为右下角、边长为 $4$ 的正方形涂上色，可以发现其左侧位置 $(i, j - 1)$，上方位置 $(i - 1, j)$ 和左上位置 $(i - 1, j - 1)$ 均可以作为一个边长为 $4 - 1 = 3$ 的正方形的右下角。也就是说，这些位置的的 $f$ 值至少为 $3$，即：\n\n* $f[i][j - 1] \\ge f[i][j] - 1$\n* $f[i - 1][j] \\ge f[i][j] - 1$\n* $f[i - 1][j - 1] \\ge f[i][j] - 1$\n\n将这三个不等式联立，可以得到：\n\n$$\\texttt{min}(f[i][j−1],f[i−1][j],f[i−1][j−1])\\ge f[i][j]−1$$\n\n这是我们通过固定 $f[i][j]$ 的值，判断其相邻位置与之的关系得到的不等式。同理，我们也可以固定 $f[i][j]$ 相邻位置的值，得到另外的限制条件。\n\n![fig2](https://assets.leetcode.cn/solution-static/1277/2.png)\n\n如上图所示，假设 $f[i][j - 1]$，$f[i - 1][j]$ 和 $f[i - 1][j - 1]$ 中的最小值为 $3$，即，$(i, j - 1)$，$(i - 1, j)$ 和 $(i - 1, j - 1)$ 均可以作为一个边长为 $3$ 的正方形的右下角。我们将这些边长为 $3$ 的正方形依次涂上色，可以发现，如果位置 $(i, j)$ 的元素为 $1$，那么它可以作为一个边长为 $4$ 的正方形的右下角，$f$ 值至少为 $4$，即：\n\n$$f[i][j]\\geq \\texttt{min}(f[i][j−1],f[i−1][j],f[i−1][j−1])+1$$\n\n将其与上一个不等式联立，可以得到：\n\n$$f[i][j] = \\texttt{min}(f[i][j−1],f[i−1][j],f[i−1][j−1])+1$$\n\n再考虑一些边界情况，我们就得到了完整的递推式：\n\n$$ \nf[i][j] = \n \\begin{cases} \n      matrix[i][j] & \\texttt{if } i=0 \\texttt{ or } j=0 \\\\\n      0 & \\texttt{if } matrix[i][j]=0 \\\\\n      \\min(f[i][j-1], f[i-1][j], f[i-1][j-1]) + 1 & \\texttt{otherwise}\n \\end{cases} \n$$\n\n我们按照行优先的顺序依次计算 $f[i][j]$ 的值，累加就可以得到最终的答案。\n\n**代码**\n\n```Python [sol1-Python3]\nclass Solution:\n    def countSquares(self, matrix: List[List[int]]) -> int:\n        m, n = len(matrix), len(matrix[0])\n        f = [[0] * n for _ in range(m)]\n        ans = 0\n        for i in range(m):\n            for j in range(n):\n                if i == 0 or j == 0:\n                    f[i][j] = matrix[i][j]\n                elif matrix[i][j] == 0:\n                    f[i][j] = 0\n                else:\n                    f[i][j] = min(f[i][j - 1], f[i - 1][j], f[i - 1][j - 1]) + 1\n                ans += f[i][j]\n        return ans\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int countSquares(vector<vector<int>>& matrix) {\n        int m = matrix.size(), n = matrix[0].size();\n        vector<vector<int>> f(m, vector<int>(n, 0));\n        int ans = 0;\n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j) {\n                if (i == 0 || j == 0) {\n                    f[i][j] = matrix[i][j];\n                } else if (matrix[i][j] == 0) {\n                    f[i][j] = 0;\n                } else {\n                    f[i][j] = min({f[i][j - 1], f[i - 1][j], f[i - 1][j - 1]}) + 1;\n                }\n                ans += f[i][j];\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int countSquares(int[][] matrix) {\n        int m = matrix.length, n = matrix[0].length;\n        int[][] f = new int[m][n];\n        int ans = 0;\n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j) {\n                if (i == 0 || j == 0) {\n                    f[i][j] = matrix[i][j];\n                } else if (matrix[i][j] == 0) {\n                    f[i][j] = 0;\n                } else {\n                    f[i][j] = Math.min(Math.min(f[i][j - 1], f[i - 1][j]), f[i - 1][j - 1]) + 1;\n                }\n                ans += f[i][j];\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int CountSquares(int[][] matrix) {\n        int m = matrix.Length, n = matrix[0].Length;\n        int[,] f = new int[m, n];\n        int ans = 0;\n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j) {\n                if (i == 0 || j == 0) {\n                    f[i, j] = matrix[i][j];\n                } else if (matrix[i][j] == 0) {\n                    f[i, j] = 0;\n                } else {\n                    f[i, j] = Math.Min(Math.Min(f[i, j - 1], f[i - 1, j]), f[i - 1, j - 1]) + 1;\n                }\n                ans += f[i, j];\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc countSquares(matrix [][]int) int {\n    m, n := len(matrix), len(matrix[0])\n    f := make([][]int, m)\n    for i := range f {\n        f[i] = make([]int, n)\n    }\n    ans := 0\n    for i := 0; i < m; i++ {\n        for j := 0; j < n; j++ {\n            if i == 0 || j == 0 {\n                f[i][j] = matrix[i][j]\n            } else if matrix[i][j] == 0 {\n                f[i][j] = 0\n            } else {\n                f[i][j] = min(min(f[i][j - 1], f[i - 1][j]), f[i - 1][j - 1]) + 1\n            }\n            ans += f[i][j]\n        }\n    }\n    return ans\n}\n```\n\n```C [sol1-C]\nint countSquares(int** matrix, int matrixSize, int* matrixColSize) {\n    int m = matrixSize, n = matrixColSize[0];\n    int** f = (int**)malloc(m * sizeof(int*));\n    for (int i = 0; i < m; ++i) {\n        f[i] = (int*)malloc(n * sizeof(int));\n    }\n    int ans = 0;\n    for (int i = 0; i < m; ++i) {\n        for (int j = 0; j < n; ++j) {\n            if (i == 0 || j == 0) {\n                f[i][j] = matrix[i][j];\n            } else if (matrix[i][j] == 0) {\n                f[i][j] = 0;\n            } else {\n                f[i][j] = fmin(f[i][j - 1], fmin(f[i - 1][j], f[i - 1][j - 1])) + 1;\n            }\n            ans += f[i][j];\n        }\n    }\n    for (int i = 0; i < m; ++i) {\n        free(f[i]);\n    }\n    free(f);\n    return ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar countSquares = function(matrix) {\n    const m = matrix.length, n = matrix[0].length;\n    const f = new Array(m).fill(0).map(() => new Array(n).fill(0));\n    let ans = 0;\n    for (let i = 0; i < m; ++i) {\n        for (let j = 0; j < n; ++j) {\n            if (i === 0 || j === 0) {\n                f[i][j] = matrix[i][j];\n            } else if (matrix[i][j] === 0) {\n                f[i][j] = 0;\n            } else {\n                f[i][j] = Math.min(f[i][j - 1], f[i - 1][j], f[i - 1][j - 1]) + 1;\n            }\n            ans += f[i][j];\n        }\n    }\n    return ans;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction countSquares(matrix: number[][]): number {\n    const m = matrix.length, n = matrix[0].length;\n    const f: number[][] = new Array(m).fill(0).map(() => new Array(n).fill(0));\n    let ans = 0;\n    for (let i = 0; i < m; ++i) {\n        for (let j = 0; j < n; ++j) {\n            if (i === 0 || j === 0) {\n                f[i][j] = matrix[i][j];\n            } else if (matrix[i][j] === 0) {\n                f[i][j] = 0;\n            } else {\n                f[i][j] = Math.min(f[i][j - 1], f[i - 1][j], f[i - 1][j - 1]) + 1;\n            }\n            ans += f[i][j];\n        }\n    }\n    return ans;\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn count_squares(matrix: Vec<Vec<i32>>) -> i32 {\n        let m = matrix.len();\n        let n = matrix[0].len();\n        let mut f = vec![vec![0; n]; m];\n        let mut ans = 0;\n        for i in 0..m {\n            for j in 0..n {\n                if i == 0 || j == 0 {\n                    f[i][j] = matrix[i][j];\n                } else if matrix[i][j] == 0 {\n                    f[i][j] = 0;\n                } else {\n                    f[i][j] = f[i][j - 1].min(f[i - 1][j]).min(f[i - 1][j - 1]) + 1;\n                }\n                ans += f[i][j];\n            }\n        }\n        ans\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(m\\times n)$，其中 $m$ 和 $n$ 是输入 $\\textit{matrix}$ 的行和列。\n\n- 空间复杂度：$O(m\\times n)$。",
+            "slateValue": "",
+            "slug": "tong-ji-quan-wei-1-de-zheng-fang-xing-zi-ju-zhen-2",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "V0qm2E",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 176,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 9,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-02-19T02:24:58.369238+00:00",
+            "thumbnail": "https://pic.leetcode-cn.com/14aa58be2ea5c9b36a722db76d2e843c4c909e312223a8461a3d2d93bc734b42-1277-1.png",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 思路 我们用 [latex] 表示以 [latex] 为右下角的正方形的最大边长，那么除此定义之外，[latex] 也表示以 [latex] 为右下角的正方形的数目为 [latex]（即边长为 [latex] 的正方形各一个）。在计算出所有的 [latex] 后，我们将它们进行累加，就可以得到矩阵中正",
+            "topic": {
+                "id": 101706,
+                "subscribed": false,
+                "commentCount": 170,
+                "viewCount": 50430,
+                "post": {
+                    "id": 349496,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 470,
+            "isEditorsPick": false,
+            "hitCount": 119420,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "count-square-submatrices-with-all-ones",
+                "questionFrontendId": "1277"
+            },
+            "next": {
+                "slug": "tu-jie-dong-tai-gui-hua-jian-ji-xie-fa-p-1kiy",
+                "title": "三种方法：枚举上下边界 / 动态规划 / 单调栈（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,134 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "xKLZ7e",
+            "title": "统计子串中的唯一字符",
+            "content": "#### 方法一：分别计算每个字符的贡献\n\n**思路**\n\n对于下标为 $i$ 的字符 $c_i$，当它在某个子字符串中仅出现一次时，它会对这个子字符串统计唯一字符时有贡献。只需对每个字符，计算有多少子字符串仅包含该字符一次即可。对于 $c_i$， 记同字符上一次出现的位置为 $c_j$，下一次出现的位置为 $c_k$，那么这样的子字符串就一共有 $(c_i - c_j) \\times (c_k - c_i)$ 种，即子字符串的起始位置有 $c_j$（不含）到 $c_i$（含）之间这 $(c_i - c_j)$ 种可能，到结束位置有 $(c_k - c_i)$ 种可能。可以预处理 $s$，将相同字符的下标放入数组中，方便计算。最后对所有字符进行这种计算即可。\n\n**代码**\n\n```Python [sol1-Python3]\nclass Solution:\n    def uniqueLetterString(self, s: str) -> int:\n        index = collections.defaultdict(list)\n        for i, c in enumerate(s):\n            index[c].append(i)\n\n        res = 0\n        for arr in index.values():\n            arr = [-1] + arr + [len(s)]\n            for i in range(1, len(arr) - 1):\n                res += (arr[i] - arr[i - 1]) * (arr[i + 1] - arr[i])\n        return res\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int uniqueLetterString(string s) {\n        unordered_map<char, vector<int>> index;\n        for (int i = 0; i < s.size(); i++) {\n            index[s[i]].emplace_back(i);\n        }\n        int res = 0;\n        for (auto &&[_, arr]: index) {\n            arr.insert(arr.begin(), -1);\n            arr.emplace_back(s.size());\n            for (int i = 1; i < arr.size() - 1; i++) {\n                res += (arr[i] - arr[i - 1]) * (arr[i + 1] - arr[i]);\n            }\n        }\n        return res;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int uniqueLetterString(String s) {\n        Map<Character, List<Integer>> index = new HashMap<Character, List<Integer>>();\n        for (int i = 0; i < s.length(); i++) {\n            char c = s.charAt(i);\n            if (!index.containsKey(c)) {\n                index.put(c, new ArrayList<Integer>());\n                index.get(c).add(-1);\n            }\n            index.get(c).add(i);\n        }\n        int res = 0;\n        for (Map.Entry<Character, List<Integer>> entry : index.entrySet()) {\n            List<Integer> arr = entry.getValue();\n            arr.add(s.length());\n            for (int i = 1; i < arr.size() - 1; i++) {\n                res += (arr.get(i) - arr.get(i - 1)) * (arr.get(i + 1) - arr.get(i));\n            }\n        }\n        return res;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int UniqueLetterString(string s) {\n        Dictionary<char, IList<int>> index = new Dictionary<char, IList<int>>();\n        for (int i = 0; i < s.Length; i++) {\n            if (!index.ContainsKey(s[i])) {\n                index.Add(s[i], new List<int>());\n                index[s[i]].Add(-1);\n            }\n            index[s[i]].Add(i);\n        }\n        int res = 0;\n        foreach (KeyValuePair<char, IList<int>> pair in index) {\n            IList<int> arr = pair.Value;\n            arr.Add(s.Length);\n            for (int i = 1; i < arr.Count - 1; i++) {\n                res += (arr[i] - arr[i - 1]) * (arr[i + 1] - arr[i]);\n            }\n        }\n        return res;\n    }\n}\n```\n\n```C [sol1-C]\nint uniqueLetterString(char * s){\n    struct ListNode **index = (struct ListNode **)malloc(sizeof(struct ListNode *) * 26);\n    for (int i = 0; i < 26; i++) {\n        index[i] = NULL;\n    }\n    int len = strlen(s);\n    for (int i = 0; i < len; i++) {\n        struct ListNode *node = (struct ListNode *)malloc(sizeof(struct ListNode));\n        node->val = i;\n        node->next = index[s[i] - 'A'];\n        index[s[i] - 'A'] = node;\n    }\n    int res = 0;\n    for (int i = 0; i < 26; i++) {\n        if (index[i]) {\n            struct ListNode *curr = index[i];\n            struct ListNode *prev = NULL;\n            struct ListNode *next = curr->next;\n            while (curr) {\n                if (prev == NULL && next == NULL) {\n                    res += (curr->val + 1) * (len - curr->val);\n                } else if (prev == NULL) {\n                    res += (curr->val - next->val) * (len - curr->val);\n                } else if (next == NULL) {\n                    res += (curr->val + 1) * (prev->val - curr->val);\n                } else {\n                    res += (curr->val - next->val) * (prev->val - curr->val);\n                }\n                prev = curr;\n                curr = curr->next;\n                if (next) {\n                    next = next->next;\n                }\n            }\n        }\n    }\n    for (int i = 0; i < 26; i++) {\n        if (index[i]) {\n            struct ListNode *curr = NULL, *tmp = NULL;\n            for (curr = index[i]; curr; ) {\n                tmp = curr;\n                curr = curr->next;\n                free(tmp);\n            }\n        }\n    }\n    return res;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar uniqueLetterString = function(s) {\n    const index = new Map();\n        for (let i = 0; i < s.length; i++) {\n            const c = s[i];\n            if (!index.has(c)) {\n                index.set(c, []);\n                index.get(c).push(-1);\n            }\n            index.get(c).push(i);\n        }\n        let res = 0;\n        for (const [_, arr] of index.entries()) {\n            arr.push(s.length);\n            for (let i = 1; i < arr.length - 1; i++) {\n                res += (arr[i] - arr[i - 1]) * (arr[i + 1] - arr[i]);\n            }\n        }\n        return res;\n};\n```\n\n```go [sol1-Golang]\nfunc uniqueLetterString(s string) (ans int) {\n    idx := map[rune][]int{}\n    for i, c := range s {\n        idx[c] = append(idx[c], i)\n    }\n    for _, arr := range idx {\n        arr = append(append([]int{-1}, arr...), len(s))\n        for i := 1; i < len(arr)-1; i++ {\n            ans += (arr[i] - arr[i-1]) * (arr[i+1] - arr[i])\n        }\n    }\n    return\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是 $s$ 的长度。每个下标会被计算一次。\n\n- 空间复杂度：$O(n)$，哈希表占用 $O(n)$ 空间。",
+            "slateValue": "",
+            "slug": "tong-ji-zi-chuan-zhong-de-wei-yi-zi-fu-b-h9pj",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "xKLZ7e",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 96,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 5,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-09-05T07:54:12.496048+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：分别计算每个字符的贡献 思路 对于下标为 $i$ 的字符 $c_i$，当它在某个子字符串中仅出现一次时，它会对这个子字符串统计唯一字符时有贡献。只需对每个字符，计算有多少子字符串仅包含该字符一次即可。对于 $c_i$， 记同字符上一次出现的位置为 $c_j$，下一次出现的位置为 $c_k$，那么这样的子字符串就",
+            "topic": {
+                "id": 1802699,
+                "subscribed": false,
+                "commentCount": 154,
+                "viewCount": 20477,
+                "post": {
+                    "id": 3542132,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 101,
+            "isEditorsPick": false,
+            "hitCount": 47307,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "count-unique-characters-of-all-substrings-of-a-given-string",
+                "questionFrontendId": "828"
+            },
+            "next": {
+                "slug": "by-endlesscheng-ko4z",
+                "title": "一次遍历：用变化量来思考（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

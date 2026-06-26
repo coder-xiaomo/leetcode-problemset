@@ -1,0 +1,133 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "e8mRcN",
+            "title": "水位上升的泳池中游泳",
+            "content": "#### 方法一：堆（优先队列）\n\n根据题意，假设在时间 $t$ 时能够到达方格 $(i,j)$，那么对于一个与之相邻的方格 $(i',j')$：\n- 如果 $\\textit{grid}[i'][j'] \\le \\textit{grid}[i][j]$，说明 $(i',j')$ 处的高度更低，故在时间 $t$ 也能够到达 $(i',j')$；\n- 否则，若 $\\textit{grid}[i'][j'] > \\textit{grid}[i][j]$，则需要至少等到 $\\textit{grid}[i'][j']$ 时刻才能够到达 $(i',j')$。\n\n因此，我们从原点出发，每一步试图多访问一个方格，并记录访问到该方格的最短时间。当进行下一步时，考虑从已访问方格能到达的所有方格，并选择其中高度最低的那个方格进行下一次访问。这一迭代的步骤类似于利用 $\\text{Dijkstra}$ 算法求解最短路径的过程。\n\n为了维护从已访问方格能到达的所有方格，并能从中取出最小值，我们使用堆（优先队列）来维护这些信息。\n\n```C++ [sol1-C++]\n// 优先队列中的数据结构。其中 (i,j) 代表坐标，val 代表水位。\nstruct Entry {\n    int i;\n    int j;\n    int val;\n    bool operator<(const Entry& other) const {\n        return this->val > other.val;\n    }\n    Entry(int ii, int jj, int val): i(ii), j(jj), val(val) {}\n};\n\nclass Solution {\npublic:\n    int swimInWater(vector<vector<int>>& grid) {\n        int n = grid.size();\n        priority_queue<Entry, vector<Entry>, function<bool(const Entry& x, const Entry& other)>> pq(&Entry::operator<);\n        vector<vector<int>> visited(n, vector<int>(n, 0));\n\n        pq.push(Entry(0, 0, grid[0][0]));\n        int ret = 0;\n        vector<pair<int, int>> directions{{0, 1}, {0, -1}, {1, 0}, {-1, 0}};\n        while (!pq.empty()) {\n            Entry x = pq.top();\n            pq.pop();\n            if (visited[x.i][x.j] == 1) {\n                continue;\n            }\n            \n            visited[x.i][x.j] = 1;\n            ret = max(ret, grid[x.i][x.j]);\n            if (x.i == n - 1 && x.j == n - 1) {\n                break;\n            }\n\n            for (const auto [di, dj]: directions) {\n                int ni = x.i + di, nj = x.j + dj;\n                if (ni >= 0 && ni < n && nj >= 0 && nj < n) {\n                    if (visited[ni][nj] == 0) {\n                        pq.push(Entry(ni, nj, grid[ni][nj]));\n                    }\n                }\n            }\n        }\n        return ret;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int swimInWater(int[][] grid) {\n        int n = grid.length;\n        PriorityQueue<Entry> pq = new PriorityQueue<Entry>(new Comparator<Entry>() {\n            public int compare(Entry entry1, Entry entry2) {\n                return entry1.val - entry2.val;\n            }\n        });\n        boolean[][] visited = new boolean[n][n];\n\n        pq.offer(new Entry(0, 0, grid[0][0]));\n        int ret = 0;\n        int[][] directions = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}};\n        while (!pq.isEmpty()) {\n            Entry x = pq.poll();\n            if (visited[x.i][x.j]) {\n                continue;\n            }\n            \n            visited[x.i][x.j] = true;\n            ret = Math.max(ret, grid[x.i][x.j]);\n            if (x.i == n - 1 && x.j == n - 1) {\n                break;\n            }\n\n            for (int[] direction : directions) {\n                int ni = x.i + direction[0], nj = x.j + direction[1];\n                if (ni >= 0 && ni < n && nj >= 0 && nj < n) {\n                    if (!visited[ni][nj]) {\n                        pq.offer(new Entry(ni, nj, grid[ni][nj]));\n                    }\n                }\n            }\n        }\n        return ret;\n    }\n}\n\n// 优先队列中的数据结构。其中 (i,j) 代表坐标，val 代表水位。\nclass Entry {\n    int i;\n    int j;\n    int val;\n\n    public Entry(int i, int j, int val) {\n        this.i = i;\n        this.j = j;\n        this.val = val;\n    }\n};\n```\n\n```go [sol1-Golang]\ntype entry struct{ i, j, val int }\ntype hp []entry\n\nfunc (h hp) Len() int            { return len(h) }\nfunc (h hp) Less(i, j int) bool  { return h[i].val < h[j].val }\nfunc (h hp) Swap(i, j int)       { h[i], h[j] = h[j], h[i] }\nfunc (h *hp) Push(v interface{}) { *h = append(*h, v.(entry)) }\nfunc (h *hp) Pop() interface{}   { a := *h; v := a[len(a)-1]; *h = a[:len(a)-1]; return v }\n\ntype pair struct{ x, y int }\nvar dirs = []pair{{-1, 0}, {1, 0}, {0, -1}, {0, 1}}\n\nfunc swimInWater(grid [][]int) (ans int) {\n    n := len(grid)\n    vis := make([][]bool, n)\n    for i := range vis {\n        vis[i] = make([]bool, n)\n    }\n    vis[0][0] = true\n    h := &hp{{0, 0, grid[0][0]}}\n    for {\n        e := heap.Pop(h).(entry)\n        ans = max(ans, e.val)\n        if e.i == n-1 && e.j == n-1 {\n            return\n        }\n        for _, d := range dirs {\n            if x, y := e.i+d.x, e.j+d.y; 0 <= x && x < n && 0 <= y && y < n && !vis[x][y] {\n                vis[x][y] = true\n                heap.Push(h, entry{x, y, grid[x][y]})\n            }\n        }\n    }\n}\n\nfunc max(a, b int) int {\n    if a > b {\n        return a\n    }\n    return b\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n^2\\log n)$，其中 $n$ 为网格的边长。每个方格至多会被加入优先队列 $4$ 次，故循环执行次数为 $O(4n^2)=O(n^2)$，同时每次循环要从至多 $O(n^2)$ 的位置中取最小值，故单次循环的代价为 $O(\\log n^2)=O(2\\log n)=O(\\log n)$。\n\n- 空间复杂度：$O(n^2)$。\n\n#### 方法二：二分查找\n\n考虑这样一个问题：给定一个整数 $\\textit{threshold}$，是否存在一个路径，使得能在 $\\textit{threshold}$ 时间内从起点到达终点？\n\n这一问题的解法是很直观的：我们执行广度优先搜索，并只去访问那些高度不超过 $\\textit{threshold}$ 的方格。最终，如果能访问到终点，说明存在这样一种路径。\n\n如果能在 $\\textit{threshold}$ 时间内从起点到达终点，则一定也能在 $\\textit{threshold}+1$ 的时间内从起点到达终点。因此，我们可以通过二分查找的方式，寻找最小可能的 $\\textit{threshold}$。\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    bool check(vector<vector<int>>& grid, int threshold) {\n        if (grid[0][0] > threshold) {\n            return false;\n        }\n        int n = grid.size();\n        vector<vector<int>> visited(n, vector<int>(n, 0));\n        visited[0][0] = 1;\n        queue<pair<int, int>> q;\n        q.push(make_pair(0, 0));\n\n        vector<pair<int, int>> directions{{0, 1}, {0, -1}, {1, 0}, {-1, 0}};\n        while (!q.empty()) {\n            auto [i, j] = q.front();\n            q.pop();\n\n            for (const auto [di, dj]: directions) {\n                int ni = i + di, nj = j + dj;\n                if (ni >= 0 && ni < n && nj >= 0 && nj < n) {\n                    if (visited[ni][nj] == 0 && grid[ni][nj] <= threshold) {\n                        q.push(make_pair(ni, nj));\n                        visited[ni][nj] = 1;\n                    }\n                }\n            }\n        }\n        return visited[n - 1][n - 1] == 1;\n    }\n\n    int swimInWater(vector<vector<int>>& grid) {\n        int n = grid.size();\n        int left = 0, right = n * n - 1;\n        while (left < right) {\n            int mid = (left + right) / 2;\n            if (check(grid, mid)) {\n                right = mid;\n            } else {\n                left = mid + 1;\n            }\n        } \n        return left;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public int swimInWater(int[][] grid) {\n        int n = grid.length;\n        int left = 0, right = n * n - 1;\n        while (left < right) {\n            int mid = (left + right) / 2;\n            if (check(grid, mid)) {\n                right = mid;\n            } else {\n                left = mid + 1;\n            }\n        } \n        return left;\n    }\n\n    public boolean check(int[][] grid, int threshold) {\n        if (grid[0][0] > threshold) {\n            return false;\n        }\n        int n = grid.length;\n        boolean[][] visited = new boolean[n][n];\n        visited[0][0] = true;\n        Queue<int[]> queue = new LinkedList<int[]>();\n        queue.offer(new int[]{0, 0});\n\n        int[][] directions = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}};\n        while (!queue.isEmpty()) {\n            int[] square = queue.poll();\n            int i = square[0], j = square[1];\n\n            for (int[] direction : directions) {\n                int ni = i + direction[0], nj = j + direction[1];\n                if (ni >= 0 && ni < n && nj >= 0 && nj < n) {\n                    if (!visited[ni][nj] && grid[ni][nj] <= threshold) {\n                        queue.offer(new int[]{ni, nj});\n                        visited[ni][nj] = true;\n                    }\n                }\n            }\n        }\n        return visited[n - 1][n - 1];\n    }\n}\n```\n\n```go [sol2-Golang]\ntype pair struct{ x, y int }\nvar dirs = []pair{{-1, 0}, {1, 0}, {0, -1}, {0, 1}}\n\nfunc swimInWater(grid [][]int) (ans int) {\n    n := len(grid)\n    return sort.Search(n*n-1, func(threshold int) bool {\n        if threshold < grid[0][0] {\n            return false\n        }\n        vis := make([][]bool, n)\n        for i := range vis {\n            vis[i] = make([]bool, n)\n        }\n        vis[0][0] = true\n        queue := []pair{{}}\n        for len(queue) > 0 {\n            p := queue[0]\n            queue = queue[1:]\n            for _, d := range dirs {\n                if x, y := p.x+d.x, p.y+d.y; 0 <= x && x < n && 0 <= y && y < n && !vis[x][y] && grid[x][y] <= threshold {\n                    vis[x][y] = true\n                    queue = append(queue, pair{x, y})\n                }\n            }\n        }\n        return vis[n-1][n-1]\n    })\n}\n```\n\n```C [sol2-C]\nint directions[4][2] = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}};\n\nbool check(int** grid, int gridSize, int threshold) {\n    if (grid[0][0] > threshold) {\n        return false;\n    }\n    int visited[gridSize][gridSize];\n    memset(visited, 0, sizeof(visited));\n    visited[0][0] = 1;\n    int q[gridSize * gridSize][2];\n    int left = 0, right = 0;\n    q[right][0] = 0, q[right++][1] = 0;\n\n    while (left < right) {\n        int i = q[left][0], j = q[left++][1];\n\n        for (int k = 0; k < 4; k++) {\n            int ni = i + directions[k][0], nj = j + directions[k][1];\n            if (ni >= 0 && ni < gridSize && nj >= 0 && nj < gridSize) {\n                if (visited[ni][nj] == 0 && grid[ni][nj] <= threshold) {\n                    q[right][0] = ni, q[right++][1] = nj;\n                    visited[ni][nj] = 1;\n                }\n            }\n        }\n    }\n    return visited[gridSize - 1][gridSize - 1] == 1;\n}\n\nint swimInWater(int** grid, int gridSize, int* gridColSize) {\n    int left = 0, right = gridSize * gridSize - 1;\n    while (left < right) {\n        int mid = (left + right) >> 1;\n        if (check(grid, gridSize, mid)) {\n            right = mid;\n        } else {\n            left = mid + 1;\n        }\n    }\n    return left;\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar swimInWater = function(grid) {\n    const n = grid.length;\n    let left = 0, right = n * n - 1;\n    while (left < right) {\n        const mid = Math.floor((left + right) / 2);\n        if (check(grid, mid)) {\n            right = mid;\n        } else {\n            left = mid + 1;\n        }\n    }\n    return left;\n}\n\nconst check = (grid, threshold) => {\n    if (grid[0][0] > threshold) {\n        return false;\n    }\n    const n = grid.length;\n    const visited = new Array(n).fill(0).map(() => new Array(n).fill(false));\n    visited[0][0] = true;\n    const queue = [[0, 0]];\n\n    const directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];\n    while (queue.length) {\n        const square = queue.shift();\n        const i = square[0], j = square[1];\n\n        for (const direction of directions) {\n            const ni = i + direction[0], nj = j + direction[1];\n            if (ni >= 0 && ni < n && nj >= 0 && nj < n) {\n                if (!visited[ni][nj] && grid[ni][nj] <= threshold) {\n                    queue.push([ni, nj]);\n                    visited[ni][nj] = true;\n                }\n            }\n        }\n    }\n    return visited[n - 1][n - 1];\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n^2\\log n)$。对于任何一个给定的 $\\textit{threshold}$ 而言，需要 $O(n^2)$ 的时间内执行广度优先搜索。同时，二分查找的上下边界分别为 $n^2-1$ 和 $0$，故二分查找的次数为 $O(\\log n^2)=O(2\\log n)=O(\\log n)$。\n\n- 空间复杂度：$O(n^2)$。\n\n#### 方法三：并查集\n\n依然考虑同样的问题：给定一个整数 $\\textit{threshold}$，是否存在一个路径，使得能在 $\\textit{threshold}$ 时间内从起点到达终点？\n\n我们将每个方格看做图中的顶点。由于任意时刻都不能到达高度高于 $\\textit{threshold}$ 的方格，因此对于两个相邻的方格而言，当且仅当它们的高度都不超过 $\\textit{threshold}$ 时，才在这两个顶点之间连接一条边。因此，能否从起点到达终点，就等价于对应的顶点在图中是否连通。\n\n为了判断是否连通，可以使用并查集来维护节点之间的连通关系。\n\n我们当然也能通过二分查找的方式来找到最小可能的 $\\textit{threshold}$。但是如果使用二分查找，每次判断 $\\textit{threshold}$ 是否符合条件时，都要耗费大量的时间重新构建并查集，导致复杂度还不如前一种做法。\n\n如果我们是从小到大依次考虑 $\\textit{threshold}$，那么每次考虑一个新值时，只需要在上一个阶段的图中，添加几条新边而已，而无需重新构建整张图。\n\n具体而言，我们维护每个高度值对应的方块位置，当考虑 $\\textit{threshold}$ 时，我们首先找出对应的方块位置，然后对于每个与之相邻的方块，如果相邻的方块的高度值不超过 $\\textit{threshold}$，就在两个方块之间连接一条边。当所有相邻方块都被考虑完毕时，再判断起点和终点是否连通。\n\n```C++ [sol3-C++]\nclass Solution {\npublic:\n    int find(vector<int>& f, int x) {\n        if (f[x] == x) {\n            return x;\n        }\n        int fa = find(f, f[x]);\n        f[x] = fa;\n        return fa;\n    }\n\n    void merge(vector<int>& f, int x, int y) {\n        int fx = find(f, x), fy = find(f, y);\n        f[fx] = fy;\n    }\n\n    int swimInWater(vector<vector<int>>& grid) {\n        int n = grid.size();\n        vector<int> f(n * n);\n        for (int i = 0; i < n * n; i++) {\n            f[i] = i;\n        }\n\n        vector<pair<int, int>> idx(n * n); // 存储每个平台高度对应的位置\n        for (int i = 0; i < n; i++) {\n            for (int j = 0; j < n; j++) {\n                idx[grid[i][j]] = make_pair(i, j);\n            }\n        }\n\n        vector<pair<int, int>> directions{{0,1},{0,-1},{1,0},{-1,0}};\n        for (int threshold = 0; threshold < n * n; threshold++) {\n            auto [i, j] = idx[threshold];\n            for (const auto [di, dj]: directions) {\n                int ni = i + di, nj = j + dj;\n                if (ni >= 0 && ni < n && nj >= 0 && nj < n && grid[ni][nj] <= threshold) {\n                    merge(f, i * n + j, ni * n + nj);\n                }\n            }\n            if (find(f, 0) == find(f, n * n - 1)) {\n                return threshold;\n            }\n        }\n        return -1; // cannot happen\n    }\n};\n```\n\n```Java [sol3-Java]\nclass Solution {\n    public int swimInWater(int[][] grid) {\n        int n = grid.length;\n        int[] f = new int[n * n];\n        for (int i = 0; i < n * n; i++) {\n            f[i] = i;\n        }\n\n        int[][] idx = new int[n * n][2]; // 存储每个平台高度对应的位置\n        for (int i = 0; i < n; i++) {\n            for (int j = 0; j < n; j++) {\n                idx[grid[i][j]][0] = i;\n                idx[grid[i][j]][1] = j;\n            }\n        }\n\n        int[][] directions = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}};\n        for (int threshold = 0; threshold < n * n; threshold++) {\n            int i = idx[threshold][0], j = idx[threshold][1];\n            for (int[] direction : directions) {\n                int ni = i + direction[0], nj = j + direction[1];\n                if (ni >= 0 && ni < n && nj >= 0 && nj < n && grid[ni][nj] <= threshold) {\n                    merge(f, i * n + j, ni * n + nj);\n                }\n            }\n            if (find(f, 0) == find(f, n * n - 1)) {\n                return threshold;\n            }\n        }\n        return -1; // cannot happen\n    }\n\n    public int find(int[] f, int x) {\n        if (f[x] == x) {\n            return x;\n        }\n        int fa = find(f, f[x]);\n        f[x] = fa;\n        return fa;\n    }\n\n    public void merge(int[] f, int x, int y) {\n        int fx = find(f, x), fy = find(f, y);\n        f[fx] = fy;\n    }\n}\n```\n\n```go [sol3-Golang]\ntype unionFind struct {\n    parent, size []int\n}\n\nfunc newUnionFind(n int) *unionFind {\n    parent := make([]int, n)\n    size := make([]int, n)\n    for i := range parent {\n        parent[i] = i\n        size[i] = 1\n    }\n    return &unionFind{parent, size}\n}\n\nfunc (uf *unionFind) find(x int) int {\n    if uf.parent[x] != x {\n        uf.parent[x] = uf.find(uf.parent[x])\n    }\n    return uf.parent[x]\n}\n\nfunc (uf *unionFind) union(x, y int) {\n    fx, fy := uf.find(x), uf.find(y)\n    if fx == fy {\n        return\n    }\n    if uf.size[fx] < uf.size[fy] {\n        fx, fy = fy, fx\n    }\n    uf.size[fx] += uf.size[fy]\n    uf.parent[fy] = fx\n}\n\nfunc (uf *unionFind) inSameSet(x, y int) bool {\n    return uf.find(x) == uf.find(y)\n}\n\ntype pair struct{ x, y int }\nvar dirs = []pair{{-1, 0}, {1, 0}, {0, -1}, {0, 1}}\n\nfunc swimInWater(grid [][]int) (ans int) {\n    n := len(grid)\n    pos := make([]pair, n*n)\n    for i, row := range grid {\n        for j, h := range row {\n            pos[h] = pair{i, j} // 存储每个平台高度对应的位置\n        }\n    }\n\n    uf := newUnionFind(n * n)\n    for threshold := 0; ; threshold++ {\n        p := pos[threshold]\n        for _, d := range dirs {\n            if x, y := p.x+d.x, p.y+d.y; 0 <= x && x < n && 0 <= y && y < n && grid[x][y] <= threshold {\n                uf.union(x*n+y, p.x*n+p.y)\n            }\n        }\n        if uf.inSameSet(0, n*n-1) {\n            return threshold\n        }\n    }\n}\n```\n\n```C [sol3-C]\nint directions[4][2] = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}};\n\nint find(int* f, int x) {\n    if (f[x] == x) {\n        return x;\n    }\n    int fa = find(f, f[x]);\n    f[x] = fa;\n    return fa;\n}\n\nvoid merge(int* f, int x, int y) {\n    int fx = find(f, x), fy = find(f, y);\n    f[fx] = fy;\n}\n\nint swimInWater(int** grid, int gridSize, int* gridColSize) {\n    int f[gridSize * gridSize];\n    for (int i = 0; i < gridSize * gridSize; i++) {\n        f[i] = i;\n    }\n\n    int idx[gridSize * gridSize][2];  // 存储每个平台高度对应的位置\n    for (int i = 0; i < gridSize; i++) {\n        for (int j = 0; j < gridSize; j++) {\n            idx[grid[i][j]][0] = i;\n            idx[grid[i][j]][1] = j;\n        }\n    }\n\n    for (int threshold = 0; threshold < gridSize * gridSize; threshold++) {\n        int i = idx[threshold][0], j = idx[threshold][1];\n        for (int k = 0; k < 4; k++) {\n            int ni = i + directions[k][0], nj = j + directions[k][1];\n            if (ni >= 0 && ni < gridSize && nj >= 0 && nj < gridSize && grid[ni][nj] <= threshold) {\n                merge(f, i * gridSize + j, ni * gridSize + nj);\n            }\n        }\n        if (find(f, 0) == find(f, gridSize * gridSize - 1)) {\n            return threshold;\n        }\n    }\n    return -1;  // cannot happen\n}\n```\n\n```JavaScript [sol3-JavaScript]\nvar swimInWater = function(grid) {\n    const n = grid.length;\n    const f = new Array(n * n).fill(0)\n                              .map((element, index) => index);\n\n    const idx = new Array(n * n).fill(0)\n                                .map(() => new Array(2).fill(0));\n    for (let i = 0; i < n; i++) {\n        for (let j = 0; j < n; j++) {\n            idx[grid[i][j]][0] = i;\n            idx[grid[i][j]][1] = j;\n        }\n    }\n\n    const directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];\n    for (let threshold = 0; threshold < n * n; threshold++) {\n        const i = idx[threshold][0], j = idx[threshold][1];\n        for (const direction of directions) {\n            const ni = i + direction[0], nj = j + direction[1];\n            if (ni >= 0 && ni < n && nj >= 0 && nj < n && grid[ni][nj] <= threshold) {\n                merge(f, i * n + j, ni * n + nj);\n            }\n        }\n        if (find(f, 0) === find(f, n * n - 1)) {\n            return threshold;\n        }\n    }\n    return -1;\n};\n\nconst find = (f, x) => {\n    if (f[x] === x) {\n        return x;\n    }\n    const fa = find(f, f[x]);\n    f[x] = fa;\n    return fa;\n}\n\nconst merge = (f, x, y) => {\n    const fx = find(f, x), fy = find(f, y);\n    f[fx] = fy;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n^2\\log n)$。外层循环至多执行 $O(n^2)$ 次，每次循环至多添加 $4$ 条边，而添加每条边的代价为 $O(\\log n^2)=O(2\\log n)=O(\\log n)$，判断起点和终点是否连通的代价为 $O(\\log n^2)=O(2\\log n)=O(\\log n)$。\n\n- 空间复杂度：$O(n^2)$。",
+            "slateValue": "",
+            "slug": "shui-wei-shang-sheng-de-yong-chi-zhong-y-xm9i",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "e8mRcN",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 28,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Breadth-First Search",
+                    "nameTranslated": "广度优先搜索",
+                    "slug": "breadth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Union Find",
+                    "nameTranslated": "并查集",
+                    "slug": "union-find",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Heap (Priority Queue)",
+                    "nameTranslated": "堆（优先队列）",
+                    "slug": "heap-priority-queue",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2021-01-29T15:42:43.841830+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：堆（优先队列） 根据题意，假设在时间 $t$ 时能够到达方格 $(i,j)$，那么对于一个与之相邻的方格 $(i',j')$： - 如果 $\\textit{grid}[i'][j'] \\le \\textit{grid}[i][j]$，说明 $(i',j')$ 处的高度更低，故在时间 $t$ 也能够到达 $(i'",
+            "topic": {
+                "id": 582597,
+                "subscribed": false,
+                "commentCount": 45,
+                "viewCount": 9495,
+                "post": {
+                    "id": 1348882,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 44,
+            "isEditorsPick": false,
+            "hitCount": 20949,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "swim-in-rising-water",
+                "questionFrontendId": "778"
+            },
+            "next": {
+                "slug": "you-xian-dui-lie-fa-yi-ji-wei-he-hui-xiang-dao-you",
+                "title": "优先队列法，以及为何会想到优先队列法"
+            },
+            "prev": {
+                "slug": "shui-wei-shang-sheng-de-yong-chi-zhong-y-862o",
+                "title": "🎦 水位上升的泳池中游泳"
+            }
+        }
+    }
+}

@@ -1,0 +1,134 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "maOe5Q",
+            "title": "统计元音字母序列的数目",
+            "content": "#### 方法一：动态规划\n\n**思路**\n\n题目中给定的字符的下一个字符的规则如下：\n+ 字符串中的每个字符都应当是小写元音字母 $（\\texttt{`a'}, \\texttt{`e'}, \\texttt{`i'}, \\texttt{`o'}, \\texttt{`u'}）$；\n+ 每个元音 $\\texttt{`a'}$ 后面都只能跟着 $\\texttt{`e'}$；\n+ 每个元音 $\\texttt{`e'}$ 后面只能跟着 $\\texttt{`a'}$ 或者是 $\\texttt{`i'}$；\n+ 每个元音 $\\texttt{`i'}$ 后面不能再跟着另一个 $\\texttt{`i'}$；\n+ 每个元音 $\\texttt{`o'}$ 后面只能跟着 $\\texttt{`i'}$ 或者是 $\\texttt{`u'}$；\n+ 每个元音 $\\texttt{`u'}$ 后面只能跟着 $\\texttt{`a'}$；\n\n以上等价于每个字符的前一个字符的规则如下：\n+ 元音字母 $\\texttt{`a'}$ 前面只能跟着 $\\texttt{`e'}, \\texttt{`i'}, \\texttt{`u'}$；\n+ 元音字母 $\\texttt{`e'}$ 前面只能跟着 $\\texttt{`a'}, \\texttt{`i'}$；\n+ 每个元音 $\\texttt{`i'}$ 前面只能跟着 $\\texttt{`e'}, \\texttt{`o'}$；\n+ 每个元音 $\\texttt{`o'}$ 前面只能跟着 $\\texttt{`i'}$；\n+ 每个元音 $\\texttt{`u'}$ 后面只能跟着 $\\texttt{`o'}, \\texttt{`i'}$；\n\n我们设 $\\textit{dp}[i][j]$ 代表当前长度为 $i$ 且以字符 $j$ 为结尾的字符串的数目，其中在此 $j = {0,1,2,3,4}$ 分别代表元音字母 ${\\texttt{`a'}, \\texttt{`e'}, \\texttt{`i'}, \\texttt{`o'}, \\texttt{`u'}}$，通过以上的字符规则，我们可以得到动态规划递推公式如下：\n\n$$\n\\left\\{\n  \\begin{array}{lr}\n\\textit{dp}[i][0] = \\textit{dp}[i-1][1] + \\textit{dp}[i-1][2] + \\textit{dp}[i-1][4] \\\\\n\\textit{dp}[i][1] = \\textit{dp}[i-1][0] + \\textit{dp}[i-1][2] \\\\\n\\textit{dp}[i][2] = \\textit{dp}[i-1][1] + \\textit{dp}[i-1][3]  \\\\\n\\textit{dp}[i][3] = \\textit{dp}[i-1][2] \\\\\n\\textit{dp}[i][4] = \\textit{dp}[i-1][2] + \\textit{dp}[i-1][3]\n  \\end{array}\n\\right.\n$$\n\n按照题目规则最终可以形成长度为 $n$ 的字符串的数目为：$\\sum_{i=0}^4\\textit{dp}[n][i]$\n\n+ 实际计算过程中只需要保留前一个状态即可推导出后一个状态，计算长度为 $i$ 的状态只需要长度为 $i-1$ 的中间变量即可，$i-1$ 之前的状态全部都可以丢弃掉。计算过程中，答案需要取模 $1\\text{e}9+7$。\n\n**代码**\n\n```Java [sol1-Java]\nclass Solution {\n    public int countVowelPermutation(int n) {\n        long mod = 1000000007;\n        long[] dp = new long[5];\n        long[] ndp = new long[5];\n        for (int i = 0; i < 5; ++i) {\n            dp[i] = 1;\n        }\n        for (int i = 2; i <= n; ++i) {\n            /* a前面可以为e,u,i */\n            ndp[0] = (dp[1] + dp[2] + dp[4]) % mod;\n            /* e前面可以为a,i */\n            ndp[1] = (dp[0] + dp[2]) % mod;\n            /* i前面可以为e,o */\n            ndp[2] = (dp[1] + dp[3]) % mod;\n            /* o前面可以为i */\n            ndp[3] = dp[2];\n            /* u前面可以为i,o */\n            ndp[4] = (dp[2] + dp[3]) % mod;\n            System.arraycopy(ndp, 0, dp, 0, 5);\n        }\n        long ans = 0;\n        for (int i = 0; i < 5; ++i) {\n            ans = (ans + dp[i]) % mod;\n        }\n        return (int)ans;\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int countVowelPermutation(int n) {\n        long long mod = 1e9 + 7;\n        vector<long long> dp(5, 1);\n        vector<long long> ndp(5);\n        for (int i = 2; i <= n; ++i) {\n            /* a前面可以为e,u,i */\n            ndp[0] = (dp[1] + dp[2] + dp[4]) % mod;\n            /* e前面可以为a,i */\n            ndp[1] = (dp[0] + dp[2]) % mod;\n            /* i前面可以为e,o */\n            ndp[2] = (dp[1] + dp[3]) % mod;\n            /* o前面可以为i */\n            ndp[3] = dp[2];\n            /* u前面可以为i,o */\n            ndp[4] = (dp[2] + dp[3]) % mod;\n            dp = ndp;\n        }\n        return accumulate(dp.begin(), dp.end(), 0LL) % mod;\n    }\n};\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int CountVowelPermutation(int n) {\n        long mod = 1000000007;\n        long[] dp = new long[5];\n        long[] ndp = new long[5];\n        for (int i = 0; i < 5; ++i) {\n            dp[i] = 1;\n        }\n        for (int i = 2; i <= n; ++i) {\n            /* a前面可以为e,u,i */\n            ndp[0] = (dp[1] + dp[2] + dp[4]) % mod;\n            /* e前面可以为a,i */\n            ndp[1] = (dp[0] + dp[2]) % mod;\n            /* i前面可以为e,o */\n            ndp[2] = (dp[1] + dp[3]) % mod;\n            /* o前面可以为i */\n            ndp[3] = dp[2];\n            /* u前面可以为i,o */\n            ndp[4] = (dp[2] + dp[3]) % mod;\n            Array.Copy(ndp, 0, dp, 0, 5);\n        }\n        long ans = 0;\n        for (int i = 0; i < 5; ++i) {\n            ans = (ans + dp[i]) % mod;\n        }\n        return (int)ans;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def countVowelPermutation(self, n: int) -> int:\n        dp = (1, 1, 1, 1, 1)\n        for _ in range(n - 1):\n            dp = ((dp[1] + dp[2] + dp[4]) % 1000000007, (dp[0] + dp[2]) % 1000000007, (dp[1] + dp[3]) % 1000000007, dp[2], (dp[2] + dp[3]) % 1000000007)\n        return sum(dp) % 1000000007\n```\n\n```C [sol1-C]\ntypedef long long LL;\n\nint countVowelPermutation(int n){\n    long long mod = 1e9 + 7;\n    long long ans = 0;\n    LL * dp = (LL *)malloc(sizeof(LL) * 5);\n    LL * ndp = (LL *)malloc(sizeof(LL) * 5);\n    \n    for (int i = 0; i < 5; ++i) {\n        dp[i] = 1;\n    }\n    for (int i = 2; i <= n; ++i) {\n        /* a前面可以为e,u,i */\n        ndp[0] = (dp[1] + dp[2] + dp[4]) % mod;\n        /* e前面可以为a,i */\n        ndp[1] = (dp[0] + dp[2]) % mod;\n        /* i前面可以为e,o */\n        ndp[2] = (dp[1] + dp[3]) % mod;\n        /* o前面可以为i */\n        ndp[3] = dp[2];\n        /* u前面可以为i,o */\n        ndp[4] = (dp[2] + dp[3]) % mod;\n        memcpy(dp, ndp, sizeof(LL) * 5);\n    }\n    for (int i = 0; i < 5; ++i) {\n        ans = (ans + dp[i]) % mod;\n    }\n    free(dp);\n    free(ndp);\n    return ans;\n}\n```\n\n```go [sol1-Golang]\nfunc countVowelPermutation(n int) (ans int) {\n    const mod int = 1e9 + 7\n    dp := [5]int{1, 1, 1, 1, 1}\n    for i := 1; i < n; i++ {\n        dp = [5]int{\n            (dp[1] + dp[2] + dp[4]) % mod, // a 前面可以为 e,u,i\n            (dp[0] + dp[2]) % mod,         // e 前面可以为 a,i\n            (dp[1] + dp[3]) % mod,         // i 前面可以为 e,o\n            dp[2],                         // o 前面可以为 i\n            (dp[2] + dp[3]) % mod,         // u 前面可以为 i,o\n        }\n    }\n    for _, v := range dp {\n        ans = (ans + v) % mod\n    }\n    return\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar countVowelPermutation = function(n) {\n    const mod = 1000000007;\n    const dp = new Array(5).fill(0);\n    const ndp = new Array(5).fill(0);\n    for (let i = 0; i < 5; ++i) {\n        dp[i] = 1;\n    }\n    for (let i = 2; i <= n; ++i) {\n        /* a前面可以为e,u,i */\n        ndp[0] = (dp[1] + dp[2] + dp[4]) % mod;\n        /* e前面可以为a,i */\n        ndp[1] = (dp[0] + dp[2]) % mod;\n        /* i前面可以为e,o */\n        ndp[2] = (dp[1] + dp[3]) % mod;\n        /* o前面可以为i */\n        ndp[3] = dp[2];\n        /* u前面可以为i,o */\n        ndp[4] = (dp[2] + dp[3]) % mod;\n        dp.splice(0, 5, ...ndp);\n    }\n    let ans = 0;\n    for (let i = 0; i < 5; ++i) {\n        ans = (ans + dp[i]) % mod;\n    }\n    return ans;\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(C \\times n)$，其中 $n$ 是给定，$C$ 表示元音字母的数量，在本题中 $C = 5$。\n\n- 空间复杂度：$O(C)$，我们只需要常数个空间存储不同组的数目。\n\n#### 方法二：矩阵快速幂\n\n**思路**\n\n已经知道上述的递推公式，可以转将其转化为矩阵乘法，设 $f(n)$ 表示长度为 $n$ 的字符串且以不同元音字母为结尾的组合数矩阵，构造矩阵的递推关系如下：\n$$\nf(n) = \n\\begin{bmatrix}\n0 & 1 & 1 & 0 & 1\\\\\n1 & 0 & 1 & 0 & 0\\\\\n0 & 1 & 0 & 1 & 0\\\\\n0 & 0 & 1 & 0 & 0\\\\\n0 & 0 & 1 & 1 & 0\\\\\n\\end{bmatrix} \n\\times f(n-1)\n$$\n因此我们可以推出:\n$$\nf(n) = \n\\begin{bmatrix}\n0 & 1 & 1 & 0 & 1\\\\\n1 & 0 & 1 & 0 & 0\\\\\n0 & 1 & 0 & 1 & 0\\\\\n0 & 0 & 1 & 0 & 0\\\\\n0 & 0 & 1 & 1 & 0\\\\\n\\end{bmatrix}^{n-1}\n\\times f(1)\n$$\n令：\n$$\nf(1) = \n\\begin{bmatrix}\n1 \\\\\n1 \\\\\n1 \\\\\n1 \\\\\n1 \\\\\n\\end{bmatrix} \n$$\n$$\nM = \n\\begin{bmatrix}\n0 & 1 & 1 & 0 & 1\\\\\n1 & 0 & 1 & 0 & 0\\\\\n0 & 1 & 0 & 1 & 0\\\\\n0 & 0 & 1 & 0 & 0\\\\\n0 & 0 & 1 & 1 & 0\\\\\n\\end{bmatrix}\n$$\n因此只要我们能快速计算矩阵 $M$ 的 $n$ 次幂，就可以得到 $f(n)$ 的值。如果直接求取 $M^n$ ，时间复杂度是 $O(n)$，可以定义矩阵乘法，然后用快速幂算法来加速 $M^n$ 的求取。计算过程中，答案需要取模 $1\\text{e}9+7$。\n\n**代码**\n\n```Java [sol2-Java]\nclass Solution {\n    public int countVowelPermutation(int n) {\n        long mod = 1_000_000_007;\n        long[][] factor =\n        {\n            {0, 1, 0, 0, 0}, \n            {1, 0, 1, 0, 0}, \n            {1, 1, 0, 1, 1}, \n            {0, 0, 1, 0, 1}, \n            {1, 0, 0, 0, 0}\n        };\n\n        long[][] res = fastPow(factor, n - 1, mod);\n        long ans = 0;\n        for (int i = 0; i < 5; ++i) {\n            for (int j = 0; j < 5; ++j) {\n                ans = (ans + res[i][j]) % mod;\n            }\n        }\n        return (int)ans;\n    }\n\n    public long[][] fastPow(long[][] matrix, int n, long mod) {\n        int m = matrix.length;\n        long[][] res = new long[m][m];\n        long[][] curr = matrix;\n\n        for (int i = 0; i < m; ++i) {\n            res[i][i] = 1;\n        }\n        for (int i = n; i != 0; i >>= 1) {\n            if ((i % 2) == 1) {\n                res = multiply(curr, res, mod);\n            }\n            curr = multiply(curr, curr, mod);\n        }\n        return res;\n    }\n\n    public long[][] multiply(long[][] matrixA, long[][] matrixB, long mod) {\n        int m = matrixA.length;\n        int n = matrixB[0].length;\n        long[][] res = new long[m][n];\n\n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j) {\n                res[i][j] = 0;\n                for (int k = 0; k < matrixA[i].length; ++k) {\n                    res[i][j] = (res[i][j] + matrixA[i][k] * matrixB[k][j]) % mod;\n                }\n            }\n        }\n        return res;\n    }\n}\n```\n\n```C++ [sol2-C++]\nusing LL = long long;\nusing Mat = vector<vector<LL>>;\n\nclass Solution {\npublic:     \n    Mat multiply(const Mat & matrixA, const Mat & matrixB, LL mod) {\n        int m = matrixA.size();\n        int n = matrixB[0].size();\n        Mat res(m, vector<LL>(n, 0));\n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j) {\n                for (int k = 0; k < matrixA[i].size(); ++k) {\n                    res[i][j] = (res[i][j] + matrixA[i][k] * matrixB[k][j]) % mod;\n                }\n            }\n        }\n        return res;\n    }\n     \n    Mat fastPow(const Mat & matrix, LL n, LL mod) {\n        int m = matrix.size();\n        Mat res(m, vector<LL>(m, 0));\n        Mat curr = matrix;\n\n        for (int i = 0; i < m; ++i) {\n            res[i][i] = 1;\n        }\n        for (int i = n; i != 0; i >>= 1) {\n            if (i & 1) {\n                res = multiply(curr, res, mod);\n            }\n            curr = multiply(curr, curr, mod);\n        }\n        return res;\n    }\n\n    int countVowelPermutation(int n) {\n        LL mod = 1e9 + 7;\n        Mat factor =\n        {\n            {0, 1, 0, 0, 0}, \n            {1, 0, 1, 0, 0}, \n            {1, 1, 0, 1, 1}, \n            {0, 0, 1, 0, 1}, \n            {1, 0, 0, 0, 0}\n        };\n        Mat res = fastPow(factor, n - 1, mod);\n        long long ans = 0;\n        for (int i = 0; i < 5; ++i) {\n            ans = (ans + accumulate(res[i].begin(), res[i].end(), 0LL)) % mod;\n        }\n        return  ans;\n    }\n};\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    public int CountVowelPermutation(int n) {\n        long mod = 1_000_000_007;\n        long[][] factor =\n        {\n            new long[]{0, 1, 0, 0, 0}, \n            new long[]{1, 0, 1, 0, 0}, \n            new long[]{1, 1, 0, 1, 1}, \n            new long[]{0, 0, 1, 0, 1}, \n            new long[]{1, 0, 0, 0, 0}\n        };\n\n        long[][] res = FastPow(factor, n - 1, mod);\n        long ans = 0;\n        for (int i = 0; i < 5; ++i) {\n            for (int j = 0; j < 5; ++j) {\n                ans = (ans + res[i][j]) % mod;\n            }\n        }\n        return (int)ans;\n    }\n\n    public long[][] FastPow(long[][] matrix, int n, long mod) {\n        int m = matrix.Length;\n        long[][] res = new long[m][];\n        for (int i = 0; i < m; ++i) {\n            res[i] = new long[m];\n        }\n        long[][] curr = matrix;\n\n        for(int i = 0; i < m; ++i) {\n            res[i][i] = 1;\n        }\n        for (int i = n; i != 0; i >>= 1) {\n            if ((i % 2) == 1) {\n                res = Multiply(curr, res, mod);\n            }\n            curr = Multiply(curr, curr, mod);\n        }\n        return res;\n    }\n\n    public long[][] Multiply(long[][] matrixA, long[][] matrixB, long mod) {\n        int m = matrixA.Length;\n        int n = matrixB[0].Length;\n        long[][] res = new long[m][];\n        for (int i = 0; i < m; ++i) {\n            res[i] = new long[n];\n        }\n\n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j) {\n                res[i][j] = 0;\n                for (int k = 0; k < matrixA[i].Length; ++k) {\n                    res[i][j] = (res[i][j] + matrixA[i][k] * matrixB[k][j]) % mod;\n                }\n            }\n        }\n        return res;\n    }\n}\n```\n\n```Python [sol2-Python3]\nimport numpy as np\nclass Solution:\n    def countVowelPermutation(self, n: int) -> int:\n        factor = np.mat([(0, 1, 0, 0, 0), (1, 0, 1, 0, 0), (1, 1, 0, 1, 1), (0, 0, 1, 0, 1), (1, 0, 0, 0, 0)], np.dtype('O'))\n        res = np.mat([(1, 1, 1, 1, 1)], np.dtype('O'))\n        n -= 1\n        while n > 0:\n            if n % 2 == 1:\n                res = res * factor % 1000000007\n            factor = factor * factor % 1000000007\n            n = n // 2\n        return res.sum() % 1000000007\n```\n\n```C [sol2-C]\ntypedef long long LL;\ntypedef LL * Mat;\n\n#define IDX(x, y, col) ((x) * (col) + (y))\n\nMat multiply(const Mat matrixA, int matrixARowSize, int matrixAColSize, const Mat matrixB, int matrixBRowSize, int matrixBColSize, LL mod) {\n    Mat res = (LL *)malloc(sizeof(LL) * matrixARowSize * matrixBColSize);\n    memset(res, 0, sizeof(LL) * matrixARowSize * matrixBColSize);\n    for (int i = 0; i < matrixARowSize; ++i) {\n        for (int j = 0; j < matrixBColSize; ++j) {\n            for (int k = 0; k < matrixAColSize; ++k) {\n                res[IDX(i, j, matrixAColSize)] = (res[IDX(i, j, matrixAColSize)] + \\\n                                                  matrixA[IDX(i, k, matrixAColSize)] * \\\n                                                  matrixB[IDX(k, j, matrixBColSize)]) % mod;\n            }\n        }\n    }\n    return res;\n}\n\nMat fastPow(const Mat matrix, int matrixRowSize, LL n, LL mod) {\n    Mat res = (LL *)malloc(sizeof(LL) * matrixRowSize * matrixRowSize);\n    Mat curr = (LL *)malloc(sizeof(LL) * matrixRowSize * matrixRowSize);\n    memset(res, 0, sizeof(LL) * matrixRowSize * matrixRowSize);\n    memcpy(curr, matrix, sizeof(LL) * matrixRowSize * matrixRowSize);\n\n    for (int i = 0; i < matrixRowSize; ++i) {\n        res[IDX(i, i, matrixRowSize)] = 1;\n    }\n    for (int i = n; i != 0; i >>= 1) {\n        if (i & 1) {\n            Mat nextRes = multiply(curr, matrixRowSize, matrixRowSize, res, matrixRowSize, matrixRowSize, mod);\n            free(res);\n            res = nextRes;\n        }\n        Mat nextCurr = multiply(curr, matrixRowSize, matrixRowSize, curr, matrixRowSize, matrixRowSize, mod);\n        free(curr);\n        curr = nextCurr;\n    }\n    free(curr);\n    return res;\n}\n\nint countVowelPermutation(int n){\n    LL mod = 1e9 + 7;\n    LL factor[25] = { \\\n                      0, 1, 0, 0, 0, \\\n                      1, 0, 1, 0, 0, \\\n                      1, 1, 0, 1, 1, \\\n                      0, 0, 1, 0, 1, \\\n                      1, 0, 0, 0, 0  \\\n                    };\n    Mat res = fastPow(factor, 5, n - 1, mod);\n    LL ans = 0;\n    for (int i = 0; i < 25; ++i) {\n        ans = (ans + res[i]) % mod;\n    }\n    free(res);\n    return ans;\n}\n```\n\n```go [sol2-Golang]\nconst mod int = 1e9 + 7\n\ntype matrix [5][5]int\n\nfunc (a matrix) mul(b matrix) matrix {\n    c := matrix{}\n    for i, row := range a {\n        for j := range b[0] {\n            for k, v := range row {\n                c[i][j] = (c[i][j] + v*b[k][j]) % mod\n            }\n        }\n    }\n    return c\n}\n\nfunc (a matrix) pow(n int) matrix {\n    res := matrix{}\n    for i := range res {\n        res[i][i] = 1\n    }\n    for ; n > 0; n >>= 1 {\n        if n&1 > 0 {\n            res = res.mul(a)\n        }\n        a = a.mul(a)\n    }\n    return res\n}\n\nfunc countVowelPermutation(n int) (ans int) {\n    m := matrix{\n        {0, 1, 0, 0, 0},\n        {1, 0, 1, 0, 0},\n        {1, 1, 0, 1, 1},\n        {0, 0, 1, 0, 1},\n        {1, 0, 0, 0, 0},\n    }\n    res := m.pow(n - 1)\n    for _, row := range res {\n        for _, v := range row {\n            ans = (ans + v) % mod\n        }\n    }\n    return\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(C^3 \\log n)$，其中 $n$ 是给定的参数，$C$ 表示元音字母的数量，在本题中 $C = 5$，每次矩阵相乘的时间复杂度为 $O(C^3)$，最多需要 $\\log n$ 次矩阵相乘。\n\n- 空间复杂度：$O(C^2)$，需要保空间来存储矩阵乘法的结果。",
+            "slateValue": "",
+            "slug": "tong-ji-yuan-yin-zi-mu-xu-lie-de-shu-mu-jxo09",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "maOe5Q",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 47,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 0,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-01-14T04:15:07.756828+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 思路 题目中给定的字符的下一个字符的规则如下： + 字符串中的每个字符都应当是小写元音字母 $（\\texttt{a'}, \\texttt{e'}, \\texttt{i'}, \\texttt{o'}, \\texttt{u'}）$； + 每个元音 $\\texttt{a'}$ 后面都只能跟着 $\\textt",
+            "topic": {
+                "id": 1210214,
+                "subscribed": false,
+                "commentCount": 111,
+                "viewCount": 15634,
+                "post": {
+                    "id": 2542072,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 55,
+            "isEditorsPick": false,
+            "hitCount": 27555,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "count-vowels-permutation",
+                "questionFrontendId": "1220"
+            },
+            "next": {
+                "slug": "gong-shui-san-xie-yi-ti-shuang-jie-xian-n8f4o",
+                "title": "【宫水三叶】一题双解 :「线性 DP」&「矩阵快速幂」"
+            },
+            "prev": null
+        }
+    }
+}

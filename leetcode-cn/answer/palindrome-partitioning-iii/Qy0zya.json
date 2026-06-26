@@ -1,0 +1,146 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "Qy0zya",
+            "title": "分割回文串 III",
+            "content": "### 方法一：动态规划\n\n我们用 `f[i][j]` 表示对于字符串 `S` 的前 `i` 个字符，将它分割成 `j` 个非空且不相交的回文串，最少需要修改的字符数。在进行状态转移时，我们可以枚举第 `j` 个回文串的起始位置 `i0`，那么就有如下的状态转移方程：\n\n```\nf[i][j] = min(f[i0][j - 1] + cost(S, i0 + 1, i))\n```\n\n其中 `cost(S, l, r)` 表示将 `S` 的第 `l` 个到第 `r` 个字符组成的子串变成回文串，最少需要修改的字符数。`cost(S, l, r)` 可以通过双指针的方法求出：\n\n- 初始时将第一个指针置于位置 `l`，第二个指针置于位置 `r`；\n\n- 每次比较时，判断两个指针指向的字符是否相等。若相等，则这两个位置构成回文，不需要进行修改；若不相等，则为了保证回文，需要修改其中的任意一个字符；\n\n- 在每次比较后，将第一个指针向右移动一步，第二个指针向左移动一步，如果第一个指针仍然在第二个指针的左侧，那么继续进行下一次比较。\n\n上述的状态转移方程中有一些边界情况需要考虑，例如只有当 `i >= j` 时，`f[i][j]` 的值才有意义，这是因为 `i` 个字符最多只能被分割成 `i` 个非空且不相交的字符串，因此在状态转移时，必须要满足 `i >= j` 且 `i0 >= j - 1`。此外，当 `j = 1` 时，我们并不需要枚举 `i0`，这是因为将前 `i` 个字符分割成 `j = 1` 个非空字符串的方法是唯一的。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int cost(string& s, int l, int r) {\n        int ret = 0;\n        for (int i = l, j = r; i < j; ++i, --j) {\n            if (s[i] != s[j]) {\n                ++ret;\n            }\n        }\n        return ret;\n    }\n\n    int palindromePartition(string& s, int k) {\n        int n = s.size();\n        vector<vector<int>> f(n + 1, vector<int>(k + 1, INT_MAX));\n        f[0][0] = 0;\n        for (int i = 1; i <= n; ++i) {\n            for (int j = 1; j <= min(k, i); ++j) {\n                if (j == 1) {\n                    f[i][j] = cost(s, 0, i - 1);\n                }\n                else {\n                    for (int i0 = j - 1; i0 < i; ++i0) {\n                        f[i][j] = min(f[i][j], f[i0][j - 1] + cost(s, i0, i - 1));\n                    }\n                }\n            }\n        }\n        \n        return f[n][k];\n    }\n};\n```\n\n```Python [sol1-Python]\nclass Solution:\n    def palindromePartition(self, s: str, k: int) -> int:\n        def cost(l, r):\n            ret, i, j = 0, l, r\n            while i < j:\n                ret += (0 if s[i] == s[j] else 1)\n                i += 1\n                j -= 1\n            return ret\n        \n        n = len(s)\n        f = [[10**9] * (k + 1) for _ in range(n + 1)]\n        f[0][0] = 0\n        for i in range(1, n + 1):\n            for j in range(1, min(k, i) + 1):\n                if j == 1:\n                    f[i][j] = cost(0, i - 1)\n                else:\n                    for i0 in range(j - 1, i):\n                        f[i][j] = min(f[i][j], f[i0][j - 1] + cost(i0, i - 1))\n        \n        return f[n][k]\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int palindromePartition(String s, int k) {\n        int n = s.length();        \n        int[][] f = new int[n + 1][k + 1];\n        for (int[] row : f) {\n            Arrays.fill(row, 1000000000);\n        }\n        f[0][0] = 0;\n\n        for (int i = 1; i <= n; i++) {\n            for (int j = 1; j <= Math.min(k, i); j++) {\n                if (j == 1) {\n                    f[i][j] = cost(0, i - 1, s);\n                } else {\n                    for (int i0 = j - 1; i0 < i; i0++) {\n                        f[i][j] = Math.min(f[i][j], f[i0][j - 1] + cost(i0, i - 1, s));\n                    }\n                }\n            }\n        }\n\n        return f[n][k];\n    }\n\n    private int cost(int l, int r, String s) {\n        int ret = 0;\n        int i = l, j = r;\n        while (i < j) {\n            ret += (s.charAt(i) == s.charAt(j) ? 0 : 1);\n            i++;\n            j--;\n        }\n        return ret;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int PalindromePartition(string s, int k) {\n        int n = s.Length;\n        int[,] f = new int[n + 1, k + 1];\n        for (int i = 0; i <= n; i++) {\n            for (int j = 0; j <= k; j++) {\n                f[i, j] = int.MaxValue;\n            }\n        }\n        f[0, 0] = 0;\n        for (int i = 1; i <= n; i++) {\n            for (int j = 1; j <= Math.Min(k, i); j++) {\n                if (j == 1) {\n                    f[i, j] = Cost(0, i - 1, s);\n                } else {\n                    for (int i0 = j - 1; i0 < i; i0++) {\n                        f[i, j] = Math.Min(f[i, j], f[i0, j - 1] + Cost(i0, i - 1, s));\n                    }\n                }\n            }\n        }\n\n        return f[n, k];\n    }\n\n    private int Cost(int l, int r, string s) {\n        int ret = 0;\n        int i = l, j = r;\n        while (i < j) {\n            ret += (s[i] == s[j] ? 0 : 1);\n            i++;\n            j--;\n        }\n        return ret;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc palindromePartition(s string, k int) int {\n    n := len(s)\n    cost := func(l, r int) int {\n        ret := 0\n        i, j := l, r\n        for i < j {\n            if s[i] != s[j] {\n                ret++\n            }\n            i++\n            j--\n        }\n        return ret\n    }\n    f := make([][]int, n+1)\n    for i := range f {\n        f[i] = make([]int, k+1)\n        for j := range f[i] {\n            f[i][j] = math.MaxInt\n        }\n    }\n    f[0][0] = 0\n    for i := 1; i <= n; i++ {\n        for j := 1; j <= min(k, i); j++ {\n            if j == 1 {\n                f[i][j] = cost(0, i-1)\n            } else {\n                for i0 := j - 1; i0 < i; i0++ {\n                    f[i][j] = min(f[i][j], f[i0][j-1]+cost(i0, i-1))\n                }\n            }\n        }\n    }\n\n    return f[n][k]\n}\n```\n\n```C [sol1-C]\nint cost(int l, int r, const char *s) {\n    int ret = 0;\n    int i = l, j = r;\n    while (i < j) {\n        ret += (s[i] == s[j] ? 0 : 1);\n        i++;\n        j--;\n    }\n    return ret;\n}\n\nint palindromePartition(char* s, int k) {\n    int n = strlen(s);\n    int f[n + 1][k + 1];\n    for (int i = 0; i <= n; i++) {\n        for (int j = 0; j <= k; j++) {\n            f[i][j] = INT_MAX;\n        }\n    }\n    f[0][0] = 0;\n    for (int i = 1; i <= n; i++) {\n        for (int j = 1; j <= (i < k ? i : k); j++) {\n            if (j == 1) {\n                f[i][j] = cost(0, i - 1, s);\n            } else {\n                for (int i0 = j - 1; i0 < i; i0++) {\n                    f[i][j] = fmin(f[i][j], f[i0][j - 1] + cost(i0, i - 1, s));\n                }\n            }\n        }\n    }\n\n    return f[n][k];\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar palindromePartition = function(s, k) {\n    const n = s.length;\n    const cost = (l, r) => {\n        let ret = 0;\n        let i = l, j = r;\n        while (i < j) {\n            ret += (s[i] === s[j] ? 0 : 1);\n            i++;\n            j--;\n        }\n        return ret;\n    }\n    const f = Array.from({ length: n + 1 }, () => Array(k + 1).fill(1000000000));\n    f[0][0] = 0;\n    for (let i = 1; i <= n; i++) {\n        for (let j = 1; j <= Math.min(k, i); j++) {\n            if (j === 1) {\n                f[i][j] = cost(0, i - 1);\n            } else {\n                for (let i0 = j - 1; i0 < i; i0++) {\n                    f[i][j] = Math.min(f[i][j], f[i0][j - 1] + cost(i0, i - 1));\n                }\n            }\n        }\n    }\n    return f[n][k];\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction palindromePartition(s: string, k: number): number {\n    const n = s.length;\n    const cost = (l: number, r: number): number => {\n        let ret = 0;\n        let i = l, j = r;\n        while (i < j) {\n            ret += (s[i] === s[j] ? 0 : 1);\n            i++;\n            j--;\n        }\n        return ret;\n    }\n    const f: number[][] = Array.from({ length: n + 1 }, () => Array(k + 1).fill(1000000000));\n    f[0][0] = 0;\n    for (let i = 1; i <= n; i++) {\n        for (let j = 1; j <= Math.min(k, i); j++) {\n            if (j === 1) {\n                f[i][j] = cost(0, i - 1);\n            } else {\n                for (let i0 = j - 1; i0 < i; i0++) {\n                    f[i][j] = Math.min(f[i][j], f[i0][j - 1] + cost(i0, i - 1));\n                }\n            }\n        }\n    }\n\n    return f[n][k];\n};\n```\n\n```Rust [sol1-Rust]\nuse std::cmp::min;\n\nimpl Solution {\n    pub fn palindrome_partition(s: String, k: i32) -> i32 {\n        let n = s.len();\n        let cost = |l: usize, r: usize| -> i32 {\n            let mut ret = 0;\n            let (mut i, mut j) = (l, r);\n            while i < j {\n                if s.as_bytes()[i] != s.as_bytes()[j] {\n                    ret += 1;\n                }\n                i += 1;\n                j -= 1;\n            }\n            ret\n        };\n\n        let mut f = vec![vec![i32::MAX; k as usize + 1]; n + 1];\n        f[0][0] = 0;\n        for i in 1..=n {\n            for j in 1..=std::cmp::min(k as usize, i) {\n                if j == 1 {\n                    f[i][j] = cost(0, i - 1);\n                } else {\n                    for i0 in (j - 1)..i {\n                        f[i][j] = min(f[i][j], f[i0][j - 1] + cost(i0, i - 1));\n                    }\n                }\n            }\n        }\n        f[n][k as usize]\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(N^3K)$，其中 $N$ 是字符串 `S` 的长度。在动态规划中，我们需要枚举 `i`，`j` 以及 `i0`，它们需要的时间分别为 $O(N)$，$O(K)$ 和 $O(N)$。我们还需要计算 `cost()` 函数来进行状态转移，单次的时间复杂度为 $O(N)$，因此总的时间复杂度为 $O(N^3K)$。在 `Python` 中，该方法可以卡着时间通过。\n\n- 空间复杂度：$O(NK)$。\n\n### 方法二：动态规划 + 预处理\n\n方法一中的时间复杂度瓶颈在于 `cost()` 函数。在调用 `cost()` 函数之前，我们枚举了 `i`，`j` 以及 `i0` ，因此它一共被调用了 $O(N^2K)$ 次。然而观察 `cost()` 函数本身的形式 `cost(S, l, r)`，不同的 `(l, r)` 的数量只有 $O(N^2)$ 种，这说明在动态规划中，我们对 `cost()` 函数进行了大量的重复调用。因此我们可以预处理出所有的 `cost(S, l, r)`，在后续调用 `cost()` 函数时，我们只需要 $O(1)$ 的时间便可以返回结果。\n\n我们同样可以使用动态规划求出所有的 `cost(S, l, r)`。记 `cost[l][r] = cost(S, l, r)`，根据方法一中计算 `cost()` 函数的双指针方法，我们可以得到如下的状态转移方程：\n\n```\ncost[l][r] = cost[l + 1][r - 1],       if S[l] == S[r]\ncost[l][r] = cost[l + 1][r - 1] + 1,   if S[l] != S[r]\ncost[l][r] = 0,                        if l >= r\n```\n\n这是一个经典的区间动态规划，时间复杂度为 $O(N^2)$。在预处理出所有的 `cost(S, l, r)` 后，下一步使用动态规划计算 `f[i][j]` 的时间复杂度就从 $O(N^3K)$ 降低至 $O(N^2K)$。\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    int palindromePartition(string& s, int k) {\n        int n = s.size();\n        vector<vector<int>> cost(n, vector<int>(n));\n        for (int span = 2; span <= n; ++span) {\n            for (int i = 0; i <= n - span; ++i) {\n                int j = i + span - 1;\n                cost[i][j] = cost[i + 1][j - 1] + (s[i] == s[j] ? 0 : 1);\n            }\n        }\n\n        vector<vector<int>> f(n + 1, vector<int>(k + 1, INT_MAX));\n        f[0][0] = 0;\n        for (int i = 1; i <= n; ++i) {\n            for (int j = 1; j <= min(k, i); ++j) {\n                if (j == 1) {\n                    f[i][j] = cost[0][i - 1];\n                }\n                else {\n                    for (int i0 = j - 1; i0 < i; ++i0) {\n                        f[i][j] = min(f[i][j], f[i0][j - 1] + cost[i0][i - 1]);\n                    }\n                }\n            }\n        }\n        \n        return f[n][k];\n    }\n};\n```\n\n```Python [sol2-Python]\nclass Solution:\n    def palindromePartition(self, s: str, k: int) -> int:\n        n = len(s)\n        cost = [[0] * n for _ in range(n)]\n        for span in range(2, n + 1):\n            for i in range(n - span + 1):\n                j = i + span - 1\n                cost[i][j] = cost[i + 1][j - 1] + (0 if s[i] == s[j] else 1)\n\n        f = [[10**9] * (k + 1) for _ in range(n + 1)]\n        f[0][0] = 0\n        for i in range(1, n + 1):\n            for j in range(1, min(k, i) + 1):\n                if j == 1:\n                    f[i][j] = cost[0][i - 1]\n                else:\n                    for i0 in range(j - 1, i):\n                        f[i][j] = min(f[i][j], f[i0][j - 1] + cost[i0][i - 1])\n        \n        return f[n][k]\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public int palindromePartition(String s, int k) {\n        int n = s.length();\n        int[][] cost = new int[n][n];\n        for (int span = 2; span <= n; ++span) {\n            for (int i = 0; i <= n - span; ++i) {\n                int j = i + span - 1;\n                cost[i][j] = cost[i + 1][j - 1] + (s.charAt(i) == s.charAt(j) ? 0 : 1);\n            }\n        }\n        int[][] f = new int[n + 1][k + 1];\n        for (int[] row : f) {\n            Arrays.fill(row, Integer.MAX_VALUE);\n        }\n        f[0][0] = 0;\n        for (int i = 1; i <= n; ++i) {\n            for (int j = 1; j <= Math.min(k, i); ++j) {\n                if (j == 1) {\n                    f[i][j] = cost[0][i - 1];\n                } else {\n                    for (int i0 = j - 1; i0 < i; ++i0) {\n                        f[i][j] = Math.min(f[i][j], f[i0][j - 1] + cost[i0][i - 1]);\n                    }\n                }\n            }\n        }\n\n        return f[n][k];\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    public int PalindromePartition(string s, int k) {\n        int n = s.Length;\n        int[,] cost = new int[n, n];\n        for (int span = 2; span <= n; ++span) {\n            for (int i = 0; i <= n - span; ++i) {\n                int j = i + span - 1;\n                cost[i, j] = cost[i + 1, j - 1] + (s[i] == s[j] ? 0 : 1);\n            }\n        }\n        int[,] f = new int[n + 1, k + 1];\n        for (int i = 0; i <= n; ++i) {\n            for (int j = 0; j <= k; ++j) {\n                f[i, j] = int.MaxValue;\n            }\n        }\n        f[0, 0] = 0;\n        for (int i = 1; i <= n; ++i) {\n            for (int j = 1; j <= Math.Min(k, i); ++j) {\n                if (j == 1) {\n                    f[i, j] = cost[0, i - 1];\n                } else {\n                    for (int i0 = j - 1; i0 < i; ++i0) {\n                        f[i, j] = Math.Min(f[i, j], f[i0, j - 1] + cost[i0, i - 1]);\n                    }\n                }\n            }\n        }\n        return f[n, k];\n    }\n}\n```\n\n```Go [sol2-Go]\nfunc palindromePartition(s string, k int) int {\n    n := len(s)\n    cost := make([][]int, n)\n    for i := range cost {\n        cost[i] = make([]int, n)\n    }\n    for span := 2; span <= n; span++ {\n        for i := 0; i <= n - span; i++ {\n            j := i + span - 1\n            cost[i][j] = cost[i + 1][j - 1]\n            if s[i] != s[j] {\n                cost[i][j]++\n            }\n        }\n    }\n\n    f := make([][]int, n + 1)\n    for i := range f {\n        f[i] = make([]int, k + 1)\n        for j := range f[i] {\n            f[i][j] = math.MaxInt\n        }\n    }\n    f[0][0] = 0\n    for i := 1; i <= n; i++ {\n        for j := 1; j <= min(k, i); j++ {\n            if j == 1 {\n                f[i][j] = cost[0][i - 1]\n            } else {\n                for i0 := j - 1; i0 < i; i0++ {\n                    f[i][j] = min(f[i][j], f[i0][j - 1] + cost[i0][i - 1])\n                }\n            }\n        }\n    }\n\n    return f[n][k]\n}\n```\n\n```C [sol2-C]\nint palindromePartition(char* s, int k) {\n    int n = strlen(s);\n    int cost[n][n];\n    memset(cost, 0, sizeof(cost));\n    for (int span = 2; span <= n; ++span) {\n        for (int i = 0; i <= n - span; ++i) {\n            int j = i + span - 1;\n            cost[i][j] = cost[i + 1][j - 1] + (s[i] == s[j] ? 0 : 1);\n        }\n    }\n    int f[n + 1][k + 1];\n    for (int i = 0; i <= n; ++i) {\n        for (int j = 0; j <= k; ++j) {\n            f[i][j] = n;\n        }\n    }\n    f[0][0] = 0;\n    for (int i = 1; i <= n; ++i) {\n        for (int j = 1; j <= (i < k ? i : k); ++j) {\n            if (j == 1) {\n                f[i][j] = cost[0][i - 1];\n            } else {\n                for (int i0 = j - 1; i0 < i; ++i0) {\n                    f[i][j] = fmin(f[i][j], f[i0][j - 1] + cost[i0][i - 1]);\n                }\n            }\n        }\n    }\n    return f[n][k];\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar palindromePartition = function(s, k) {\n    const n = s.length;\n    const cost = Array.from({ length: n }, () => Array(n).fill(0));\n    for (let span = 2; span <= n; ++span) {\n        for (let i = 0; i <= n - span; ++i) {\n            const j = i + span - 1;\n            cost[i][j] = cost[i + 1][j - 1] + (s[i] === s[j] ? 0 : 1);\n        }\n    }\n    const f = Array.from({ length: n + 1 }, () => Array(k + 1).fill(Infinity));\n    f[0][0] = 0;\n    for (let i = 1; i <= n; ++i) {\n        for (let j = 1; j <= Math.min(k, i); ++j) {\n            if (j === 1) {\n                f[i][j] = cost[0][i - 1];\n            } else {\n                for (let i0 = j - 1; i0 < i; ++i0) {\n                    f[i][j] = Math.min(f[i][j], f[i0][j - 1] + cost[i0][i - 1]);\n                }\n            }\n        }\n    }\n\n    return f[n][k];\n};\n```\n\n```TypeScript [sol2-TypeScript]\nfunction palindromePartition(s: string, k: number): number {\n    const n = s.length;\n    const cost: number[][] = Array.from({ length: n }, () => Array(n).fill(0));\n    for (let span = 2; span <= n; ++span) {\n        for (let i = 0; i <= n - span; ++i) {\n            const j = i + span - 1;\n            cost[i][j] = cost[i + 1][j - 1] + (s[i] === s[j] ? 0 : 1);\n        }\n    }\n    const f: number[][] = Array.from({ length: n + 1 }, () => Array(k + 1).fill(Infinity));\n    f[0][0] = 0;\n    for (let i = 1; i <= n; ++i) {\n        for (let j = 1; j <= Math.min(k, i); ++j) {\n            if (j === 1) {\n                f[i][j] = cost[0][i - 1];\n            } else {\n                for (let i0 = j - 1; i0 < i; ++i0) {\n                    f[i][j] = Math.min(f[i][j], f[i0][j - 1] + cost[i0][i - 1]);\n                }\n            }\n        }\n    }\n\n    return f[n][k];\n};\n```\n\n```Rust [sol2-Rust]\nuse std::cmp::min;\n\nimpl Solution {\n    pub fn palindrome_partition(s: String, k: i32) -> i32 {\n        let n = s.len();\n        let mut cost = vec![vec![0; n]; n];\n        for span in 2..=n {\n            for i in 0..=n - span {\n                let j = i + span - 1;\n                cost[i][j] = cost[i + 1][j - 1] + if s.as_bytes()[i] == s.as_bytes()[j] { 0 } else { 1 };\n            }\n        }\n        let mut f = vec![vec![i32::MAX; k as usize + 1]; n + 1];\n        f[0][0] = 0;\n        for i in 1..=n {\n            for j in 1..=std::cmp::min(k as usize, i) {\n                if j == 1 {\n                    f[i][j] = cost[0][i - 1];\n                } else {\n                    for i0 in (j - 1)..i {\n                        f[i][j] = min(f[i][j], f[i0][j - 1] + cost[i0][i - 1]);\n                    }\n                }\n            }\n        }\n        f[n][k as usize]\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(N^2K)$，其中 $N$ 是字符串 `S` 的长度。预处理 `cost()` 函数需要的时间为 $O(N^2)$。在动态规划中，我们需要枚举 `i`，`j` 以及 `i0`，它们需要的时间分别为 $O(N)$，$O(K)$ 和 $O(N)$，整体复杂度为 $O(N^2K)$。由于 $O(N^2) < O(N^2K)$，因此算法的总时间复杂度为 $O(N^2K)$。\n\n- 空间复杂度：$O(N^2 + NK)$。存储 `cost()` 函数需要的空间为 $O(N^2)$，存储动态规划的结果 `f` 需要的空间为 $O(NK)$。",
+            "slateValue": "",
+            "slug": "fen-ge-hui-wen-chuan-iii-by-leetcode-solution",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "Qy0zya",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 34,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-02-19T02:26:40.535066+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 我们用 f[i][j] 表示对于字符串 S 的前 i 个字符，将它分割成 j 个非空且不相交的回文串，最少需要修改的字符数。在进行状态转移时，我们可以枚举第 j 个回文串的起始位置 i0，那么就有如下的状态转移方程： f[i][j] = min(f[i0][j - 1] + cost(S, i0 + ",
+            "topic": {
+                "id": 101707,
+                "subscribed": false,
+                "commentCount": 48,
+                "viewCount": 6024,
+                "post": {
+                    "id": 349497,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 76,
+            "isEditorsPick": false,
+            "hitCount": 19443,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "palindrome-partitioning-iii",
+                "questionFrontendId": "1278"
+            },
+            "next": {
+                "slug": "jiao-ni-yi-bu-bu-si-kao-dpcong-ji-yi-hua-z363",
+                "title": "教你一步步思考 DP：从记忆化搜索到递推（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,156 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "ZLQExG",
+            "title": "将二叉搜索树变平衡",
+            "content": "#### 方法一：贪心构造\n\n**思路**\n\n「平衡」要求它是一棵空树或它的左右两个子树的高度差的绝对值不超过 $1$，这很容易让我们产生这样的想法——左右子树的大小越「平均」，这棵树会不会越平衡？于是一种贪心策略的雏形就形成了：我们可以通过中序遍历将原来的二叉搜索树转化为一个有序序列，然后对这个有序序列递归建树，对于区间 $[L, R]$：\n\n+ 取 ${\\rm mid} = \\lfloor \\frac{L + R}{2} \\rfloor$ ，即中心位置作为当前节点的值；\n\n+ 如果 $L \\leq {\\rm mid} - 1$，那么递归地将区间 $[L, {\\rm mid} - 1]$ 作为当前节点的左子树；\n\n+ 如果 ${\\rm mid} + 1 \\leq R$，那么递归地将区间 $[{\\rm mid} + 1, R]$ 作为当前节点的右子树。\n\n**思考：如何证明这个贪心是正确的呢？** \n\n要证明我们构造的这颗树是平衡的，就要证明这棵树根结点为空或者左右两个子树的高度差的绝对值不超过 $1$。\n\n观察这个过程，我们不难发现它和二分查找非常相似。对于一个长度为 $x$ 的区间，由它构建出的二叉树的最大高度应该等于对长度为 $x$ 的有序序列进行二分查找「查找成功」时的「最大」比较次数，为 $\\lfloor \\log_2 x \\rfloor + 1$，记为 $h(x)$。\n\n---\n\n**「引理 A」** 长度为 $k$ 的区间与长度为 $k + 1$ 的区间（其中 $k \\geq 1$）按照以上方法构造出的二叉树的最大高度差不超过 $1$。证明过程如下：\n\n要证明「引理 A」即我们要证明：\n\n$$ \n    \\begin{aligned} \n        h(k + 1) - h(k) \n        = & [\\lfloor \\log_2 (k + 1) \\rfloor + 1] - [\\lfloor \\log_2 (k) \\rfloor + 1] \\\\ \n        = & \\lfloor \\log_2 (k + 1) \\rfloor - \\lfloor \\log_2 (k) \\rfloor \\leq 1\n    \\end{aligned} \n$$\n\n由此我们可以证明不等式：\n\n$$ \\lfloor \\log_2 (k + 1) \\rfloor \\leq \\lfloor \\log_2 (k) \\rfloor + 1 $$\n\n设 $k = 2^r + b$，其中 $0 \\leq b < 2^r$，那么 $k \\in [2^{r}, 2^{r+1})$，$\\lfloor \\log k \\rfloor = r$，不等式右边等于 $r + 1$。因为 $k \\in [2^{r}, 2^{r+1})$，所以 $k + 1 \\in (2^{r}, 2^{r+1}]$，故 $\\lceil \\log_2 (k + 1) \\rceil = r + 1$，即右边等于 $\\lceil \\log_2 (k + 1) \\rceil$。所以我们需要证明：\n\n$$ \\lfloor \\log_2 (k + 1) \\rfloor \\leq \\lceil \\log_2 (k + 1) \\rceil$$\n\n显然成立，由此逆推可得，「引理 A」成立。\n\n---\n\n下面我们来证明这个贪心算法的正确性：即按照这个方法构造出的二叉树左右子树都是平衡的，并且左右子树的高度差不超过 $1$。\n\n**「正确性证明」** 假设我们要讨论的区间长度为 $k$，我们用数学归纳法来证明：\n\n+ $k = 1$，$k = 2$ 时显然成立；\n\n+ 假设 $k = m$ 和 $k = m + 1$ 时正确性成立。\n\n    - 那么根据「引理 A」，长度为 $m$ 和 $m + 1$ 的区间构造出的子树都是平衡的，并且它们的高度差不超过 $1$；\n\n    - 当 $k = 2(m + 1) - 1$ 时，创建出的节点的值等于第 $m + 1$ 个元素的值，它的左边和右边各有长度为 $m$ 的区间，根据「假设推论」，$k = 2(m + 1) - 1$ 时构造出的左右子树都是平衡树，且树形完全相同，故高度差为 $0$，所以 $k = 2(m + 1) - 1$ 时，正确性成立；\n\n    - 当 $k = 2(m + 1)$ 时，创建出的节点的值等于第 $m + 1$ 个元素的值，它的左边的区间长度为 $m$，右边区间的长度为 $m + 1$，那么 $k = 2(m + 1)$ 时构造出的左右子树都是平衡树，且高度差不超过 $1$，所以 $k = 2(m + 1)$ 时，正确性成立；\n\n+ 通过这种归纳方法，可以覆盖所有的 $k \\geq 1$。故在 $k \\geq 1$ 时，正确性成立，证毕。\n\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<int> inorderSeq;\n\n    void getInorder(TreeNode* o) {\n        if (o->left) {\n            getInorder(o->left);\n        }\n        inorderSeq.push_back(o->val);\n        if (o->right) {\n            getInorder(o->right);\n        }\n    }\n\n    TreeNode* build(int l, int r) {\n        int mid = (l + r) >> 1;\n        TreeNode* o = new TreeNode(inorderSeq[mid]);\n        if (l <= mid - 1) {\n            o->left = build(l, mid - 1);\n        }\n        if (mid + 1 <= r) {\n            o->right = build(mid + 1, r);\n        }\n        return o;\n    }\n\n    TreeNode* balanceBST(TreeNode* root) {\n        getInorder(root);\n        return build(0, inorderSeq.size() - 1);\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    List<Integer> inorderSeq = new ArrayList<Integer>();\n\n    public TreeNode balanceBST(TreeNode root) {\n        getInorder(root);\n        return build(0, inorderSeq.size() - 1);\n    }\n\n    public void getInorder(TreeNode o) {\n        if (o.left != null) {\n            getInorder(o.left);\n        }\n        inorderSeq.add(o.val);\n        if (o.right != null) {\n            getInorder(o.right);\n        }\n    }\n\n    public TreeNode build(int l, int r) {\n        int mid = (l + r) >> 1;\n        TreeNode o = new TreeNode(inorderSeq.get(mid));\n        if (l <= mid - 1) {\n            o.left = build(l, mid - 1);\n        }\n        if (mid + 1 <= r) {\n            o.right = build(mid + 1, r);\n        }\n        return o;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def balanceBST(self, root: TreeNode) -> TreeNode:\n        def getInorder(o):\n            if o.left:\n                getInorder(o.left)\n            inorderSeq.append(o.val)\n            if o.right:\n                getInorder(o.right)\n        \n        def build(l, r):\n            mid = (l + r) // 2\n            o = TreeNode(inorderSeq[mid])\n            if l <= mid - 1:\n                o.left = build(l, mid - 1)\n            if mid + 1 <= r:\n                o.right = build(mid + 1, r)\n            return o\n\n        inorderSeq = list()\n        getInorder(root)\n        return build(0, len(inorderSeq) - 1)\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    private List<int> inorderSeq = new List<int>();\n\n    public TreeNode BalanceBST(TreeNode root) {\n        GetInorder(root);\n        return Build(0, inorderSeq.Count - 1);\n    }\n\n    private void GetInorder(TreeNode o) {\n        if (o.left != null) {\n            GetInorder(o.left);\n        }\n        inorderSeq.Add(o.val);\n        if (o.right != null) {\n            GetInorder(o.right);\n        }\n    }\n\n    private TreeNode Build(int l, int r) {\n        int mid = (l + r) >> 1;\n        TreeNode o = new TreeNode(inorderSeq[mid]);\n        if (l <= mid - 1) {\n            o.left = Build(l, mid - 1);\n        }\n        if (mid + 1 <= r) {\n            o.right = Build(mid + 1, r);\n        }\n        return o;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc balanceBST(root *TreeNode) *TreeNode {\n    var inorderSeq []int\n    \n    var getInorder func(*TreeNode)\n    getInorder = func(o *TreeNode) {\n        if o.Left != nil {\n            getInorder(o.Left)\n        }\n        inorderSeq = append(inorderSeq, o.Val)\n        if o.Right != nil {\n            getInorder(o.Right)\n        }\n    }\n    \n    var build func(int, int) *TreeNode\n    build = func(l, r int) *TreeNode {\n        mid := (l + r) >> 1\n        o := &TreeNode{Val: inorderSeq[mid]}\n        if l <= mid-1 {\n            o.Left = build(l, mid-1)\n        }\n        if mid+1 <= r {\n            o.Right = build(mid+1, r)\n        }\n        return o\n    }\n    \n    getInorder(root)\n    return build(0, len(inorderSeq)-1)\n}\n```\n\n```C [sol1-C]\nvoid getInorder(struct TreeNode* o, int* seq, int* index) {\n    if (o->left) {\n        getInorder(o->left, seq, index);\n    }\n    seq[(*index)++] = o->val;\n    if (o->right) {\n        getInorder(o->right, seq, index);\n    }\n}\n\nint getSize(struct TreeNode* root) {\n    if (!root) return 0;\n    return 1 + getSize(root->left) + getSize(root->right);\n}\n\nstruct TreeNode* build(int* seq, int l, int r) {\n    int mid = (l + r) >> 1;\n    struct TreeNode* o = (struct TreeNode*)malloc(sizeof(struct TreeNode));\n    o->val = seq[mid];\n    o->left = o->right = NULL;\n    \n    if (l <= mid - 1) {\n        o->left = build(seq, l, mid - 1);\n    }\n    if (mid + 1 <= r) {\n        o->right = build(seq, mid + 1, r);\n    }\n    return o;\n}\n\nstruct TreeNode* balanceBST(struct TreeNode* root) {\n    int size = getSize(root);\n    int* inorderSeq = (int*)malloc(size * sizeof(int));\n    int index = 0;\n    \n    getInorder(root, inorderSeq, &index);\n    struct TreeNode* result = build(inorderSeq, 0, size - 1);\n    \n    free(inorderSeq);\n    return result;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar balanceBST = function(root) {\n    const inorderSeq = [];\n    \n    const getInorder = (o) => {\n        if (o.left) {\n            getInorder(o.left);\n        }\n        inorderSeq.push(o.val);\n        if (o.right) {\n            getInorder(o.right);\n        }\n    };\n    \n    const build = (l, r) => {\n        const mid = (l + r) >> 1;\n        const o = new TreeNode(inorderSeq[mid]);\n        if (l <= mid - 1) {\n            o.left = build(l, mid - 1);\n        }\n        if (mid + 1 <= r) {\n            o.right = build(mid + 1, r);\n        }\n        return o;\n    };\n    \n    getInorder(root);\n    return build(0, inorderSeq.length - 1);\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction balanceBST(root: TreeNode | null): TreeNode | null {\n    const inorderSeq: number[] = [];\n    \n    const getInorder = (o: TreeNode | null): void => {\n        if (!o) return;\n        if (o.left) {\n            getInorder(o.left);\n        }\n        inorderSeq.push(o.val);\n        if (o.right) {\n            getInorder(o.right);\n        }\n    };\n    \n    const build = (l: number, r: number): TreeNode | null => {\n        if (l > r) return null;\n        const mid = (l + r) >> 1;\n        const o = new TreeNode(inorderSeq[mid]);\n        o.left = build(l, mid - 1);\n        o.right = build(mid + 1, r);\n        return o;\n    };\n    \n    getInorder(root);\n    return build(0, inorderSeq.length - 1);\n}\n```\n\n```Rust [sol1-Rust]\nuse std::rc::Rc;\nuse std::cell::RefCell;\n\nimpl Solution {\n    pub fn balance_bst(root: Option<Rc<RefCell<TreeNode>>>) -> Option<Rc<RefCell<TreeNode>>> {\n        let mut inorder_seq = Vec::new();\n        \n        Self::get_inorder(&root, &mut inorder_seq);\n        Self::build(&inorder_seq, 0, inorder_seq.len() as i32 - 1)\n    }\n    \n    fn get_inorder(root: &Option<Rc<RefCell<TreeNode>>>, seq: &mut Vec<i32>) {\n        if let Some(node) = root {\n            let node_ref = node.borrow();\n            Self::get_inorder(&node_ref.left, seq);\n            seq.push(node_ref.val);\n            Self::get_inorder(&node_ref.right, seq);\n        }\n    }\n    \n    fn build(seq: &[i32], l: i32, r: i32) -> Option<Rc<RefCell<TreeNode>>> {\n        if l > r {\n            return None;\n        }\n        let mid = (l + r) >> 1;\n        let mut node = TreeNode::new(seq[mid as usize]);\n        node.left = Self::build(seq, l, mid - 1);\n        node.right = Self::build(seq, mid + 1, r);\n        Some(Rc::new(RefCell::new(node)))\n    }\n}\n```\n\n**复杂度分析**\n\n假设节点总数为 $n$。\n\n- 时间复杂度：获得中序遍历的时间代价是 $O(n)$；建立平衡二叉树的时建立每个点的时间代价为 $O(1)$，总时间也是 $O(n)$。故渐进时间复杂度为 $O(n)$。\n\n- 空间复杂度：这里使用了一个数组作为辅助空间，存放中序遍历后的有序序列，故渐进空间复杂度为 $O(n)$。",
+            "slateValue": "",
+            "slug": "jiang-er-cha-sou-suo-shu-bian-ping-heng-by-leetcod",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "ZLQExG",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 47,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Greedy",
+                    "nameTranslated": "贪心",
+                    "slug": "greedy",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Tree",
+                    "nameTranslated": "树",
+                    "slug": "tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search Tree",
+                    "nameTranslated": "二叉搜索树",
+                    "slug": "binary-search-tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Divide and Conquer",
+                    "nameTranslated": "分治",
+                    "slug": "divide-and-conquer",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Tree",
+                    "nameTranslated": "二叉树",
+                    "slug": "binary-tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-05-11T05:15:22.024749+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：贪心构造 思路 「平衡」要求它是一棵空树或它的左右两个子树的高度差的绝对值不超过 [latex]，这很容易让我们产生这样的想法——左右子树的大小越「平均」，这棵树会不会越平衡？于是一种贪心策略的雏形就形成了：我们可以通过中序遍历将原来的二叉搜索树转化为一个有序序列，然后对这个有序序列递归建树，对于区间 [lat",
+            "topic": {
+                "id": 241897,
+                "subscribed": false,
+                "commentCount": 85,
+                "viewCount": 21520,
+                "post": {
+                    "id": 633589,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 197,
+            "isEditorsPick": false,
+            "hitCount": 54960,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "balance-a-binary-search-tree",
+                "questionFrontendId": "1382"
+            },
+            "next": {
+                "slug": "er-cha-sou-suo-shu-shu-zu-er-cha-sou-suo-tyms",
+                "title": "二叉搜索树 -> 数组 -> 二叉搜索树（Python/Java/C++/C/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

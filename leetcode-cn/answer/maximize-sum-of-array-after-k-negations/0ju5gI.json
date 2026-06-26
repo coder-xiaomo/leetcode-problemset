@@ -1,0 +1,132 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "0ju5gI",
+            "title": "K 次取反后最大化的数组和",
+            "content": "#### 方法一：从小到大修改每个负数\n\n**思路与算法**\n\n由于我们希望数组的和尽可能大，因此除非万不得已，我们应当总是修改负数，并且优先修改值最小的负数。因为将负数 $-x$ 修改成 $x$ 会使得数组的和增加 $2x$，所以这样的贪心操作是最优的。\n\n当给定的 $K$ 小于等于数组中负数的个数时，我们按照上述方法从小到大依次修改每一个负数即可。但如果 $K$ 的值较大，那么我们不得不去修改非负数（即正数或者 $0$）了。由于修改 $0$ 对数组的和不会有影响，而修改正数会使得数组的和减小，因此：\n\n- 如果数组中存在 $0$，那么我们可以对它进行多次修改，直到把剩余的修改次数用完；\n\n- 如果数组中不存在 $0$ 并且剩余的修改次数是偶数，由于对同一个数修改两次等价于不进行修改，因此我们也可以在不减小数组的和的前提下，把修改次数用完；\n\n- 如果数组中不存在 $0$ 并且剩余的修改次数是奇数，那么我们必然需要使用单独的一次修改将一个正数变为负数（剩余的修改次数为偶数，就不会减小数组的和）。为了使得数组的和尽可能大，我们就选择那个最小的正数。\n\n    需要注意的是，在之前将负数修改为正数的过程中，可能出现了（相较于原始数组中最小的正数）更小的正数，这一点不能忽略。\n\n**细节**\n\n为了实现上面的算法，我们可以对数组进行升序排序，首先依次遍历每一个负数（将负数修改为正数），再遍历所有的数（将 $0$ 或最小的正数进行修改）。\n\n然而注意到本题中数组元素的范围为 $[-100, 100]$，因此我们可以使用计数数组（桶）或者哈希表，直接统计每个元素出现的次数，再升序遍历元素的范围，这样就省去了排序需要的时间。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int largestSumAfterKNegations(vector<int>& nums, int k) {\n        unordered_map<int, int> freq;\n        for (int num: nums) {\n            freq[num] += 1;\n        }\n        int ans = accumulate(nums.begin(), nums.end(), 0);\n        for (int i = -100; i < 0; ++i) {\n            if (freq[i]) {\n                int ops = min(k, freq[i]);\n                ans += (-i) * ops * 2;\n                freq[i] -= ops;\n                freq[-i] += ops;\n                k -= ops;\n                if (k == 0) {\n                    break;\n                }\n            }\n        }\n        if (k > 0 && k % 2 == 1 && !freq[0]) {\n            for (int i = 1; i <= 100; ++i) {\n                if (freq[i]) {\n                    ans -= i * 2;\n                    break;\n                }\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int largestSumAfterKNegations(int[] nums, int k) {\n        Map<Integer, Integer> freq = new HashMap<Integer, Integer>();\n        for (int num : nums) {\n            freq.put(num, freq.getOrDefault(num, 0) + 1);\n        }\n        int ans = Arrays.stream(nums).sum();\n        for (int i = -100; i < 0; ++i) {\n            if (freq.containsKey(i)) {\n                int ops = Math.min(k, freq.get(i));\n                ans += (-i) * ops * 2;\n                freq.put(i, freq.get(i) - ops);\n                freq.put(-i, freq.getOrDefault(-i, 0) + ops);\n                k -= ops;\n                if (k == 0) {\n                    break;\n                }\n            }\n        }\n        if (k > 0 && k % 2 == 1 && !freq.containsKey(0)) {\n            for (int i = 1; i <= 100; ++i) {\n                if (freq.containsKey(i)) {\n                    ans -= i * 2;\n                    break;\n                }\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int LargestSumAfterKNegations(int[] nums, int k) {\n        Dictionary<int, int> freq = new Dictionary<int, int>();\n        foreach (int num in nums) {\n            if (!freq.ContainsKey(num)) {\n                freq.Add(num, 0);\n            }\n            freq[num] += 1;\n        }\n        int ans = nums.Sum();\n        for (int i = -100; i < 0; ++i) {\n            if (freq.ContainsKey(i)) {\n                int ops = Math.Min(k, freq[i]);\n                ans += (-i) * ops * 2;\n                freq[i] -= ops;\n                if (!freq.ContainsKey(-i)) {\n                    freq.Add(-i, 0);\n                }\n                freq[-i] += ops;\n                k -= ops;\n                if (k == 0) {\n                    break;\n                }\n            }\n        }\n        if (k > 0 && k % 2 == 1 && !freq.ContainsKey(0)) {\n            for (int i = 1; i <= 100; ++i) {\n                if (freq.ContainsKey(i)) {\n                    ans -= i * 2;\n                    break;\n                }\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def largestSumAfterKNegations(self, nums: List[int], k: int) -> int:\n        freq = Counter(nums)\n        ans = sum(nums)\n        for i in range(-100, 0):\n            if freq[i]:\n                ops = min(k, freq[i])\n                ans += -i * ops * 2\n                freq[i] -= ops\n                freq[-i] += ops\n                k -= ops\n                if k == 0:\n                    break\n        \n        if k > 0 and k % 2 == 1 and not freq[0]:\n            for i in range(1, 101):\n                if freq[i]:\n                    ans -= i * 2\n                    break\n        \n        return ans\n```\n\n```go [sol1-Golang]\nfunc largestSumAfterKNegations(nums []int, k int) (ans int) {\n    freq := map[int]int{}\n    for _, num := range nums {\n        freq[num]++\n        ans += num\n    }\n    for i := -100; i < 0 && k != 0; i++ {\n        if freq[i] > 0 {\n            ops := min(k, freq[i])\n            ans -= i * ops * 2\n            freq[-i] += ops\n            k -= ops\n        }\n    }\n    if k > 0 && k%2 == 1 && freq[0] == 0 {\n        for i := 1; i <= 100; i++ {\n            if freq[i] > 0 {\n                ans -= i * 2\n                break\n            }\n        }\n    }\n    return\n}\n\nfunc min(a, b int) int {\n    if a > b {\n        return b\n    }\n    return a\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar largestSumAfterKNegations = function(nums, k) {\n    const freq = new Map();\n    for (const num of nums) {\n        freq.set(num, (freq.get(num) || 0) + 1);\n    }\n    let ans = _.sum(nums);\n    for (let i = -100; i < 0; ++i) {\n        if (freq.has(i)) {\n            const ops = Math.min(k, freq.get(i));\n            ans += (-i) * ops * 2;\n            freq.set(i, freq.get(i) - ops);\n            freq.set(-i, (freq.get(-i) || 0) + ops);\n            k -= ops;\n            if (k === 0) {\n                break;\n            }\n        }\n    }\n    if (k > 0 && k % 2 === 1 && !freq.has(0)) {\n        for (let i = 1; i <= 100; ++i) {\n            if (freq.has(i)) {\n                ans -= i * 2;\n                break;\n            }\n        }\n    }\n    return ans;\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n + C)$，其中 $n$ 是数组 $\\textit{nums}$ 的长度，$C$ 是数组 $\\textit{nums}$ 中元素的范围，本题中 $C = 201$。\n\n    我们需要 $O(n)$ 的时间使用桶或哈希表统计每个元素出现的次数，随后需要 $O(C)$ 的时间对元素进行操作。\n\n- 空间复杂度：$O(C)$，即为桶或哈希表需要使用的空间。",
+            "slateValue": "",
+            "slug": "k-ci-qu-fan-hou-zui-da-hua-de-shu-zu-he-4r5lb",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "0ju5gI",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 64,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Greedy",
+                    "nameTranslated": "贪心",
+                    "slug": "greedy",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Sorting",
+                    "nameTranslated": "排序",
+                    "slug": "sorting",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-12-02T03:53:34.034170+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：从小到大修改每个负数 思路与算法 由于我们希望数组的和尽可能大，因此除非万不得已，我们应当总是修改负数，并且优先修改值最小的负数。因为将负数 $-x$ 修改成 $x$ 会使得数组的和增加 $2x$，所以这样的贪心操作是最优的。 当给定的 $K$ 小于等于数组中负数的个数时，我们按照上述方法从小到大依次修改每一个",
+            "topic": {
+                "id": 1134002,
+                "subscribed": false,
+                "commentCount": 312,
+                "viewCount": 27772,
+                "post": {
+                    "id": 2394802,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 93,
+            "isEditorsPick": false,
+            "hitCount": 60979,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "maximize-sum-of-array-after-k-negations",
+                "questionFrontendId": "1005"
+            },
+            "next": {
+                "slug": "java-chao-yue-9966xiang-xi-jie-xi-by-flychenkai",
+                "title": "Java-超越99.66%.详细解析"
+            },
+            "prev": null
+        }
+    }
+}

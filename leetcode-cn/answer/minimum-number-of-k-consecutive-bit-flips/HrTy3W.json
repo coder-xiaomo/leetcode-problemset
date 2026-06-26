@@ -1,0 +1,134 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "HrTy3W",
+            "title": "K 连续位的最小翻转次数",
+            "content": "#### 方法一：差分数组\n\n由于对同一个子数组执行两次翻转操作不会改变该子数组，所以对每个长度为 $k$ 的子数组，应至多执行一次翻转操作。\n\n对于若干个 $k$ 位翻转操作，改变先后顺序并不影响最终翻转的结果。不妨从 $\\textit{nums}[0]$ 开始考虑，若 $\\textit{nums}[0]=0$，则必定要翻转从位置 $0$ 开始的子数组；若 $\\textit{nums}[0]=1$，则不翻转从位置 $0$ 开始的子数组。\n\n按照这一策略，我们从左到右地执行这些翻转操作。由于翻转操作是唯一的，若最终数组元素均为 $1$，则执行的翻转次数就是最小的。\n\n用 $n$ 表示数组 $\\textit{nums}$ 的长度。若直接模拟上述过程，复杂度将会是 $O(nk)$ 的。如何优化呢？\n\n考虑不去翻转数字，而是统计每个数字需要翻转的次数。对于一次翻转操作，相当于把子数组中所有数字的翻转次数加 $1$。\n\n这启发我们用**差分数组**的思想来计算当前数字需要翻转的次数。我们可以维护一个差分数组 $\\textit{diff}$，其中 $\\textit{diff}[i]$ 表示两个相邻元素 $\\textit{nums}[i-1]$ 和 $\\textit{nums}[i]$ 的翻转次数的差，对于区间 $[l,r]$，将其元素全部加 $1$，只会影响到 $l$ 和 $r+1$ 处的差分值，故 $\\textit{diff}[l]$ 增加 $1$，$\\textit{diff}[r+1]$ 减少 $1$。\n\n通过累加差分数组可以得到当前位置需要翻转的次数，我们用变量 $revCnt$ 来表示这一累加值。\n\n遍历到 $\\textit{nums}[i]$ 时，若 $\\textit{nums}[i]+\\textit{revCnt}$ 是偶数，则说明当前元素的实际值为 $0$，需要翻转区间 $[i,i+k-1]$，我们可以直接将 $\\textit{revCnt}$ 增加 $1$，$\\textit{diff}[i+k]$ 减少 $1$。\n\n注意到若 $i+k>n$ 则无法执行翻转操作，此时应返回 $-1$。\n\n**代码**\n\n```C++ [sol11-C++]\nclass Solution {\npublic:\n    int minKBitFlips(vector<int>& nums, int k) {\n        int n = nums.size();\n        vector<int> diff(n + 1);\n        int ans = 0, revCnt = 0;\n        for (int i = 0; i < n; ++i) {\n            revCnt += diff[i];\n            if ((nums[i] + revCnt) % 2 == 0) {\n                if (i + k > n) {\n                    return -1;\n                }\n                ++ans;\n                ++revCnt;\n                --diff[i + k];\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```Java [sol11-Java]\nclass Solution {\n    public int minKBitFlips(int[] nums, int k) {\n        int n = nums.length;\n        int[] diff = new int[n + 1];\n        int ans = 0, revCnt = 0;\n        for (int i = 0; i < n; ++i) {\n            revCnt += diff[i];\n            if ((nums[i] + revCnt) % 2 == 0) {\n                if (i + k > n) {\n                    return -1;\n                }\n                ++ans;\n                ++revCnt;\n                --diff[i + k];\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```go [sol11-Golang]\nfunc minKBitFlips(nums []int, k int) (ans int) {\n    n := len(nums)\n    diff := make([]int, n+1)\n    revCnt := 0\n    for i, v := range nums {\n        revCnt += diff[i]\n        if (v+revCnt)%2 == 0 {\n            if i+k > n {\n                return -1\n            }\n            ans++\n            revCnt++\n            diff[i+k]--\n        }\n    }\n    return\n}\n```\n\n```C [sol11-C]\nint minKBitFlips(int* nums, int numsSize, int k) {\n    int diff[numsSize + 1];\n    memset(diff, 0, sizeof(diff));\n    int ans = 0, revCnt = 0;\n    for (int i = 0; i < numsSize; ++i) {\n        revCnt += diff[i];\n        if ((nums[i] + revCnt) % 2 == 0) {\n            if (i + k > numsSize) {\n                return -1;\n            }\n            ++ans;\n            ++revCnt;\n            --diff[i + k];\n        }\n    }\n    return ans;\n}\n```\n\n```JavaScript [sol11-JavaScript]\nvar minKBitFlips = function(nums, k) {\n    const n = nums.length;\n    const diff = new Array(n + 1).fill(0);\n    let ans = 0, revCnt = 0;\n    for (let i = 0; i < n; i++) {\n        revCnt += diff[i];\n        if ((nums[i] + revCnt) % 2 === 0) {\n            if ((i + k) > n) {\n                return -1;\n            }\n            ++ans;\n            ++revCnt;\n            --diff[i + k]\n        }\n    }\n    return ans;\n};\n```\n\n由于模 $2$ 意义下的加减法与异或等价，我们也可以用异或改写上面的代码。\n\n```C++ [sol12-C++]\nclass Solution {\npublic:\n    int minKBitFlips(vector<int>& nums, int k) {\n        int n = nums.size();\n        vector<int> diff(n + 1);\n        int ans = 0, revCnt = 0;\n        for (int i = 0; i < n; ++i) {\n            revCnt ^= diff[i];\n            if (nums[i] == revCnt) { // nums[i] ^ revCnt == 0\n                if (i + k > n) {\n                    return -1;\n                }\n                ++ans;\n                revCnt ^= 1;\n                diff[i + k] ^= 1;\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```Java [sol12-Java]\nclass Solution {\n    public int minKBitFlips(int[] nums, int k) {\n        int n = nums.length;\n        int[] diff = new int[n + 1];\n        int ans = 0, revCnt = 0;\n        for (int i = 0; i < n; ++i) {\n            revCnt ^= diff[i];\n            if (nums[i] == revCnt) { // nums[i] ^ revCnt == 0\n                if (i + k > n) {\n                    return -1;\n                }\n                ++ans;\n                revCnt ^= 1;\n                diff[i + k] ^= 1;\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```go [sol12-Golang]\nfunc minKBitFlips(nums []int, k int) (ans int) {\n    n := len(nums)\n    diff := make([]int, n+1)\n    revCnt := 0\n    for i, v := range nums {\n        revCnt ^= diff[i]\n        if v == revCnt { // v^revCnt == 0\n            if i+k > n {\n                return -1\n            }\n            ans++\n            revCnt ^= 1\n            diff[i+k] ^= 1\n        }\n    }\n    return\n}\n```\n\n```C [sol12-C]\nint minKBitFlips(int* nums, int numsSize, int k) {\n    int diff[numsSize + 1];\n    memset(diff, 0, sizeof(diff));\n    int ans = 0, revCnt = 0;\n    for (int i = 0; i < numsSize; ++i) {\n        revCnt ^= diff[i];\n        if (nums[i] == revCnt) {  // nums[i] ^ revCnt == 0\n            if (i + k > numsSize) {\n                return -1;\n            }\n            ++ans;\n            revCnt ^= 1;\n            diff[i + k] ^= 1;\n        }\n    }\n    return ans;\n}\n```\n\n```JavaScript [sol12-JavaScript]\nvar minKBitFlips = function(nums, k) {\n    const n = nums.length;\n    const diff = new Array(n + 1).fill(0);\n    let ans = 0, revCnt = 0;\n    for (let i = 0; i < n; i++) {\n        revCnt ^= diff[i];\n        if (nums[i] === revCnt) { // nums[i] ^ revCnt == 0\n            if ((i + k) > n) {\n                return -1;\n            }\n            ++ans;\n            revCnt ^= 1;\n            diff[i + k] ^= 1;\n        }\n    }\n    return ans;\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是数组 $\\textit{nums}$ 的长度。需要对数组 $\\textit{nums}$ 遍历一次。\n\n- 空间复杂度：$O(n)$，其中 $n$ 是数组 $\\textit{nums}$ 的长度。需要创建一个长度为 $n+1$ 的差分数组 $\\textit{diff}$。\n\n\n#### 方法二：滑动窗口\n\n能否将空间复杂度优化至 $O(1)$ 呢？\n\n回顾方法一的代码，当遍历到位置 $i$ 时，若能知道位置 $i-k$ 上发生了翻转操作，便可以直接修改 $\\textit{revCnt}$，从而去掉 $\\textit{diff}$ 数组。\n\n注意到 $0\\le \\textit{nums}[i]\\le 1$，我们可以用 $\\textit{nums}[i]$ 范围**之外**的数来表达「是否翻转过」的含义。\n\n具体来说，若要翻转从位置 $i$ 开始的子数组，可以将 $\\textit{nums}[i]$ 加 $2$，这样当遍历到位置 $i'$ 时，若有 $\\textit{nums}[i'-k]>1$，则说明在位置 $i'-k$ 上发生了翻转操作。\n\n**代码**\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    int minKBitFlips(vector<int>& nums, int k) {\n        int n = nums.size();\n        int ans = 0, revCnt = 0;\n        for (int i = 0; i < n; ++i) {\n            if (i >= k && nums[i - k] > 1) {\n                revCnt ^= 1;\n                nums[i - k] -= 2; // 复原数组元素，若允许修改数组 nums，则可以省略\n            }\n            if (nums[i] == revCnt) {\n                if (i + k > n) {\n                    return -1;\n                }\n                ++ans;\n                revCnt ^= 1;\n                nums[i] += 2;\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public int minKBitFlips(int[] nums, int k) {\n        int n = nums.length;\n        int ans = 0, revCnt = 0;\n        for (int i = 0; i < n; ++i) {\n            if (i >= k && nums[i - k] > 1) {\n                revCnt ^= 1;\n                nums[i - k] -= 2; // 复原数组元素，若允许修改数组 nums，则可以省略\n            }\n            if (nums[i] == revCnt) {\n                if (i + k > n) {\n                    return -1;\n                }\n                ++ans;\n                revCnt ^= 1;\n                nums[i] += 2;\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```go [sol2-Golang]\nfunc minKBitFlips(nums []int, k int) (ans int) {\n    n := len(nums)\n    revCnt := 0\n    for i, v := range nums {\n        if i >= k && nums[i-k] > 1 {\n            revCnt ^= 1\n            nums[i-k] -= 2 // 复原数组元素，若允许修改数组 nums，则可以省略\n        }\n        if v == revCnt {\n            if i+k > n {\n                return -1\n            }\n            ans++\n            revCnt ^= 1\n            nums[i] += 2\n        }\n    }\n    return\n}\n```\n\n```C [sol2-C]\nint minKBitFlips(int* nums, int numsSize, int k) {\n    int ans = 0, revCnt = 0;\n    for (int i = 0; i < numsSize; ++i) {\n        if (i >= k && nums[i - k] > 1) {\n            revCnt ^= 1;\n            nums[i - k] -= 2;  // 复原数组元素，若允许修改数组 nums，则可以省略\n        }\n        if (nums[i] == revCnt) {\n            if (i + k > numsSize) {\n                return -1;\n            }\n            ++ans;\n            revCnt ^= 1;\n            nums[i] += 2;\n        }\n    }\n    return ans;\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar minKBitFlips = function(nums, k) {\n    const n = nums.length;\n    let ans = 0, revCnt = 0;\n    for (let i = 0; i < n; ++i) {\n        if (i >= k && nums[i - k] > 1) {\n            revCnt ^= 1;\n            nums[i - k] -= 2; // 复原数组元素，若允许修改数组 nums，则可以省略\n        }\n        if (nums[i] == revCnt) {\n            if (i + k > n) {\n                return -1;\n            }\n            ++ans;\n            revCnt ^= 1;\n            nums[i] += 2;\n        }\n    }\n    return ans;\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$。其中 $n$ 是数组 $\\textit{nums}$ 的长度。需要对数组 $\\textit{nums}$ 遍历一次。\n\n- 空间复杂度：$O(1)$。",
+            "slateValue": "",
+            "slug": "k-lian-xu-wei-de-zui-xiao-fan-zhuan-ci-s-bikk",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "HrTy3W",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 81,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 9,
+                    "reactionType": "CONFUSED"
+                },
+                {
+                    "count": 7,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Bit Manipulation",
+                    "nameTranslated": "位运算",
+                    "slug": "bit-manipulation",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Sliding Window",
+                    "nameTranslated": "滑动窗口",
+                    "slug": "sliding-window",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Prefix Sum",
+                    "nameTranslated": "前缀和",
+                    "slug": "prefix-sum",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2021-02-17T14:01:48.466781+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：差分数组 由于对同一个子数组执行两次翻转操作不会改变该子数组，所以对每个长度为 $k$ 的子数组，应至多执行一次翻转操作。 对于若干个 $k$ 位翻转操作，改变先后顺序并不影响最终翻转的结果。不妨从 $\\textit{nums}[0]$ 开始考虑，若 $\\textit{nums}[0]=0$，则必定要翻转从位置",
+            "topic": {
+                "id": 607416,
+                "subscribed": false,
+                "commentCount": 120,
+                "viewCount": 20780,
+                "post": {
+                    "id": 1397537,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 99,
+            "isEditorsPick": false,
+            "hitCount": 41553,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "minimum-number-of-k-consecutive-bit-flips",
+                "questionFrontendId": "995"
+            },
+            "next": {
+                "slug": "hua-dong-chuang-kou-shi-ben-ti-zui-rong-z403l",
+                "title": "滑动窗口，是本题最容易理解的解法"
+            },
+            "prev": null
+        }
+    }
+}

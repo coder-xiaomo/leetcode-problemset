@@ -1,0 +1,108 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "dkPuXQ",
+            "title": "带阈值的图连通性",
+            "content": "#### 方法一：并查集\n\n**思路与算法**\n\n对于求解「连通性」的问题，我们可以想到「并查集」这一数据结构。由于并查集支持「将两个节点分别所在的连通分量进行合并」以及「判断两个节点是否处于同一连通分量」这两个操作，因此：\n\n- 我们可以使用一个包含 $n$ 个节点的并查集；\n- 在预处理阶段，对于图中的每一条边，我们对这条边的两个端点进行合并操作；\n- 在查询阶段，对于每一组查询 $(a_i, b_i)$，我们判断这两个节点是否处于同一连通分量。\n\n然而我们发现，在最坏的情况下，当 $\\textit{threshold} = 0$ 时，图中任意两个节点之间都存在一条边，整个图为完全图。由于我们需要在预处理阶段遍历所有的边，因此至少需要 $O(n^2)$ 的时间复杂度，会超出时间限制。\n\n我们可以转变思路，考虑每一个公因数 $z$ 对整个图的连通性带来的变化。在 $[1, n]$ 中，一共有 $\\lfloor \\dfrac{n}{z} \\rfloor$ 个 $z$ 的倍数，其中 $\\lfloor x \\rfloor$ 表示对 $x$ 向下取整。当 $z > \\textit{threshold}$ 时，这 $\\lfloor \\dfrac{n}{z} \\rfloor$ 个数中任意两个的最大公约数都严格大于 $\\textit{threshold}$，也就是在图中，这些点两两之间存在一条边。\n\n这样一来，我们看似需要添加 $O\\big((\\dfrac{n}{z})^2\\big)$ 数量的边来维护 $z$ 带来的连通性变化。然而我们仔细思考一下，对于图中的 $\\lfloor \\dfrac{n}{z} \\rfloor$ 个而言，我们只需要添加 $\\lfloor \\dfrac{n}{z} \\rfloor - 1$ 条边，就可以使得这些点两两之间连通。而我们添加 $O\\big((\\dfrac{n}{z})^2\\big)$ 数量的边，使得这些点两两之间存在一条边，显然是没有必要的，因为**我们添加实际上只需要维护整个图的连通性**，使得这 $\\lfloor \\dfrac{n}{z} \\rfloor$ 个点直接或者间接相连。因此，我们只需要：\n\n- 连接第 $0$ 个点和第 $1$ 个点；\n- 连接第 $1$ 个点和第 $2$ 个点；\n- $\\cdots$\n- 连接第 $\\lfloor \\dfrac{n}{z} \\rfloor - 2$ 个点和第 $\\lfloor \\dfrac{n}{z} \\rfloor - 1$ 个点。\n\n即添加 $\\lfloor \\dfrac{n}{z} \\rfloor - 1 = O(\\dfrac{n}{z})$ 条边，就可以保证这 $\\lfloor \\dfrac{n}{z} \\rfloor$ 个节点的连通性。剩余没有添加的边都是**冗余**的。\n\n那么在最坏情况下，上述的做法会添加多少条边呢？我们可以使用求和公式粗略地进行计算：\n\n$$\n添加的边数 \\leq \\sum_{z=1}^n \\frac{n}{z} = n \\cdot \\sum_{z=1}^n \\frac{1}{z}\n$$\n\n即我们在 $[1, n]$ 的范围内枚举公因数 $z$ 并添加对应数量的边。通过将 $n$ 从求和中提出，我们得到了著名的[调和级数](https://baike.baidu.com/item/%E8%B0%83%E5%92%8C%E7%BA%A7%E6%95%B0)。可以证明，调和级数的增长趋势是对数的，即：\n\n$$\n\\sum_{z=1}^n \\frac{1}{z} = O(\\log n)\n$$\n\n因此，上述的做法会添加数量为 $O(n \\log n)$ 的边。使用优化的并查集，单次操作的均摊时间复杂度为 $O(\\alpha(n))$，其中 $\\alpha(x)$ 为反阿克曼函数，在宇宙粒子的数量级范围内，$\\alpha(x)$ 的值不会超过 $5$。\n\n回到一开始我们设计的算法：\n\n- 我们可以使用一个包含 $n$ 个节点的并查集；\n- 在预处理阶段，需要添加数量为 $O(n \\log n)$ 的边，时间复杂度为 $O(n \\log n \\cdot \\alpha(n))$；\n- 在查询阶段，对于每一组查询，需要 $O(\\alpha(n))$ 的时间判断连通性。\n\n**代码**\n\n```C++ [sol1-C++]\nclass UnionFind {\npublic:\n    vector<int> parent;\n    vector<int> size;\n    int n;\n    \npublic:\n    UnionFind(int _n): n(_n), parent(_n), size(_n, 1) {\n        iota(parent.begin(), parent.end(), 0);\n    }\n    \n    int findset(int x) {\n        return parent[x] == x ? x : parent[x] = findset(parent[x]);\n    }\n    \n    void unite(int x, int y) {\n        x = findset(x);\n        y = findset(y);\n        if (x == y) {\n            return;\n        }\n        if (size[x] < size[y]) {\n            swap(x, y);\n        }\n        parent[y] = x;\n        size[x] += size[y];\n    }\n    \n    bool connected(int x, int y) {\n        x = findset(x);\n        y = findset(y);\n        return x == y;\n    }\n};\n\nclass Solution {\npublic:\n    vector<bool> areConnected(int n, int threshold, vector<vector<int>>& queries) {\n        UnionFind uf(n + 1);\n        for (int z = threshold + 1; z <= n; ++z) {\n            for (int p = z, q = z * 2; q <= n; p += z, q += z) {\n                uf.unite(p, q);\n            }\n        }\n        \n        vector<bool> ans;\n        for (const auto& q: queries) {\n            int x = q[0];\n            int y = q[1];\n            ans.push_back(uf.connected(x, y));\n        }\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public List<Boolean> areConnected(int n, int threshold, int[][] queries) {\n        UnionFind uf = new UnionFind(n + 1);\n        for (int z = threshold + 1; z <= n; ++z) {\n            for (int p = z, q = z * 2; q <= n; p += z, q += z) {\n                uf.unite(p, q);\n            }\n        }\n        \n        List<Boolean> ans = new ArrayList<Boolean>();\n        for (int[] query : queries) {\n            int x = query[0];\n            int y = query[1];\n            ans.add(uf.connected(x, y));\n        }\n        return ans;\n    }\n}\n\nclass UnionFind {\n    int[] parent;\n    int[] size;\n    int n;\n\n    public UnionFind(int n) {\n        this.n = n;\n        parent = new int[n];\n        size = new int[n];\n        for (int i = 0; i < n; ++i) {\n            parent[i] = i;\n            size[i] = 1;\n        }\n    }\n    \n    public int findset(int x) {\n        return parent[x] == x ? x : (parent[x] = findset(parent[x]));\n    }\n    \n    public void unite(int x, int y) {\n        x = findset(x);\n        y = findset(y);\n        if (x == y) {\n            return;\n        }\n        if (size[x] < size[y]) {\n            int temp = x;\n            x = y;\n            y = temp;\n        }\n        parent[y] = x;\n        size[x] += size[y];\n    }\n    \n    public boolean connected(int x, int y) {\n        x = findset(x);\n        y = findset(y);\n        return x == y;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass UnionFind:\n    def __init__(self, n: int):\n        self.n = n\n        self.parent = list(range(n))\n        self.size = [1] * n\n    \n    def findset(self, x: int) -> int:\n        if self.parent[x] == x:\n            return x\n        self.parent[x] = self.findset(self.parent[x])\n        return self.parent[x]\n    \n    def unite(self, x: int, y: int):\n        x = self.findset(x)\n        y = self.findset(y)\n        if x == y:\n            return\n        if self.size[x] < self.size[y]:\n            x, y = y, x\n        self.parent[y] = x\n        self.size[x] += self.size[y]\n    \n    def connected(self, x: int, y: int) -> bool:\n        x = self.findset(x)\n        y = self.findset(y)\n        return x == y\n\nclass Solution:\n    def areConnected(self, n: int, threshold: int, queries: List[List[int]]) -> List[bool]:\n        uf = UnionFind(n + 1)\n        for z in range(threshold + 1, n):\n            for q in range(z * 2, n + 1, z):\n                uf.unite(q - z, q)\n        \n        ans = list()\n        for x, y in queries:\n            ans.append(uf.connected(x, y))\n        return ans\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O\\big((n \\log n + q) \\cdot \\alpha(n)\\big)$，其中 $q$ 是数组 $\\textit{queries}$ 的长度。\n\n- 空间复杂度：$O(n)$，即为并查集需要使用的空间。\n\n#### 方法二：并查集 + 枚举公因数优化\n\n在方法一的基础上，我们可以继续进行一些优化。如果读者对算法竞赛有一定的了解，可以发现方法一中的预处理部分很像一个「质数筛」。方法一中的质数筛本身（不包括并查集的操作）的时间复杂度是 $O(n \\log n)$ 的，我们可以将其替换成 $O(n \\log \\log n)$ 的[埃氏筛法](https://baike.baidu.com/item/%E5%9F%83%E6%8B%89%E6%89%98%E6%96%AF%E7%89%B9%E5%B0%BC%E7%AD%9B%E6%B3%95)。\n\n读者如果对埃氏筛法有兴趣，可以自行通过上面给出的链接以及互联网上的资料进行学习。这里不会给出埃氏筛法的细节，而是只说明为什么可以将方法一中的普通筛法替换成埃氏筛法。\n\n当我们枚举公因数 $z$ 时，如果存在一个之前枚举过的公因数 $z_0$，使得 $z_0 | z$（即 $z$ 是 $z_0$ 的倍数），那么我们不必枚举 $z$，这是因为 $z, 2z, 3z, \\cdots$ 在这之前已经通过 $z_0$ 添加的边，两两之间连通了。\n\n因此我们可以使用一个数组来标记每一个数是否需要被枚举。一个数没有被标记，当且仅当这个数不是之前任意一个枚举的数的倍数。当我们枚举公因数 $z$ 时，如果这个数没有被标记，我们就将 $2z, 3z, \\cdots$ 都进行标记，即这些数就不需要进行枚举了。\n\n注意到，当 $\\textit{threshold}=1$ 时，**上述做法会将所有的合数进行标记**，也就是说，我们只需要枚举所有的质数作为公因数，这也是十分符合逻辑的。\n\n**代码**\n\n```C++ [sol2-C++]\nclass UnionFind {\npublic:\n    vector<int> parent;\n    vector<int> size;\n    int n;\n    \npublic:\n    UnionFind(int _n): n(_n), parent(_n), size(_n, 1) {\n        iota(parent.begin(), parent.end(), 0);\n    }\n    \n    int findset(int x) {\n        return parent[x] == x ? x : parent[x] = findset(parent[x]);\n    }\n    \n    void unite(int x, int y) {\n        x = findset(x);\n        y = findset(y);\n        if (x == y) {\n            return;\n        }\n        if (size[x] < size[y]) {\n            swap(x, y);\n        }\n        parent[y] = x;\n        size[x] += size[y];\n    }\n    \n    bool connected(int x, int y) {\n        x = findset(x);\n        y = findset(y);\n        return x == y;\n    }\n};\n\nclass Solution {\npublic:\n    vector<bool> areConnected(int n, int threshold, vector<vector<int>>& queries) {\n        UnionFind uf(n + 1);\n        vector<int> isPrime(n + 1, 1);\n        for (int z = threshold + 1; z <= n; ++z) {\n            if (isPrime[z]) {\n                for (int p = z, q = z * 2; q <= n; p += z, q += z) {\n                    uf.unite(p, q);\n                    isPrime[q] = 0;\n                }\n            }\n        }\n        \n        vector<bool> ans;\n        for (const auto& q: queries) {\n            int x = q[0];\n            int y = q[1];\n            ans.push_back(uf.connected(x, y));\n        }\n        return ans;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public List<Boolean> areConnected(int n, int threshold, int[][] queries) {\n        UnionFind uf = new UnionFind(n + 1);\n        boolean[] isPrime = new boolean[n + 1];\n        Arrays.fill(isPrime, true);\n        for (int z = threshold + 1; z <= n; ++z) {\n            if (isPrime[z]) {\n                for (int p = z, q = z * 2; q <= n; p += z, q += z) {\n                    uf.unite(p, q);\n                    isPrime[q] = false;\n                }\n            }\n        }\n        \n        List<Boolean> ans = new ArrayList<Boolean>();\n        for (int[] query : queries) {\n            int x = query[0];\n            int y = query[1];\n            ans.add(uf.connected(x, y));\n        }\n        return ans;\n    }\n}\n\nclass UnionFind {\n    int[] parent;\n    int[] size;\n    int n;\n\n    public UnionFind(int n) {\n        this.n = n;\n        parent = new int[n];\n        size = new int[n];\n        for (int i = 0; i < n; ++i) {\n            parent[i] = i;\n            size[i] = 1;\n        }\n    }\n    \n    public int findset(int x) {\n        return parent[x] == x ? x : (parent[x] = findset(parent[x]));\n    }\n    \n    public void unite(int x, int y) {\n        x = findset(x);\n        y = findset(y);\n        if (x == y) {\n            return;\n        }\n        if (size[x] < size[y]) {\n            int temp = x;\n            x = y;\n            y = temp;\n        }\n        parent[y] = x;\n        size[x] += size[y];\n    }\n    \n    public boolean connected(int x, int y) {\n        x = findset(x);\n        y = findset(y);\n        return x == y;\n    }\n}\n```\n\n```Python [sol2-Python3]\nclass UnionFind:\n    def __init__(self, n: int):\n        self.n = n\n        self.parent = list(range(n))\n        self.size = [1] * n\n    \n    def findset(self, x: int) -> int:\n        if self.parent[x] == x:\n            return x\n        self.parent[x] = self.findset(self.parent[x])\n        return self.parent[x]\n    \n    def unite(self, x: int, y: int):\n        x = self.findset(x)\n        y = self.findset(y)\n        if x == y:\n            return\n        if self.size[x] < self.size[y]:\n            x, y = y, x\n        self.parent[y] = x\n        self.size[x] += self.size[y]\n    \n    def connected(self, x: int, y: int) -> bool:\n        x = self.findset(x)\n        y = self.findset(y)\n        return x == y\n\nclass Solution:\n    def areConnected(self, n: int, threshold: int, queries: List[List[int]]) -> List[bool]:\n        uf = UnionFind(n + 1)\n        isPrime = [True] * (n + 1)\n        for z in range(threshold + 1, n):\n            if isPrime[z]:\n                for q in range(z * 2, n + 1, z):\n                    uf.unite(q - z, q)\n                    isPrime[q] = False\n        \n        ans = list()\n        for x, y in queries:\n            ans.append(uf.connected(x, y))\n        return ans\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O\\big((n \\log\\log n + q) \\cdot \\alpha(n)\\big)$，其中 $q$ 是数组 $\\textit{queries}$ 的长度。\n\n- 空间复杂度：$O(n)$，即为并查集以及标记数组需要使用的空间。",
+            "slateValue": "",
+            "slug": "dai-yu-zhi-de-tu-lian-tong-xing-by-leetc-9cdd",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "dkPuXQ",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 1,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Union Find",
+                    "nameTranslated": "并查集",
+                    "slug": "union-find",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Graph",
+                    "nameTranslated": "图",
+                    "slug": "graph",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-10-11T05:45:38.910959+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：并查集 思路与算法 对于求解「连通性」的问题，我们可以想到「并查集」这一数据结构。由于并查集支持「将两个节点分别所在的连通分量进行合并」以及「判断两个节点是否处于同一连通分量」这两个操作，因此： 我们可以使用一个包含 $n$ 个节点的并查集； 在预处理阶段，对于图中的每一条边，我们对这条边的两个端点进行合并操作",
+            "topic": {
+                "id": 2477516,
+                "subscribed": false,
+                "commentCount": 1,
+                "viewCount": 48,
+                "post": {
+                    "id": 4623518,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 7,
+            "isEditorsPick": false,
+            "hitCount": 1317,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "graph-connectivity-with-threshold",
+                "questionFrontendId": "1627"
+            },
+            "next": {
+                "slug": "dai-yu-zhi-de-tu-lian-tong-xing-by-zerotrac2",
+                "title": "带阈值的图连通性"
+            },
+            "prev": null
+        }
+    }
+}

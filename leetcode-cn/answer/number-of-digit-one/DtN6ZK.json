@@ -1,0 +1,134 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "DtN6ZK",
+            "title": "数字 1 的个数",
+            "content": "#### 方法一：枚举每一数位上 $1$ 的个数\n\n**思路**\n\n根据题目要求，我们需要统计 $[0, n]$ 范围内所有整数中，数字 $1$ 出现的个数。由于 $n$ 的范围最大为 $10^9$，它是一个 $10$ 位整数，因此我们可以考虑枚举每一个数位，分别统计该数位上数字 $1$ 出现的次数，最后将所有数位统计出的次数进行累加即可得到答案。\n\n为了直观地叙述我们的算法，下面我们以「百位」进行举例，对于几个不同的 $n$ 手动计算出答案，随后扩展到任意数位。\n\n以 $n = 1234567$ 为例，我们需要统计「百位」上数字 $1$ 出现的次数。我们知道，对于从 $0$ 开始每 $1000$ 个数，「百位」上的数字 $1$ 都会出现 $100$ 次，即数的最后三位每 $1000$ 个数都呈现 $[000, 999]$ 的循环，其中的 $[100, 199]$ 在「百位」上的数字为 $1$，共有 $100$ 个。\n\n$n$ 拥有 $1234$ 个这样的循环，每个循环「百位」上都出现了 $100$ 次 $1$，这样就一共出现了 $1234 \\times 100$ 次 $1$。如果使用公式表示，那么这部分出现的 $1$ 的次数为：\n\n$$\n\\lfloor \\frac{n}{1000} \\rfloor \\times 100\n$$\n\n其中 $x$ 表示将 $x$ 向下取整，那么 $\\lfloor \\dfrac{n}{1000} \\rfloor$ 就表示 $n$ 拥有的完整的 $[000, 999]$ 循环的数量。\n\n对于剩余不在完整的循环中的部分，最后三位为 $[000, 567]$，其中 $567$ 可以用 $n \\bmod 1000$ 表示，其中 $\\bmod$ 表示取模运算。记 $n' = n \\bmod 1000$，这一部分在「百位」上出现 $1$ 的次数可以通过分类讨论得出：\n\n- 当 $n' < 100$ 时，「百位」上不会出现 $1$；\n\n- 当 $100 \\leq n' < 200$ 时，「百位」上出现 $1$ 的范围为 $[100, n']$，所以出现了 $n' - 100 + 1$ 次 $1$；\n\n- 当 $n' \\geq 200$ 时，「百位」上出现了全部 $100$ 次 $1$。\n\n可以发现，当 $n' < 100$ 时，$n' - 100 + 1$ 的值小于等于 $0$，而我们希望得到 $0$ 的答案；$n' \\geq 200$ 时，$n' - 100 + 1$ 的值大于 $100$，而我们希望得到 $100$ 的答案，因此我们可以总结归纳出这一部分在「百位」上 $1$ 的出现次数为：\n\n$$\n\\min\\big(\\max(n' - 100 + 1, 0), 100\\big)\n$$\n\n此时，我们就得到了 $[0, n]$ 中「百位」上数字 $1$ 出现的次数为：\n\n$$\n\\lfloor \\frac{n}{1000} \\rfloor \\times 100 + \\min\\big(\\max(n \\bmod 1000 - 100 + 1, 0), 100\\big)\n$$\n\n我们用类似的方法可以计算出在其它数位上数字 $1$ 出现的次数。如果该数位可以表示为 $10^k$（例如 $k=0, 1, 2$ 分别表示「个位」「十位」「百位」），那么数字 $1$ 出现的次数为：\n\n$$\n\\lfloor \\frac{n}{10^{k+1}} \\rfloor \\times 10^k + \\min\\big(\\max(n \\bmod 10^{k+1} - 10^k + 1, 0), 10^k\\big) \\tag{1}\n$$\n\n用形象化的语言描述 $(1)$ 式的意义即为：\n\n> 当数位为 $10^k$ 时，最后的 $k$ 个数位每 $10^{k+1}$ 个数会循环一次，并且其中包含 $10^k$ 个 $1$，由于 $n$ 包含 $\\lfloor \\dfrac{n}{10^{k+1}} \\rfloor$ 个完整的循环，那么这一部分的 $1$ 的个数为 $\\lfloor \\dfrac{n}{10^{k+1}} \\rfloor \\times 10^k$。不在循环中的部分还有 $n \\bmod 10^{k+1}$ 个数，这一部分的 $1$ 的个数为 $n \\bmod 10^{k+1} - 10^k + 1$，如果这个值小于 $0$，那么调整为出现 $0$ 次；如果这个值大于 $10^k$，那么调整为出现 $10^k$ 次。\n\n**算法**\n\n我们可以从小到大枚举 $k$。如果 $n \\geq 10^k$，说明 $n$ 包含 $10^k$ 对应的数位，我们通过 $(1)$ 式计算这一数位 $1$ 的个数并累加，否则退出枚举。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int countDigitOne(int n) {\n        // mulk 表示 10^k\n        // 在下面的代码中，可以发现 k 并没有被直接使用到（都是使用 10^k）\n        // 但为了让代码看起来更加直观，这里保留了 k\n        long long mulk = 1;\n        int ans = 0;\n        for (int k = 0; n >= mulk; ++k) {\n            ans += (n / (mulk * 10)) * mulk + min(max(n % (mulk * 10) - mulk + 1, 0LL), mulk);\n            mulk *= 10;\n        }\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int countDigitOne(int n) {\n        // mulk 表示 10^k\n        // 在下面的代码中，可以发现 k 并没有被直接使用到（都是使用 10^k）\n        // 但为了让代码看起来更加直观，这里保留了 k\n        long mulk = 1;\n        int ans = 0;\n        for (int k = 0; n >= mulk; ++k) {\n            ans += (n / (mulk * 10)) * mulk + Math.min(Math.max(n % (mulk * 10) - mulk + 1, 0), mulk);\n            mulk *= 10;\n        }\n        return ans;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int CountDigitOne(int n) {\n        // mulk 表示 10^k\n        // 在下面的代码中，可以发现 k 并没有被直接使用到（都是使用 10^k）\n        // 但为了让代码看起来更加直观，这里保留了 k\n        long mulk = 1;\n        int ans = 0;\n        for (int k = 0; n >= mulk; ++k) {\n            ans += (int) (n / (mulk * 10) * mulk) + (int) Math.Min(Math.Max(n % (mulk * 10) - mulk + 1, 0), mulk);\n            mulk *= 10;\n        }\n        return ans;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def countDigitOne(self, n: int) -> int:\n        # mulk 表示 10^k\n        # 在下面的代码中，可以发现 k 并没有被直接使用到（都是使用 10^k）\n        # 但为了让代码看起来更加直观，这里保留了 k\n        k, mulk = 0, 1\n        ans = 0\n        while n >= mulk:\n            ans += (n // (mulk * 10)) * mulk + min(max(n % (mulk * 10) - mulk + 1, 0), mulk)\n            k += 1\n            mulk *= 10\n        return ans\n```\n\n```JavaScript [sol1-JavaScript]\nvar countDigitOne = function(n) {\n    // mulk 表示 10^k\n    // 在下面的代码中，可以发现 k 并没有被直接使用到（都是使用 10^k）\n    // 但为了让代码看起来更加直观，这里保留了 k\n    let mulk = 1;\n    let ans = 0;\n    for (let k = 0; n >= mulk; ++k) {\n        ans += (Math.floor(n / (mulk * 10))) * mulk + Math.min(Math.max(n % (mulk * 10) - mulk + 1, 0), mulk);\n        mulk *= 10;\n    }\n    return ans;\n};\n```\n\n```go [sol1-Golang]\nfunc countDigitOne(n int) (ans int) {\n    // mulk 表示 10^k\n    // 在下面的代码中，可以发现 k 并没有被直接使用到（都是使用 10^k）\n    // 但为了让代码看起来更加直观，这里保留了 k\n    for k, mulk := 0, 1; n >= mulk; k++ {\n        ans += (n/(mulk*10))*mulk + min(max(n%(mulk*10)-mulk+1, 0), mulk)\n        mulk *= 10\n    }\n    return\n}\n\nfunc min(a, b int) int {\n    if a < b {\n        return a\n    }\n    return b\n}\n\nfunc max(a, b int) int {\n    if a > b {\n        return a\n    }\n    return b\n}\n```\n\n```C [sol1-C]\nint countDigitOne(int n) {\n    // mulk 表示 10^k\n    // 在下面的代码中，可以发现 k 并没有被直接使用到（都是使用 10^k）\n    // 但为了让代码看起来更加直观，这里保留了 k\n    long long mulk = 1;\n    int ans = 0;\n    for (int k = 0; n >= mulk; ++k) {\n        ans += (n / (mulk * 10)) * mulk + fmin(fmax(n % (mulk * 10) - mulk + 1, 0LL), mulk);\n        mulk *= 10;\n    }\n    return ans;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(\\log n)$。$n$ 包含的数位个数与 $n$ 呈对数关系。\n\n- 空间复杂度：$O(1)$。",
+            "slateValue": "",
+            "slug": "shu-zi-1-de-ge-shu-by-leetcode-solution-zopq",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "DtN6ZK",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 123,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 9,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "go",
+                    "nameTranslated": "",
+                    "slug": "go-3",
+                    "tagType": "ADDITIONAL_TOPIC"
+                }
+            ],
+            "createdAt": "2021-08-12T15:59:00.707634+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：枚举每一数位上 $1$ 的个数 思路 根据题目要求，我们需要统计 $[0, n]$ 范围内所有整数中，数字 $1$ 出现的个数。由于 $n$ 的范围最大为 $10^9$，它是一个 $10$ 位整数，因此我们可以考虑枚举每一个数位，分别统计该数位上数字 $1$ 出现的次数，最后将所有数位统计出的次数进行累加即可得",
+            "topic": {
+                "id": 932573,
+                "subscribed": false,
+                "commentCount": 125,
+                "viewCount": 42717,
+                "post": {
+                    "id": 2010262,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 267,
+            "isEditorsPick": false,
+            "hitCount": 92467,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "number-of-digit-one",
+                "questionFrontendId": "233"
+            },
+            "next": {
+                "slug": "233-shu-zi-1-de-ge-shu-qing-xi-tu-jie-by-pgb1",
+                "title": "233. 数字 1 的个数（清晰图解）"
+            },
+            "prev": null
+        }
+    }
+}

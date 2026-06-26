@@ -1,0 +1,154 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "b6fQCt",
+            "title": "参加考试的最大学生数",
+            "content": "#### 方法一：记忆化搜索 + 状态压缩\n\n**思路**\n\n学生在选择座位时，必须满足四个指定的位置都没有人坐，而这四个位置，要不位于当前排，要不位于前一排。因此，某一排的座位上，学生可以选择的座位取决于上一排的落座情况。这提醒我们可以以排为单位来进行动态规划。同时，每一个座位，学生可以选择坐或者不坐，我们可以用一个长为 $n$ 的二进制数字来表示某一排的落座情况，从低到高的第 $j$ 位，如果为 $1$ 则表示这一排的第 $j$ 个位置有人落座，为 $0$ 则表示无人落座。\n\n构造函数 $dp(\\textit{row}, \\textit{status})$，用来表示当第 $\\textit{row}$ 排学生落座情况为 $\\textit{status}$ 时，第 $\\textit{row}$ 排及其之前所有座位能够容纳最多的学生数。首先判断第 $\\textit{row}$ 排的落座情况是否可能为 $\\textit{status}$ 时，我们可以构造一个函数 $\\textit{isSingleRowCompliant}$ 来辅助判断，主要是判断是否有学生坐了坏的位置和是否有两个学生挨着坐。如果第 $\\textit{row}$ 排的落座情况不可能为 $\\textit{status}$，返回一个极小的负值。接下来需要对前一排的落座情况进行遍历，即求出所有的 $dp(\\textit{row}-1, \\textit{upperRowStatus})$，并且在这相邻两排的落座情况不会产生作弊的情况下，求出最大的学生数后进行返回。\n\n最后我们调用 $\\textit{dp}$，求出最后一排所有状态下的最大学生数量。因为求解过程中会多次求解同一个状态，所以对动态规划进行记忆化的处理来降低时间复杂度。\n\n**代码**\n\n```Python [sol1-Python3]\nclass Solution:\n    def maxStudents(self, seats: List[List[str]]) -> int:\n\n        def isSingleRowCompliant(status: int, row: int) -> bool:\n            for j in range(n):\n                if ((status >> j) & 1) == 1:\n                    if seats[row][j] == '#':\n                        return False\n                    if j > 0 and ((status >> (j - 1)) & 1) == 1:\n                        return False\n            return True\n\n        def isCrossRowsCompliant(status: int, upperRowStatus: int) -> bool:\n            for j in range(n):\n                if ((status >> j) & 1) == 1:\n                    if j > 0 and ((upperRowStatus >> (j - 1)) & 1) == 1:\n                        return False\n                    if j < n - 1 and ((upperRowStatus >> (j + 1)) & 1) == 1:\n                        return False\n            return True\n\n        @cache\n        def dp(row: int, status: int) -> int:\n            if not isSingleRowCompliant(status, row):\n                return -inf\n            students = bin(status).count('1')\n            if row == 0:\n                return students\n            mx = 0\n            for upperRowStatus in range(2 ** n):\n                if isCrossRowsCompliant(status, upperRowStatus):\n                    mx = max(mx, dp(row - 1, upperRowStatus))\n            return students + mx\n\n        m, n = len(seats), len(seats[0])\n        mx = 0\n        for i in range(2 ** n):\n            mx = max(mx, dp(m - 1, i))\n        return mx\n```\n\n```Java [sol1-Java]\nclass Solution {\n    Map<Integer, Integer> memo = new HashMap<Integer, Integer>();\n\n    public int maxStudents(char[][] seats) {\n        int m = seats.length, n = seats[0].length;\n        int mx = 0;\n        for (int i = 0; i < 1 << n; i++) {\n            mx = Math.max(mx, dp(seats, m - 1, i));\n        }\n        return mx;\n    }\n\n    public int dp(char[][] seats, int row, int status) {\n        int n = seats[0].length;\n        int key = (row << n) + status;\n        if (!memo.containsKey(key)) {\n            if (!isSingleRowCompliant(seats, status, n, row)) {\n                memo.put(key, Integer.MIN_VALUE);\n                return Integer.MIN_VALUE;\n            }\n            int students = Integer.bitCount(status);\n            if (row == 0) {\n                memo.put(key, students);\n                return students;\n            }\n            int mx = 0;\n            for (int upperRowStatus = 0; upperRowStatus < 1 << n; upperRowStatus++) {\n                if (isCrossRowsCompliant(status, upperRowStatus, n)) {\n                    mx = Math.max(mx, dp(seats, row - 1, upperRowStatus));\n                }\n            }\n            memo.put(key, students + mx);\n        }\n        return memo.get(key);\n    }\n\n    public boolean isSingleRowCompliant(char[][] seats, int status, int n, int row) {\n        for (int j = 0; j < n; j++) {\n            if (((status >> j) & 1) == 1) {\n                if (seats[row][j] == '#') {\n                    return false;\n                }\n                if (j > 0 && ((status >> (j - 1)) & 1) == 1) {\n                    return false;\n                }\n            }\n        }\n        return true;\n    }\n\n    public boolean isCrossRowsCompliant(int status, int upperRowStatus, int n) {\n        for (int j = 0; j < n; j++) {\n            if (((status >> j) & 1) == 1) {\n                if (j > 0 && ((upperRowStatus >> (j - 1)) & 1) == 1) {\n                    return false;\n                }\n                if (j < n - 1 && ((upperRowStatus >> (j + 1)) & 1) == 1) {\n                    return false;\n                }\n            }\n        }\n        return true;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    IDictionary<int, int> memo = new Dictionary<int, int>();\n\n    public int MaxStudents(char[][] seats) {\n        int m = seats.Length, n = seats[0].Length;\n        int mx = 0;\n        for (int i = 0; i < 1 << n; i++) {\n            mx = Math.Max(mx, DP(seats, m - 1, i));\n        }\n        return mx;\n    }\n\n    public int DP(char[][] seats, int row, int status) {\n        int n = seats[0].Length;\n        int key = (row << n) + status;\n        if (!memo.ContainsKey(key)) {\n            if (!IsSingleRowCompliant(seats, status, n, row)) {\n                memo.Add(key, int.MinValue);\n                return int.MinValue;\n            }\n            int students = BitCount(status);\n            if (row == 0) {\n                memo.Add(key, students);\n                return students;\n            }\n            int mx = 0;\n            for (int upperRowStatus = 0; upperRowStatus < 1 << n; upperRowStatus++) {\n                if (IsCrossRowsCompliant(status, upperRowStatus, n)) {\n                    mx = Math.Max(mx, DP(seats, row - 1, upperRowStatus));\n                }\n            }\n            memo.Add(key, students + mx);\n        }\n        return memo[key];\n    }\n\n    public bool IsSingleRowCompliant(char[][] seats, int status, int n, int row) {\n        for (int j = 0; j < n; j++) {\n            if (((status >> j) & 1) == 1) {\n                if (seats[row][j] == '#') {\n                    return false;\n                }\n                if (j > 0 && ((status >> (j - 1)) & 1) == 1) {\n                    return false;\n                }\n            }\n        }\n        return true;\n    }\n\n    public bool IsCrossRowsCompliant(int status, int upperRowStatus, int n) {\n        for (int j = 0; j < n; j++) {\n            if (((status >> j) & 1) == 1) {\n                if (j > 0 && ((upperRowStatus >> (j - 1)) & 1) == 1) {\n                    return false;\n                }\n                if (j < n - 1 && ((upperRowStatus >> (j + 1)) & 1) == 1) {\n                    return false;\n                }\n            }\n        }\n        return true;\n    }\n\n    public int BitCount(int num) {\n        uint bits = (uint) num;\n        bits = bits - ((bits >> 1) & 0x55555555);\n        bits = (bits & 0x33333333) + ((bits >> 2) & 0x33333333);\n        bits = (bits + (bits >> 4)) & 0x0f0f0f0f;\n        bits = (bits + (bits >> 8)) & 0x00ff00ff;\n        bits = (bits + (bits >> 16)) & 0x0000ffff;\n        return (int) bits;\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int maxStudents(vector<vector<char>>& seats) {\n        int m = seats.size(), n = seats[0].size();\n        unordered_map<int, int> memo;\n\n        auto isSingleRowCompliant = [&](int status, int row) -> bool {\n            for (int j = 0; j < n; j++) {\n                if ((status >> j) & 1) {\n                    if (seats[row][j] == '#') {\n                        return false;\n                    }\n                    if (j > 0 && ((status >> (j - 1)) & 1)) {\n                        return false;\n                    }\n                }\n            }\n            return true;\n        };\n        \n        auto isCrossRowsCompliant = [&](int status, int upperRowStatus) -> bool {\n            for (int j = 0; j < n; j++) {\n                if ((status >> j) & 1) {\n                    if (j > 0 && ((upperRowStatus >> (j - 1)) & 1)) {\n                        return false;\n                    }\n                    if (j < n - 1 && ((upperRowStatus >> (j + 1)) & 1)) {\n                        return false;\n                    }\n                }\n            }\n            return true;\n        };\n\n        function<int(int, int)> dp = [&](int row, int status) -> int {\n            int key = (row << n) + status;\n            if (!memo.count(key)) {\n                if (!isSingleRowCompliant(status, row)) {\n                    memo[key] = INT_MIN;\n                    return INT_MIN;\n                }\n                int students = __builtin_popcount(status);\n                if (row == 0) {\n                    memo[key] = students;\n                    return students;\n                }\n                int mx = 0;\n                for (int upperRowStatus = 0; upperRowStatus < 1 << n; upperRowStatus++) {\n                    if (isCrossRowsCompliant(status, upperRowStatus)) {\n                        mx = max(mx, dp(row - 1, upperRowStatus));\n                    }\n                }\n                memo[key] = students + mx;\n            }\n            return memo[key];\n        };\n        \n        int mx = 0;\n        for (int i = 0; i < (1 << n); i++) {\n            mx = max(mx, dp(m - 1, i));\n        }\n        return mx;\n    }\n};\n```\n\n```C [sol1-C]\ntypedef struct {\n    int key;\n    int val;\n    UT_hash_handle hh;\n} HashItem; \n\nHashItem *hashFindItem(HashItem **obj, int key) {\n    HashItem *pEntry = NULL;\n    HASH_FIND_INT(*obj, &key, pEntry);\n    return pEntry;\n}\n\nbool hashAddItem(HashItem **obj, int key, int val) {\n    if (hashFindItem(obj, key)) {\n        return false;\n    }\n    HashItem *pEntry = (HashItem *)malloc(sizeof(HashItem));\n    pEntry->key = key;\n    pEntry->val = val;\n    HASH_ADD_INT(*obj, key, pEntry);\n    return true;\n}\n\nbool hashSetItem(HashItem **obj, int key, int val) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        hashAddItem(obj, key, val);\n    } else {\n        pEntry->val = val;\n    }\n    return true;\n}\n\nint hashGetItem(HashItem **obj, int key, int defaultVal) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        return defaultVal;\n    }\n    return pEntry->val;\n}\n\nvoid hashFree(HashItem **obj) {\n    HashItem *curr = NULL, *tmp = NULL;\n    HASH_ITER(hh, *obj, curr, tmp) {\n        HASH_DEL(*obj, curr);  \n        free(curr);\n    }\n}\n\nbool isSingleRowCompliant(char **seats, int status, int row, int n) {\n    for (int j = 0; j < n; j++) {\n\n        if ((status >> j) & 1) {\n            if (seats[row][j] == '#') {\n                return false;\n            }\n            if (j > 0 && ((status >> (j - 1)) & 1)) {\n                return false;\n            }\n        }\n    }\n    return true;\n};\n\nbool isCrossRowsCompliant(int status, int upperRowStatus, int n) {\n    for (int j = 0; j < n; j++) {\n        if ((status >> j) & 1) {\n            if (j > 0 && ((upperRowStatus >> (j - 1)) & 1)) {\n                return false;\n            }\n            if (j < n - 1 && ((upperRowStatus >> (j + 1)) & 1)) {\n                return false;\n            }\n        }\n    }\n    return true;\n};\n\nint dp(char **seats, HashItem **memo, int row, int status, int n) {\n    int key = (row << n) + status;\n    if (!hashFindItem(memo, key)) {\n        if (!isSingleRowCompliant(seats, status, row, n)) {\n            hashAddItem(memo, key, INT_MIN);\n            return INT_MIN;\n        }\n        int students = __builtin_popcount(status);\n        if (row == 0) {\n            hashAddItem(memo, key, students);\n            return students;\n        }\n        int mx = 0;\n        for (int upperRowStatus = 0; upperRowStatus < 1 << n; upperRowStatus++) {\n            if (isCrossRowsCompliant(status, upperRowStatus, n)) {\n                mx = fmax(mx, dp(seats, memo, row - 1, upperRowStatus, n));\n            }\n        }\n        hashAddItem(memo, key, students + mx);\n    }\n    return hashGetItem(memo, key, 0);\n};\n\nint maxStudents(char** seats, int seatsSize, int* seatsColSize) {\n    int m = seatsSize, n = seatsColSize[0];\n    HashItem *memo = NULL;\n    int mx = 0;\n    for (int i = 0; i < (1 << n); i++) {\n        mx = fmax(mx, dp(seats, &memo, m - 1, i, n));\n    }\n    hashFree(&memo);\n    return mx;\n}\n```\n\n```Go [sol1-Go]\nfunc maxStudents(seats [][]byte) int {\n    m, n := len(seats), len(seats[0])\n    memo := make(map[int]int)\n\n    isSingleRowCompliant := func(status, row int) bool {\n        n := len(seats[0])\n        for j := 0; j < n; j++ {\n            if (status >> j) & 1 == 1 {\n                if seats[row][j] == '#' {\n                    return false\n                }\n                if j > 0 && (status >> (j - 1)) & 1 == 1 {\n                    return false\n                }\n            }\n        }\n        return true\n    }\n\n    isCrossRowsCompliant := func(status, upperRowStatus int) bool {\n        n := len(seats[0])\n        for j := 0; j < n; j++ {\n            if (status >> j) & 1 == 1 {\n                if j > 0 && (upperRowStatus >> (j - 1)) & 1 == 1 {\n                    return false\n                }\n                if j < n - 1 && (upperRowStatus >> (j + 1)) & 1 == 1 {\n                    return false\n                }\n            }\n        }\n        return true\n    }\n\n    var dp func(int, int) int\n    dp = func(row, status int) int {\n        n := len(seats[0])\n        key := (row << n) + status\n        if _, ok := memo[key]; !ok {\n            if !isSingleRowCompliant(status, row) {\n                memo[key] = math.MinInt32\n                return math.MinInt32\n            }\n            students := bits.OnesCount(uint(status))\n            if row == 0 {\n                memo[key] = students\n                return students\n            }\n            mx := 0\n            for upperRowStatus := 0; upperRowStatus < 1 << n; upperRowStatus++ {\n                if isCrossRowsCompliant(status, upperRowStatus) {\n                    mx = max(mx, dp(row - 1, upperRowStatus))\n                }\n            }\n            memo[key] = students + mx\n        }\n        return memo[key]\n    }\n\n    mx := 0\n    for i := 0; i < (1 << n); i++ {\n        mx = max(mx, dp(m - 1, i))\n    }\n    return mx\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar maxStudents = function(seats) {\n    const m = seats.length, n = seats[0].length;\n    const memo = new Map();\n\n    const isSingleRowCompliant = function(status, row) {\n        for (let j = 0; j < n; j++) {\n            if ((status >> j) & 1) {\n                if (seats[row][j] == '#') {\n                    return false;\n                }\n                if (j > 0 && ((status >> (j - 1)) & 1)) {\n                    return false;\n                }\n            }\n        }\n        return true;\n    };\n    \n    const isCrossRowsCompliant = function(status, upperRowStatus) {\n        for (let j = 0; j < n; j++) {\n            if ((status >> j) & 1) {\n                if (j > 0 && ((upperRowStatus >> (j - 1)) & 1)) {\n                    return false;\n                }\n                if (j < n - 1 && ((upperRowStatus >> (j + 1)) & 1)) {\n                    return false;\n                }\n            }\n        }\n        return true;\n    };\n\n    const dp = function(row, status) {\n        const key = (row << n) + status;\n        if (!memo.has(key)) {\n            if (!isSingleRowCompliant(status, row)) {\n                memo.set(key, -Infinity);\n                return -Infinity;\n            }\n            let students = bitCount(status);\n            if (row == 0) {\n                memo.set(key, students);\n                return students;\n            }\n            let mx = 0;\n            for (let upperRowStatus = 0; upperRowStatus < 1 << n; upperRowStatus++) {\n                if (isCrossRowsCompliant(status, upperRowStatus)) {\n                    mx = Math.max(mx, dp(row - 1, upperRowStatus));\n                }\n            }\n            memo.set(key, students + mx);\n        }\n        return memo.get(key);\n    };\n    \n    let mx = 0;\n    for (let i = 0; i < (1 << n); i++) {\n        mx = Math.max(mx, dp(m - 1, i));\n    }\n    return mx;\n};\n\nvar bitCount = function(num) {\n    let bits = num;\n    bits = bits - ((bits >> 1) & 0x55555555);\n    bits = (bits & 0x33333333) + ((bits >> 2) & 0x33333333);\n    bits = (bits + (bits >> 4)) & 0x0f0f0f0f;\n    bits = (bits + (bits >> 8)) & 0x00ff00ff;\n    bits = (bits + (bits >> 16)) & 0x0000ffff;\n    return bits;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(m\\times{n}\\times2^{2n})$, 状态数量共有 $m\\times2^n$ 种，计算一个状态需要消耗 $O(n\\times2^n)$ 的时间。可以通过预计算所有 $\\textit{isCrossRowsCompliant}$ 的结果来降低时间复杂度到 $O((m+n)\\times2^{2n})$。\n- 空间复杂度：$O(n \\times 2^n)$。",
+            "slateValue": "",
+            "slug": "can-jia-kao-shi-de-zui-da-xue-sheng-shu-by-leetcod",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "b6fQCt",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 21,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Bit Manipulation",
+                    "nameTranslated": "位运算",
+                    "slug": "bit-manipulation",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Memoization",
+                    "nameTranslated": "记忆化",
+                    "slug": "memoization",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Bitmask",
+                    "nameTranslated": "位掩码",
+                    "slug": "bitmask",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Matrix",
+                    "nameTranslated": "矩阵",
+                    "slug": "matrix",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-02-19T02:59:28.701296+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：记忆化搜索 + 状态压缩 思路 学生在选择座位时，必须满足四个指定的位置都没有人坐，而这四个位置，要不位于当前排，要不位于前一排。因此，某一排的座位上，学生可以选择的座位取决于上一排的落座情况。这提醒我们可以以排为单位来进行动态规划。同时，每一个座位，学生可以选择坐或者不坐，我们可以用一个长为 $n$ 的二进制",
+            "topic": {
+                "id": 101748,
+                "subscribed": false,
+                "commentCount": 55,
+                "viewCount": 7472,
+                "post": {
+                    "id": 349580,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 53,
+            "isEditorsPick": false,
+            "hitCount": 25974,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "maximum-students-taking-exam",
+                "questionFrontendId": "1349"
+            },
+            "next": {
+                "slug": "xiang-jie-ya-suo-zhuang-tai-dong-tai-gui-hua-jie-f",
+                "title": "详解 压缩状态动态规划解法"
+            },
+            "prev": null
+        }
+    }
+}

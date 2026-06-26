@@ -1,0 +1,142 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "8SQBCW",
+            "title": "最大得分的路径数目",
+            "content": "#### 方法一：动态规划\n\n根据题意，我们从右下角 `\"S\"` 出发后，只能向上、左或左上移动，那么我们不会重复经过数组 `board` 中的位置，因此我们可以使用动态规划的方法来解决这个问题。\n\n我们用 `dp[i][j]` 表示数组 `board` 中位置 `(i, j)` 的若干状态。由于题目要求得到从右下角到左上角的得分最大值以及最大得分方案数，因此 `dp[i][j]` 中需要存储两个状态：一个表示从右下角到位置 `(i, j)` 的得分最大值，另一个表示从右下角到位置 `(i, j)` 的最大得分方案数。如果从右下角无法到达位置 `(i, j)`（有两种情况，一是位置 `(i, j)` 是一个障碍，二是由于障碍的存在，位置 `(i, j)` 无法到达），那么 `dp[i][j]` 中的第一个状态为 `-1`。\n\n由于我们的起始位置为右下角，因此在进行动态规划时，我们需要先转移位置 `(i, j)` 较大的状态，即外层的两重循环分别为：\n\n```\nfor i = n - 1 to 1\n    for j = n - 1 to 1\n        // some codes...\n```\n\n那么如何写出状态转移方程呢？显然，`dp[i][j]` 可以从 `dp[i + 1][j]`、`dp[i][j + 1]` 和 `dp[i + 1][j + 1]` 这三个状态转移而来。由于 `dp[i][j]` 中存储了两个状态，直接通过 `dp[i][j] = max(...)` 的形式进行转移并不方便，因此我们可以使用一个 `update()` 函数，依次将 `dp[i + 1][j]`、`dp[i][j + 1]` 和 `dp[i + 1][j + 1]` 这三个状态作为函数的参数，更新 `dp[i][j]` 的值。\n\n设在 `update()` 函数中的状态为 `dp[x][y]`，即我们使用状态 `dp[x][y]` 对 `dp[i][j]` 进行转移，那么会有如下三种情况：\n\n- 若 `dp[x][y]` 中第一个状态为 `-1`，说明位置 `(x, y)` 无法到达，那么就无法对 `dp[i][j]` 进行转移；\n\n- 若 `dp[x][y]` 和 `dp[i][j]` 的第一个状态值相等，说明 `dp[x][y]` 和之前某个参数的得分最大值相同，它们都可以作为最大得分更新 `dp[i][j]`，因此我们将 `dp[i][j]` 的第二个状态加上 `dp[x][y]` 的第二个状态的值，合并最大得分方案数；\n\n- 若 `dp[x][y]` 和 `dp[i][j]` 的第一个状态值不等，且前者大于后者，说明 `dp[x][y]` 相较于之前的所有参数，其得分最大值更优，因此我们将 `dp[i][j]` 直接更新为 `dp[x][y]`，替换之前的得分最大值以及最大得分方案数；\n\n在转移结束之后，如果 `dp[i][j]` 的第一个状态不为 `-1`，说明位置 `(i, j)` 可以从右下角到达，那么我们将 `dp[i][j]` 的第一个状态值加上位置 `(i, j)` 的得分，就得到了位置 `(i, j)` 的得分最大值以及最大得分方案数。\n\n```C++ [sol1-C++]\nusing PII = pair<int, int>;\n\nclass Solution {\nprivate:\n    static constexpr int mod = (int)1e9 + 7;\n\npublic:\n    void update(vector<vector<PII>>& dp, int n, int x, int y, int u, int v) {\n        if (u >= n || v >= n || dp[u][v].first == -1) {\n            return;\n        }\n        if (dp[u][v].first > dp[x][y].first) {\n            dp[x][y] = dp[u][v];\n        }\n        else if (dp[u][v].first == dp[x][y].first) {\n            dp[x][y].second += dp[u][v].second;\n            if (dp[x][y].second >= mod) {\n                dp[x][y].second -= mod;\n            }\n        }\n    }\n\n    vector<int> pathsWithMaxScore(vector<string>& board) {\n        int n = board.size();\n        vector<vector<PII>> dp(n, vector<PII>(n, {-1, 0}));\n        dp[n - 1][n - 1] = {0, 1};\n        for (int i = n - 1; i >= 0; --i) {\n            for (int j = n - 1; j >= 0; --j) {\n                if (!(i == n - 1 && j == n - 1) && board[i][j] != 'X') {\n                    update(dp, n, i, j, i + 1, j);\n                    update(dp, n, i, j, i, j + 1);\n                    update(dp, n, i, j, i + 1, j + 1);\n                    if (dp[i][j].first != -1) {\n                        dp[i][j].first += (board[i][j] == 'E' ? 0 : board[i][j] - '0');\n                    }\n                }\n            }\n        }\n        return dp[0][0].first == -1 ? vector<int>{0, 0} : vector<int>{dp[0][0].first, dp[0][0].second};\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def pathsWithMaxScore(self, board: List[str]) -> List[int]:\n        n = len(board)\n        dp = [[[-1, 0]] * n for _ in range(n)]\n        dp[n - 1][n - 1] = [0, 1]\n\n        def update(x, y, u, v):\n            if u >= n or v >= n or dp[u][v][0] == -1:\n                return\n            if dp[u][v][0] > dp[x][y][0]:\n                dp[x][y] = dp[u][v][:]\n            elif dp[u][v][0] == dp[x][y][0]:\n                dp[x][y][1] += dp[u][v][1]\n\n        for i in range(n - 1, -1, -1):\n            for j in range(n - 1, -1, -1):\n                if not (i == n - 1 and j == n - 1) and board[i][j] != \"X\":\n                    update(i, j, i + 1, j)\n                    update(i, j, i, j + 1)\n                    update(i, j, i + 1, j + 1)\n                    if dp[i][j][0] != -1:\n                        dp[i][j][0] += (0 if board[i][j] == \"E\" else ord(board[i][j]) - 48)\n        return [dp[0][0][0], dp[0][0][1] % (10**9 + 7)] if dp[0][0][0] != -1 else [0, 0]\n```\n\n```Java [sol1-Java]\nclass Solution {\n    private final int MOD = 1000000007;\n\n    public int[] pathsWithMaxScore(List<String> board) {\n        int n = board.size();\n        int[][][] dp = new int[n][n][2];\n        for (int i = 0; i < n; i++) {\n            for (int j = 0; j < n; j++) {\n                dp[i][j][0] = -1;\n            }\n        }\n        dp[n - 1][n - 1][0] = 0;\n        dp[n - 1][n - 1][1] = 1;\n\n        for (int i = n - 1; i >= 0; i--) {\n            for (int j = n - 1; j >= 0; j--) {\n                if (!(i == n - 1 && j == n - 1) && board.get(i).charAt(j) != 'X') {\n                    update(dp, i, j, i + 1, j, n);\n                    update(dp, i, j, i, j + 1, n);\n                    update(dp, i, j, i + 1, j + 1, n);\n                    if (dp[i][j][0] != -1) {\n                        dp[i][j][0] += (board.get(i).charAt(j) == 'E' ? 0 : board.get(i).charAt(j) - '0');\n                    }\n                }\n            }\n        }\n        if (dp[0][0][0] != -1) {\n            return new int[]{dp[0][0][0], dp[0][0][1] % MOD};\n        }\n        return new int[]{0, 0};\n    }\n\n    private void update(int[][][] dp, int x, int y, int u, int v, int n) {\n        if (u >= n || v >= n || dp[u][v][0] == -1) {\n            return;\n        }\n        if (dp[u][v][0] > dp[x][y][0]) {\n            dp[x][y][0] = dp[u][v][0];\n            dp[x][y][1] = dp[u][v][1];\n        } else if (dp[u][v][0] == dp[x][y][0]) {\n            dp[x][y][1] = (dp[x][y][1] + dp[u][v][1]) % MOD;\n        }\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    private const int MOD = 1000000007;\n\n    public int[] PathsWithMaxScore(IList<string> board) {\n        int n = board.Count;\n        int[][][] dp = new int[n][][];\n        for (int i = 0; i < n; i++) {\n            dp[i] = new int[n][];\n            for (int j = 0; j < n; j++) {\n                dp[i][j] = new int[] { -1, 0 };\n            }\n        }\n        dp[n - 1][n - 1][0] = 0;\n        dp[n - 1][n - 1][1] = 1;\n\n        for (int i = n - 1; i >= 0; i--) {\n            for (int j = n - 1; j >= 0; j--) {\n                if (!(i == n - 1 && j == n - 1) && board[i][j] != 'X') {\n                    Update(dp, i, j, i + 1, j, n);\n                    Update(dp, i, j, i, j + 1, n);\n                    Update(dp, i, j, i + 1, j + 1, n);\n                    if (dp[i][j][0] != -1) {\n                        dp[i][j][0] += (board[i][j] == 'E' ? 0 : board[i][j] - '0');\n                    }\n                }\n            }\n        }\n        if (dp[0][0][0] != -1) {\n            return new int[] { dp[0][0][0], dp[0][0][1] % MOD };\n        }\n        return new int[] { 0, 0 };\n    }\n\n    private void Update(int[][][] dp, int x, int y, int u, int v, int n) {\n        if (u >= n || v >= n || dp[u][v][0] == -1) {\n            return;\n        }\n        if (dp[u][v][0] > dp[x][y][0]) {\n            dp[x][y][0] = dp[u][v][0];\n            dp[x][y][1] = dp[u][v][1];\n        } else if (dp[u][v][0] == dp[x][y][0]) {\n            dp[x][y][1] = (dp[x][y][1] + dp[u][v][1]) % MOD;\n        }\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc pathsWithMaxScore(board []string) []int {\n    const MOD = 1000000007\n    n := len(board)\n    dp := make([][][]int, n)\n    for i := 0; i < n; i++ {\n        dp[i] = make([][]int, n)\n        for j := 0; j < n; j++ {\n            dp[i][j] = []int{-1, 0}\n        }\n    }\n    dp[n-1][n-1][0] = 0\n    dp[n-1][n-1][1] = 1\n\n    update := func(x, y, u, v int) {\n        if u >= n || v >= n || dp[u][v][0] == -1 {\n            return\n        }\n        if dp[u][v][0] > dp[x][y][0] {\n            dp[x][y][0] = dp[u][v][0]\n            dp[x][y][1] = dp[u][v][1]\n        } else if dp[u][v][0] == dp[x][y][0] {\n            dp[x][y][1] = (dp[x][y][1] + dp[u][v][1]) % MOD\n        }\n    }\n\n    for i := n - 1; i >= 0; i-- {\n        for j := n - 1; j >= 0; j-- {\n            if !(i == n-1 && j == n-1) && board[i][j] != 'X' {\n                update(i, j, i+1, j)\n                update(i, j, i, j+1)\n                update(i, j, i+1, j+1)\n                if dp[i][j][0] != -1 {\n                    if board[i][j] == 'E' {\n                        dp[i][j][0] += 0\n                    } else {\n                        dp[i][j][0] += int(board[i][j] - '0')\n                    }\n                }\n            }\n        }\n    }\n\n    if dp[0][0][0] != -1 {\n        return []int{dp[0][0][0], dp[0][0][1] % MOD}\n    }\n\n    return []int{0, 0}\n}\n```\n\n```C [sol1-C]\n#define MOD 1000000007\n\nint* pathsWithMaxScore(char** board, int boardSize, int* returnSize) {\n    int n = boardSize;\n    int*** dp = (int***)malloc(n * sizeof(int**));\n    for (int i = 0; i < n; i++) {\n        dp[i] = (int**)malloc(n * sizeof(int*));\n        for (int j = 0; j < n; j++) {\n            dp[i][j] = (int*)malloc(2 * sizeof(int));\n            dp[i][j][0] = -1;\n            dp[i][j][1] = 0;\n        }\n    }\n    dp[n - 1][n - 1][0] = 0;\n    dp[n - 1][n - 1][1] = 1;\n\n    for (int i = n - 1; i >= 0; i--) {\n        for (int j = n - 1; j >= 0; j--) {\n            if (!(i == n - 1 && j == n - 1) && board[i][j] != 'X') {\n                if (i + 1 < n && dp[i + 1][j][0] != -1) {\n                    if (dp[i + 1][j][0] > dp[i][j][0]) {\n                        dp[i][j][0] = dp[i + 1][j][0];\n                        dp[i][j][1] = dp[i + 1][j][1];\n                    } else if (dp[i + 1][j][0] == dp[i][j][0]) {\n                        dp[i][j][1] = (dp[i][j][1] + dp[i + 1][j][1]) % MOD;\n                    }\n                }\n                if (j + 1 < n && dp[i][j + 1][0] != -1) {\n                    if (dp[i][j + 1][0] > dp[i][j][0]) {\n                        dp[i][j][0] = dp[i][j + 1][0];\n                        dp[i][j][1] = dp[i][j + 1][1];\n                    } else if (dp[i][j + 1][0] == dp[i][j][0]) {\n                        dp[i][j][1] = (dp[i][j][1] + dp[i][j + 1][1]) % MOD;\n                    }\n                }\n                if (i + 1 < n && j + 1 < n && dp[i + 1][j + 1][0] != -1) {\n                    if (dp[i + 1][j + 1][0] > dp[i][j][0]) {\n                        dp[i][j][0] = dp[i + 1][j + 1][0];\n                        dp[i][j][1] = dp[i + 1][j + 1][1];\n                    } else if (dp[i + 1][j + 1][0] == dp[i][j][0]) {\n                        dp[i][j][1] = (dp[i][j][1] + dp[i + 1][j + 1][1]) % MOD;\n                    }\n                }\n                if (dp[i][j][0] != -1 && board[i][j] != 'E') {\n                    dp[i][j][0] += board[i][j] - '0';\n                }\n            }\n        }\n    }\n    int* res = (int*)malloc(2 * sizeof(int));\n    *returnSize = 2;\n    if (dp[0][0][0] != -1) {\n        res[0] = dp[0][0][0];\n        res[1] = dp[0][0][1] % MOD;\n    } else {\n        res[0] = 0;\n        res[1] = 0;\n    }\n    for (int i = 0; i < n; i++) {\n        for (int j = 0; j < n; j++) {\n            free(dp[i][j]);\n        }\n        free(dp[i]);\n    }\n    free(dp);\n    return res;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar pathsWithMaxScore = function(board) {\n    const MOD = 1000000007;\n    const n = board.length;\n    const dp = Array.from({ length: n }, () => \n        Array.from({ length: n }, () => [-1, 0])\n    );\n    dp[n - 1][n - 1][0] = 0;\n    dp[n - 1][n - 1][1] = 1;\n\n    const update = (x, y, u, v) => {\n        if (u >= n || v >= n || dp[u][v][0] === -1) {\n            return;\n        }\n        if (dp[u][v][0] > dp[x][y][0]) {\n            dp[x][y][0] = dp[u][v][0];\n            dp[x][y][1] = dp[u][v][1];\n        } else if (dp[u][v][0] === dp[x][y][0]) {\n            dp[x][y][1] = (dp[x][y][1] + dp[u][v][1]) % MOD;\n        }\n    };\n\n    for (let i = n - 1; i >= 0; i--) {\n        for (let j = n - 1; j >= 0; j--) {\n            if (!(i === n - 1 && j === n - 1) && board[i][j] !== 'X') {\n                update(i, j, i + 1, j);\n                update(i, j, i, j + 1);\n                update(i, j, i + 1, j + 1);\n                if (dp[i][j][0] !== -1) {\n                    dp[i][j][0] += (board[i][j] === 'E' ? 0 : parseInt(board[i][j]));\n                }\n            }\n        }\n    }\n    if (dp[0][0][0] !== -1) {\n        return [dp[0][0][0], dp[0][0][1] % MOD];\n    }\n    return [0, 0];\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction pathsWithMaxScore(board: string[]): number[] {\n    const MOD = 1000000007;\n    const n = board.length;\n    const dp: number[][][] = Array.from({ length: n }, () =>\n        Array.from({ length: n }, () => [-1, 0])\n    );\n    dp[n - 1][n - 1][0] = 0;\n    dp[n - 1][n - 1][1] = 1;\n\n    const update = (x: number, y: number, u: number, v: number): void => {\n        if (u >= n || v >= n || dp[u][v][0] === -1) {\n            return;\n        }\n        if (dp[u][v][0] > dp[x][y][0]) {\n            dp[x][y][0] = dp[u][v][0];\n            dp[x][y][1] = dp[u][v][1];\n        } else if (dp[u][v][0] === dp[x][y][0]) {\n            dp[x][y][1] = (dp[x][y][1] + dp[u][v][1]) % MOD;\n        }\n    };\n\n    for (let i = n - 1; i >= 0; i--) {\n        for (let j = n - 1; j >= 0; j--) {\n            if (!(i === n - 1 && j === n - 1) && board[i][j] !== 'X') {\n                update(i, j, i + 1, j);\n                update(i, j, i, j + 1);\n                update(i, j, i + 1, j + 1);\n                if (dp[i][j][0] !== -1) {\n                    dp[i][j][0] += (board[i][j] === 'E' ? 0 : parseInt(board[i][j]));\n                }\n            }\n        }\n    }\n    if (dp[0][0][0] !== -1) {\n        return [dp[0][0][0], dp[0][0][1] % MOD];\n    }\n    return [0, 0];\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn paths_with_max_score(board: Vec<String>) -> Vec<i32> {\n        const MOD: i32 = 1_000_000_007;\n        let n = board.len();\n        let board: Vec<Vec<char>> = board.iter().map(|s| s.chars().collect()).collect();\n        let mut dp = vec![vec![(-1, 0); n]; n];\n        dp[n - 1][n - 1] = (0, 1);\n\n        for i in (0..n).rev() {\n            for j in (0..n).rev() {\n                if !(i == n - 1 && j == n - 1) && board[i][j] != 'X' {\n                    Self::update(&mut dp, i, j, i + 1, j, n);\n                    Self::update(&mut dp, i, j, i, j + 1, n);\n                    Self::update(&mut dp, i, j, i + 1, j + 1, n);\n                    if dp[i][j].0 != -1 {\n                        dp[i][j].0 += if board[i][j] == 'E' { 0 } else { board[i][j] as i32 - '0' as i32 };\n                    }\n                }\n            }\n        }\n        if dp[0][0].0 != -1 {\n            vec![dp[0][0].0, dp[0][0].1 % MOD]\n        } else {\n            vec![0, 0]\n        }\n    }\n\n    fn update(dp: &mut Vec<Vec<(i32, i32)>>, x: usize, y: usize, u: usize, v: usize, n: usize) {\n        const MOD: i32 = 1_000_000_007;\n        if u >= n || v >= n || dp[u][v].0 == -1 {\n            return;\n        }\n        if dp[u][v].0 > dp[x][y].0 {\n            dp[x][y] = dp[u][v];\n        } else if dp[u][v].0 == dp[x][y].0 {\n            dp[x][y].1 = (dp[x][y].1 + dp[u][v].1) % MOD;\n        }\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(N^2)$，其中 $N$ 是数组 `board` 的边长。\n\n- 空间复杂度：$O(N^2)$。",
+            "slateValue": "",
+            "slug": "zui-da-de-fen-de-lu-jing-shu-mu-by-leetcode-soluti",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "8SQBCW",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 19,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-02-19T03:03:33.876554+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 根据题意，我们从右下角 \"S\" 出发后，只能向上、左或左上移动，那么我们不会重复经过数组 board 中的位置，因此我们可以使用动态规划的方法来解决这个问题。 我们用 dp[i][j] 表示数组 board 中位置 (i, j) 的若干状态。由于题目要求得到从右下角到左上角的得分最大值以及最大得分方案",
+            "topic": {
+                "id": 101756,
+                "subscribed": false,
+                "commentCount": 44,
+                "viewCount": 4088,
+                "post": {
+                    "id": 349597,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 25,
+            "isEditorsPick": false,
+            "hitCount": 12577,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "number-of-paths-with-max-score",
+                "questionFrontendId": "1301"
+            },
+            "next": {
+                "slug": "wang-ge-tu-dppythonjavacgo-by-endlessche-rzxm",
+                "title": "网格图 DP（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

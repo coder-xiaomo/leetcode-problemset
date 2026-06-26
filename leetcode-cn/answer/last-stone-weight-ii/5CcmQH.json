@@ -1,0 +1,134 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "5CcmQH",
+            "title": "最后一块石头的重量 II",
+            "content": "#### 前言：合法性证明\n\n为了便于讨论，若最终没有石头剩下，则视作最终剩下了一块重量为 $0$ 的石头。\n\n用归纳法可以证明，无论按照何种顺序粉碎石头，最后一块石头的重量总是可以表示成\n\n$$\n\\sum_{i=0}^{n-1} k_i \\times \\textit{stones}_i,\\ \\ k_i\\in\\{-1,1\\}\n$$\n\n但不是所有 $k_i$ 的取值都是合法的。例如有四块石头，其重量分别为 $a$，$b$，$c$，$d$，且满足 $a\\le b\\le c\\le d$。由于石头的重量不可能增加，无论怎么操作，我们是不可能得到大小为 $d+c+b-a$ 的石头的，该重量已经超过了 $c$ 以及 $d$。\n\n那么，上述和式的最小非负值所对应的这组 $\\{k_i\\}$ 是合法的吗？\n\n我们将这组 $\\{k_i\\}$ 对应的石头划分成两堆，$k_i=1$ 的石头分至一堆，$k_i=-1$ 的石头分至另一堆。由于这是最小非负值所对应的 $\\{k_i\\}$，**这两堆石头重量之差的绝对值也是所有划分当中最小的**。\n\n记这两堆石头重量之差的绝对值为 $\\textit{diff}$。若能找到一种粉碎方案，使得最后一块石头的重量也为 $\\textit{diff}$，那就能说明这组 $\\{k_i\\}$ 是合法的。\n\n我们不断地粉碎石头。每次粉碎时，记重量最大的石头所处的堆为 $A$（若两堆最大重量相同则任选一堆），另一堆为 $B$。从 $A$ 中取出重量最大的石头，$B$ 中任取一石头，若没有完全粉碎，则将新石头重新放入 $A$。这一操作从每堆石头中减去了同样的重量，从而保证重量之差的绝对值在粉碎前后是不变的。\n\n若出现一堆没有石头，而另一堆不止一块石头的情况，记有石头的那一堆为 $A$，另一堆为 $B$。要继续粉碎，则需要从 $A$ 中取出一块石头移入 $B$，然后按规则粉碎。但移入操作让重量之差的绝对值变得更小，与事实（上文加粗文字）矛盾，所以不会出现这种情况。\n\n因此，按照上述流程操作，最后一块石头的重量为 $\\textit{diff}$，所以这组 $\\{k_i\\}$ 对应着一个合法的粉碎结果。\n\n#### 方法一：动态规划\n\n记石头的总重量为 $\\textit{sum}$，$k_i=-1$ 的石头的重量之和为 $\\textit{neg}$，则其余 $k_i=1$ 的石头的重量之和为 $\\textit{sum}-\\textit{neg}$。则有\n\n$$\n\\sum_{i=0}^{n-1} k_i\\cdot\\textit{stones}_i = (\\textit{sum}-\\textit{neg})-\\textit{neg} = \\textit{sum}-2\\cdot\\textit{neg}\n$$\n\n要使最后一块石头的重量尽可能地小，$\\textit{neg}$ 需要在不超过 $\\lfloor \\textit{sum}/2 \\rfloor$ 的前提下尽可能地大。因此本问题可以看作是背包容量为 $\\lfloor \\textit{sum}/2 \\rfloor$，物品重量和价值均为 $\\textit{stones}_i$ 的 0-1 背包问题。\n\n对于该问题，定义二维布尔数组 $\\textit{dp}$，其中 $\\textit{dp}[i+1][j]$ 表示前 $i$ 个石头能否凑出重量 $j$。特别地，$\\textit{dp}[0][]$ 为不选任何石头的状态，因此除了 $\\textit{dp}[0][0]$ 为真，其余 $\\textit{dp}[0][j]$ 全为假。\n\n对于第 $i$ 个石头，考虑凑出重量 $j$：\n\n- 若 $j<\\textit{stones}[i]$，则不能选第 $i$ 个石头，此时有 $\\textit{dp}[i+1][j]=\\textit{dp}[i][j]$；\n- 若 $j\\ge \\textit{stones}[i]$，存在选或不选两种决策，不选时有 $\\textit{dp}[i+1][j]=\\textit{dp}[i][j]$，选时需要考虑能否凑出重量 $j-\\textit{stones}[i]$，即 $\\textit{dp}[i+1][j]=\\textit{dp}[i][j-\\textit{stones}[i]]$。若二者均为假则 $\\textit{dp}[i+1][j]$ 为假，否则 $\\textit{dp}[i+1][j]$ 为真。\n\n因此状态转移方程如下：\n\n$$\n\\textit{dp}[i+1][j]=\n\\begin{cases}\n\\textit{dp}[i][j],& j<\\textit{stones}[i] \\\\\n\\textit{dp}[i][j] \\lor \\textit{dp}[i][j-\\textit{stones}[i]], & j\\ge \\textit{stones}[i]\n\\end{cases}\n$$\n\n其中 $\\lor$ 表示逻辑或运算。求出 $\\textit{dp}[n][]$ 后，所有为真的 $\\textit{dp}[n][j]$ 中，最大的 $j$ 即为 $\\textit{neg}$ 能取到的最大值。代入 $\\textit{sum}-2\\cdot\\textit{neg}$ 中即得到最后一块石头的最小重量。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int lastStoneWeightII(vector<int> &stones) {\n        int sum = accumulate(stones.begin(), stones.end(), 0);\n        int n = stones.size(), m = sum / 2;\n        vector<vector<int>> dp(n + 1, vector<int>(m + 1));\n        dp[0][0] = true;\n        for (int i = 0; i < n; ++i) {\n            for (int j = 0; j <= m; ++j) {\n                if (j < stones[i]) {\n                    dp[i + 1][j] = dp[i][j];\n                } else {\n                    dp[i + 1][j] = dp[i][j] || dp[i][j - stones[i]];\n                }\n            }\n        }\n        for (int j = m;; --j) {\n            if (dp[n][j]) {\n                return sum - 2 * j;\n            }\n        }\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int lastStoneWeightII(int[] stones) {\n        int sum = 0;\n        for (int weight : stones) {\n            sum += weight;\n        }\n        int n = stones.length, m = sum / 2;\n        boolean[][] dp = new boolean[n + 1][m + 1];\n        dp[0][0] = true;\n        for (int i = 0; i < n; ++i) {\n            for (int j = 0; j <= m; ++j) {\n                if (j < stones[i]) {\n                    dp[i + 1][j] = dp[i][j];\n                } else {\n                    dp[i + 1][j] = dp[i][j] || dp[i][j - stones[i]];\n                }\n            }\n        }\n        for (int j = m;; --j) {\n            if (dp[n][j]) {\n                return sum - 2 * j;\n            }\n        }\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int LastStoneWeightII(int[] stones) {\n        int sum = 0;\n        foreach (int weight in stones) {\n            sum += weight;\n        }\n        int n = stones.Length, m = sum / 2;\n        bool[,] dp = new bool[n + 1, m + 1];\n        dp[0, 0] = true;\n        for (int i = 0; i < n; ++i) {\n            for (int j = 0; j <= m; ++j) {\n                if (j < stones[i]) {\n                    dp[i + 1, j] = dp[i, j];\n                } else {\n                    dp[i + 1, j] = dp[i, j] || dp[i, j - stones[i]];\n                }\n            }\n        }\n        for (int j = m;; --j) {\n            if (dp[n, j]) {\n                return sum - 2 * j;\n            }\n        }\n    }\n}\n```\n\n```go [sol1-Golang]\nfunc lastStoneWeightII(stones []int) int {\n    sum := 0\n    for _, v := range stones {\n        sum += v\n    }\n    n, m := len(stones), sum/2\n    dp := make([][]bool, n+1)\n    for i := range dp {\n        dp[i] = make([]bool, m+1)\n    }\n    dp[0][0] = true\n    for i, weight := range stones {\n        for j := 0; j <= m; j++ {\n            if j < weight {\n                dp[i+1][j] = dp[i][j]\n            } else {\n                dp[i+1][j] = dp[i][j] || dp[i][j-weight]\n            }\n        }\n    }\n    for j := m; ; j-- {\n        if dp[n][j] {\n            return sum - 2*j\n        }\n    }\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar lastStoneWeightII = function(stones) {\n    let sum = 0;\n    for (const weight of stones) {\n        sum += weight;\n    }\n    const n = stones.length, m = Math.floor(sum / 2);\n    const dp = new Array(n + 1).fill(0).map(() => new Array(m + 1).fill(false));\n    dp[0][0] = true;\n    for (let i = 0; i < n; ++i) {\n        for (let j = 0; j <= m; ++j) {\n            if (j < stones[i]) {\n                dp[i + 1][j] = dp[i][j];\n            } else {\n                dp[i + 1][j] = dp[i][j] || dp[i][j - stones[i]];\n            }\n        }\n    }\n    for (let j = m;; --j) {\n        if (dp[n][j]) {\n            return sum - 2 * j;\n        }\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def lastStoneWeightII(self, stones: List[int]) -> int:\n        total = sum(stones)\n        n, m = len(stones), total // 2\n        dp = [[False] * (m + 1) for _ in range(n + 1)]\n        dp[0][0] = True\n\n        for i in range(n):\n            for j in range(m + 1):\n                if j < stones[i]:\n                    dp[i + 1][j] = dp[i][j]\n                else:\n                    dp[i + 1][j] = dp[i][j] or dp[i][j - stones[i]]\n        \n        ans = None\n        for j in range(m, -1, -1):\n            if dp[n][j]:\n                ans = total - 2 * j\n                break\n        \n        return ans\n```\n\n```C [sol1-C]\nint lastStoneWeightII(int* stones, int stonesSize) {\n    int sum = 0;\n    for (int i = 0; i < stonesSize; i++) {\n        sum += stones[i];\n    }\n    int n = stonesSize, m = sum / 2;\n    int dp[n + 1][m + 1];\n    memset(dp, 0, sizeof(dp));\n    dp[0][0] = true;\n    for (int i = 0; i < n; ++i) {\n        for (int j = 0; j <= m; ++j) {\n            if (j < stones[i]) {\n                dp[i + 1][j] = dp[i][j];\n            } else {\n                dp[i + 1][j] = dp[i][j] || dp[i][j - stones[i]];\n            }\n        }\n    }\n    for (int j = m;; --j) {\n        if (dp[n][j]) {\n            return sum - 2 * j;\n        }\n    }\n}\n```\n\n由于 $\\textit{dp}[i+1][]$ 的每个元素值的计算只和 $\\textit{dp}[i][]$ 的元素值有关，因此可以使用滚动数组的方式，去掉 $\\textit{dp}$ 的第一个维度。\n\n对于转移方程 \n\n$$\n\\textit{dp}[i+1][j]=\\textit{dp}[i][j] \\lor \\textit{dp}[i][j-\\textit{stones}[i]]\n$$\n\n在去掉第一个维度后，若仍采用正序遍历，在计算 $\\textit{dp}[j]$ 时，$\\textit{dp}[j-\\textit{stones}[i]]$ 的值已经被覆盖，这意味着 $\\textit{dp}[j-\\textit{stones}[i]]$ 实际对应的是 $\\textit{dp}[i+1][j-\\textit{stones}[i]]$，即我们计算的是一个错误的转移方程\n\n$$\n\\textit{dp}[i+1][j]=\\textit{dp}[i][j] \\lor \\textit{dp}[i+1][j-\\textit{stones}[i]]\n$$\n\n若采用倒序遍历，则可消除该错误，这种方式保证计算 $\\textit{dp}[j]$ 时，$\\textit{dp}[j-\\textit{stones}[i]]$ 的值实际对应的是 $\\textit{dp}[i][j-\\textit{stones}[i]]$，从而保证转移方程与去掉维度前一致。\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    int lastStoneWeightII(vector<int> &stones) {\n        int sum = accumulate(stones.begin(), stones.end(), 0);\n        int m = sum / 2;\n        vector<int> dp(m + 1);\n        dp[0] = true;\n        for (int weight : stones) {\n            for (int j = m; j >= weight; --j) {\n                dp[j] = dp[j] || dp[j - weight];\n            }\n        }\n        for (int j = m;; --j) {\n            if (dp[j]) {\n                return sum - 2 * j;\n            }\n        }\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public int lastStoneWeightII(int[] stones) {\n        int sum = 0;\n        for (int weight : stones) {\n            sum += weight;\n        }\n        int m = sum / 2;\n        boolean[] dp = new boolean[m + 1];\n        dp[0] = true;\n        for (int weight : stones) {\n            for (int j = m; j >= weight; --j) {\n                dp[j] = dp[j] || dp[j - weight];\n            }\n        }\n        for (int j = m;; --j) {\n            if (dp[j]) {\n                return sum - 2 * j;\n            }\n        }\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    public int LastStoneWeightII(int[] stones) {\n        int sum = 0;\n        foreach (int weight in stones) {\n            sum += weight;\n        }\n        int m = sum / 2;\n        bool[] dp = new bool[m + 1];\n        dp[0] = true;\n        foreach (int weight in stones) {\n            for (int j = m; j >= weight; --j) {\n                dp[j] = dp[j] || dp[j - weight];\n            }\n        }\n        for (int j = m;; --j) {\n            if (dp[j]) {\n                return sum - 2 * j;\n            }\n        }\n    }\n}\n```\n\n```go [sol2-Golang]\nfunc lastStoneWeightII(stones []int) int {\n    sum := 0\n    for _, v := range stones {\n        sum += v\n    }\n    m := sum / 2\n    dp := make([]bool, m+1)\n    dp[0] = true\n    for _, weight := range stones {\n        for j := m; j >= weight; j-- {\n            dp[j] = dp[j] || dp[j-weight]\n        }\n    }\n    for j := m; ; j-- {\n        if dp[j] {\n            return sum - 2*j\n        }\n    }\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar lastStoneWeightII = function(stones) {\n    let sum = 0;\n    for (const weight of stones) {\n        sum += weight;\n    }\n    const m = Math.floor(sum / 2);\n    const dp = new Array(m + 1).fill(false);\n    dp[0] = true;\n    for (const weight of stones) {\n        for (let j = m; j >= weight; --j) {\n            dp[j] = dp[j] || dp[j - weight];\n        }\n    }\n    for (let j = m;; --j) {\n        if (dp[j]) {\n            return sum - 2 * j;\n        }\n    }\n};\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def lastStoneWeightII(self, stones: List[int]) -> int:\n        total = sum(stones)\n        n, m = len(stones), total // 2\n        dp = [False] * (m + 1)\n        dp[0] = True\n\n        for weight in stones:\n            for j in range(m, weight - 1, -1):\n                dp[j] |= dp[j - weight]\n        \n        ans = None\n        for j in range(m, -1, -1):\n            if dp[j]:\n                ans = total - 2 * j\n                break\n        \n        return ans\n```\n\n```C [sol2-C]\nint lastStoneWeightII(int* stones, int stonesSize) {\n    int sum = 0;\n    for (int i = 0; i < stonesSize; i++) {\n        sum += stones[i];\n    }\n    int m = sum / 2;\n    int dp[m + 1];\n    memset(dp, 0, sizeof(dp));\n    dp[0] = true;\n    for (int i = 0; i < stonesSize; ++i) {\n        for (int j = m; j >= stones[i]; --j) {\n            dp[j] = dp[j] || dp[j - stones[i]];\n        }\n    }\n    for (int j = m;; --j) {\n        if (dp[j]) {\n            return sum - 2 * j;\n        }\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n\\cdot \\textit{sum})$。其中 $n$ 是数组 $\\textit{stones}$ 的长度，$\\textit{sum}$ 为 $\\textit{stones}$ 所有元素之和。\n\n- 空间复杂度：$O(\\textit{sum})$。",
+            "slateValue": "",
+            "slug": "zui-hou-yi-kuai-shi-tou-de-zhong-liang-i-95p9",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "5CcmQH",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 194,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 14,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 7,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-06-07T14:30:52.835501+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "前言：合法性证明 为了便于讨论，若最终没有石头剩下，则视作最终剩下了一块重量为 $0$ 的石头。 用归纳法可以证明，无论按照何种顺序粉碎石头，最后一块石头的重量总是可以表示成 \\sum_{i=0}^{n-1} k_i \\times \\textit{stones}_i,\\ \\ k_i\\in{-1,1} 但不是所有 $k_",
+            "topic": {
+                "id": 817930,
+                "subscribed": false,
+                "commentCount": 279,
+                "viewCount": 50529,
+                "post": {
+                    "id": 1794338,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 291,
+            "isEditorsPick": false,
+            "hitCount": 121855,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "last-stone-weight-ii",
+                "questionFrontendId": "1049"
+            },
+            "next": {
+                "slug": "yi-pian-wen-zhang-chi-tou-bei-bao-wen-ti-5lfv",
+                "title": "一篇文章吃透背包问题！（细致引入+解题模板+例题分析+代码呈现）"
+            },
+            "prev": null
+        }
+    }
+}

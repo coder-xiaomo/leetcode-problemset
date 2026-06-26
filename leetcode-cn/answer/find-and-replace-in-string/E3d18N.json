@@ -1,0 +1,144 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "E3d18N",
+            "title": "字符串中的查找与替换",
+            "content": "#### 方法一：按照下标排序 + 模拟\n\n**思路与算法**\n\n我们直接按照题目的要求进行模拟即可。\n\n首先我们根据数组 $\\textit{indices}$，将所有的替换操作进行升序排序。在这一步中，同时对 $\\textit{indices}$，$\\textit{sources}$，$\\textit{targets}$ 这三个数组进行排序较为困难，我们可以使用一个长度（记为 $m$）与它们相同的数组 $\\textit{ops}$，存储 $0$ 到 $m-1$ 这 $m$ 个下标，随后对 $\\textit{ops}$ 本身按照 $\\textit{indices}$ 作为第一关键字进行排序即可。\n\n在排序完成后，我们就可以遍历给定的字符串 $s$ 进行操作了。我们使用另一个指针 $\\textit{pt}$ 指向 $\\textit{ops}$ 的首个元素，表示当前需要进行的操作。当我们遍历到第 $i$ 个字符时，我们首先不断往右移动 $\\textit{pt}$，直到其移出边界，或者第 $\\textit{ops}[\\textit{pt}]$ 个操作的下标不小于 $i$。此时，会有如下的两种情况：\n\n- 如果这个下标大于 $i$，说明不存在下标为 $i$ 的操作。我们可以直接将第 $i$ 个字符放入答案中；\n\n- 如果这个下标等于 $i$，说明存在下标为 $i$ 的操作。我们将 $s$ 从位置 $i$ 开始的长度与 $\\textit{sources}[\\textit{ops}[i]]$ 的子串与 $\\textit{sources}[\\textit{ops}[i]]$ 进行比较：\n    - 如果相等，那么替换操作成功，我们将 $\\textit{targets}[\\textit{ops}[i]]$ 放入答案中。由于替换操作不可能重叠，因此我们可以直接跳过 $\\textit{sources}[\\textit{ops}[i]]$ 长度那么多数量的字符；\n\n    - 否则，替换操作失败，我们可以直接将第 $i$ 个字符放入答案中。\n\n需要注意的是，题目中只保证了成功的替换操作不会重叠，而不保证失败的替换操作不会重叠。因此当这个下标等于 $i$ 时，可能会有多个替换操作需要进行尝试，即我们需要不断往右移动 $pt$，直到其移出边界，或者第 $\\textit{ops}[\\textit{pt}]$ 个操作的下标严格大于 $i$。遍历到的替换操作需要依次进行尝试，如果其中一个成功，那么剩余的不必尝试，可以直接退出。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    string findReplaceString(string s, vector<int>& indices, vector<string>& sources, vector<string>& targets) {\n        int n = s.size(), m = indices.size();\n\n        vector<int> ops(m);\n        iota(ops.begin(), ops.end(), 0);\n        sort(ops.begin(), ops.end(), [&](int i, int j) { return indices[i] < indices[j]; });\n\n        string ans;\n        int pt = 0;\n        for (int i = 0; i < n;) {\n            while (pt < m && indices[ops[pt]] < i) {\n                ++pt;\n            }\n            bool succeed = false;\n            while (pt < m && indices[ops[pt]] == i) {\n                if (s.substr(i, sources[ops[pt]].size()) == sources[ops[pt]]) {\n                    succeed = true;\n                    break;\n                }\n                ++pt;\n            }\n            if (succeed) {\n                ans += targets[ops[pt]];\n                i += sources[ops[pt]].size();\n            }\n            else {\n                ans += s[i];\n                ++i;\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public String findReplaceString(String s, int[] indices, String[] sources, String[] targets) {\n        int n = s.length(), m = indices.length;\n\n        List<Integer> ops = new ArrayList<>();\n        for (int i = 0; i < m; i++) {\n            ops.add(i);\n        }\n        ops.sort((i, j) -> indices[i] - indices[j]);\n\n        StringBuilder ans = new StringBuilder();\n        int pt = 0;\n        for (int i = 0; i < n;) {\n            while (pt < m && indices[ops.get(pt)] < i) {\n                pt++;\n            }\n            boolean succeed = false;\n            while (pt < m && indices[ops.get(pt)] == i) {\n                if (s.substring(i, Math.min(i + sources[ops.get(pt)].length(), n)).equals(sources[ops.get(pt)])) {\n                    succeed = true;\n                    break;\n                }\n                pt++;\n            }\n            if (succeed) {\n                ans.append(targets[ops.get(pt)]);\n                i += sources[ops.get(pt)].length();\n            } else {\n                ans.append(s.charAt(i));\n                i++;\n            }\n        }\n        return ans.toString();\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public string FindReplaceString(string s, int[] indices, string[] sources, string[] targets) {\n        int n = s.Length, m = indices.Length;\n\n        IList<int> ops = new List<int>();\n        for (int i = 0; i < m; i++) {\n            ops.Add(i);\n        }\n        ((List<int>) ops).Sort((i, j) => indices[i] - indices[j]);\n\n        StringBuilder ans = new StringBuilder();\n        int pt = 0;\n        for (int i = 0; i < n;) {\n            while (pt < m && indices[ops[pt]] < i) {\n                pt++;\n            }\n            bool succeed = false;\n            while (pt < m && indices[ops[pt]] == i) {\n                if (s.Substring(i, Math.Min(sources[ops[pt]].Length, n - i)).Equals(sources[ops[pt]])) {\n                    succeed = true;\n                    break;\n                }\n                pt++;\n            }\n            if (succeed) {\n                ans.Append(targets[ops[pt]]);\n                i += sources[ops[pt]].Length;\n            } else {\n                ans.Append(s[i]);\n                i++;\n            }\n        }\n        return ans.ToString();\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def findReplaceString(self, s: str, indices: List[int], sources: List[str], targets: List[str]) -> str:\n        n, m = len(s), len(indices)\n\n        ops = list(range(m))\n        ops.sort(key=lambda x: indices[x])\n\n        ans = list()\n        i = pt = 0\n        while i < n:\n            while pt < m and indices[ops[pt]] < i:\n                pt += 1\n            succeed = False\n            while pt < m and indices[ops[pt]] == i:\n                if s[i:i + len(sources[ops[pt]])] == sources[ops[pt]]:\n                    succeed = True\n                    break\n                pt += 1\n            if succeed:\n                ans.append(targets[ops[pt]])\n                i += len(sources[ops[pt]])\n            else:\n                ans.append(s[i])\n                i += 1\n\n        return \"\".join(ans)\n```\n\n```JavaScript [sol1-JavaScript]\nvar findReplaceString = function(s, indices, sources, targets) {\n    const n = s.length;\n    const m = indices.length;\n\n    const ops = new Array(m);\n    for (let i = 0; i < m; i++) {\n        ops[i] = i;\n    }\n    ops.sort((i, j) => indices[i] - indices[j]);\n\n    let ans = \"\";\n    let pt = 0;\n    for (let i = 0; i < n; ) {\n        while (pt < m && indices[ops[pt]] < i) {\n            pt++;\n        }\n        let found = false;\n        while (pt < m && indices[ops[pt]] == i) {\n            if (s.substring(i, i + sources[ops[pt]].length) === sources[ops[pt]]) {\n                found = true;\n                break;\n            }\n            pt++;\n        }\n        if (found) {\n            ans += targets[ops[pt]];\n            i += sources[ops[pt]].length;\n        } else {\n            ans += s[i];\n            i++;\n        }\n    }\n    return ans;\n};\n```\n\n```C [sol1-C]\nstatic int cmp(const void *a, const void *b) {\n    return ((int *)a)[1] - ((int *)b)[1];\n}\n\nchar * findReplaceString(char * s, int* indices, int indicesSize, char ** sources, int sourcesSize, char ** targets, int targetsSize) {\n    int n = strlen(s), m = indicesSize;\n\n    int ops[m][2];\n    int sourcesLen[sourcesSize];\n    for (int i = 0; i < m; i++) {\n        ops[i][0] = i;\n        ops[i][1] = indices[i];\n    }\n    for (int i = 0; i < sourcesSize; i++) {\n        sourcesLen[i] = strlen(sources[i]);\n    }\n    qsort(ops, m, sizeof(ops[0]), cmp);\n\n    char *ans = (char *)calloc(1024, sizeof(char));\n    int pt = 0, pos = 0;\n    for (int i = 0; i < n;) {\n        while (pt < m && indices[ops[pt][0]] < i) {\n            ++pt;\n        }\n        bool succeed = false;\n        while (pt < m && indices[ops[pt][0]] == i) {\n            if (strncmp(s + i, sources[ops[pt][0]], sourcesLen[ops[pt][0]]) == 0) {\n                succeed = true;\n                break;\n            }\n            ++pt;\n        }\n        if (succeed) {\n            pos += sprintf(ans + pos, \"%s\", targets[ops[pt][0]]);\n            i += sourcesLen[ops[pt][0]];\n        } else {\n            ans[pos++] = s[i];\n            ++i;\n        }\n    }\n    return ans;\n}\n```\n\n```Go [sol1-Go]\nfunc findReplaceString(s string, indices []int, sources []string, targets []string) string {\n    n, m := len(s), len(indices)\n\n    ops := make([][]int, m)\n    for i := 0; i < m; i++ {\n        ops[i] = []int{i, indices[i]}\n    }\n    sort.Slice(ops, func(i int, j int) bool {\n        return ops[i][1] < ops[j][1]\n    })\n\n    ans := \"\"\n    pt := 0\n    for i := 0; i < n; {\n        for pt < m && indices[ops[pt][0]] < i {\n            pt++\n        }\n        succeed := false\n        for pt < m && indices[ops[pt][0]] == i {\n            if s[i : i + min(len(sources[ops[pt][0]]), n - i)] == sources[ops[pt][0]] {\n                succeed = true\n                break\n            }\n            pt++\n        }\n        if succeed {\n            ans += targets[ops[pt][0]]\n            i += len(sources[ops[pt][0]])\n        } else {\n            ans += string(s[i])\n            i++\n        }\n    }\n    return ans\n}\n\nfunc min(x int, y int) int {\n    if x > y {\n        return y\n    }\n    return x\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n + m \\log m + ml)$，其中 $n$ 是字符串 $s$ 的长度，$m$ 是数组 $\\textit{indices}$ 的长度，$l$ 是数组 $\\textit{sources}$ 和 $\\textit{targets}$ 中字符串的平均长度。\n\n    - 排序需要的时间为 $O(m \\log m)$；\n\n    - 在使用双指针进行遍历的过程中，遍历字符串需要的时间为 $O(n)$，遍历数组 $\\textit{ops}$ 需要的时间为 $O(m)$，在最坏情况下需要尝试每一个替换操作，比较和构造最终答案需要的时间为 $O(ml)$。\n\n    相加即可得到总时间复杂度 $O(n + m \\log m + ml)$。\n\n- 空间复杂度：$O(n + ml)$。\n\n    - 数组 $\\textit{ops}$ 需要的空间为 $O(m)$；\n\n    - 排序需要的栈空间为 $O(\\log m)$；\n\n    - 在替换操作中进行比较时，如果使用的语言支持无拷贝的切片操作，那么需要的空间为 $O(1)$，否则为 $O(l)$；\n\n    - 在构造最终答案时，如果使用的语言支持带修改的字符串，那么需要的空间为 $O(1)$（不考虑最终答案占用的空间），否则需要 $O(n + ml)$ 的辅助空间。\n\n    对于不同语言，上述需要的空间会有所变化。这里取每一种可能的最大值，相加即可得到总空间复杂度 $O(n + ml)$。\n\n#### 方法二：哈希表 + 模拟\n\n**思路与算法**\n\n我们也可以将方法一中的数组 $\\textit{ops}$ 换成哈希映射，其中的键表示字符串中的下标，值是一个数组，存储了所有操作该下标的操作编号。我们只需要对数组 $\\textit{indices}$ 进行一次遍历，就可以得到这个哈希表。\n\n在这之后，当我们对字符串 $s$ 进行遍历时，如果遍历到位置 $i$，那么哈希表中键 $i$ 对应的数组，就是所有对位置 $i$ 进行的操作。我们使用与方法一相同的方法处理这些操作即可。\n\n**代码**\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    string findReplaceString(string s, vector<int>& indices, vector<string>& sources, vector<string>& targets) {\n        int n = s.size(), m = indices.size();\n\n        unordered_map<int, vector<int>> ops;\n        for (int i = 0; i < m; ++i) {\n            ops[indices[i]].push_back(i);\n        }\n\n        string ans;\n        for (int i = 0; i < n;) {\n            bool succeed = false;\n            if (ops.count(i)) {\n                for (int pt: ops[i]) {\n                    if (s.substr(i, sources[pt].size()) == sources[pt]) {\n                        succeed = true;\n                        ans += targets[pt];\n                        i += sources[pt].size();\n                        break;\n                    }\n                }\n            }\n            if (!succeed) {\n                ans += s[i];\n                ++i;\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public String findReplaceString(String s, int[] indices, String[] sources, String[] targets) {\n        int n = s.length(), m = indices.length;\n\n        Map<Integer, List<Integer>> ops = new HashMap<Integer, List<Integer>>();\n        for (int i = 0; i < m; ++i) {\n            ops.putIfAbsent(indices[i], new ArrayList<Integer>());\n            ops.get(indices[i]).add(i);\n        }\n\n        StringBuilder ans = new StringBuilder();\n        for (int i = 0; i < n;) {\n            boolean succeed = false;\n            if (ops.containsKey(i)) {\n                for (int pt : ops.get(i)) {\n                    if (s.substring(i, Math.min(i + sources[pt].length(), n)).equals(sources[pt])) {\n                        succeed = true;\n                        ans.append(targets[pt]);\n                        i += sources[pt].length();\n                        break;\n                    }\n                }\n            }\n            if (!succeed) {\n                ans.append(s.charAt(i));\n                ++i;\n            }\n        }\n        return ans.toString();\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    public string FindReplaceString(string s, int[] indices, string[] sources, string[] targets) {\n        int n = s.Length, m = indices.Length;\n\n        IDictionary<int, IList<int>> ops = new Dictionary<int, IList<int>>();\n        for (int i = 0; i < m; ++i) {\n            ops.TryAdd(indices[i], new List<int>());\n            ops[indices[i]].Add(i);\n        }\n\n        StringBuilder ans = new StringBuilder();\n        for (int i = 0; i < n;) {\n            bool succeed = false;\n            if (ops.ContainsKey(i)) {\n                foreach (int pt in ops[i]) {\n                    if (s.Substring(i, Math.Min(i + sources[pt].Length, n) - i).Equals(sources[pt])) {\n                        succeed = true;\n                        ans.Append(targets[pt]);\n                        i += sources[pt].Length;\n                        break;\n                    }\n                }\n            }\n            if (!succeed) {\n                ans.Append(s[i]);\n                ++i;\n            }\n        }\n        return ans.ToString();\n    }\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def findReplaceString(self, s: str, indices: List[int], sources: List[str], targets: List[str]) -> str:\n        n, m = len(s), len(indices)\n\n        ops = defaultdict(list)\n        for i, idx in enumerate(indices):\n            ops[idx].append(i)\n\n        ans = list()\n        i = 0\n        while i < n:\n            succeed = False\n            if i in ops:\n                for pt in ops[i]:\n                    if s[i:i+len(sources[pt])] == sources[pt]:\n                        succeed = True\n                        ans.append(targets[pt])\n                        i += len(sources[pt])\n                        break\n            if not succeed:\n                ans.append(s[i])\n                i += 1\n\n        return \"\".join(ans)\n```\n\n```JavaScript [sol1-JavaScript]\nvar findReplaceString = function(s, indices, sources, targets) {\n    const n = s.length, m = indices.length;\n\n    const ops = new Map();\n    for (let i = 0; i < m; i++) {\n        if (!ops.has(indices[i])) {\n            ops.set(indices[i], []);\n        }\n        ops.get(indices[i]).push(i);\n    }\n\n    let ans = \"\";\n    for (let i = 0; i < n; ) {\n        let succeed = false;\n        if (ops.has(i)) {\n            console.log(ops.get(i))\n            for (const pt of ops.get(i)) {\n                if (s.substring(i, Math.min(i + sources[pt].length, n)) === sources[pt]) {\n                    succeed = true;\n                    ans += targets[pt];\n                    i += sources[pt].length;\n                    break;\n                }\n            }\n        }\n        if (!succeed) {\n            ans += s[i];\n            ++i;\n        }\n    }\n    return ans;\n};\n```\n\n```C [sol2-C]\ntypedef struct {\n    int key;\n    struct ListNode *list;\n    UT_hash_handle hh;\n} HashItem;\n\nstruct ListNode *creatListNode(int val) {\n    struct ListNode *obj = (struct ListNode *)malloc(sizeof(struct ListNode));\n    obj->val = val;\n    obj->next = NULL;\n    return obj;\n}\n\nvoid freeLinkList(struct ListNode *list) {\n    while (list) {\n        struct ListNode *curr = list;\n        list = list->next;\n        free(curr);\n    }\n}\n\nHashItem *hashFindItem(HashItem **obj, int key) {\n    HashItem *pEntry = NULL;\n    HASH_FIND_INT(*obj, &key, pEntry);\n    return pEntry;\n}\n\nbool hashAddItem(HashItem **obj, int key, int val) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (pEntry) {\n        struct ListNode *node = creatListNode(val);\n        node->next = pEntry->list;\n        pEntry->list = node;\n    } else {\n        HashItem *pEntry = (HashItem *)malloc(sizeof(HashItem));\n        pEntry->key = key;\n        pEntry->list = creatListNode(val);\n        HASH_ADD_INT(*obj, key, pEntry);\n    }\n    return true;\n}\n\nvoid hashFree(HashItem **obj) {\n    HashItem *curr = NULL, *tmp = NULL;\n    HASH_ITER(hh, *obj, curr, tmp) {\n        HASH_DEL(*obj, curr);\n        freeLinkList(curr->list);\n        free(curr);\n    }\n}\n\nchar * findReplaceString(char * s, int* indices, int indicesSize, char ** sources, int sourcesSize, char ** targets, int targetsSize) {\n    int n = strlen(s), m = indicesSize;\n\n    HashItem *ops = NULL;\n    for (int i = 0; i < m; ++i) {\n        hashAddItem(&ops, indices[i], i);\n    }\n\n    char *ans = (char *)calloc(n * 50 + 1, sizeof(char));\n    int pos = 0;\n    for (int i = 0; i < n;) {\n        bool succeed = false;\n        HashItem *pEntry = hashFindItem(&ops, i);\n        if (pEntry) {\n            for (struct ListNode *node = pEntry->list; node; node = node->next) {\n                int pt = node->val;\n                if (!strncmp(s + i, sources[pt], strlen(sources[pt]))) {\n                    succeed = true;\n                    pos += sprintf(ans + pos, \"%s\", targets[pt]);\n                    i += strlen(sources[pt]);\n                    break;\n                }\n            }\n        }\n        if (!succeed) {\n            ans[pos++] = s[i++];\n        }\n    }\n    hashFree(&ops);\n    return ans;\n}\n```\n\n```Go [sol2-Go]\nfunc findReplaceString(s string, indices []int, sources []string, targets []string) string {\n    n, m := len(s), len(indices)\n\n    ops := map[int][]int{}\n    for i := 0; i < m; i++ {\n        ops[indices[i]] = append(ops[indices[i]], i)\n    }\n\n    ans := \"\"\n    for i := 0; i < n; {\n        succeed := false\n        _, ok := ops[i]\n        if ok {\n            for _, pt := range ops[i] {\n                if s[i : i + min(len(sources[pt]), n - i)] == sources[pt] {\n                    succeed = true\n                    ans += targets[pt]\n                    i += len(sources[pt])\n                    break\n                }\n            }\n        }\n        if !succeed {\n            ans += string(s[i])\n            i++\n        }\n    }\n    return ans\n}\n\nfunc min(x int, y int) int {\n    if x > y {\n        return y\n    }\n    return x\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n + ml)$，其中 $n$ 是字符串 $s$ 的长度，$m$ 是数组 $\\textit{indices}$ 的长度，$l$ 是数组 $\\textit{sources}$ 和 $\\textit{targets}$ 中字符串的平均长度。\n\n    - 将操作放入哈希表需要的时间为 $O(m)$；\n\n    - 在使用双指针进行遍历的过程中，遍历字符串需要的时间为 $O(n)$，遍历哈希表需要的时间为 $O(m)$，在最坏情况下需要尝试每一个替换操作，比较和构造最终答案需要的时间为 $O(ml)$。\n\n    相加即可得到总时间复杂度 $O(n + ml)$。\n\n- 空间复杂度：$O(n + ml)$。\n\n    - 哈希表需要的空间为 $O(m)$；\n\n    - 在替换操作中进行比较时，如果使用的语言支持无拷贝的切片操作，那么需要的空间为 $O(1)$，否则为 $O(l)$；\n\n    - 在构造最终答案时，如果使用的语言支持带修改的字符串，那么需要的空间为 $O(1)$（不考虑最终答案占用的空间），否则需要 $O(n + ml)$ 的辅助空间。\n\n    对于不同语言，上述需要的空间会有所变化。这里取每一种可能的最大值，相加即可得到总空间复杂度 $O(n + ml)$。",
+            "slateValue": "",
+            "slug": "zi-fu-chuan-zhong-de-cha-zhao-yu-ti-huan-9ns4",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "E3d18N",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 17,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Two Pointers",
+                    "nameTranslated": "双指针",
+                    "slug": "two-pointers",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Simulation",
+                    "nameTranslated": "模拟",
+                    "slug": "simulation",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2023-08-14T02:20:18.589766+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：按照下标排序 + 模拟 思路与算法 我们直接按照题目的要求进行模拟即可。 首先我们根据数组 $\\textit{indices}$，将所有的替换操作进行升序排序。在这一步中，同时对 $\\textit{indices}$，$\\textit{sources}$，$\\textit{targets}$ 这三个数组进行排序",
+            "topic": {
+                "id": 2387388,
+                "subscribed": false,
+                "commentCount": 54,
+                "viewCount": 889,
+                "post": {
+                    "id": 4481685,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 26,
+            "isEditorsPick": false,
+            "hitCount": 4045,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "find-and-replace-in-string",
+                "questionFrontendId": "833"
+            },
+            "next": {
+                "slug": "xian-xing-zuo-fa-pythonjavacgojs-by-endl-uofo",
+                "title": "线性做法（Python/Java/C++/Go/JS）"
+            },
+            "prev": null
+        }
+    }
+}

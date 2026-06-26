@@ -1,0 +1,132 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "DM60iR",
+            "title": "根到叶路径上的不足节点",
+            "content": "#### 方法一：深度优先搜索\n\n**思路与算法**\n\n根据题意可知「不足节点」的定义为：通过节点 $\\textit{node}$ 的每种可能的「根-叶」路径上值的总和全都小于给定的 $\\textit{limit}$，则该节点被称之为「不足节点」。\n按照上述定义可知：\n+ 假设节点 $\\textit{node}$ 为根的子树中所有的叶子节点均为「不足节点」，则可以推断出 $\\textit{node}$ 一定也为「不足节点」，即经过该节点所有“根-叶” 路径的总和都小于 $\\textit{limit}$，此时该节点需要删除；\n+ 假设节点 $\\textit{node}$ 为根的子树中存在叶子节点不是「不足节点」，则可以推断出 $\\textit{node}$ 一定也不是「不足节点」，因为此时一定存一条从根节点到叶子节点的路径和大于等于 $\\textit{limit}$，此时该节点需要保留。\n\n根据上述的分析，我们用 $\\text{checkSufficientLeaf}(\\textit{node})$ 来检测 $\\textit{node}$ 节点为子树是否含有叶子节点不为「不足节点」，每次进行深度优先搜索时并传入当前的路径和 $\\textit{sum}$，每次检测过程如下：\n+ 如果当前节点 $\\textit{node}$ 为叶子节点，则当前 “根-叶” 路径和为 $\\textit{sum}$ 加上 $node$ 节点的值，如果当前的路径和小于 $\\textit{limit}$，则该叶子 $\\textit{node}$ 一定为「不足节点」，返回 $\\text{false}$，否则该节点一定不为「不足节点」，返回 $\\text{true}$；\n+ 依次检测 $\\textit{node}$ 节点的左子树与右子树，如果当前节点 $\\textit{node}$ 的左子树中的叶子节点均为「不足节点」，则左孩子需要删除，否则需要保留；如果当前节点 $\\textit{node}$ 的右子树中的叶子节点均为「不足节点」，则右孩子需要删除，否则需要保留。如果当前子树中的所有叶子节点均为「不足节点」则当前节点需要删除，否则当前节点需要保留。\n+ 最终检测 $\\textit{root}$ 的叶子节点是否均为「不足节点」，如果是则返回 $\\text{null}$，否则返回 $\\textit{root}$。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    bool checkSufficientLeaf(TreeNode *node, int sum, int limit) {\n        if (!node) {\n            return false;\n        }\n        if (node->left == nullptr && node->right == nullptr) {\n            return node->val + sum >= limit;\n        }\n        bool haveSufficientLeft = checkSufficientLeaf(node->left, sum + node->val, limit);\n        bool haveSufficientRight = checkSufficientLeaf(node->right, sum + node->val, limit);\n        if (!haveSufficientLeft) {\n            node->left = nullptr;\n        }\n        if (!haveSufficientRight) {\n            node->right = nullptr;\n        }\n        return haveSufficientLeft || haveSufficientRight;\n    }\n\n    TreeNode* sufficientSubset(TreeNode* root, int limit) {\n        bool haveSufficient = checkSufficientLeaf(root, 0, limit);\n        return haveSufficient ? root : nullptr;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public TreeNode sufficientSubset(TreeNode root, int limit) {\n        boolean haveSufficient = checkSufficientLeaf(root, 0, limit);\n        return haveSufficient ? root : null;\n    }\n\n    public boolean checkSufficientLeaf(TreeNode node, int sum, int limit) {\n        if (node == null) {\n            return false;\n        }\n        if (node.left == null && node.right == null) {\n            return node.val + sum >= limit;\n        }\n        boolean haveSufficientLeft = checkSufficientLeaf(node.left, sum + node.val, limit);\n        boolean haveSufficientRight = checkSufficientLeaf(node.right, sum + node.val, limit);\n        if (!haveSufficientLeft) {\n            node.left = null;\n        }\n        if (!haveSufficientRight) {\n            node.right = null;\n        }\n        return haveSufficientLeft || haveSufficientRight;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def sufficientSubset(self, root: Optional[TreeNode], limit: int) -> Optional[TreeNode]:\n        def checkSufficientLeaf(node, sum, limit):\n            if node == None:\n                return False\n            if node.left == None and node.right == None:\n                return node.val + sum >= limit\n            haveSufficientLeft = checkSufficientLeaf(node.left, sum + node.val, limit)\n            haveSufficientRight = checkSufficientLeaf(node.right, sum + node.val, limit)\n            if not haveSufficientLeft:\n                node.left = None\n            if not haveSufficientRight:\n                node.right = None\n            return haveSufficientLeft or haveSufficientRight\n        haveSufficient = checkSufficientLeaf(root, 0, limit)\n        return  root if haveSufficient else None\n```\n\n```Go [sol1-Go]\nfunc sufficientSubset(root *TreeNode, limit int) *TreeNode {\n    haveSufficient := checkSufficientLeaf(root, 0, limit)\n    if haveSufficient {\n        return root\n    } else {\n        return nil\n    }\n}\n\nfunc checkSufficientLeaf(node *TreeNode, sum int, limit int) bool {\n    if node == nil {\n        return false\n    }\n    if node.Left == nil && node.Right == nil {\n        return node.Val+sum >= limit\n    }\n    haveSufficientLeft := checkSufficientLeaf(node.Left, sum+node.Val, limit)\n    haveSufficientRight := checkSufficientLeaf(node.Right, sum+node.Val, limit)\n    if !haveSufficientLeft {\n        node.Left = nil\n    }\n    if !haveSufficientRight {\n        node.Right = nil\n    }\n    return haveSufficientLeft || haveSufficientRight\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar sufficientSubset = function(root, limit) {\n    const haveSufficient = checkSufficientLeaf(root, 0, limit);\n    return haveSufficient ? root : null;\n};\n\nvar checkSufficientLeaf = function(node, sum, limit) {\n    if (node == null) {\n        return false;\n    }\n    if (node.left == null && node.right == null) {\n        return node.val + sum >= limit;\n    }\n    const haveSufficientLeft = checkSufficientLeaf(node.left, sum + node.val, limit);\n    const haveSufficientRight = checkSufficientLeaf(node.right, sum + node.val, limit);\n    if (!haveSufficientLeft) {\n        node.left = null;\n    }\n    if (!haveSufficientRight) {\n        node.right = null;\n    }\n    return haveSufficientLeft || haveSufficientRight;\n};\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public TreeNode SufficientSubset(TreeNode root, int limit) {\n        bool haveSufficient = CheckSufficientLeaf(root, 0, limit);\n        return haveSufficient ? root : null;\n    }\n\n    public bool CheckSufficientLeaf(TreeNode node, int sum, int limit) {\n        if (node == null) {\n            return false;\n        }\n        if (node.left == null && node.right == null) {\n            return node.val + sum >= limit;\n        }\n        bool haveSufficientLeft = CheckSufficientLeaf(node.left, sum + node.val, limit);\n        bool haveSufficientRight = CheckSufficientLeaf(node.right, sum + node.val, limit);\n        if (!haveSufficientLeft) {\n            node.left = null;\n        }\n        if (!haveSufficientRight) {\n            node.right = null;\n        }\n        return haveSufficientLeft || haveSufficientRight;\n    }\n}\n```\n\n```C [sol1-C]\nbool checkSufficientLeaf(struct TreeNode *node, int sum, int limit) {\n    if (!node) {\n        return false;\n    }\n    if (node->left == NULL && node->right == NULL) {\n        return node->val + sum >= limit;\n    }\n    bool haveSufficientLeft = checkSufficientLeaf(node->left, sum + node->val, limit);\n    bool haveSufficientRight = checkSufficientLeaf(node->right, sum + node->val, limit);\n    if (!haveSufficientLeft) {\n        node->left = NULL;\n    }\n    if (!haveSufficientRight) {\n        node->right = NULL;\n    }\n    return haveSufficientLeft || haveSufficientRight;\n}\n\nstruct TreeNode* sufficientSubset(struct TreeNode* root, int limit){\n    bool haveSufficient = checkSufficientLeaf(root, 0, limit);\n    return haveSufficient ? root : NULL;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 表示树中节点的数目。对于每个节点我们只需遍历一次即可，因此需要的时间复杂度为 $O(n)$。\n\n- 空间复杂度：$O(n)$，其中 $n$ 表示树中节点的数目。由于递归需要占用空间，此时空间复杂度取决于树的高度，最优情况下树的高度为 $\\log n$，此时需要的空间为 $O(\\log n)$，最差情况下树的高度为 $n$，此时需要的空间为 $O(n)$，因此空间复杂度为 $O(n)$。",
+            "slateValue": "",
+            "slug": "gen-dao-xie-lu-jing-shang-de-bu-zu-jie-d-f4vz",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "DM60iR",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 28,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Tree",
+                    "nameTranslated": "树",
+                    "slug": "tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Depth-First Search",
+                    "nameTranslated": "深度优先搜索",
+                    "slug": "depth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Tree",
+                    "nameTranslated": "二叉树",
+                    "slug": "binary-tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-05-19T10:49:18.032436+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：深度优先搜索\n思路与算法\n根据题意可知「不足节点」的定义为：通过节点 \\textit{node} 的每种可能的「根-叶」路径上值的总和全都小于给定的 \\textit{limit}，则该节点被称之为「不足节点」。\n按照上述定义可知：\n\n假设节点 \\textit{node} 为根的子树中所有的叶子节点均为「不足节",
+            "topic": {
+                "id": 2276391,
+                "subscribed": false,
+                "commentCount": 60,
+                "viewCount": 832,
+                "post": {
+                    "id": 4298017,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 24,
+            "isEditorsPick": false,
+            "hitCount": 11783,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "insufficient-nodes-in-root-to-leaf-paths",
+                "questionFrontendId": "1080"
+            },
+            "next": {
+                "slug": "hou-xu-bian-li-python-dai-ma-java-dai-ma-by-liweiw",
+                "title": "分治法、后序遍历（Python 代码、Java 代码）"
+            },
+            "prev": null
+        }
+    }
+}

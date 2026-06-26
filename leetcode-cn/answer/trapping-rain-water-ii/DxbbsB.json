@@ -1,0 +1,140 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "DxbbsB",
+            "title": "接雨水 II",
+            "content": "#### 方法一：最小堆\n\n**思路与算法**\n\n本题为经典题目，解题的原理和方法都可以参考「[42.接雨水](https://leetcode.cn/problems/trapping-rain-water/)」，本题主要从一维数组变成了二维数组。\n首先我们思考一下什么样的方块一定可以接住水：\n+ 该方块不为最外层的方块；\n+ 该方块自身的高度比其上下左右四个相邻的方块接水后的高度都要低；\n\n我们假设方块的索引为 $(i,j)$，方块的高度为 $\\textit{heightMap}[i][j]$，方块接水后的高度为 $\\textit{water}[i][j]$。则我们知道方块 $(i,j)$ 的接水后的高度为：\n\n$$\n\\textit{water}[i][j] = \\max(\\textit{heightMap}[i][j],\\min(\\textit{water}[i-1][j],\\textit{water}[i+1][j],\\textit{water}[i][j-1],\\textit{water}[i][j+1]))\n$$\n\n我们知道方块 $(i,j)$ 实际接水的容量计算公式为 $\\textit{water}[i][j] - \\textit{heightMap}[i][j]$。\n首先我们可以确定的是，矩阵的最外层的方块接水后的高度就是方块的自身高度，因为最外层的方块无法接水，因此最外层的方块 $\\textit{water}[i][j] = \\textit{heightMap}[i][j]$。\n\n根据木桶原理，接到的雨水的高度由这个容器周围最短的木板来确定的。我们可以知道容器内水的高度取决于最外层高度最低的方块，如图 $1$ 所示：\n\n![1](https://assets.leetcode.cn/solution-static/407/407_1.PNG)\n\n我们假设已经知道最外层的方块接水后的高度的最小值，则此时我们根据木桶原理，肯定可以确定最小高度方块的相邻方块的接水高度。我们同时更新最外层的方块标记，我们在新的最外层的方块再次找到接水后的高度的最小值，同时确定与其相邻的方块的接水高度，如图 $2$ 所示:\n\n![2](https://assets.leetcode.cn/solution-static/407/407_2.PNG)\n\n然后再次更新最外层，依次迭代直到求出所有的方块的接水高度，即可知道矩阵中的接水容量。\n\n\n**代码**\n\n```C++ [sol1-C++]\ntypedef pair<int,int> pii;\n\nclass Solution {\npublic:\n    int trapRainWater(vector<vector<int>>& heightMap) {  \n        if (heightMap.size() <= 2 || heightMap[0].size() <= 2) {\n            return 0;\n        }  \n        int m = heightMap.size();\n        int n = heightMap[0].size();\n        priority_queue<pii, vector<pii>, greater<pii>> pq;\n        vector<vector<bool>> visit(m, vector<bool>(n, false));\n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j) {\n                if (i == 0 || i == m - 1 || j == 0 || j == n - 1) {\n                    pq.push({heightMap[i][j], i * n + j});\n                    visit[i][j] = true;\n                }\n            }\n        }\n\n        int res = 0;\n        int dirs[] = {-1, 0, 1, 0, -1};\n        while (!pq.empty()) {\n            pii curr = pq.top();\n            pq.pop();            \n            for (int k = 0; k < 4; ++k) {\n                int nx = curr.second / n + dirs[k];\n                int ny = curr.second % n + dirs[k + 1];\n                if( nx >= 0 && nx < m && ny >= 0 && ny < n && !visit[nx][ny]) {\n                    if (heightMap[nx][ny] < curr.first) {\n                        res += curr.first - heightMap[nx][ny]; \n                    }\n                    visit[nx][ny] = true;\n                    pq.push({max(heightMap[nx][ny], curr.first), nx * n + ny});\n                }\n            }\n        }\n        \n        return res;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int trapRainWater(int[][] heightMap) {\n        if (heightMap.length <= 2 || heightMap[0].length <= 2) {\n            return 0;\n        }\n        int m = heightMap.length;\n        int n = heightMap[0].length;\n        boolean[][] visit = new boolean[m][n];\n        PriorityQueue<int[]> pq = new PriorityQueue<>((o1, o2) -> o1[1] - o2[1]);\n\n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j) {\n                if (i == 0 || i == m - 1 || j == 0 || j == n - 1) {\n                    pq.offer(new int[]{i * n + j, heightMap[i][j]});\n                    visit[i][j] = true;\n                }\n            }\n        }\n        int res = 0;\n        int[] dirs = {-1, 0, 1, 0, -1};\n        while (!pq.isEmpty()) {\n            int[] curr = pq.poll();\n            for (int k = 0; k < 4; ++k) {\n                int nx = curr[0] / n + dirs[k];\n                int ny = curr[0] % n + dirs[k + 1];\n                if (nx >= 0 && nx < m && ny >= 0 && ny < n && !visit[nx][ny]) {\n                    if (curr[1] > heightMap[nx][ny]) {\n                        res += curr[1] - heightMap[nx][ny];\n                    }\n                    pq.offer(new int[]{nx * n + ny, Math.max(heightMap[nx][ny], curr[1])});\n                    visit[nx][ny] = true;\n                }\n            }\n        }\n        return res;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def trapRainWater(self, heightMap: List[List[int]]) -> int:\n        if len(heightMap) <= 2 or len(heightMap[0]) <= 2:\n            return 0\n\n        m, n = len(heightMap), len(heightMap[0])\n        visited = [[0 for _ in range(n)] for _ in range(m)]\n        pq = []\n        for i in range(m):\n            for j in range(n):\n                if i == 0 or i == m - 1 or j == 0 or j == n - 1:\n                    visited[i][j] = 1\n                    heapq.heappush(pq, (heightMap[i][j], i * n + j))\n        \n        res = 0\n        dirs = [-1, 0, 1, 0, -1]\n        while pq:\n            height, position = heapq.heappop(pq)\n            for k in range(4):\n                nx, ny = position // n + dirs[k], position % n + dirs[k + 1]\n                if nx >= 0 and nx < m and ny >= 0 and ny < n and visited[nx][ny] == 0:\n                    if height > heightMap[nx][ny]:\n                        res += height - heightMap[nx][ny]\n                    visited[nx][ny] = 1    \n                    heapq.heappush(pq, (max(height, heightMap[nx][ny]), nx * n + ny))\n        return res\n```\n\n```go [sol1-Golang]\nfunc trapRainWater(heightMap [][]int) (ans int) {\n    m, n := len(heightMap), len(heightMap[0])\n    if m <= 2 || n <= 2 {\n        return\n    }\n\n    vis := make([][]bool, m)\n    for i := range vis {\n        vis[i] = make([]bool, n)\n    }\n    h := &hp{}\n    for i, row := range heightMap {\n        for j, v := range row {\n            if i == 0 || i == m-1 || j == 0 || j == n-1 {\n                heap.Push(h, cell{v, i, j})\n                vis[i][j] = true\n            }\n        }\n    }\n\n    dirs := []int{-1, 0, 1, 0, -1}\n    for h.Len() > 0 {\n        cur := heap.Pop(h).(cell)\n        for k := 0; k < 4; k++ {\n            nx, ny := cur.x+dirs[k], cur.y+dirs[k+1]\n            if 0 <= nx && nx < m && 0 <= ny && ny < n && !vis[nx][ny] {\n                if heightMap[nx][ny] < cur.h {\n                    ans += cur.h - heightMap[nx][ny]\n                }\n                vis[nx][ny] = true\n                heap.Push(h, cell{max(heightMap[nx][ny], cur.h), nx, ny})\n            }\n        }\n    }\n    return\n}\n\ntype cell struct{ h, x, y int }\ntype hp []cell\nfunc (h hp) Len() int            { return len(h) }\nfunc (h hp) Less(i, j int) bool  { return h[i].h < h[j].h }\nfunc (h hp) Swap(i, j int)       { h[i], h[j] = h[j], h[i] }\nfunc (h *hp) Push(v interface{}) { *h = append(*h, v.(cell)) }\nfunc (h *hp) Pop() interface{}   { a := *h; v := a[len(a)-1]; *h = a[:len(a)-1]; return v }\n\nfunc max(a, b int) int {\n    if b > a {\n        return b\n    }\n    return a\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(MN\\log(MN))$，其中 $M$ 是矩阵的行数，$N$ 是矩阵的列数。我们需要将矩阵中的每个元素都进行遍历，同时将每个元素都需要插入到优先队列中，总共需要向队列中插入 $MN$ 个元素，因此队列中最多有 $MN$ 个元素，每次堆进行调整的时间复杂度为 $O(\\log(MN))$，因此总的时间复杂度为 $O(MN\\log(MN))$。\n\n- 空间复杂度：$O(MN)$，其中 $M$ 是矩阵的行数，$N$ 是矩阵的列数。我们需要创建额外的空间对元素进行标记，优先队列中最多存储 $O(MN)$ 个元素，因此空间复杂度度为 $O(MN)$。\n\n#### 方法二：广度优先搜索\n\n**思路与算法**\n\n我们假设初始时矩阵的每个格子都接满了水，且高度均为 $\\textit{maxHeight}$，其中 $\\textit{maxHeight}$ 为矩阵中高度最高的格子。我们知道方块接水后的高度为 $\\textit{water}[i][j]$，它的求解公式与方法一样。方块 $(i,j)$ 的接水后的高度为：\n\n$$\n\\textit{water}[i][j] = \\max(\\textit{heightMap}[i][j],\\min(\\textit{water}[i-1][j],\\textit{water}[i+1][j],\\textit{water}[i][j-1],\\textit{water}[i][j+1]))\n$$\n\n我们知道方块 $(i,j)$ 实际接水的容量计算公式为 $\\textit{water}[i][j] - \\textit{heightMap}[i][j]$。\n我们首先假设每个方块 $(i,j)$ 的接水后的高度均为 $\\textit{water}[i][j] = \\textit{maxHeight}$，首先我们知道最外层的方块的肯定不能接水，所有的多余的水都会从最外层的方块溢出，我们每次发现当前方块 $(i,j)$ 的接水高度 $\\textit{water}[i][j]$ 小于与它相邻的 $4$ 个模块的接水高度时，则我们将进行调整接水高度，我们将其相邻的四个方块的接水高度调整与 $(i,j)$ 的高度保持一致，我们不断重复的进行调整，直到所有的方块的接水高度不再有调整时即为满足要求。\n\n**代码**\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    int trapRainWater(vector<vector<int>>& heightMap) {\n        int m = heightMap.size(), n = heightMap[0].size();\n        int maxHeight = 0;\n        int dirs[] = {-1, 0, 1, 0, -1};\n\n        for (int i = 0; i < m; ++i) {\n            maxHeight = max(maxHeight, *max_element(heightMap[i].begin(), heightMap[i].end()));\n        }\n        vector<vector<int>> water(m, vector<int>(n, maxHeight));\n        queue<pair<int,int>> qu;\n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j) {\n                if (i == 0 || i == m - 1 || j == 0 || j == n - 1) {\n                    if (water[i][j] > heightMap[i][j]) {\n                        water[i][j] = heightMap[i][j];\n                        qu.push(make_pair(i, j));\n                    }\n                }\n            }\n        }        \n        while (!qu.empty()) {\n            int x = qu.front().first, y = qu.front().second;\n            qu.pop();\n            for (int i = 0; i < 4; ++i) {\n                int nx = x + dirs[i], ny = y + dirs[i + 1];\n                if (nx < 0 || nx >= m || ny < 0 || ny >= n) {\n                    continue;\n                }\n                if (water[x][y] < water[nx][ny] && water[nx][ny] > heightMap[nx][ny]) {\n                    water[nx][ny] = max(water[x][y], heightMap[nx][ny]);\n                    qu.push(make_pair(nx, ny));\n                }\n            }\n        }\n\n        int res = 0;\n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j) {\n                res += water[i][j] - heightMap[i][j];\n            }\n        }\n        return res;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public int trapRainWater(int[][] heightMap) {\n        int m = heightMap.length;\n        int n = heightMap[0].length;\n        int[] dirs = {-1, 0, 1, 0, -1};\n        int maxHeight = 0;\n        \n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j) {\n                maxHeight = Math.max(maxHeight, heightMap[i][j]);\n            }\n        }\n        int[][] water = new int[m][n];\n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j){\n                water[i][j] = maxHeight;      \n            }\n        }  \n        Queue<int[]> qu = new LinkedList<>();\n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j) {\n                if (i == 0 || i == m - 1 || j == 0 || j == n - 1) {\n                    if (water[i][j] > heightMap[i][j]) {\n                        water[i][j] = heightMap[i][j];\n                        qu.offer(new int[]{i, j});\n                    }\n                }\n            }\n        } \n        while (!qu.isEmpty()) {\n            int[] curr = qu.poll();\n            int x = curr[0];\n            int y = curr[1];\n            for (int i = 0; i < 4; ++i) {\n                int nx = x + dirs[i], ny = y + dirs[i + 1];\n                if (nx < 0 || nx >= m || ny < 0 || ny >= n) {\n                    continue;\n                }\n                if (water[x][y] < water[nx][ny] && water[nx][ny] > heightMap[nx][ny]) {\n                    water[nx][ny] = Math.max(water[x][y], heightMap[nx][ny]);\n                    qu.offer(new int[]{nx, ny});\n                }\n            }\n        }\n\n        int res = 0;\n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j) {\n                res += water[i][j] - heightMap[i][j];\n            }\n        }\n        return res;\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    public int TrapRainWater(int[][] heightMap) {\n        int m = heightMap.Length;\n        int n = heightMap[0].Length;\n        int[] dirs = {-1, 0, 1, 0, -1};\n        int maxHeight = 0;\n        \n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j) {\n                maxHeight = Math.Max(maxHeight, heightMap[i][j]);\n            }\n        }\n        int[,] water = new int[m, n];\n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j){\n                water[i, j] = maxHeight;      \n            }\n        }  \n\n        Queue<int[]> qu = new Queue<int[]>();\n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j) {\n                if (i == 0 || i == m - 1 || j == 0 || j == n - 1) {\n                    if (water[i, j] > heightMap[i][j]) {\n                        water[i, j] = heightMap[i][j];\n                        qu.Enqueue(new int[]{i, j});\n                    }\n                }\n            }\n        }\n\n        while (qu.Count > 0) {\n            int[] curr = qu.Dequeue();\n            int x = curr[0];\n            int y = curr[1];\n            for (int i = 0; i < 4; ++i) {\n                int nx = x + dirs[i], ny = y + dirs[i + 1];\n                if (nx < 0 || nx >= m || ny < 0 || ny >= n) {\n                    continue;\n                }\n                if (water[x, y] < water[nx, ny] && water[nx, ny] > heightMap[nx][ny]) {\n                    water[nx, ny] = Math.Max(water[x, y], heightMap[nx][ny]);\n                    qu.Enqueue(new int[]{nx, ny});\n                }\n            }\n        }\n\n        int res = 0;\n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j) {\n                res += water[i, j] - heightMap[i][j];\n            }\n        }\n        return res;\n    }\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def trapRainWater(self, heightMap: List[List[int]]) -> int:\n        m, n = len(heightMap), len(heightMap[0])\n        maxHeight = max(max(row) for row in heightMap)\n        water = [[maxHeight for _ in range(n)] for _ in range(m)]\n        dirs = [-1, 0, 1, 0, -1]\n\n        qu = []\n        for i in range(m):\n            for j in range(n):\n                if i == 0 or i == m - 1 or j == 0 or j == n - 1:\n                     if water[i][j] > heightMap[i][j]:\n                        water[i][j] = heightMap[i][j]\n                        qu.append([i, j])\n        \n        while len(qu) > 0:\n            [x, y] = qu.pop(0)\n            for i in range(4):\n                nx, ny = x + dirs[i], y + dirs[i + 1]\n                if nx < 0 or nx >= m or ny < 0 or ny >= n:\n                    continue\n                if water[x][y] < water[nx][ny] and water[nx][ny] > heightMap[nx][ny]:\n                    water[nx][ny] = max(water[x][y], heightMap[nx][ny])\n                    qu.append([nx, ny])\n\n        ans = 0\n        for i in range(m):\n            for j in range(n):\n                ans = ans + water[i][j] - heightMap[i][j]\n        return ans\n```\n\n```go [sol2-Golang]\nfunc trapRainWater(heightMap [][]int) (ans int) {\n    m, n := len(heightMap), len(heightMap[0])\n    maxHeight := 0\n    for _, row := range heightMap {\n        for _, h := range row {\n            maxHeight = max(maxHeight, h)\n        }\n    }\n\n    water := make([][]int, m)\n    for i := range water {\n        water[i] = make([]int, n)\n        for j := range water[i] {\n            water[i][j] = maxHeight\n        }\n    }\n    type pair struct{ x, y int }\n    q := []pair{}\n    for i, row := range heightMap {\n        for j, h := range row {\n            if (i == 0 || i == m-1 || j == 0 || j == n-1) && h < water[i][j] {\n                water[i][j] = h\n                q = append(q, pair{i, j})\n            }\n        }\n    }\n\n    dirs := []int{-1, 0, 1, 0, -1}\n    for len(q) > 0 {\n        p := q[0]\n        q = q[1:]\n        x, y := p.x, p.y\n        for i := 0; i < 4; i++ {\n            nx, ny := x+dirs[i], y+dirs[i+1]\n            if 0 <= nx && nx < m && 0 <= ny && ny < n && water[nx][ny] > water[x][y] && water[nx][ny] > heightMap[nx][ny] {\n                water[nx][ny] = max(water[x][y], heightMap[nx][ny])\n                q = append(q, pair{nx, ny})\n            }\n        }\n    }\n\n    for i, row := range heightMap {\n        for j, h := range row {\n            ans += water[i][j] - h\n        }\n    }\n    return\n}\n\nfunc max(a, b int) int {\n    if b > a {\n        return b\n    }\n    return a\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar trapRainWater = function(heightMap) {\n    const m = heightMap.length;\n    const n = heightMap[0].length;\n    const dirs = [-1, 0, 1, 0, -1];\n    let maxHeight = 0;\n    \n    for (let i = 0; i < m; ++i) {\n        for (let j = 0; j < n; ++j) {\n            maxHeight = Math.max(maxHeight, heightMap[i][j]);\n        }\n    }\n    const water = new Array(m).fill(0).map(() => new Array(n).fill(0));\n    for (let i = 0; i < m; ++i) {\n        for (let j = 0; j < n; ++j){\n            water[i][j] = maxHeight;      \n        }\n    }  \n    const qu = [];\n    for (let i = 0; i < m; ++i) {\n        for (let j = 0; j < n; ++j) {\n            if (i == 0 || i == m - 1 || j == 0 || j == n - 1) {\n                if (water[i][j] > heightMap[i][j]) {\n                    water[i][j] = heightMap[i][j];\n                    qu.push([i, j]);\n                }\n            }\n        }\n    } \n    while (qu.length) {\n        const curr = qu.shift();\n        const x = curr[0];\n        const y = curr[1];\n        for (let i = 0; i < 4; ++i) {\n            const nx = x + dirs[i], ny = y + dirs[i + 1];\n            if (nx < 0 || nx >= m || ny < 0 || ny >= n) {\n                continue;\n            }\n            if (water[x][y] < water[nx][ny] && water[nx][ny] > heightMap[nx][ny]) {\n                water[nx][ny] = Math.max(water[x][y], heightMap[nx][ny]);\n                qu.push([nx, ny]);\n            }\n        }\n    }\n\n    let res = 0;\n    for (let i = 0; i < m; ++i) {\n        for (let j = 0; j < n; ++j) {\n            res += water[i][j] - heightMap[i][j];\n        }\n    }\n    return res;\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(M^2N^2)$，其中 $M$ 是矩阵的行数，$N$ 是矩阵的列数。因此每次发现有水面高度需要调整时，可能需要调整整个矩阵，因此时间复杂度为 $O(M^2N^2)$。\n\n- 空间复杂度：$O(MN)$，其中 $M$ 是矩阵的行数，$N$ 是矩阵的列数。我们需要创建额外的空间对每个元素进行标记，因此空间复杂度度为 $O(MN)$。",
+            "slateValue": "",
+            "slug": "jie-yu-shui-ii-by-leetcode-solution-vlj3",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "DxbbsB",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 107,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 9,
+                    "reactionType": "CONFUSED"
+                },
+                {
+                    "count": 5,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Breadth-First Search",
+                    "nameTranslated": "广度优先搜索",
+                    "slug": "breadth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Matrix",
+                    "nameTranslated": "矩阵",
+                    "slug": "matrix",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Heap (Priority Queue)",
+                    "nameTranslated": "堆（优先队列）",
+                    "slug": "heap-priority-queue",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2021-11-02T03:38:28.316942+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：最小堆 思路与算法 本题为经典题目，解题的原理和方法都可以参考「42.接雨水」，本题主要从一维数组变成了二维数组。 首先我们思考一下什么样的方块一定可以接住水： + 该方块不为最外层的方块； + 该方块自身的高度比其上下左右四个相邻的方块接水后的高度都要低； 我们假设方块的索引为 $(i,j)$，方块的高度为 ",
+            "topic": {
+                "id": 1079738,
+                "subscribed": false,
+                "commentCount": 191,
+                "viewCount": 36929,
+                "post": {
+                    "id": 2289086,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 288,
+            "isEditorsPick": false,
+            "hitCount": 100104,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "trapping-rain-water-ii",
+                "questionFrontendId": "407"
+            },
+            "next": {
+                "slug": "duan-ban-xiao-ying-pythonjavacgojsrust-b-39mp",
+                "title": "短板效应（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,116 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "dg2CE8",
+            "title": "有效括号的嵌套深度",
+            "content": "### 📺 视频题解\n\n![...号的嵌套深度 -Lizzi(1).mp4](7b0eee29-172e-4dbf-b30f-6ae008be489c)\n\n### 📖 文字题解\n\n#### 方法一：用栈进行括号匹配\n\n**思路及算法**\n\n要求划分出使得最大嵌套深度最小的分组，我们首先得知道如何计算嵌套深度。我们可以通过栈实现括号匹配来计算：\n\n维护一个栈 `s`，从左至右遍历括号字符串中的每一个字符：\n\n- 如果当前字符是 `(`，就把 `(` 压入栈中，此时这个 `(` 的嵌套深度为栈的高度；\n\n- 如果当前字符是 `)`，此时这个 `)` 的嵌套深度为栈的高度，随后再从栈中弹出一个 `(`。\n\n下面给出了括号序列 `(()(())())` 在每一个字符处的嵌套深度：\n\n```\n括号序列   ( ( ) ( ( ) ) ( ) )\n下标编号   0 1 2 3 4 5 6 7 8 9\n嵌套深度   1 2 2 2 3 3 2 2 2 1 \n```\n\n知道如何计算嵌套深度，问题就很简单了：只要在遍历过程中，我们保证栈内一半的括号属于序列 `A`，一半的括号属于序列 `B`，那么就能保证拆分后最大的嵌套深度最小，是当前最大嵌套深度的一半。要实现这样的对半分配，我们只需要把奇数层的 `(` 分配给 `A`，偶数层的 `(` 分配给 `B` 即可。对于上面的例子，我们将嵌套深度为 `1` 和 `3` 的所有括号 `(())` 分配给 `A`，嵌套深度为 `2` 的所有括号 `()()()` 分配给 `B`。\n\n此外，由于在这个问题中，栈中只会存放 `(`，因此我们不需要维护一个真正的栈，只需要用一个变量模拟记录栈的大小。\n\n```Python [sol1-Python3]\nclass Solution:\n    def maxDepthAfterSplit(self, seq: str) -> List[int]:\n        ans = []\n        d = 0\n        for c in seq:\n            if c == '(':\n                d += 1\n                ans.append(d % 2)\n            if c == ')':\n                ans.append(d % 2)\n                d -= 1\n        return ans\n```\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<int> maxDepthAfterSplit(string seq) {\n        int d = 0;\n        vector<int> ans;\n        for (char& c : seq)\n            if (c == '(') {\n                ++d;\n                ans.push_back(d % 2);\n            }\n            else {\n                ans.push_back(d % 2);\n                --d;\n            }\n        return ans;\n    }\n};\n```\n```Java [sol1-Java]\nclass Solution {\n    public int[] maxDepthAfterSplit(String seq) {\n        int d = 0;\n        int length = seq.length();\n        int[] ans = new int[length];\n        for (int i = 0; i < length; i++) {\n            if (seq.charAt(i) == '(') {\n                ++d;\n                ans[i] = d % 2;\n            } else {\n                ans[i] = d % 2;\n                --d;\n            }\n        }\n        return ans;\n    }\n}\n```\n```Javascript [sol1-Javascript]\nvar maxDepthAfterSplit = function(seq) {\n    let dep = 0;\n    return seq.split(\"\").map((value, index) => {\n        if (value === '(') {\n            ++dep;\n            return dep % 2;\n        } else {\n            let ans = dep % 2;\n            --dep;\n            return ans;\n        }\n    });\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 为字符串的长度。我们只需要遍历括号字符串一次。\n\n- 空间复杂度：$O(1)$。除答案数组外，我们只需要常数个变量。\n\n#### 方法二：找规律\n\n**思路及算法**\n\n我们还是使用上面的例子 `(()(())())`，但这里我们把 `(` 和 `)` 的嵌套深度分成两行：\n\n```\n括号序列   ( ( ) ( ( ) ) ( ) )\n下标编号   0 1 2 3 4 5 6 7 8 9\n嵌套深度   1 2 - 2 3 - - 2 - -\n嵌套深度   - - 2 - - 3 2 - 2 1 \n```\n\n有没有发现什么规律？\n\n- 左括号 `(` 的下标编号与嵌套深度的奇偶性相反，也就是说：\n\n    - 下标编号为奇数的 `(`，其嵌套深度为偶数，分配给 `B`；\n\n    - 下标编号为偶数的 `(`，其嵌套深度为奇数，分配给 `A`。\n\n- 右括号 `)` 的下标编号与嵌套深度的奇偶性相同，也就是说：\n\n    - 下标编号为奇数的 `)`，其嵌套深度为奇数，分配给 `A`；\n\n    - 下标编号为偶数的 `)`，其嵌套深度为偶数，分配给 `B`。\n\n这样一来，我们只需要根据每个位置是哪一种括号以及该位置的下标编号，就能确定将对应的对应的括号分到哪个组了。\n\n对此规律感兴趣的同学的同学可以阅读下面的证明部分，若不感兴趣，可以直接跳到代码部分。\n\n**证明**\n\n- 对于字符串中的任意一个左括号 $($，它的下标编号为 $x$，嵌套深度为 $y$。如果它之前有 $l$ 个左括号和 $r$ 个右括号，那么根据嵌套深度的定义，有：\n\n    $$\n    y = l - r + 1\n    $$\n    \n  下标编号与 $l$ 和 $r$ 的关系也可以直接得到，注意下标编号从 $0$ 开始：\n\n  $$\n  x = l + r\n  $$\n\n  由于 $l - r$ 和 $l + r$ 同奇偶，因此 $l - r + 1$（即 $y$）和 $l + r$（即 $x$）的奇偶性相反。\n\n- 对于字符串中的任意一个右括号 $)$，它的下标编号为 $x$，嵌套深度为 $y$。如果它之前有 $l$ 个左括号和 $r$ 个右括号，那么根据嵌套深度的定义，有：\n\n    $$\n    y = l - r\n    $$\n    \n  下标编号与 $l$ 和 $r$ 的关系也可以直接得到，注意下标编号从 $0$ 开始：\n\n  $$\n    x = l + r\n  $$\n\n  因此 $y$ 和 $x$ 的奇偶性相同。\n\n```Python [sol2-Python3]\nclass Solution:\n    def maxDepthAfterSplit(self, seq: str) -> List[int]:\n        ans = list()\n        for i, ch in enumerate(seq):\n            if ch == '(':\n                ans.append(i % 2)\n            else:\n                ans.append(1 - i % 2)\n            # 上面的代码也可以简写成\n            # ans.append((i & 1) ^ (ch == '('))\n            # C++ 和 Javascript 代码中直接给出了简写的方法\n        return ans\n```\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    vector<int> maxDepthAfterSplit(string seq) {\n        vector<int> ans;\n        for (int i = 0; i < (int)seq.size(); ++i) {\n            ans.push_back(i & 1 ^ (seq[i] == '('));\n        }\n        return ans;\n    }\n};\n```\n```Java [sol2-Java]\nclass Solution {\n    public int[] maxDepthAfterSplit(String seq) {\n        int length = seq.length();\n        int[] ans = new int[length];\n        for (int i = 0; i < length; ++i) {\n            ans[i] = i & 1 ^ (seq.charAt(i) == '(' ? 1 : 0);\n        }\n        return ans;\n    }\n}\n```\n```Javascript [sol2-Javascript]\nvar maxDepthAfterSplit = function(seq) {\n    return seq.split(\"\").map((value, index) => index & 1 ^ (value === '('));\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 为字符串的长度。我们只需要遍历括号字符串一次。\n\n- 空间复杂度：$O(1)$。除答案数组外，我们只需要常数个变量。",
+            "slateValue": "",
+            "slug": "you-xiao-gua-hao-de-qian-tao-shen-du-by-leetcode-s",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "dg2CE8",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 84,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 4,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Stack",
+                    "nameTranslated": "栈",
+                    "slug": "stack",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-03-31T06:39:48.837216+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "📺 视频题解 📖 文字题解 方法一：用栈进行括号匹配 思路及算法 要求划分出使得最大嵌套深度最小的分组，我们首先得知道如何计算嵌套深度。我们可以通过栈实现括号匹配来计算： 维护一个栈 s，从左至右遍历括号字符串中的每一个字符： 如果当前字符是 (，就把 ( 压入栈中，此时这个 ( 的嵌套深度为栈的高度； 如果当前字符是",
+            "topic": {
+                "id": 179739,
+                "subscribed": false,
+                "commentCount": 122,
+                "viewCount": 21029,
+                "post": {
+                    "id": 499854,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 100,
+            "isEditorsPick": false,
+            "hitCount": 35883,
+            "videosInfo": [
+                {
+                    "videoId": "fbddf7d048a046d58cff0974d0c30028",
+                    "coverUrl": "https://video.leetcode.cn/image/cover/58D27087D02E4EC79F48AC36F1E3FF16-6-2.png?auth_key=1782487298-e7e3508b2f5c44748b16690293a43b17-0-00b23a975f9302ce161a809397d3403d",
+                    "duration": 943.2747
+                }
+            ],
+            "question": {
+                "titleSlug": "maximum-nesting-depth-of-two-valid-parentheses-strings",
+                "questionFrontendId": "1111"
+            },
+            "next": {
+                "slug": "ti-mian-shuo-ming-ti-mu-jiang-jie-shuo-hao-fa-wan-",
+                "title": "题面说明&题目讲解【 说好发完评论跑路的"
+            },
+            "prev": null
+        }
+    }
+}

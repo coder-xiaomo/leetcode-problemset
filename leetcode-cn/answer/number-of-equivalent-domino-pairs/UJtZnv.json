@@ -1,0 +1,103 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "UJtZnv",
+            "title": "🎦 等价多米诺骨牌对的数量",
+            "content": "### 📺 视频讲解 \n\n>力扣君温馨小贴士：觉得视频时间长的扣友，可以在视频右下角的「设置」按钮处选择 1.5 倍速或者 2 倍速观看。\n\n![...128. 等价多米诺骨牌对的数量.mp4](19aa5d94-338b-40f5-9b6d-9dd916455c4f)\n\n### 📖 文字解析\n\n多米诺骨牌「等价」的概念：两张多米诺骨牌，对应相等或者 **交叉** 对应相等。可以声明一个计数器 `count`，枚举所有骨牌对，如果骨牌对等价，给计数器 `count` 加 $1$。时间复杂度为 $O(N^2)$，这里 $N$ 是输入数组的长度。注意到题目给出的提示：`1 <= dominoes.length <= 40000`，$O(N^2)$ 的解法不能通过测评。因此须要在遍历的时候记住一些信息。\n\n### 方法一：哈希表\n\n+ 把有序数对封装成类，每一个多米诺骨牌就对应了类的一个对象；\n+ 在遍历的过程中使用哈希表记录出现的数对的数量。**注意**：有序数对中只要出现的字符对应相等或者交叉对应相等，在哈希表中就认为它们相等，因此须要 **重写 `hashCode()` 方法、 `equlas()` 方法**。例如 `[1, 2]` 和 `[2, 1]` 就须要认为是等价的对象；\n+ 假设某一类「等价」的对象的总数为 $N$，这一类中任意取出 $2$ 个的组合数 $C_N^2 = \\frac{N(N - 1)}{2}$ 就是这一类对总的「满足 `dominoes[i]` 和 `dominoes[j]` 等价的骨牌对 `(i, j)` 的数量」。对每一类的频数依次求频数对 $2$ 的组合数，再求和即可（其实也可以一遍遍历，一遍用加法计算，我们放在方法二里介绍）。\n\n**参考代码 1**：\n\n```Java []\nimport java.util.HashMap;\nimport java.util.Map;\n\npublic class Solution {\n\n    public int numEquivDominoPairs(int[][] dominoes) {\n        // 为了避免哈希表自动扩容，根据题目的数据范围，设置哈希表初始化的大小为 100\n        // Pair 类重写了 hashCode() 和 equals() 方法\n        Map<Pair, Integer> freq = new HashMap<>(100);\n        for (int[] dominoe : dominoes) {\n            Pair key = new Pair(dominoe[0], dominoe[1]);\n            freq.put(key, freq.getOrDefault(key, 0) + 1);\n        }\n\n        // 根据组合数公式 C_n^2 = (n * (n - 1)) / 2 计算等价骨牌能够组成的组合数，再求和\n        int count = 0;\n        for (int f : freq.values()) {\n            count += (f * (f - 1)) / 2;\n        }\n        return count;\n    }\n\n    private class Pair {\n\n        private int key;\n        private int value;\n\n        public Pair(int key, int value) {\n            this.key = key;\n            this.value = value;\n        }\n\n        /**\n         * 让有序数对 [a, b] 和 [b, a] 认为是相等的对象\n         *\n         * @param o\n         * @return\n         */\n        @Override\n        public boolean equals(Object o) {\n            if (this == o) {\n                return true;\n            }\n            if (o == null || getClass() != o.getClass()) {\n                return false;\n            }\n            Pair pair = (Pair) o;\n            return key == pair.key && value == pair.value || key == pair.value && value == pair.key;\n        }\n\n        /**\n         * 让相同的数对映射到同一个位置\n         *\n         * @return\n         */\n        @Override\n        public int hashCode() {\n            if (key > value) {\n                return value * 10 + key;\n            }\n            return key * 10 + value;\n        }\n    }\n}\n```\n\n\n**复杂度分析**\n\n* 时间复杂度：$O(N)$，其中 $N$ 是输入数组的长度；\n* 空间复杂度：$O(A)$，这里 $A$ 是哈希表中键的总数。\n\n---\n\n把有序数对封装成一个类是相对麻烦的，根据题目给出的提示 `1 <= dominoes[i][j] <= 9`，我们可以 **把有序数对拼成一个二位数**。\n\n### 方法二：根据题目给出的数据范围把有序整数拼成一个二位数\n\n为了使得「等价」更易于比较，我们都让较小的数排在前面。例如：让 `[1, 4]` 拼成 `14`，让 `[4, 1]` 也拼成 `14`。\n\n这样一来，在遍历的时候，「比较两个有序数组是否对应相等或者交叉相等」就等价于「比较两个整数的值」是否相等，以简化编码。\n\n哈希表的键和值都是整数，并且键表示的两位整数的最大值是 $99$，我们可以用数组代替哈希表，数组的下标就对应了原来使用的哈希表的键。\n\n在遍历的时候用加法：每遍历到一个在哈希表（数组）中已经存在的骨牌，就给计数器加上此时这个骨牌在哈希表中已经记录的数量，因为当前这个骨牌和已经存在的骨牌中的每一个都等价，然后在给对应的哈希表（数组）中已经存在的骨牌数 $+1$。\n\n**参考代码 2**：\n\n```Java []\npublic class Solution {\n\n    public int numEquivDominoPairs(int[][] dominoes) {\n        int[] freq = new int[100];\n\n        int count = 0;\n        for (int[] dominoe : dominoes) {\n            if (dominoe[0] > dominoe[1]) {\n                int temp = dominoe[0];\n                dominoe[0] = dominoe[1];\n                dominoe[1] = temp;\n            }\n\n            int num = dominoe[0] * 10 + dominoe[1];\n            count += freq[num];\n            freq[num]++;\n        }\n        return count;\n    }\n}\n```\n\n**复杂度分析**\n\n* 时间复杂度：$O(N)$，这里 $N$ 是输入数组的长度；\n* 空间复杂度：$O(A^2)$，这里 $A$ 表示为骨牌数值的最大值，$\\log_{10} A$ 表示 $A$ 的位数。根据时间复杂度的记法，$O(\\log_{10}A) = O(\\log_{2}A) = O(\\log A)$。需要的空间为 $10^{\\log_{10}A} \\times A + A$，再根据对指数恒等式，$10^{\\log_{10}A} \\times A + A = A^2 + A$，因此空间复杂度为 $O(A^2)$（**视频有误，以文字题解为准**）。\n\n\n\n---\n\n把两个有序整数用一个整数表示，其实是比较常见的「状态压缩」。感兴趣的朋友可以尝试解决以下问题理解「状态压缩」技巧的应用。\n\n\n### 练习\n\n+ 「力扣」第 1371 题：[每个元音包含偶数次的最长子字符串](https://leetcode.cn/problems/find-the-longest-substring-containing-vowels-in-even-counts/)（中等）；\n+ 「力扣」第 1457 题：[二叉树中的伪回文路径](https://leetcode.cn/problems/pseudo-palindromic-paths-in-a-binary-tree/)（中等）。",
+            "slateValue": "",
+            "slug": "deng-jie-duo-mi-nuo-gu-pai-dui-de-shu-li-08z8",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "UJtZnv",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 20,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-01-25T10:51:57.189299+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/uploaded_files/2021/03/73c9f099-abbe-4d94-853f-f8abffd459cd/leetcode.png",
+                    "userSlug": "leetcode",
+                    "realName": "LeetCode",
+                    "reputation": 2117
+                }
+            },
+            "summary": "📺 视频讲解\n\n力扣君温馨小贴士：觉得视频时间长的扣友，可以在视频右下角的「设置」按钮处选择 1.5 倍速或者 2 倍速观看。\n\n📖 文字解析\n多米诺骨牌「等价」的概念：两张多米诺骨牌，对应相等或者 交叉 对应相等。可以声明一个计数器 count，枚举所有骨牌对，如果骨牌对等价，给计数器 count 加 1。时间复",
+            "topic": {
+                "id": 575959,
+                "subscribed": false,
+                "commentCount": 33,
+                "viewCount": 5948,
+                "post": {
+                    "id": 1335902,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 13,
+            "isEditorsPick": false,
+            "hitCount": 9654,
+            "videosInfo": [
+                {
+                    "videoId": "4a8b39f2bf7c46d68e493d5461093be6",
+                    "coverUrl": "https://video.leetcode.cn/image/cover/1B750A11EDEA48D7BF9ECF9551943151-6-2.png?auth_key=1782487279-351b41ab472540caa1403be3f5742358-0-49d466d315adca4a52c525d4d2eacca7",
+                    "duration": 457.8133
+                }
+            ],
+            "question": {
+                "titleSlug": "number-of-equivalent-domino-pairs",
+                "questionFrontendId": "1128"
+            },
+            "next": {
+                "slug": "deng-jie-duo-mi-nuo-gu-pai-by-coldme-2",
+                "title": "等价多米诺骨牌"
+            },
+            "prev": {
+                "slug": "deng-jie-duo-mi-nuo-gu-pai-dui-de-shu-li-yjlz",
+                "title": "等价多米诺骨牌对的数量"
+            }
+        }
+    }
+}

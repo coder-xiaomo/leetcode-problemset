@@ -1,0 +1,118 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "5jMLPv",
+            "title": "推文计数",
+            "content": "#### 方法一：线性表暴力\n\n使用字典保存用户，按照用户名使用线性表存储其相应的所有推文，查询时遍历该用户的所有推文判断是否在要求的时间区间内。\n\n```python []\nclass TweetCounts:\n\n    def __init__(self):\n        self.user = collections.defaultdict(list)\n\n    def recordTweet(self, tweetName: str, time: int) -> None:\n        self.user[tweetName].append(time)\n\n    def getTweetCountsPerFrequency(self, freq: str, tweetName: str, startTime: int, endTime: int) -> List[int]:\n        endTime += 1\n        if freq == 'minute':\n            length = 60\n        elif freq == 'hour':\n            length = 60 * 60\n        else:\n            length = 60 * 60 * 24\n        ans = [0] * ((endTime - startTime - 1) // length + 1)\n        for t in self.user[tweetName]:\n            if endTime > t >= startTime:\n                ans[(t - startTime) // length] += 1\n        return ans\n```\n\n```C++ []\nclass TweetCounts {\n    map<string, vector<int>> user;\npublic:\n    TweetCounts() {\n    }\n\n    void recordTweet(string tweetName, int time) {\n        user[tweetName].push_back(time);\n    }\n\n    vector<int> getTweetCountsPerFrequency(string freq, string tweetName, int startTime, int endTime) {\n        endTime += 1;\n        int length = 0;\n        if (freq == \"minute\")\n            length = 60;\n        else if (freq == \"hour\")\n            length = 60 * 60;\n        else\n            length = 60 * 60 * 24;\n        vector<int> ans((endTime - startTime - 1) / length + 1);\n        for (int time : user[tweetName])\n            if (time >= startTime && time < endTime)\n                ++ans[(time - startTime) / length];\n        return ans;\n    }\n};\n```\n\n##### 复杂度分析：\n\n记插入操作的次数为 $n$，查询操作的次数为 $q$，查询的时间范围为 $t$。\n\n- 时间复杂度：$O(q(t+n))$ （python），或者 $O(q(t+n)+nlogn)$ （C++）\n  - 共有 $n$ 次插入。每次插入需要查询一次用户 ID，python 中的 dict 使用哈希表实现，插入的时间复杂度为 $O(1)$，C++ 中的 map 使用红黑树实现，插入的时间复杂度为 $O(logn)$。\n  - 共有 $q$ 次查询。每次查询需要进行一次 $O(n)$ 的遍历，时间复杂度为 $O(nq)$。每次查询还需要建立大小为 $O(t)$ 的数组，时间复杂度为 $O(tq)$。\n  - 综合起来，python 的时间复杂度为 $O(q(t+n))$，C++ 的时间复杂度为 $O(q(t+n)+nlogn)$。\n- 空间复杂度：$O(n+t)$\n  - 最多需要存储 $n$ 个用户以及 $n$ 条推文时间，空间复杂度为 $O(n)$。\n  - 查询时需要开辟 $O(t)$ 的数组，空间复杂度为 $O(t)$。\n  - 综合起来，空间复杂度为 $O(n+t)$。\n\n#### 方法二：平衡二叉树\n\n可以将每个用户的推文时间存储方式换成更有效的平衡二叉树。与暴力法所使用的线性表相比，平衡二叉树保证其中的元素使用二叉树有序排列，其时间复杂度与线性表的区别为：\n\n- 对于插入操作，线性表的时间复杂度为 $O(1)$，平衡二叉树的时间复杂度为 $O(logn)$。\n- 对于查询操作，线性表的时间复杂度为 $O(n)$，平衡二叉树的时间复杂度为 $O(logn)$。\n  使用平衡二叉树，在查询时只要先在对应用户的所有推文中查询时间范围的上下界，然后在上下界范围内遍历推文发布时间即可。\n\n```C++ []\nclass TweetCounts {\n    map<string, multiset<int>> user;\npublic:\n    TweetCounts() {\n    }\n\n    void recordTweet(string tweetName, int time) {\n        user[tweetName].insert(time);\n    }\n\n    vector<int> getTweetCountsPerFrequency(string freq, string tweetName, int startTime, int endTime) {\n        int length = 0;\n        if (freq == \"minute\")\n            length = 60;\n        else if (freq == \"hour\")\n            length = 60 * 60;\n        else\n            length = 60 * 60 * 24;\n        vector<int> ans((endTime - startTime) / length + 1);\n        auto begin = user[tweetName].lower_bound(startTime);\n        auto end = user[tweetName].upper_bound(endTime);\n        for (; begin != end; ++begin) {\n            ++ans[(*begin - startTime) / length];\n        }\n        return ans;\n    }\n};\n```\n\n##### 复杂度分析：\n\n记插入操作的次数为 $n$，查询操作的次数为 $q$，查询的时间范围为 $t$。\n\n- 时间复杂度：$O(q(t+logn)+nlogn)$\n  - 共有 $n$ 次插入。每次插入的时间复杂度为 $O(logn)$。总的插入时间复杂度为 $O(nlogn)$。\n  - 共有 $q$ 次查询。每次查询需要对上下界进行一次 $O(logn)$ 的查询，时间复杂度为 $O(qlogn)$。每次查询还需要建立大小为 $O(t)$ 的数组，时间复杂度为 $O(tq)$。\n  - 综合起来，时间复杂度为 $O(q(t+logn)+nlogn)$\n- 空间复杂度：$O(n+t)$\n  - 最多需要存储 $n$ 个用户以及 $n$ 条推文时间，空间复杂度为 $O(n)$。\n  - 查询时需要开辟 $O(t)$ 的数组，空间复杂度为 $O(t)$。综合起来，空间复杂度为 $O(n+t)$。",
+            "slateValue": "",
+            "slug": "tui-wen-ji-shu-by-leetcode-solution",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "5jMLPv",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 9,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Design",
+                    "nameTranslated": "设计",
+                    "slug": "design",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Ordered Set",
+                    "nameTranslated": "有序集合",
+                    "slug": "ordered-set",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Sorting",
+                    "nameTranslated": "排序",
+                    "slug": "sorting",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-02-19T02:58:40.110840+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：线性表暴力 使用字典保存用户，按照用户名使用线性表存储其相应的所有推文，查询时遍历该用户的所有推文判断是否在要求的时间区间内。 ```python [] class TweetCounts: def __init__(self):     self.user = collections.defaultdict(",
+            "topic": {
+                "id": 101747,
+                "subscribed": false,
+                "commentCount": 24,
+                "viewCount": 2832,
+                "post": {
+                    "id": 349576,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 7,
+            "isEditorsPick": false,
+            "hitCount": 6313,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "tweet-counts-per-frequency",
+                "questionFrontendId": "1348"
+            },
+            "next": {
+                "slug": "tui-wen-ji-shu-leetcode-1348-ha-xi-biao-v7063",
+                "title": "推文计数（LeetCode 1348）——哈希表 + 有序映射"
+            },
+            "prev": null
+        }
+    }
+}

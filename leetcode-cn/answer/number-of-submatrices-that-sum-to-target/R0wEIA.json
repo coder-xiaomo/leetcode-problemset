@@ -1,0 +1,146 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "R0wEIA",
+            "title": "元素和为目标值的子矩阵数量",
+            "content": "#### 方法一：前缀和 + 哈希表\n\n我们枚举子矩阵的上下边界，并计算出该边界内每列的元素和，则原问题转换成了如下一维问题：\n\n> 给定一个整数数组和一个整数 $\\textit{target}$，计算该数组中子数组和等于 $\\textit{target}$ 的子数组个数。\n\n力扣上已有该问题：[560. 和为K的子数组](https://leetcode.cn/problems/subarray-sum-equals-k/)，读者可以参考其[官方题解](https://leetcode.cn/problems/subarray-sum-equals-k/solution/he-wei-kde-zi-shu-zu-by-leetcode-solution/)，并掌握使用前缀和+哈希表的线性做法。\n\n对于每列的元素和 $\\textit{sum}$ 的计算，我们在枚举子矩阵上边界 $i$ 时，初始下边界 $j$ 为 $i$，此时 $\\textit{sum}$ 就是矩阵第 $i$ 行的元素。每次向下延长下边界 $j$ 时，我们可以将矩阵第 $j$ 行的元素累加到 $\\textit{sum}$ 中。\n\n```C++ [sol1-C++]\nclass Solution {\nprivate:\n    int subarraySum(vector<int> &nums, int k) {\n        unordered_map<int, int> mp;\n        mp[0] = 1;\n        int count = 0, pre = 0;\n        for (auto &x:nums) {\n            pre += x;\n            if (mp.find(pre - k) != mp.end()) {\n                count += mp[pre - k];\n            }\n            mp[pre]++;\n        }\n        return count;\n    }\n\npublic:\n    int numSubmatrixSumTarget(vector<vector<int>> &matrix, int target) {\n        int ans = 0;\n        int m = matrix.size(), n = matrix[0].size();\n        for (int i = 0; i < m; ++i) { // 枚举上边界\n            vector<int> sum(n);\n            for (int j = i; j < m; ++j) { // 枚举下边界\n                for (int c = 0; c < n; ++c) {\n                    sum[c] += matrix[j][c]; // 更新每列的元素和\n                }\n                ans += subarraySum(sum, target);\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int numSubmatrixSumTarget(int[][] matrix, int target) {\n        int ans = 0;\n        int m = matrix.length, n = matrix[0].length;\n        for (int i = 0; i < m; ++i) { // 枚举上边界\n            int[] sum = new int[n];\n            for (int j = i; j < m; ++j) { // 枚举下边界\n                for (int c = 0; c < n; ++c) {\n                    sum[c] += matrix[j][c]; // 更新每列的元素和\n                }\n                ans += subarraySum(sum, target);\n            }\n        }\n        return ans;\n    }\n\n    public int subarraySum(int[] nums, int k) {\n        Map<Integer, Integer> map = new HashMap<Integer, Integer>();\n        map.put(0, 1);\n        int count = 0, pre = 0;\n        for (int x : nums) {\n            pre += x;\n            if (map.containsKey(pre - k)) {\n                count += map.get(pre - k);\n            }\n            map.put(pre, map.getOrDefault(pre, 0) + 1);\n        }\n        return count;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int NumSubmatrixSumTarget(int[][] matrix, int target) {\n\n        int ans = 0;\n        int m = matrix.Length, n = matrix[0].Length;\n        for (int i = 0; i < m; ++i) { // 枚举上边界\n            int[] sum = new int[n];\n            for (int j = i; j < m; ++j) { // 枚举下边界\n                for (int c = 0; c < n; ++c) {\n                    sum[c] += matrix[j][c]; // 更新每列的元素和\n                }\n                ans += SubarraySum(sum, target);\n            }\n        }\n        return ans;\n    }\n\n    public int SubarraySum(int[] nums, int k) {\n        Dictionary<int, int> dictionary = new Dictionary<int, int>();\n        dictionary.Add(0, 1);\n        int count = 0, pre = 0;\n        foreach (int x in nums) {\n            pre += x;\n            if (dictionary.ContainsKey(pre - k)) {\n                count += dictionary[pre - k];\n            }\n            if (!dictionary.ContainsKey(pre)) {\n                dictionary.Add(pre, 1);\n            } else {\n                ++dictionary[pre];\n            }\n        }\n        return count;\n    }\n}\n```\n\n```go [sol1-Golang]\nfunc subarraySum(nums []int, k int) (ans int) {\n    mp := map[int]int{0: 1}\n    for i, pre := 0, 0; i < len(nums); i++ {\n        pre += nums[i]\n        if _, ok := mp[pre-k]; ok {\n            ans += mp[pre-k]\n        }\n        mp[pre]++\n    }\n    return\n}\n\nfunc numSubmatrixSumTarget(matrix [][]int, target int) (ans int) {\n    for i := range matrix { // 枚举上边界\n        sum := make([]int, len(matrix[0]))\n        for _, row := range matrix[i:] { // 枚举下边界\n            for c, v := range row {\n                sum[c] += v // 更新每列的元素和\n            }\n            ans += subarraySum(sum, target)\n        }\n    }\n    return\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def numSubmatrixSumTarget(self, matrix: List[List[int]], target: int) -> int:\n        def subarraySum(nums: List[int], k: int) -> int:\n            mp = Counter([0])\n            count = pre = 0\n            for x in nums:\n                pre += x\n                if pre - k in mp:\n                    count += mp[pre - k]\n                mp[pre] += 1\n            return count\n        \n        m, n = len(matrix), len(matrix[0])\n        ans = 0\n        # 枚举上边界\n        for i in range(m):\n            total = [0] * n\n            # 枚举下边界\n            for j in range(i, m):\n                for c in range(n):\n                    # 更新每列的元素和\n                    total[c] += matrix[j][c]\n                ans += subarraySum(total, target)\n        \n        return ans\n```\n\n```C [sol1-C]\nstruct HashTable {\n    int key, val;\n    UT_hash_handle hh;\n};\n\nint subarraySum(int* nums, int numsSize, int k) {\n    struct HashTable* hashTable = NULL;\n    struct HashTable* tmp = malloc(sizeof(struct HashTable));\n    tmp->key = 0, tmp->val = 1;\n    HASH_ADD_INT(hashTable, key, tmp);\n    int count = 0, pre = 0;\n    for (int i = 0; i < numsSize; i++) {\n        pre += nums[i];\n        int x = pre - k;\n        HASH_FIND_INT(hashTable, &x, tmp);\n        if (tmp != NULL) {\n            count += tmp->val;\n        }\n        HASH_FIND_INT(hashTable, &pre, tmp);\n        if (tmp != NULL) {\n            tmp->val++;\n        } else {\n            tmp = malloc(sizeof(struct HashTable));\n            tmp->key = pre, tmp->val = 1;\n            HASH_ADD_INT(hashTable, key, tmp);\n        }\n    }\n    return count;\n}\n\nint numSubmatrixSumTarget(int** matrix, int matrixSize, int* matrixColSize, int target) {\n    int ans = 0;\n    int m = matrixSize, n = matrixColSize[0];\n    for (int i = 0; i < m; ++i) {  // 枚举上边界\n        int sum[n];\n        memset(sum, 0, sizeof(sum));\n        for (int j = i; j < m; ++j) {  // 枚举下边界\n            for (int c = 0; c < n; ++c) {\n                sum[c] += matrix[j][c];  // 更新每列的元素和\n            }\n            ans += subarraySum(sum, n, target);\n        }\n    }\n    return ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar numSubmatrixSumTarget = function(matrix, target) {\n    let ans = 0;\n    const m = matrix.length, n = matrix[0].length;\n    for (let i = 0; i < m; ++i) { // 枚举上边界\n        const sum = new Array(n).fill(0);\n        for (let j = i; j < m; ++j) { // 枚举下边界\n            for (let c = 0; c < n; ++c) {\n                sum[c] += matrix[j][c]; // 更新每列的元素和\n            }\n            ans += subarraySum(sum, target);\n        }\n    }\n    return ans;\n}\n\nconst subarraySum = (nums, k) => {\n    const map = new Map();\n    map.set(0, 1);\n    let count = 0, pre = 0;\n    for (const x of nums) {\n        pre += x;\n        if (map.has(pre - k)) {\n            count += map.get(pre - k);\n        }\n        map.set(pre, (map.get(pre) || 0) + 1);\n    }\n    return count;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(m^2\\cdot n)$。其中 $m$ 和 $n$ 分别是矩阵 $\\textit{matrix}$ 的行数和列数。\n\n- 空间复杂度：$O(n)$。\n\n**优化**\n\n若行数大于列数，枚举矩形的左右边界更优，对应的时间复杂度为 $O(n^2\\cdot m)$。\n\n总之，根据 $m$ 和 $n$ 的大小来细化枚举策略，我们可以做到 $O(\\min(m,n)^2\\cdot\\max(m,n))$ 的时间复杂度。\n",
+            "slateValue": "",
+            "slug": "yuan-su-he-wei-mu-biao-zhi-de-zi-ju-zhen-8ym2",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "R0wEIA",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 45,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 5,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 4,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Matrix",
+                    "nameTranslated": "矩阵",
+                    "slug": "matrix",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Prefix Sum",
+                    "nameTranslated": "前缀和",
+                    "slug": "prefix-sum",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-05-27T03:46:06.345128+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：前缀和 + 哈希表我们枚举子矩阵的上下边界，并计算出该边界内每列的元素和，则原问题转换成了如下一维问题：\n给定一个整数数组和一个整数 target\\textit{target}target，计算该数组中子数组和等于 target\\textit{target}target 的子数组个数。\n力扣上已有该问题：560",
+            "topic": {
+                "id": 798061,
+                "subscribed": false,
+                "commentCount": 64,
+                "viewCount": 18163,
+                "post": {
+                    "id": 1756986,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 44,
+            "isEditorsPick": false,
+            "hitCount": 32372,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "number-of-submatrices-that-sum-to-target",
+                "questionFrontendId": "1074"
+            },
+            "next": {
+                "slug": "mei-ju-shang-xia-bian-jie-zhuan-hua-chen-h6i4",
+                "title": "枚举上下边界，转化成 560 题（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

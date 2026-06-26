@@ -1,0 +1,92 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "VNt1Ip",
+            "title": "检查整数及其两倍数是否存在",
+            "content": "#### 方法一：暴力法\n\n直接遍历所有的数字对，判断一个数字是否是另一个数字的两倍。注意要用乘法判断，除法判断会有除零的问题。\n\n```python []\nclass Solution:\n    def checkIfExist(self, arr: List[int]) -> bool:\n        for i, a in enumerate(arr):\n            for j, b in enumerate(arr):\n                if i != j and a * 2 == b:\n                    return True\n        return False\n```\n\n```C++ []\nclass Solution {\npublic:\n    bool checkIfExist(vector<int>& arr) {\n        for (auto i = arr.begin(); i != arr.end(); ++i)\n            for (auto j = arr.begin(); j != arr.end(); ++j)\n                if (i != j && *i * 2 == *j)\n                    return true;\n        return false;\n    }\n};\n```\n\n##### 复杂度分析：\n\n  * 时间复杂度：$O(n^2)$\n  * 空间复杂度：$O(1)$\n\n#### 方法二：排序 + 双指针\n\n先对所有数字进行排序。然后维护两个指针：指针 $p$ 遍历数字 $x$，指针 $q$ 寻找 $2x$。\n\n* 对于 $x>0$ 的情况，指针只需要一直前进。若 $q$ 在前进过程中找到一个比 $2x$ 大的数字，那么 $2x$ 必然不存在。在 $p$ 前进的过程中 $p$ 所指向的 $x$ 会不断递增，$2x$ 也会不断递增，因此指针 $q$ 不需要后退。\n* 对于 $x<0$ 的情况，指针只需要一直后退。若 $q$ 在后退过程中找到一个比 $2x$ 小的数字，那么 $2x$ 必然不存在。在 $p$ 后退的过程中 $p$ 所指向的 $x$ 会不断递减，$2x$ 也会不断递减，因此指针 $q$ 不需要前进。\n\n```python []\nclass Solution:\n    def checkIfExist(self, arr: List[int]) -> bool:\n        arr.sort()\n        q = 0\n        for p in range(len(arr)):\n            while q < len(arr) and arr[p] * 2 > arr[q]:\n                q += 1\n            if q != len(arr) and p != q and arr[p] * 2 == arr[q]:\n                return True\n        q = len(arr) - 1\n        for p in range(len(arr) - 1, -1, -1):\n            while q > -1 and arr[p] * 2 < arr[q]:\n                q -= 1\n            if q != -1 and p != q and arr[p] * 2 == arr[q]:\n                return True\n        return False\n```\n\n```C++ []\nclass Solution {\npublic:\n    bool checkIfExist(vector<int>& arr) {\n        sort(arr.begin(), arr.end());\n        for (auto i = arr.begin(), j = arr.begin(); i != arr.end(); ++i) {\n            while (j != arr.end() && *i * 2 > *j)\n                ++j;\n            if (j != arr.end() && i != j && *i * 2 == *j)\n                return true;\n        }\n        for (auto i = arr.rbegin(), j = arr.rbegin(); i != arr.rend(); ++i) {\n            while (j != arr.rend() && *i * 2 < *j)\n                ++j;\n            if (j != arr.rend() && i != j && *i * 2 == *j)\n                return true;\n        }\n        return false;\n    }\n};\n```\n\n##### 复杂度分析：\n\n  * 时间复杂度：$O(nlogn)$\n    排序的时间复杂度为 $O(nlogn)$，两次指针遍历的过程时间复杂度为 $O(n)$，综合起来，复杂度为 $O(nlogn)$。\n  * 空间复杂度：$O(n)$\n    Python 的 sort 函数空间复杂度为 $O(n)$，双指针遍历的空间复杂度为 $O(1)$，综合起来，复杂度为 $O(n)$。\n\n#### 方法三：哈希表\n\n先将所有数字存入哈希表，再遍历所有的数字 $x$，判断 $2x$ 是否在哈希表中。注意数字 0 需要特殊考虑。可以通过计数来解决数字 0 的问题：若 $x\\neq0$，则 $2x$ 只需要出现一次，否则需要出现两次。\n对于 C++ 代码，由于数字范围是 $[-1000， 1000]$，$2x$ 的范围为 $[-2000， 2000]$ 我们只需要创建一个长度为 4001 的数组 $cnt$。为了解决下标为负时越界的问题，我们不直接使用数组 $cnt$，而是设置一个指向 $cnt[2000]$ 的指针 $hash\\_set$ 作为哈希表的抽象。这样，取 $hash\\_set[i]$ 时会实际取用 $cnt[i + 2000]$，避免了下标越界。\n\n```python []\nclass Solution:\n    def checkIfExist(self, arr: List[int]) -> bool:\n        counter = collections.Counter(arr)\n        for n in arr:\n            if n != 0 and counter[2 * n] >= 1:\n                return True\n            if n == 0 and counter[2 * n] >= 2:\n                return True\n        return False\n```\n\n```C++ []\nclass Solution {\npublic:\n    bool checkIfExist(vector<int>& arr) {\n        int cnt[4001] = {0};\n        int* hash_set = cnt + 2000;\n        for (int n : arr)\n            ++hash_set[n];\n        for (int n : arr)\n            if (n != 0 && hash_set[2 * n] >= 1)\n                return true;\n            else if (n == 0 && hash_set[2 * n] >= 2)\n                return true;\n        return false;\n    }\n};\n```\n\n##### 复杂度分析：\n\n  * 时间复杂度：$O(n)$\n    哈希表的查询时间复杂度为 $O(1)$，查询次数为 $O(n)$，综合起来，时间复杂度为 $O(n)$。\n  * 空间复杂度：$O(n)$\n    哈希表最多需要存储 $n$ 个元素。",
+            "slateValue": "",
+            "slug": "jian-cha-zheng-shu-ji-qi-liang-bei-shu-shi-fou-cun",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "VNt1Ip",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 14,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 3,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-02-19T02:56:56.428328+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": " 方法一：暴力法\n直接遍历所有的数字对，判断一个数字是否是另一个数字的两倍。注意要用乘法判断，除法判断会有除零的问题。\n 复杂度分析：\n\n时间复杂度：O(n^2)\n空间复杂度：O(1)\n\n 方法二：排序 + 双指针\n先对所有数字进行排序。然后维护两个指针：指针 p 遍历数字 x，指针 q 寻找 2x。\n\n对于 x>0 ",
+            "topic": {
+                "id": 101742,
+                "subscribed": false,
+                "commentCount": 63,
+                "viewCount": 12021,
+                "post": {
+                    "id": 349565,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 32,
+            "isEditorsPick": false,
+            "hitCount": 21600,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "check-if-n-and-its-double-exist",
+                "questionFrontendId": "1346"
+            },
+            "next": {
+                "slug": "bao-li-by-nice-mcnultytfv-20xa",
+                "title": "暴力"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,152 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "KNGVtx",
+            "title": "我的日程安排表 I",
+            "content": "#### 方法一：直接遍历\n\n我们记录下所有已经预订的课程安排区间，当我们预订新的区间 $[\\textit{start}, \\textit{end})$ 时，此时检查当前已经预订的每个日程安排是否与新日程安排冲突。若不冲突，则可以添加新的日程安排。\n+ 对于两个区间 $[s_1, e_1)$ 和 $[s_2, e_2)$，如果二者没有交集，则此时应当满足 $s_1 \\ge e_2$ 或者 $s_2 \\ge e_1$，这就意味着如果满足 $s_1 < e_2$ 并且 $s_2 < e_1$，则两者会产生交集。\n\n```Python [sol1-Python3]\nclass MyCalendar:\n    def __init__(self):\n        self.booked = []\n\n    def book(self, start: int, end: int) -> bool:\n        if any(l < end and start < r for l, r in self.booked):\n            return False\n        self.booked.append((start, end))\n        return True\n```\n\n```C++ [sol1-C++]\nclass MyCalendar {\n    vector<pair<int, int>> booked;\n\npublic:\n    bool book(int start, int end) {\n        for (auto &[l, r] : booked) {\n            if (l < end && start < r) {\n                return false;\n            }\n        }\n        booked.emplace_back(start, end);\n        return true;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass MyCalendar {\n    List<int[]> booked;\n\n    public MyCalendar() {\n        booked = new ArrayList<int[]>();\n    }\n\n    public boolean book(int start, int end) {\n        for (int[] arr : booked) {\n            int l = arr[0], r = arr[1];\n            if (l < end && start < r) {\n                return false;\n            }\n        }\n        booked.add(new int[]{start, end});\n        return true;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class MyCalendar {\n    IList<Tuple<int, int>> booked;\n\n    public MyCalendar() {\n        booked = new List<Tuple<int, int>>();\n    }\n\n    public bool Book(int start, int end) {\n        foreach (Tuple<int, int> tuple in booked) {\n            int l = tuple.Item1, r = tuple.Item2;\n            if (l < end && start < r) {\n                return false;\n            }\n        }\n        booked.Add(new Tuple<int, int>(start, end));\n        return true;\n    }\n}\n```\n\n```C [sol1-C]\ntypedef struct {\n    int *booked;\n    int bookedSize;\n} MyCalendar;\n\n#define MAX_BOOK_SIZE 1001\n\nMyCalendar* myCalendarCreate() {\n    MyCalendar *obj = (MyCalendar *)malloc(sizeof(MyCalendar));\n    obj->booked = (int *)malloc(sizeof(int) * 2 * MAX_BOOK_SIZE);\n    obj->bookedSize = 0;\n    return obj;\n}\n\nbool myCalendarBook(MyCalendar* obj, int start, int end) {\n    for (int i = 0; i < obj->bookedSize; i++) {\n        int l = obj->booked[2 * i];\n        int r = obj->booked[2 * i + 1];\n        if (l < end && start < r) {\n            return false;\n        }\n    }\n    obj->booked[obj->bookedSize * 2] = start;\n    obj->booked[obj->bookedSize * 2 + 1] = end;\n    obj->bookedSize++;\n    return true;\n}\n\nvoid myCalendarFree(MyCalendar* obj) {\n    free(obj->booked);\n    free(obj);\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar MyCalendar = function() {\n    this.booked = [];\n};\n\nMyCalendar.prototype.book = function(start, end) {\n    for (const arr of this.booked) {\n        let l = arr[0], r = arr[1];\n        if (l < end && start < r) {\n            return false;\n        }\n    }\n    this.booked.push([start, end]);\n    return true;\n};\n```\n\n```go [sol1-Golang]\ntype pair struct{ start, end int }\ntype MyCalendar []pair\n\nfunc Constructor() MyCalendar {\n    return MyCalendar{}\n}\n\nfunc (c *MyCalendar) Book(start, end int) bool {\n    for _, p := range *c {\n        if p.start < end && start < p.end {\n            return false\n        }\n    }\n    *c = append(*c, pair{start, end})\n    return true\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n^2)$, 其中 $n$ 表示日程安排的数量。由于每次在进行预订时，都需要遍历所有已经预订的行程安排。\n\n- 空间复杂度：$O(n)$，其中 $n$ 表示日程安排的数量。需要保存所有已经预订的行程。\n\n#### 方法二：二分查找\n\n如果我们按时间顺序维护日程安排，则可以通过二分查找日程安排的情况来检查新日程安排是否可以预订，若可以预订则在排序结构中更新插入日程安排。\n+ 需要一个数据结构能够保持元素排序和支持快速插入，可以用 $\\texttt{TreeSet}$ 来构建。对于给定的区间 $[\\textit{start}, \\textit{end})$，我们每次查找起点大于等于 $\\textit{end}$ 的第一个区间 $[l_1,r_1)$，同时紧挨着 $[l_1,r_1)$ 的前一个区间为 $[l_2,r_2)$，此时如果满足 $r_2 \\le \\textit{start} < \\textit{end} \\le l_1$，则该区间可以预订。\n\n```Python [sol2-Python3]\nfrom sortedcontainers import SortedDict\n\nclass MyCalendar:\n    def __init__(self):\n        self.booked = SortedDict()\n\n    def book(self, start: int, end: int) -> bool:\n        i = self.booked.bisect_left(end)\n        if i == 0 or self.booked.items()[i - 1][1] <= start:\n            self.booked[start] = end\n            return True\n        return False\n```\n\n```C++ [sol2-C++]\nclass MyCalendar {\n    set<pair<int, int>> booked;\n\npublic:\n    bool book(int start, int end) {\n        auto it = booked.lower_bound({end, 0});\n        if (it == booked.begin() || (--it)->second <= start) {\n            booked.emplace(start, end);\n            return true;\n        }\n        return false;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass MyCalendar {\n    TreeSet<int[]> booked;\n\n    public MyCalendar() {\n        booked = new TreeSet<int[]>((a, b) -> a[0] - b[0]);\n    }\n\n    public boolean book(int start, int end) {\n        if (booked.isEmpty()) {\n            booked.add(new int[]{start, end});\n            return true;\n        }\n        int[] tmp = {end, 0};\n        int[] arr = booked.ceiling(tmp);\n        int[] prev = arr == null ? booked.last() : booked.lower(arr);\n        if (arr == booked.first() || booked.lower(tmp)[1] <= start) {\n            booked.add(new int[]{start, end});\n            return true;\n        }\n        return false;\n    }\n}\n```\n\n```go [sol2-Golang]\ntype MyCalendar struct {\n    *redblacktree.Tree\n}\n\nfunc Constructor() MyCalendar {\n    t := redblacktree.NewWithIntComparator()\n    t.Put(math.MaxInt32, nil) // 哨兵，简化代码\n    return MyCalendar{t}\n}\n\nfunc (c MyCalendar) Book(start, end int) bool {\n    node, _ := c.Ceiling(end)\n    it := c.IteratorAt(node)\n    if !it.Prev() || it.Value().(int) <= start {\n        c.Put(start, end)\n        return true\n    }\n    return false\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log n)$, 其中 $n$ 表示日程安排的数量。由于每次在进行预订时，都需要进行二分查找，需要的时间为 $O(\\log n)$。\n\n- 空间复杂度：$O(n)$，其中 $n$ 表示日程安排的数量。需要保存所有已经预订的行程。\n\n#### 方法三：线段树\n\n利用线段树，假设我们开辟了数组 $\\textit{arr}[0,\\cdots, 10^9]$，初始时每个元素的值都为 $0$，对于每次行程预订的区间 $[\\textit{start}, \\textit{end})$ ，则我们将区间中的元素 $\\textit{arr}[\\textit{start},\\cdots,\\textit{end}-1]$ 中的每个元素都标记为 $1$，每次调用 $\\texttt{book}$ 时，我们只需要检测 $\\textit{arr}[\\textit{start},\\cdots,\\textit{end}-1]$ 区间内是否有元素被标记为 $1$。实际我们不必实际开辟数组 $\\textit{arr}$，可采用动态线段树，懒标记 $\\textit{lazy}$ 标记区间 $[l,r]$ 已经被预订，$\\textit{tree}$ 记录区间 $[l,r]$ 的是否存在标记为 $1$ 的元素。\n\n+ 每次进行 $\\texttt{book}$ 操作时，首先判断区间 $[\\textit{start},\\cdots,\\textit{end}-1]$ 是否存在元素被标记，如果存在被标记为 $1$ 的元素，则表明该区间不可预订；否则，则将可以预订。预订完成后，将 $\\textit{arr}[\\textit{start},\\cdots,\\textit{end}-1]$ 进行标记为 $1$，并同时更新线段树。\n\n```Python [sol3-Python3]\nclass MyCalendar:\n    def __init__(self):\n        self.tree = set()\n        self.lazy = set()\n\n    def query(self, start: int, end: int, l: int, r: int, idx: int) -> bool:\n        if r < start or end < l:\n            return False\n        if idx in self.lazy:  # 如果该区间已被预订，则直接返回\n            return True\n        if start <= l and r <= end:\n            return idx in self.tree\n        mid = (l + r) // 2\n        return self.query(start, end, l, mid, 2 * idx) or \\\n               self.query(start, end, mid + 1, r, 2 * idx + 1)\n\n    def update(self, start: int, end: int, l: int, r: int, idx: int) -> None:\n        if r < start or end < l:\n            return\n        if start <= l and r <= end:\n            self.tree.add(idx)\n            self.lazy.add(idx)\n        else:\n            mid = (l + r) // 2\n            self.update(start, end, l, mid, 2 * idx)\n            self.update(start, end, mid + 1, r, 2 * idx + 1)\n            self.tree.add(idx)\n            if 2 * idx in self.lazy and 2 * idx + 1 in self.lazy:\n                self.lazy.add(idx)\n\n    def book(self, start: int, end: int) -> bool:\n        if self.query(start, end - 1, 0, 10 ** 9, 1):\n            return False\n        self.update(start, end - 1, 0, 10 ** 9, 1)\n        return True\n```\n\n```C++ [sol3-C++]\nclass MyCalendar {\n    unordered_set<int> tree, lazy;\n\npublic:\n    bool query(int start, int end, int l, int r, int idx) {\n        if (r < start || end < l) {\n            return false;\n        }\n        /* 如果该区间已被预订，则直接返回 */\n        if (lazy.count(idx)) {\n            return true;\n        }\n        if (start <= l && r <= end) {\n            return tree.count(idx);\n        }\n        int mid = (l + r) >> 1;\n        return query(start, end, l, mid, 2 * idx) ||\n               query(start, end, mid + 1, r, 2 * idx + 1);\n    }\n\n    void update(int start, int end, int l, int r, int idx) {\n        if (r < start || end < l) {\n            return;\n        }\n        if (start <= l && r <= end) {\n            tree.emplace(idx);\n            lazy.emplace(idx);\n        } else {\n            int mid = (l + r) >> 1;\n            update(start, end, l, mid, 2 * idx);\n            update(start, end, mid + 1, r, 2 * idx + 1);\n            tree.emplace(idx);\n            if (lazy.count(2 * idx) && lazy.count(2 * idx + 1)) {\n                lazy.emplace(idx);\n            }\n        }\n    }\n\n    bool book(int start, int end) {\n        if (query(start, end - 1, 0, 1e9, 1)) {\n            return false;\n        }\n        update(start, end - 1, 0, 1e9, 1);\n        return true;\n    }\n};\n```\n\n```Java [sol3-Java]\nclass MyCalendar {\n    Set<Integer> tree;\n    Set<Integer> lazy;\n\n    public MyCalendar() {\n        tree = new HashSet<Integer>();\n        lazy = new HashSet<Integer>();\n    }\n\n    public boolean book(int start, int end) {\n        if (query(start, end - 1, 0, 1000000000, 1)) {\n            return false;\n        }\n        update(start, end - 1, 0, 1000000000, 1);\n        return true;\n    }\n\n    public boolean query(int start, int end, int l, int r, int idx) {\n        if (start > r || end < l) {\n            return false;\n        }\n        /* 如果该区间已被预订，则直接返回 */\n        if (lazy.contains(idx)) {\n            return true;\n        }\n        if (start <= l && r <= end) {\n            return tree.contains(idx);\n        } else {\n            int mid = (l + r) >> 1;\n            if (end <= mid) {\n                return query(start, end, l, mid, 2 * idx);\n            } else if (start > mid) {\n                return query(start, end, mid + 1, r, 2 * idx + 1);\n            } else {\n                return query(start, end, l, mid, 2 * idx) | query(start, end, mid + 1, r, 2 * idx + 1);\n            }\n        }\n    }\n\n    public void update(int start, int end, int l, int r, int idx) {\n        if (r < start || end < l) {\n            return;\n        } \n        if (start <= l && r <= end) {\n            tree.add(idx);\n            lazy.add(idx);\n        } else {\n            int mid = (l + r) >> 1;\n            update(start, end, l, mid, 2 * idx);\n            update(start, end, mid + 1, r, 2 * idx + 1);\n            tree.add(idx);\n        }\n    }\n}\n```\n\n```C# [sol3-C#]\npublic class MyCalendar {\n    ISet<int> tree;\n    ISet<int> lazy;\n\n    public MyCalendar() {\n        tree = new HashSet<int>();\n        lazy = new HashSet<int>();\n    }\n\n    public bool Book(int start, int end) {\n        if (Query(start, end - 1, 0, 1000000000, 1)) {\n            return false;\n        }\n        Update(start, end - 1, 0, 1000000000, 1);\n        return true;\n    }\n\n    public bool Query(int start, int end, int l, int r, int idx) {\n        if (start > r || end < l) {\n            return false;\n        }\n        /* 如果该区间已被预订，则直接返回 */\n        if (lazy.Contains(idx)) {\n            return true;\n        }\n        if (start <= l && r <= end) {\n            return tree.Contains(idx);\n        } else {\n            int mid = (l + r) >> 1;\n            if (end <= mid) {\n                return Query(start, end, l, mid, 2 * idx);\n            } else if (start > mid) {\n                return Query(start, end, mid + 1, r, 2 * idx + 1);\n            } else {\n                return Query(start, end, l, mid, 2 * idx) | Query(start, end, mid + 1, r, 2 * idx + 1);\n            }\n        }\n    }\n\n    public void Update(int start, int end, int l, int r, int idx) {\n        if (r < start || end < l) {\n            return;\n        } \n        if (start <= l && r <= end) {\n            tree.Add(idx);\n            lazy.Add(idx);\n        } else {\n            int mid = (l + r) >> 1;\n            Update(start, end, l, mid, 2 * idx);\n            Update(start, end, mid + 1, r, 2 * idx + 1);\n            tree.Add(idx);\n        }\n    }\n}\n```\n\n```C [sol3-C]\ntypedef struct HashItem {\n    int key;\n    bool hasBooked;\n    bool lazy;\n    UT_hash_handle hh;\n} HashItem;\n\ntypedef struct {\n    HashItem *tree;\n} MyCalendar;\n\nMyCalendar* myCalendarCreate() {\n    MyCalendar *obj = (MyCalendar *)malloc(sizeof(MyCalendar));\n    obj->tree = NULL;\n    return obj;\n}\n\nbool query(MyCalendar* obj, int start, int end, int l, int r, int idx) {\n    if (r < start || end < l) {\n        return false;\n    } \n    HashItem *pEntry = NULL;\n    HASH_FIND_INT(obj->tree, &idx, pEntry);\n    /* 如果该区间已被预订，则直接返回 */\n    if (pEntry && pEntry->lazy) {\n        return true;\n    }\n    if (start <= l && r <= end) {\n        if (pEntry) {\n            return pEntry->hasBooked;\n        } else {\n            return false;\n        }\n    } else {\n        int mid = (l + r) >> 1;\n        if (end <= mid) {\n            return query(obj, start, end, l, mid, 2 * idx);\n        } else if (start > mid) {\n            return query(obj, start, end, mid + 1, r, 2 * idx + 1);\n        } else {\n            return query(obj, start, end, l, mid, 2 * idx) | \\\n                   query(obj, start, end, mid + 1, r, 2 * idx + 1);\n        }\n    }\n}\n\nvoid update(MyCalendar* obj, int start, int end, int l, int r, int idx) {\n    if (r < start || end < l) {\n        return;\n    } \n    if (start <= l && r <= end) {\n        HashItem *pEntry = NULL;\n        HASH_FIND_INT(obj->tree, &idx, pEntry);\n        if (!pEntry) {\n            pEntry = (HashItem *)malloc(sizeof(HashItem));\n            pEntry->key = idx;\n            HASH_ADD_INT(obj->tree, key, pEntry);\n        }\n        pEntry->hasBooked = true;\n        pEntry->lazy = true;\n    } else {\n        int mid = (l + r) >> 1;\n        update(obj, start, end, l, mid, 2 * idx);\n        update(obj, start, end, mid + 1, r, 2 * idx + 1);\n        HashItem *pEntry = NULL;\n        HASH_FIND_INT(obj->tree, &idx, pEntry);\n        if (!pEntry) {\n            pEntry = (HashItem *)malloc(sizeof(HashItem));\n            pEntry->key = idx;\n            HASH_ADD_INT(obj->tree, key, pEntry);\n        }   \n        pEntry->hasBooked = true;\n        pEntry->lazy = false;\n        HashItem *pEntry1 = NULL, *pEntry2 = NULL;\n        int lchild = 2 * idx, rchild = 2 * idx + 1;\n        HASH_FIND_INT(obj->tree, &lchild, pEntry1);\n        HASH_FIND_INT(obj->tree, &rchild, pEntry2);\n        if (pEntry1 && pEntry1->lazy && pEntry2 && pEntry2->lazy) {\n            pEntry->lazy = true;\n        }\n    }\n}\n\nbool myCalendarBook(MyCalendar* obj, int start, int end) {\n    if (query(obj, start, end - 1, 0, 1e9, 1)) {\n        return false;\n    }\n    update(obj, start, end - 1, 0, 1e9, 1);\n    return true;\n}\n\nvoid myCalendarFree(MyCalendar* obj) {\n    struct HashItem *curr, *tmp;\n    HASH_ITER(hh, obj->tree, curr, tmp) {\n        HASH_DEL(obj->tree, curr); \n        free(curr);             \n    } \n    free(obj);\n}\n```\n\n```go [sol3-Golang]\ntype MyCalendar struct {\n    tree, lazy map[int]bool\n}\n\nfunc Constructor() MyCalendar {\n    return MyCalendar{map[int]bool{}, map[int]bool{}}\n}\n\nfunc (c MyCalendar) query(start, end, l, r, idx int) bool {\n    if r < start || end < l {\n        return false\n    }\n    if c.lazy[idx] { // 如果该区间已被预订，则直接返回\n        return true\n    }\n    if start <= l && r <= end {\n        return c.tree[idx]\n    }\n    mid := (l + r) >> 1\n    return c.query(start, end, l, mid, 2*idx) ||\n        c.query(start, end, mid+1, r, 2*idx+1)\n}\n\nfunc (c MyCalendar) update(start, end, l, r, idx int) {\n    if r < start || end < l {\n        return\n    }\n    if start <= l && r <= end {\n        c.tree[idx] = true\n        c.lazy[idx] = true\n    } else {\n        mid := (l + r) >> 1\n        c.update(start, end, l, mid, 2*idx)\n        c.update(start, end, mid+1, r, 2*idx+1)\n        c.tree[idx] = true\n        if c.lazy[2*idx] && c.lazy[2*idx+1] {\n            c.lazy[idx] = true\n        }\n    }\n}\n\nfunc (c MyCalendar) Book(start, end int) bool {\n    if c.query(start, end-1, 0, 1e9, 1) {\n        return false\n    }\n    c.update(start, end-1, 0, 1e9, 1)\n    return true\n}\n```\n\n```JavaScript [sol3-JavaScript]\nvar MyCalendar = function() {\n    this.tree = new Set();\n    this.lazy = new Set();\n};\n\nMyCalendar.prototype.book = function(start, end) {\n    if (this.query(start, end - 1, 0, 1000000000, 1)) {\n        return false;\n    }\n    this.update(start, end - 1, 0, 1000000000, 1);\n    return true;\n};\n\nMyCalendar.prototype.query = function(start, end, l, r, idx) {\n    if (start > r || end < l) {\n        return false;\n    }\n    /* 如果该区间已被预订，则直接返回 */\n    if (this.lazy.has(idx)) {\n        return true;\n    }\n    if (start <= l && r <= end) {\n        return this.tree.has(idx);\n    } else {\n        const mid = (l + r) >> 1;\n        if (end <= mid) {\n            return this.query(start, end, l, mid, 2 * idx);\n        } else if (start > mid) {\n            return this.query(start, end, mid + 1, r, 2 * idx + 1);\n        } else {\n            return this.query(start, end, l, mid, 2 * idx) | this.query(start, end, mid + 1, r, 2 * idx + 1);\n        }\n    }\n}\n\nMyCalendar.prototype.update = function(start, end, l, r, idx) {\n    if (r < start || end < l) {\n        return;\n    } \n    if (start <= l && r <= end) {\n        this.tree.add(idx);\n        this.lazy.add(idx);\n    } else {\n        const mid = (l + r) >> 1;\n        this.update(start, end, l, mid, 2 * idx);\n        this.update(start, end, mid + 1, r, 2 * idx + 1);\n        this.tree.add(idx);\n    }\n}\n```\n\n**复杂度分析**\n\n+ 时间复杂度：$O(n \\log C)$，其中 $n$ 为日程安排的数量。由于使用了线段树查询，线段树的最大深度为 $\\log C$，每次最多会查询 $\\log C$ 个节点，每次求最大的预订需的时间复杂度为 $O(\\log C + \\log C)$，因此时间复杂度为 $O(n \\log C)$，在此 $C$ 取固定值 $10^9$。\n\n+ 空间复杂度：$O(n \\log C)$，其中 $n$ 为日程安排的数量。由于该解法采用的为动态线段树，线段树的最大深度为 $\\log C$，每次预订最多会在线段树上增加 $\\log C$ 个节点，因此空间复杂度为 $O(n \\log C)$，在此 $C$ 取固定值 $10^9$。",
+            "slateValue": "",
+            "slug": "wo-de-ri-cheng-an-pai-biao-i-by-leetcode-nlxr",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "KNGVtx",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 69,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Design",
+                    "nameTranslated": "设计",
+                    "slug": "design",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Segment Tree",
+                    "nameTranslated": "线段树",
+                    "slug": "segment-tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Ordered Set",
+                    "nameTranslated": "有序集合",
+                    "slug": "ordered-set",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-07-04T03:24:18.041597+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：直接遍历 我们记录下所有已经预订的课程安排区间，当我们预订新的区间 $[\\textit{start}, \\textit{end})$ 时，此时检查当前已经预订的每个日程安排是否与新日程安排冲突。若不冲突，则可以添加新的日程安排。 + 对于两个区间 $[s_1, e_1)$ 和 $[s_2, e_2)$，如果二者",
+            "topic": {
+                "id": 1643942,
+                "subscribed": false,
+                "commentCount": 99,
+                "viewCount": 23139,
+                "post": {
+                    "id": 3280533,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 175,
+            "isEditorsPick": false,
+            "hitCount": 61941,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "my-calendar-i",
+                "questionFrontendId": "729"
+            },
+            "next": {
+                "slug": "by-lfool-xvpv",
+                "title": "线段树详解「汇总级别整理 🔥🔥🔥」"
+            },
+            "prev": null
+        }
+    }
+}

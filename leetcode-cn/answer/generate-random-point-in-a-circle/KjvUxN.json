@@ -1,0 +1,152 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "KjvUxN",
+            "title": "在圆内随机生成点",
+            "content": "#### 前言\n\n下面的所有方法基于假设：语言提供的生成浮点数的 API 得到的结果是**均匀**的。\n\n事实上，根据 [IEEE 754](https://en.wikipedia.org/wiki/IEEE_754)，只有有限个浮点数能被有效表示，并且浮点数的绝对值越大，密度就越低。这说明我们并不能生成均匀的随机浮点数。\n\n但「如何均匀生成随机浮点数」显然不是本题的重点。我们可以假设语言提供了一个 API，它给定两个浮点数 $l, r$，可以生成区间 $[l, r)$ 中的均匀的随机浮点数。我们需要使用这个 API 来完成题目的要求。\n\n#### 方法一：拒绝采样\n\n**思路与算法**\n\n拒绝采样的意思是说：我们在一个更大的范围内生成随机数，并拒绝掉那些不在题目给定范围内的随机数，此时保留下来的随机数都是在范围内的。为了在一个半径为 $R$ 的圆中生成均匀随机点，我们可以使用一个边长为 $2R$ 的正方形覆盖住圆，并在正方形内生成均匀随机点，此时就只需要对于横坐标和纵坐标分别生成一个随机数即可。\n\n![pic](https://pic.leetcode.cn/Figures/883/squareCircleOverlay.png){:width=300px}\n\n若该点落在圆内，我们就返回这个点，否则我们拒绝这个点，重新生成，直到新的随机点落在圆内。\n\n**细节**\n\n由于正方形的面积为 $(2R)^2 = 4R^2$，圆的面积为 $\\pi R^2$，因此在正方形中随机生成的点，落在圆内的概率为 $\\text{Pr}(\\cdot) = \\dfrac{\\pi R^2}{4R^2} \\approx 0.785$，期望的生成次数为 $\\text{E}(\\cdot) = \\dfrac{1}{0.785} \\approx 1.274 = O(1)$。\n\n在正方形中生成点时（正方形中心的坐标简记为原点），如果我们在 $[-R, R)$ 的范围内生成随机数，那么是无法生成到横坐标或纵坐标恰好为 $R$ 的点，对应到圆上时，会有圆周上与正方形边相切的两个点无法随机到。我们可以在生成时稍微提高右边界（例如 $2R + \\epsilon$，其中 $\\epsilon$ 是一个很小的常数，例如 $10^{-7}$），或者直接忽略这两个点，因为它们的勒贝格测度为零。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\nprivate:\n    mt19937 gen{random_device{}()};\n    uniform_real_distribution<double> dis;\n    double xc, yc, r;\n\npublic:\n    Solution(double radius, double x_center, double y_center): dis(-radius, radius), xc(x_center), yc(y_center), r(radius) {}\n    \n    vector<double> randPoint() {\n        while (true) {\n            double x = dis(gen), y = dis(gen);\n            if (x * x + y * y <= r * r) {\n                return {xc + x, yc + y};\n            }\n        }\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    Random random;\n    double xc, yc, r;\n\n    public Solution(double radius, double x_center, double y_center) {\n        random = new Random();\n        xc = x_center;\n        yc = y_center;\n        r = radius;\n    }\n    \n    public double[] randPoint() {\n        while (true) {\n            double x = random.nextDouble() * (2 * r) - r;\n            double y = random.nextDouble() * (2 * r) - r;\n            if (x * x + y * y <= r * r) {\n                return new double[]{xc + x, yc + y};\n            }\n        }\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    Random random;\n    double xc, yc, r;\n\n    public Solution(double radius, double x_center, double y_center) {\n        random = new Random();\n        xc = x_center;\n        yc = y_center;\n        r = radius;\n    }\n    \n    public double[] RandPoint() {\n        while (true) {\n            double x = random.NextDouble() * (2 * r) - r;\n            double y = random.NextDouble() * (2 * r) - r;\n            if (x * x + y * y <= r * r) {\n                return new double[]{xc + x, yc + y};\n            }\n        }\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n\n    def __init__(self, radius: float, x_center: float, y_center: float):\n        self.xc = x_center\n        self.yc = y_center\n        self.r = radius\n\n    def randPoint(self) -> List[float]:\n        while True:\n            x, y = random.uniform(-self.r, self.r), random.uniform(-self.r, self.r)\n            if x * x + y * y <= self.r * self.r:\n                return [self.xc + x, self.yc + y]\n```\n\n```C [sol1-C]\ntypedef struct {\n    double radius;\n    double x_center;\n    double y_center;\n} Solution;\n\nSolution* solutionCreate(double radius, double x_center, double y_center) {\n    srand((unsigned)time(NULL));\n    Solution *obj = (Solution *)malloc(sizeof(Solution));\n    obj->radius = radius;\n    obj->x_center = x_center;\n    obj->y_center = y_center;\n    return obj;\n}\n\ndouble* solutionRandPoint(Solution* obj, int* retSize) {\n    double r = obj->radius;\n    double *res = (double *)malloc(sizeof(double) * 2);\n    while (true) {\n        double x = (double)rand() / RAND_MAX * (2 * r) - r;\n        double y = (double)rand() / RAND_MAX * (2 * r) - r;\n        if (x * x + y * y <= r * r) {\n            res[0] = x + obj->x_center;\n            res[1] = y + obj->y_center;\n            *retSize = 2;\n            return res;\n        }\n    }\n}\n\nvoid solutionFree(Solution* obj) {\n    free(obj);\n}\n```\n\n```go [sol1-Golang]\ntype Solution struct {\n    radius, xCenter, yCenter float64\n}\n\nfunc Constructor(radius, xCenter, yCenter float64) Solution {\n    return Solution{radius, xCenter, yCenter}\n}\n\nfunc (s *Solution) RandPoint() []float64 {\n    for {\n        x := rand.Float64()*2 - 1\n        y := rand.Float64()*2 - 1 // [-1,1) 的随机数\n        if x*x+y*y < 1 {\n            return []float64{s.xCenter + x*s.radius, s.yCenter + y*s.radius}\n        }\n    }\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar Solution = function(radius, x_center, y_center) {\n    this.xc = x_center;\n    this.yc = y_center;\n    this.r = radius;\n};\n\nSolution.prototype.randPoint = function() {\n    while (true) {\n        const x = Math.random() * (2 * this.r) - this.r;\n        const y = Math.random() * (2 * this.r) - this.r;\n        if (x * x + y * y <= this.r * this.r) {\n            return [this.xc + x, this.yc + y];\n        }\n    }\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：期望时间复杂度为 $O(1)$。\n\n- 空间复杂度：$O(1)$。\n\n#### 方法二：计算分布函数\n\n**思路与算法**\n\n本方法需要一定的概率论知识，尤其是「概率密度函数 PDF」以及「累积分布函数 CDF」。\n\n不失一般性，我们只考虑在原点且半径为 $1$ 的单位圆。对于非一般性的情况，我们只需要把生成的点的坐标根据半径等比例放大，再根据圆心坐标进行平移即可。\n\n对于两条线段，我们在它们中均匀随机生成点。如果一条线段的长度是另一条的两倍，那么生成的点在第一条线段上的概率也应当是在第二条线段上的概率的两倍。因此我们考虑单位圆内部的每一个圆环，生成的点落在半径为 $R_1$ 的圆环上的概率应当与圆环的周长成正比，同时也与 $R_1$ 成正比，即 $f(R_1) = k \\cdot R_1$，其中 $f(r)$ 为概率密度函数 PDF。由于 $f(x)$ 在定义域上的积分为 $1$，因此：\n\n$$\n1 = \\int_0^1 k \\cdot r ~\\mathrm{d}r = \\left.\\frac{1}{2}k \\cdot r^2 \\right|^1_0 = \\frac{1}{2} k\n$$\n\n解得 $k=2$，即 $f(r) = 2r$。\n\n得到了概率密度函数后，我们计算累积分布函数 CDF，即：\n\n$$\nF(r) = \\int_0^r f(t) ~\\mathrm{d}t = r^2\n$$\n\n累积分布函数 $F(r)$ 告诉我们，在单位圆中随机生成一个点，它离圆心的距离小于等于 $r$ 的概率为 $F(r) = r^2$。对于一个给定的累计分布函数，如果我们想要根据其生成随机变量，可以通过 $[0, 1)$ 的均匀分布生成随机变量 $u$，找到满足 $F(r) = u$ 的 $r$，此时 $r$ 即为满足累计分布函数的随机变量。\n\n从 $F(r) = u$ 以及 $F(r)$ 单调递增可以得到 $r = F^{-1}(u)$。由于 $F(r) = r^2$，因此 $r = F^{-1}(u) = \\sqrt{u}$，即用 $r = \\sqrt{u}$ 来生成随机变量 $r$。\n\n除了 $r$ 之外，我们还需要随机生成其与水平轴正方向的夹角 $\\theta \\in [0, 2\\pi)$，随后我们就可以根据：\n\n$$\n\\begin{cases}\n    \\text{x} = r \\cdot \\cos \\theta \\\\\n    \\text{y} = r \\cdot \\sin \\theta\n\\end{cases}\n$$\n\n得到点在单位圆内的坐标。再经过等比例放大坐标和平移两个步骤，就可以得到任意圆内的一个均匀随机生成的点了。\n\n**细节**\n\n注意如果直接在 $[0, 1)$ 范围内生成 $r$ 以及 $[0, 2\\pi)$ 范围内生成 $\\theta$，得到的随机点是不均匀的，可以通过任意一种可视化工具观察结果。\n\n```C++ [sol2-C++]\nclass Solution {\nprivate:\n    mt19937 gen{random_device{}()};\n    uniform_real_distribution<double> dis;\n    double xc, yc, r;\n\npublic:\n    Solution(double radius, double x_center, double y_center): dis(0, 1), xc(x_center), yc(y_center), r(radius) {}\n    \n    vector<double> randPoint() {\n        double u = dis(gen), theta = dis(gen) * 2 * acos(-1.0);\n        double r = sqrt(u);\n        return {xc + r * cos(theta) * this->r, yc + r * sin(theta) * this->r};\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    Random random;\n    double xc, yc, r;\n\n    public Solution(double radius, double x_center, double y_center) {\n        random = new Random();\n        xc = x_center;\n        yc = y_center;\n        r = radius;\n    }\n    \n    public double[] randPoint() {\n        double u = random.nextDouble();\n        double theta = random.nextDouble() * 2 * Math.PI;\n        double r = Math.sqrt(u);\n        return new double[]{xc + r * Math.cos(theta) * this.r, yc + r * Math.sin(theta) * this.r};\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    Random random;\n    double xc, yc, r;\n\n    public Solution(double radius, double x_center, double y_center) {\n        random = new Random();\n        xc = x_center;\n        yc = y_center;\n        r = radius;\n    }\n    \n    public double[] RandPoint() {\n        double u = random.NextDouble();\n        double theta = random.NextDouble() * 2 * Math.PI;\n        double r = Math.Sqrt(u);\n        return new double[]{xc + r * Math.Cos(theta) * this.r, yc + r * Math.Sin(theta) * this.r};\n    }\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n\n    def __init__(self, radius: float, x_center: float, y_center: float):\n        self.xc = x_center\n        self.yc = y_center\n        self.r = radius\n\n    def randPoint(self) -> List[float]:\n        u, theta = random.random(), random.random() * 2 * math.pi\n        r = sqrt(u)\n        return [self.xc + r * math.cos(theta) * self.r, self.yc + r * math.sin(theta) * self.r]\n```\n\n```C [sol2-C]\ntypedef struct {\n    double radius;\n    double x_center;\n    double y_center;\n} Solution;\n\nSolution* solutionCreate(double radius, double x_center, double y_center) {\n    srand((unsigned)time(NULL));\n    Solution *obj = (Solution *)malloc(sizeof(Solution));\n    obj->radius = radius;\n    obj->x_center = x_center;\n    obj->y_center = y_center;\n    return obj;\n}\n\ndouble* solutionRandPoint(Solution* obj, int* retSize) {\n    double u = (double)rand() / RAND_MAX;\n    double theta = (double)rand() / RAND_MAX * 2 * M_PI;\n    double r = sqrt(u);\n    double *res = (double *)malloc(sizeof(double) * 2);\n    res[0] = obj->x_center + r * cos(theta) * obj->radius;\n    res[1] = obj->y_center + r * sin(theta) * obj->radius;\n    *retSize = 2;\n    return res;\n}\n\nvoid solutionFree(Solution* obj) {\n    free(obj);\n}\n```\n\n```go [sol2-Golang]\ntype Solution struct {\n    radius, xCenter, yCenter float64\n}\n\nfunc Constructor(radius, xCenter, yCenter float64) Solution {\n    return Solution{radius, xCenter, yCenter}\n}\n\nfunc (s *Solution) RandPoint() []float64 {\n    r := math.Sqrt(rand.Float64())\n    sin, cos := math.Sincos(rand.Float64() * 2 * math.Pi)\n    return []float64{s.xCenter + r*cos*s.radius, s.yCenter + r*sin*s.radius}\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar Solution = function(radius, x_center, y_center) {\n    this.xc = x_center;\n    this.yc = y_center;\n    this.r = radius;\n};\n\nSolution.prototype.randPoint = function() {\n    const u = Math.random();\n    const theta = Math.random() * 2 * Math.PI;\n    const r = Math.sqrt(u);\n    return [this.xc + r * Math.cos(theta) * this.r, this.yc + r * Math.sin(theta) * this.r];\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(1)$。\n\n- 空间复杂度：$O(1)$。",
+            "slateValue": "",
+            "slug": "zai-yuan-nei-sui-ji-sheng-cheng-dian-by-qp342",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "KjvUxN",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 61,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "CONFUSED"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Geometry",
+                    "nameTranslated": "几何",
+                    "slug": "geometry",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Rejection Sampling",
+                    "nameTranslated": "拒绝采样",
+                    "slug": "rejection-sampling",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Probability and Statistics",
+                    "nameTranslated": "概率与统计",
+                    "slug": "probability-and-statistics",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Randomized",
+                    "nameTranslated": "随机化",
+                    "slug": "randomized",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2022-06-04T00:42:35.423200+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "前言 下面的所有方法基于假设：语言提供的生成浮点数的 API 得到的结果是均匀的。 事实上，根据 IEEE 754，只有有限个浮点数能被有效表示，并且浮点数的绝对值越大，密度就越低。这说明我们并不能生成均匀的随机浮点数。 但「如何均匀生成随机浮点数」显然不是本题的重点。我们可以假设语言提供了一个 API，它给定两个浮点",
+            "topic": {
+                "id": 1534311,
+                "subscribed": false,
+                "commentCount": 93,
+                "viewCount": 17103,
+                "post": {
+                    "id": 3129248,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 73,
+            "isEditorsPick": false,
+            "hitCount": 33066,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "generate-random-point-in-a-circle",
+                "questionFrontendId": "478"
+            },
+            "next": {
+                "slug": "by-ac_oier-btkm",
+                "title": "【宫水三叶】圆内等概率随机采样"
+            },
+            "prev": null
+        }
+    }
+}
