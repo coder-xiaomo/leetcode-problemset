@@ -1,0 +1,128 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "u1kEqH",
+            "title": "前 n 个数字二进制中 1 的个数",
+            "content": "#### 前言\n\n这道题需要计算从 $0$ 到 $n$ 的每个整数的二进制表示中的 $1$ 的数目。\n\n部分编程语言有相应的内置函数用于计算给定的整数的二进制表示中的 $1$ 的数目，例如 $\\texttt{Java}$ 的 $\\texttt{Integer.bitCount}$，$\\texttt{C++}$ 的 $\\texttt{\\_\\_builtin\\_popcount}$，$\\texttt{Go}$ 的 $\\texttt{bits.OnesCount}$ 等，读者可以自行尝试。下列各种方法均为不使用内置函数的解法。\n\n为了表述简洁，下文用「一比特数」表示二进制表示中的 $1$ 的数目。\n\n#### 方法一：$\\text{Brian Kernighan}$ 算法\n\n最直观的做法是对从 $0$ 到 $n$ 的每个整数直接计算「一比特数」。每个 $\\texttt{int}$ 型的数都可以用 $32$ 位二进制数表示，只要遍历其二进制表示的每一位即可得到 $1$ 的数目。\n\n利用 $\\text{Brian Kernighan}$ 算法，可以在一定程度上进一步提升计算速度。$\\text{Brian Kernighan}$ 算法的原理是：对于任意整数 $x$，令 $x=x~\\&~(x-1)$，该运算将 $x$ 的二进制表示的最后一个 $1$ 变成 $0$。因此，对 $x$ 重复该操作，直到 $x$ 变成 $0$，则操作次数即为 $x$ 的「一比特数」。\n\n对于给定的 $n$，计算从 $0$ 到 $n$ 的每个整数的「一比特数」的时间都不会超过 $O(\\log n)$，因此总时间复杂度为 $O(n \\log n)$。\n\n```Java [sol1-Java]\nclass Solution {\n    public int[] countBits(int n) {\n        int[] bits = new int[n + 1];\n        for (int i = 0; i <= n; i++) {\n            bits[i] = countOnes(i);\n        }\n        return bits;\n    }\n\n    public int countOnes(int x) {\n        int ones = 0;\n        while (x > 0) {\n            x &= (x - 1);\n            ones++;\n        }\n        return ones;\n    }\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar countBits = function(n) {\n    const bits = new Array(n + 1).fill(0);\n    for (let i = 0; i <= n; i++) {\n        bits[i] = countOnes(i);\n    }\n    return bits\n};\n\nconst countOnes = (x) => {\n    let ones = 0;\n    while (x > 0) {\n        x &= (x - 1);\n        ones++;\n    }\n    return ones;\n}\n```\n\n```go [sol1-Golang]\nfunc onesCount(x int) (ones int) {\n    for ; x > 0; x &= x - 1 {\n        ones++\n    }\n    return\n}\n\nfunc countBits(n int) []int {\n    bits := make([]int, n+1)\n    for i := range bits {\n        bits[i] = onesCount(i)\n    }\n    return bits\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def countBits(self, n: int) -> List[int]:\n        def countOnes(x: int) -> int:\n            ones = 0\n            while x > 0:\n                x &= (x - 1)\n                ones += 1\n            return ones\n        \n        bits = [countOnes(i) for i in range(n + 1)]\n        return bits\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int countOnes(int x) {\n        int ones = 0;\n        while (x > 0) {\n            x &= (x - 1);\n            ones++;\n        }\n        return ones;\n    }\n\n    vector<int> countBits(int n) {\n        vector<int> bits(n + 1);\n        for (int i = 0; i <= n; i++) {\n            bits[i] = countOnes(i);\n        }\n        return bits;\n    }\n};\n```\n\n```C [sol1-C]\nint countOnes(int x) {\n    int ones = 0;\n    while (x > 0) {\n        x &= (x - 1);\n        ones++;\n    }\n    return ones;\n}\n\nint* countBits(int n, int* returnSize) {\n    int* bits = malloc(sizeof(int) * (n + 1));\n    *returnSize = n + 1;\n    for (int i = 0; i <= n; i++) {\n        bits[i] = countOnes(i);\n    }\n    return bits;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log n)$。需要对从 $0$ 到 $n$ 的每个整数使用计算「一比特数」，对于每个整数计算「一比特数」的时间都不会超过 $O(\\log n)$。\n\n- 空间复杂度：$O(1)$。除了返回的数组以外，空间复杂度为常数。\n\n#### 方法二：动态规划——最高有效位\n\n方法一需要对每个整数使用 $O(\\log n)$ 的时间计算「一比特数」。可以换一个思路，当计算 $i$ 的「一比特数」时，如果存在 $0 \\le j<i$，$j$ 的「一比特数」已知，且 $i$ 和 $j$ 相比，$i$ 的二进制表示只多了一个 $1$，则可以快速得到 $i$ 的「一比特数」。\n\n令 $\\textit{bits}[i]$ 表示 $i$ 的「一比特数」，则上述关系可以表示成：$\\textit{bits}[i]= \\textit{bits}[j]+1$。\n\n对于正整数 $x$，如果可以知道最大的正整数 $y$，使得 $y \\le x$ 且 $y$ 是 $2$ 的整数次幂，则 $y$ 的二进制表示中只有最高位是 $1$，其余都是 $0$，此时称 $y$ 为 $x$ 的「最高有效位」。令 $z=x-y$，显然 $0 \\le z<x$，则 $\\textit{bits}[x]=\\textit{bits}[z]+1$。\n\n为了判断一个正整数是不是 $2$ 的整数次幂，可以利用方法一中提到的按位与运算的性质。如果正整数 $y$ 是 $2$ 的整数次幂，则 $y$ 的二进制表示中只有最高位是 $1$，其余都是 $0$，因此 $y~\\&~(y-1)=0$。由此可见，正整数 $y$ 是 $2$ 的整数次幂，当且仅当 $y~\\&~(y-1)=0$。\n\n显然，$0$ 的「一比特数」为 $0$。使用 $\\textit{highBit}$ 表示当前的最高有效位，遍历从 $1$ 到 $n$ 的每个正整数 $i$，进行如下操作。\n\n- 如果 $i~\\&~(i-1)=0$，则令 $\\textit{highBit}=i$，更新当前的最高有效位。\n\n- $i$ 比 $i-\\textit{highBit}$ 的「一比特数」多 $1$，由于是从小到大遍历每个整数，因此遍历到 $i$ 时，$i-\\textit{highBit}$ 的「一比特数」已知，令 $\\textit{bits}[i]=\\textit{bits}[i-\\textit{highBit}]+1$。\n\n最终得到的数组 $\\textit{bits}$ 即为答案。\n\n```Java [sol2-Java]\nclass Solution {\n    public int[] countBits(int n) {\n        int[] bits = new int[n + 1];\n        int highBit = 0;\n        for (int i = 1; i <= n; i++) {\n            if ((i & (i - 1)) == 0) {\n                highBit = i;\n            }\n            bits[i] = bits[i - highBit] + 1;\n        }\n        return bits;\n    }\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar countBits = function(n) {\n    const bits = new Array(n + 1).fill(0);\n    let highBit = 0;\n    for (let i = 1; i <= n; i++) {\n        if ((i & (i - 1)) == 0) {\n            highBit = i;\n        }\n        bits[i] = bits[i - highBit] + 1;\n    }\n    return bits;\n};\n```\n\n```go [sol2-Golang]\nfunc countBits(n int) []int {\n    bits := make([]int, n+1)\n    highBit := 0\n    for i := 1; i <= n; i++ {\n        if i&(i-1) == 0 {\n            highBit = i\n        }\n        bits[i] = bits[i-highBit] + 1\n    }\n    return bits\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def countBits(self, n: int) -> List[int]:\n        bits = [0]\n        highBit = 0\n        for i in range(1, n + 1):\n            if i & (i - 1) == 0:\n                highBit = i\n            bits.append(bits[i - highBit] + 1)\n        return bits\n```\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    vector<int> countBits(int n) {\n        vector<int> bits(n + 1);\n        int highBit = 0;\n        for (int i = 1; i <= n; i++) {\n            if ((i & (i - 1)) == 0) {\n                highBit = i;\n            }\n            bits[i] = bits[i - highBit] + 1;\n        }\n        return bits;\n    }\n};\n```\n\n```C [sol2-C]\nint* countBits(int n, int* returnSize) {\n    int* bits = malloc(sizeof(int) * (n + 1));\n    *returnSize = n + 1;\n    bits[0] = 0;\n    int highBit = 0;\n    for (int i = 1; i <= n; i++) {\n        if ((i & (i - 1)) == 0) {\n            highBit = i;\n        }\n        bits[i] = bits[i - highBit] + 1;\n    }\n    return bits;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$。对于每个整数，只需要 $O(1)$ 的时间计算「一比特数」。\n\n- 空间复杂度：$O(1)$。除了返回的数组以外，空间复杂度为常数。\n\n#### 方法三：动态规划——最低有效位\n\n方法二需要实时维护最高有效位，当遍历到的数是 $2$ 的整数次幂时，需要更新最高有效位。如果再换一个思路，可以使用「最低有效位」计算「一比特数」。\n\n对于正整数 $x$，将其二进制表示右移一位，等价于将其二进制表示的最低位去掉，得到的数是 $\\lfloor \\frac{x}{2} \\rfloor$。如果 $\\textit{bits}\\big[\\lfloor \\frac{x}{2} \\rfloor\\big]$ 的值已知，则可以得到 $\\textit{bits}[x]$ 的值：\n\n- 如果 $x$ 是偶数，则 $\\textit{bits}[x]=\\textit{bits}\\big[\\lfloor \\frac{x}{2} \\rfloor\\big]$；\n\n- 如果 $x$ 是奇数，则 $\\textit{bits}[x]=\\textit{bits}\\big[\\lfloor \\frac{x}{2} \\rfloor\\big]+1$。\n\n上述两种情况可以合并成：$\\textit{bits}[x]$ 的值等于 $\\textit{bits}\\big[\\lfloor \\frac{x}{2} \\rfloor\\big]$ 的值加上 $x$ 除以 $2$ 的余数。\n\n由于 $\\lfloor \\frac{x}{2} \\rfloor$ 可以通过 $x >> 1$ 得到，$x$ 除以 $2$ 的余数可以通过 $x~\\&~1$ 得到，因此有：$\\textit{bits}[x]=\\textit{bits}[x>>1]+(x~\\&~1)$。\n\n遍历从 $1$ 到 $n$ 的每个正整数 $i$，计算 $\\textit{bits}$ 的值。最终得到的数组 $\\textit{bits}$ 即为答案。\n\n```Java [sol3-Java]\nclass Solution {\n    public int[] countBits(int n) {\n        int[] bits = new int[n + 1];\n        for (int i = 1; i <= n; i++) {\n            bits[i] = bits[i >> 1] + (i & 1);\n        }\n        return bits;\n    }\n}\n```\n\n```JavaScript [sol3-JavaScript]\nvar countBits = function(n) {\n    const bits = new Array(n + 1).fill(0);\n    for (let i = 1; i <= n; i++) {\n        bits[i] = bits[i >> 1] + (i & 1);\n    }\n    return bits;\n};\n```\n\n```go [sol3-Golang]\nfunc countBits(n int) []int {\n    bits := make([]int, n+1)\n    for i := 1; i <= n; i++ {\n        bits[i] = bits[i>>1] + i&1\n    }\n    return bits\n}\n```\n\n```Python [sol3-Python3]\nclass Solution:\n    def countBits(self, n: int) -> List[int]:\n        bits = [0]\n        for i in range(1, n + 1):\n            bits.append(bits[i >> 1] + (i & 1))\n        return bits\n```\n\n```C++ [sol3-C++]\nclass Solution {\npublic:\n    vector<int> countBits(int n) {\n        vector<int> bits(n + 1);\n        for (int i = 1; i <= n; i++) {\n            bits[i] = bits[i >> 1] + (i & 1);\n        }\n        return bits;\n    }\n};\n```\n\n```C [sol3-C]\nint* countBits(int n, int* returnSize) {\n    int* bits = malloc(sizeof(int) * (n + 1));\n    *returnSize = n + 1;\n    bits[0] = 0;\n    for (int i = 1; i <= n; i++) {\n        bits[i] = bits[i >> 1] + (i & 1);\n    }\n    return bits;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$。对于每个整数，只需要 $O(1)$ 的时间计算「一比特数」。\n\n- 空间复杂度：$O(1)$。除了返回的数组以外，空间复杂度为常数。\n\n#### 方法四：动态规划——最低设置位\n\n定义正整数 $x$ 的「最低设置位」为 $x$ 的二进制表示中的最低的 $1$ 所在位。例如，$10$ 的二进制表示是 $1010_{(2)}$，其最低设置位为 $2$，对应的二进制表示是 $10_{(2)}$。\n\n令 $y=x~\\&~(x-1)$，则 $y$ 为将 $x$ 的最低设置位从 $1$ 变成 $0$ 之后的数，显然 $0 \\le y<x$，$\\textit{bits}[x]=\\textit{bits}[y]+1$。因此对任意正整数 $x$，都有 $\\textit{bits}[x]=\\textit{bits}[x~\\&~(x-1)]+1$。\n\n遍历从 $1$ 到 $n$ 的每个正整数 $i$，计算 $\\textit{bits}$ 的值。最终得到的数组 $\\textit{bits}$ 即为答案。\n\n```Java [sol4-Java]\nclass Solution {\n    public int[] countBits(int n) {\n        int[] bits = new int[n + 1];\n        for (int i = 1; i <= n; i++) {\n            bits[i] = bits[i & (i - 1)] + 1;\n        }\n        return bits;\n    }\n}\n```\n\n```JavaScript [sol4-JavaScript]\nvar countBits = function(n) {\n    const bits = new Array(n + 1).fill(0);\n    for (let i = 1; i <= n; i++) {\n        bits[i] = bits[i & (i - 1)] + 1;\n    }\n    return bits;\n};\n```\n\n```go [sol4-Golang]\nfunc countBits(n int) []int {\n    bits := make([]int, n+1)\n    for i := 1; i <= n; i++ {\n        bits[i] = bits[i&(i-1)] + 1\n    }\n    return bits\n}\n```\n\n```Python [sol4-Python3]\nclass Solution:\n    def countBits(self, n: int) -> List[int]:\n        bits = [0]\n        for i in range(1, n + 1):\n            bits.append(bits[i & (i - 1)] + 1)\n        return bits\n```\n\n```C++ [sol4-C++]\nclass Solution {\npublic:\n    vector<int> countBits(int n) {\n        vector<int> bits(n + 1);\n        for (int i = 1; i <= n; i++) {\n            bits[i] = bits[i & (i - 1)] + 1;\n        }\n        return bits;\n    }\n};\n```\n\n```C [sol4-C]\nint* countBits(int n, int* returnSize) {\n    int* bits = malloc(sizeof(int) * (n + 1));\n    *returnSize = n + 1;\n    bits[0] = 0;\n    for (int i = 1; i <= n; i++) {\n        bits[i] = bits[i & (i - 1)] + 1;\n    }\n    return bits;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$。对于每个整数，只需要 $O(1)$ 的时间计算「一比特数」。\n\n- 空间复杂度：$O(1)$。除了返回的数组以外，空间复杂度为常数。",
+            "slateValue": "",
+            "slug": "qian-n-ge-shu-zi-er-jin-zhi-zhong-1-de-g-fkjq",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "u1kEqH",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 91,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 6,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Bit Manipulation",
+                    "nameTranslated": "位运算",
+                    "slug": "bit-manipulation",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-10-08T10:55:20.415690+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "前言 这道题需要计算从 $0$ 到 $n$ 的每个整数的二进制表示中的 $1$ 的数目。 部分编程语言有相应的内置函数用于计算给定的整数的二进制表示中的 $1$ 的数目，例如 $\\texttt{Java}$ 的 $\\texttt{Integer.bitCount}$，$\\texttt{C++}$ 的 $\\texttt{",
+            "topic": {
+                "id": 1036712,
+                "subscribed": false,
+                "commentCount": 72,
+                "viewCount": 26204,
+                "post": {
+                    "id": 2207983,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 170,
+            "isEditorsPick": false,
+            "hitCount": 51178,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "w3tCBm",
+                "questionFrontendId": "LCR 003"
+            },
+            "next": {
+                "slug": "rang-ni-miao-dong-de-shuang-bai-ti-jie-b-84hh",
+                "title": "让你秒懂的双百题解！"
+            },
+            "prev": null
+        }
+    }
+}

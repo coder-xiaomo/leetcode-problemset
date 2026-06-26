@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "28DVQN",
+            "title": "最大合金数",
+            "content": "#### 方法一：二分查找\n\n**思路与算法**\n\n如果我们可以制造 $x$ 块合金，那么一定也可以制造 $x-1$ 块合金。因此存在 $x_{\\max}$，使得我们可以制造数量小于等于 $x_{\\max}$ 的合金，但无法制造数量大于 $x_{\\max}$ 的合金。我们可以使用二分查找求出这个 $x_{\\max}$，它也是最终的答案。\n\n当我们二分到 $x$ 时，如何判断是否可以制造 $x$ 块合金呢？题目中有一条重要的要求是「所有合金都需要由同一台机器制造」，因此我们可以枚举使用哪一台机器。对于第 $i$ 台机器以及第 $j$ 种金属，它需要的数量为 $\\textit{composition}[i][j] \\times x$，当前已拥有的数量为 $\\textit{stock}[j]$，因此需要：\n\n$$\n\\max \\big\\{ \\textit{composition}[i][j] \\times x - \\textit{stock}[j], 0 \\} \\times \\textit{cost}[j]\n$$\n\n的价格补齐缺少的部分。我们将所有的金属需要的价格相加，如果不超过给定的 $\\textit{budget}$，那么可以制造 $x$ 块合金，并修改二分查找的左边界。如果所有的机器都需要超过 $\\textit{budget}$ 的价格，那么无法制造 $x$ 块合金，并修改二分查找的右边界。\n\n二分查找的下界可以设置为 $0$ 或 $1$，取决于实现的方式。二分查找的上界可以设置为 $2 \\times 10^8$，这是因为 $\\textit{budget}$ 和每一个 $\\textit{stock}[j]$ 都不超过 $10^8$，因此最多每一种金属最多只能补到 $2 \\times 10^8$ 个。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int maxNumberOfAlloys(int n, int k, int budget, vector<vector<int>>& composition, vector<int>& stock, vector<int>& cost) {\n        int left = 1, right = 2e8, ans = 0;\n        while (left <= right) {\n            int mid = (left + right) / 2;\n            bool valid = false;\n            for (int i = 0; i < k; ++i) {\n                long long spend = 0;\n                for (int j = 0; j < n; ++j) {\n                    spend += max(static_cast<long long>(composition[i][j]) * mid - stock[j], 0LL) * cost[j];\n                }\n                if (spend <= budget) {\n                    valid = true;\n                    break;\n                }\n            }\n            if (valid) {\n                ans = mid;\n                left = mid + 1;\n            }\n            else {\n                right = mid - 1;\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int maxNumberOfAlloys(int n, int k, int budget, List<List<Integer>> composition, List<Integer> stock, List<Integer> cost) {\n        int left = 1, right = 200000000, ans = 0;\n        while (left <= right) {\n            int mid = (left + right) / 2;\n            boolean valid = false;\n            for (int i = 0; i < k; ++i) {\n                long spend = 0;\n                for (int j = 0; j < n; ++j) {\n                    spend += Math.max((long) composition.get(i).get(j) * mid - stock.get(j), 0) * cost.get(j);\n                }\n                if (spend <= budget) {\n                    valid = true;\n                    break;\n                }\n            }\n            if (valid) {\n                ans = mid;\n                left = mid + 1;\n            } else {\n                right = mid - 1;\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MaxNumberOfAlloys(int n, int k, int budget, IList<IList<int>> composition, IList<int> stock, IList<int> cost) {\n        int left = 1, right = 200000000, ans = 0;\n        while (left <= right) {\n            int mid = (left + right) / 2;\n            bool valid = false;\n            for (int i = 0; i < k; ++i) {\n                long spend = 0;\n                for (int j = 0; j < n; ++j) {\n                    spend += Math.Max((long) composition[i][j] * mid - stock[j], 0) * cost[j];\n                }\n                if (spend <= budget) {\n                    valid = true;\n                    break;\n                }\n            }\n            if (valid) {\n                ans = mid;\n                left = mid + 1;\n            } else {\n                right = mid - 1;\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def maxNumberOfAlloys(self, n: int, k: int, budget: int, composition: List[List[int]], stock: List[int], cost: List[int]) -> int:\n        left, right, ans = 1, 2 * 10**8, 0\n        while left <= right:\n            mid = (left + right) // 2\n            valid = False\n            for i in range(k):\n                spend = 0\n                for j, (composition_j, stock_j, cost_j) in enumerate(zip(composition[i], stock, cost)):\n                    spend += max(composition_j * mid - stock_j, 0) * cost_j\n                if spend <= budget:\n                    valid = True\n                    break\n            if valid:\n                ans = mid\n                left = mid + 1\n            else:\n                right = mid - 1\n        return ans\n```\n\n```Go [sol1-Go]\nfunc maxNumberOfAlloys(n int, k int, budget int, composition [][]int, stock []int, cost []int) int {\n    left, right, ans := 1, int(2e8), 0\n    for left <= right {\n        mid := (left + right) / 2\n        var valid bool\n        for i := 0; i < k; i++ {\n            var spend int64\n            for j := 0; j < n; j++ {\n                spend += max(int64(composition[i][j]) * int64(mid) - int64(stock[j]), int64(0)) * int64(cost[j])\n            }\n            if spend <= int64(budget) {\n                valid = true\n                break\n            }\n        }\n        if valid {\n            ans, left = mid, mid + 1\n        } else {\n            right = mid - 1\n        }\n    }\n    return ans\n}\n```\n\n```C [sol1-C]\nint maxNumberOfAlloys(int n, int k, int budget, int** composition, int compositionSize, int* compositionColSize, int* stock, int stockSize, int* cost, int costSize){\n    int left = 1, right = 2e8, ans = 0;\n    while (left <= right) {\n        int mid = (left + right) / 2;\n        bool valid = false;\n        for (int i = 0; i < k; ++i) {\n            long long spend = 0;\n            for (int j = 0; j < n; ++j) {\n                long long t = (long long)composition[i][j] * mid - stock[j];\n                if (t > 0) {\n                    spend += t * cost[j];\n                }\n            }\n            if (spend <= budget) {\n                valid = true;\n                break;\n            }\n        }\n        if (valid) {\n            ans = mid;\n            left = mid + 1;\n        }\n        else {\n            right = mid - 1;\n        }\n    }\n    return ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar maxNumberOfAlloys = function(n, k, budget, composition, stock, cost) {\n    let left = 1, right = 2e8, ans = 0;\n    while (left <= right) {\n        let mid = (left + right) >> 1;\n        let valid = false;\n        for (let i = 0; i < k; ++i) {\n            let spend = 0;\n            for (let j = 0; j < n; ++j) {\n                spend += Math.max(composition[i][j] * mid - stock[j], 0) * cost[j];\n            }\n            if (spend <= budget) {\n                valid = true;\n                break;\n            }\n        }\n        if (valid) {\n            ans = mid;\n            left = mid + 1;\n        } else {\n            right = mid - 1;\n        }\n    }\n    return ans;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction maxNumberOfAlloys(n: number, k: number, budget: number, composition: number[][], stock: number[], cost: number[]): number {\n    let left: number = 1, right: number = 2e8, ans: number = 0;\n\n    while (left <= right) {\n        let mid: number = (left + right) >> 1;\n        let valid: boolean = false;\n        for (let i: number = 0; i < k; ++i) {\n            let spend: number = 0;\n            for (let j: number = 0; j < n; ++j) {\n                spend += Math.max(composition[i][j] * mid - stock[j], 0) * cost[j];\n            }\n            if (spend <= budget) {\n                valid = true;\n                break;\n            }\n        }\n\n        if (valid) {\n            ans = mid;\n            left = mid + 1;\n        } else {\n            right = mid - 1;\n        }\n    }\n    return ans;\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(nk\\log C)$，其中 $C$ 是答案的范围。二分查找需要的次数为 $O(\\log C)$，每一次需要 $O(nk)$ 的时间进行判断。\n\n- 空间复杂度：$O(1)$。",
+            "slateValue": "",
+            "slug": "zui-da-he-jin-shu-by-leetcode-solution-uwll",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "28DVQN",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 12,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Enumeration",
+                    "nameTranslated": "枚举",
+                    "slug": "enumeration",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2024-01-24T03:40:22.427748+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：二分查找 思路与算法 如果我们可以制造 $x$ 块合金，那么一定也可以制造 $x-1$ 块合金。因此存在 $x_{\\max}$，使得我们可以制造数量小于等于 $x_{\\max}$ 的合金，但无法制造数量大于 $x_{\\max}$ 的合金。我们可以使用二分查找求出这个 $x_{\\max}$，它也是最终的答案。 当",
+            "topic": {
+                "id": 2617781,
+                "subscribed": false,
+                "commentCount": 35,
+                "viewCount": 752,
+                "post": {
+                    "id": 4839457,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 35,
+            "isEditorsPick": false,
+            "hitCount": 13311,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "maximum-number-of-alloys",
+                "questionFrontendId": "2861"
+            },
+            "next": {
+                "slug": "er-fen-da-an-fu-ti-dan-by-endlesscheng-3jdr",
+                "title": "二分答案，附题单（Python/Java/C++/Go/JS）"
+            },
+            "prev": null
+        }
+    }
+}

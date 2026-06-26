@@ -1,0 +1,156 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "FbF9Hd",
+            "title": "会议室 III",
+            "content": "#### 方法一：优先队列 + 模拟\n\n**思路与算法**\n\n根据题意，会议需要按照原开始时间进行分配会议室，因此将 $\\textit{meetings}$ 按照开始时间从小到大进行排序。我们对会议室的分配进行模拟，使用两个优先队列（最小堆）$\\textit{availRooms}$ 和 $\\textit{usedRooms}$，其中：\n\n- $\\textit{availRooms}$ 保存当前处于未占用状态的会议室，按照编号升序，方便获取编号最小的房间。\n\n- $\\textit{usedRooms}$ 保存当前处于占用状态的会议室，按照结束时间升序，方便获取会议最早结束的会议室。\n\n初始时当前时间 $\\textit{curTime} = 0$，我们遍历所有会议 $\\textit{meetings}$，令当前遍历的会议为 $\\textit{meeting}$：\n\n- 如果会议 $\\textit{meeting}$ 的开始时间比 $\\textit{curTime}$ 要大，那么将当前 $\\textit{curTime}$ 推进到该会议的开始时间。\n\n- 如果当前没有可用的会议室，且当前时间 $\\textit{curTime}$ 比最早结束的会议室的结束时间要小，那么我们需要将当前时间推进到最早结束的会议室的结束时间。\n\n- 我们不断地从 $\\textit{usedRooms}$ 中获取结束时间小于等于当前时间 $\\textit{curTime}$ 的会议，并将它重新放回 $\\textit{availRooms}$ 中。\n\n- 对于当前会议 $\\textit{meeting}$，我们从 $\\textit{availRooms}$ 中获取当前可用的编号最小的会议室 $\\textit{room}$，并分配给会议 $\\textit{meeting}$，并将会议室 $\\textit{room}$ 的举办会议数目加一。同时 $\\textit{room}$ 被会议 $\\textit{meeting}$ 的占用结束时间为当前时间 $\\textit{curTime}$ 加上该会议的持续时间，将 $\\textit{room}$ 放入 $\\textit{usedRooms}$ 中。\n\n遍历结束后，我们取举办会议数目最多的会议室作为结果。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int mostBooked(int n, vector<vector<int>>& meetings) {\n        sort(meetings.begin(), meetings.end(), [](const vector<int>& v1, const vector<int>& v2) -> bool {\n            return v1[0] < v2[0];\n        });\n        priority_queue<int, vector<int>, greater<int>> availRooms;\n        for (int i = 0; i < n; i++) {\n            availRooms.push(i);\n        }\n        priority_queue<pair<long long, int>, vector<pair<long long, int>>, greater<>> usedRooms;\n        vector<int> usedCount(n);\n        long long curTime = 0;\n        for (const auto& meeting : meetings) {\n            curTime = max(curTime, static_cast<long long>(meeting[0]));\n            if (availRooms.empty()) {\n                curTime = max(curTime, usedRooms.top().first);\n            }\n            while (!usedRooms.empty() && usedRooms.top().first <= curTime) {\n                availRooms.push(usedRooms.top().second);\n                usedRooms.pop();\n            }\n            int room = availRooms.top();\n            availRooms.pop();\n            usedCount[room]++;\n            usedRooms.push({curTime + meeting[1] - meeting[0], room});\n        }\n        int room = 0;\n        for (int i = 0; i < n; i++) {\n            if (usedCount[i] > usedCount[room]) {\n                room = i;\n            }\n        }\n        return room;\n    }\n};\n```\n\n```Go [sol1-Go]\ntype RoomHeap []int\nfunc (h RoomHeap) Len() int           { return len(h) }\nfunc (h RoomHeap) Less(i, j int) bool { return h[i] < h[j] }\nfunc (h RoomHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }\nfunc (h *RoomHeap) Push(x interface{}) { *h = append(*h, x.(int)) }\nfunc (h *RoomHeap) Pop() interface{} {\n    old := *h\n    x := old[len(old) - 1]\n    *h = old[: len(old) - 1]\n    return x\n}\n\ntype UsedRoom struct{ endTime, room int }\ntype UsedHeap []UsedRoom\nfunc (h UsedHeap) Len() int           { return len(h) }\nfunc (h UsedHeap) Less(i, j int) bool {\n    if h[i].endTime == h[j].endTime {\n        return h[i].room < h[j].room\n    }\n    return h[i].endTime < h[j].endTime\n}\nfunc (h UsedHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }\nfunc (h *UsedHeap) Push(x interface{}) { *h = append(*h, x.(UsedRoom)) }\nfunc (h *UsedHeap) Pop() interface{} {\n    old := *h\n    x := old[len(old) - 1]\n    *h = old[: len(old) - 1]\n    return x\n}\n\nfunc mostBooked(n int, meetings [][]int) int {\n    sort.Slice(meetings, func(i, j int) bool { return meetings[i][0] < meetings[j][0] })\n    availRooms := &RoomHeap{}\n    for i := 0; i < n; i++ {\n        *availRooms = append(*availRooms, i)\n    }\n    heap.Init(availRooms)\n    usedRooms := &UsedHeap{}\n    heap.Init(usedRooms)\n    usedCount := make([]int, n)\n    curTime := 0\n    for _, meeting := range meetings {\n        if curTime < meeting[0] {\n            curTime = meeting[0]\n        }\n        for usedRooms.Len() > 0 && (*usedRooms)[0].endTime <= curTime {\n            heap.Push(availRooms, heap.Pop(usedRooms).(UsedRoom).room)\n        }\n        if availRooms.Len() == 0 {\n            curTime = (*usedRooms)[0].endTime\n            for usedRooms.Len() > 0 && (*usedRooms)[0].endTime <= curTime {\n                heap.Push(availRooms, heap.Pop(usedRooms).(UsedRoom).room)\n            }\n        }\n        room := heap.Pop(availRooms).(int)\n        usedCount[room]++\n        heap.Push(usedRooms, UsedRoom{curTime + meeting[1] - meeting[0], room})\n    }\n    ans := 0\n    for i := 1; i < n; i++ {\n        if usedCount[i] > usedCount[ans] {\n            ans = i\n        }\n    }\n    return ans\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def mostBooked(self, n: int, meetings: list[list[int]]) -> int:\n        meetings.sort()\n        avail_rooms = list(range(n))\n        heapq.heapify(avail_rooms)\n        used_rooms = []\n        used_count = [0] * n\n        cur_time = 0\n        for start, end in meetings:\n            cur_time = max(cur_time, start)\n            while used_rooms and used_rooms[0][0] <= cur_time:\n                _, room = heapq.heappop(used_rooms)\n                heapq.heappush(avail_rooms, room)\n            if not avail_rooms:\n                cur_time = used_rooms[0][0]\n                while used_rooms and used_rooms[0][0] <= cur_time:\n                    _, room = heapq.heappop(used_rooms)\n                    heapq.heappush(avail_rooms, room)\n            room = heapq.heappop(avail_rooms)\n            used_count[room] += 1\n            heapq.heappush(used_rooms, (cur_time + end - start, room))\n        return max(range(n), key=lambda i: used_count[i])\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int mostBooked(int n, int[][] meetings) {\n        Arrays.sort(meetings, Comparator.comparingInt(a -> a[0]));\n        PriorityQueue<Integer> availRooms = new PriorityQueue<>();\n        for (int i = 0; i < n; i++) {\n            availRooms.offer(i);\n        }\n        PriorityQueue<long[]> usedRooms = new PriorityQueue<>(Comparator.comparingLong(a -> a[0]));\n        int[] usedCount = new int[n];\n        long curTime = 0;\n        for (int[] meeting : meetings) {\n            curTime = Math.max(curTime, meeting[0]);\n            while (!usedRooms.isEmpty() && usedRooms.peek()[0] <= curTime) {\n                availRooms.offer((int)usedRooms.poll()[1]);\n            }\n            if (availRooms.isEmpty()) {\n                curTime = usedRooms.peek()[0];\n                while (!usedRooms.isEmpty() && usedRooms.peek()[0] <= curTime) {\n                    availRooms.offer((int)usedRooms.poll()[1]);\n                }\n            }\n            int room = availRooms.poll();\n            usedCount[room]++;\n            usedRooms.offer(new long[]{curTime + meeting[1] - meeting[0], room});\n        }\n        int ans = 0;\n        for (int i = 1; i < n; i++) {\n            if (usedCount[i] > usedCount[ans]) ans = i;\n        }\n        return ans;\n    }\n}\n```\n\n```TypeScript [sol1-TypeScript]\nfunction mostBooked(n: number, meetings: number[][]): number {\n    meetings.sort((a, b) => a[0] - b[0]);\n    const availRooms = new MinPriorityQueue<number>({ compare: (a, b) => a - b });\n    for (let i = 0; i < n; i++) {\n        availRooms.enqueue(i);\n    }\n    const usedRooms = new MinPriorityQueue<[number, number]>({\n        compare: (a, b) => a[0] === b[0] ? a[1] - b[1] : a[0] - b[0]\n    });\n    const usedCount = Array(n).fill(0);\n    let curTime = 0;\n    for (const [start, end] of meetings) {\n        curTime = Math.max(curTime, start);\n        while (!usedRooms.isEmpty() && usedRooms.front()[0] <= curTime) {\n            availRooms.enqueue(usedRooms.dequeue()[1]);\n        }\n        if (availRooms.isEmpty()) {\n            curTime = usedRooms.front()[0];\n            while (!usedRooms.isEmpty() && usedRooms.front()[0] <= curTime) {\n                availRooms.enqueue(usedRooms.dequeue()[1]);\n            }\n        }\n        const room = availRooms.dequeue();\n        usedCount[room]++;\n        usedRooms.enqueue([curTime + end - start, room]);\n    }\n    let ans = 0;\n    for (let i = 1; i < n; i++) {\n        if (usedCount[i] > usedCount[ans]) {\n            ans = i;\n        }\n    }\n    return ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nfunction mostBooked(n, meetings) {\n    meetings.sort((a, b) => a[0] - b[0]);\n    const availRooms = new MinPriorityQueue({ compare: (a, b) => a - b });\n    for (let i = 0; i < n; i++) {\n        availRooms.enqueue(i);\n    }\n    const usedRooms = new MinPriorityQueue({\n        compare: (a, b) => a[0] === b[0] ? a[1] - b[1] : a[0] - b[0]\n    });\n    const usedCount = Array(n).fill(0);\n    let curTime = 0;\n    for (const [start, end] of meetings) {\n        curTime = Math.max(curTime, start);\n        while (!usedRooms.isEmpty() && usedRooms.front()[0] <= curTime) {\n            availRooms.enqueue(usedRooms.dequeue()[1]);\n        }\n        if (availRooms.isEmpty()) {\n            curTime = usedRooms.front()[0];\n            while (!usedRooms.isEmpty() && usedRooms.front()[0] <= curTime) {\n                availRooms.enqueue(usedRooms.dequeue()[1]);\n            }\n        }\n        const room = availRooms.dequeue();\n        usedCount[room]++;\n        usedRooms.enqueue([curTime + end - start, room]);\n    }\n    let ans = 0;\n    for (let i = 1; i < n; i++) {\n        if (usedCount[i] > usedCount[ans]) {\n            ans = i;\n        }\n    }\n    return ans;\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MostBooked(int n, int[][] meetings) {\n        Array.Sort(meetings, (a, b) => a[0].CompareTo(b[0]));\n        var availRooms = new SortedSet<int>();\n        for (int i = 0; i < n; i++) {\n            availRooms.Add(i);\n        }\n        var usedRooms = new PriorityQueue<(long, int), long>();\n        int[] usedCount = new int[n];\n        long curTime = 0;\n        foreach (var meeting in meetings) {\n            curTime = Math.Max(curTime, meeting[0]);\n            while (usedRooms.Count > 0 && usedRooms.Peek().Item1 <= curTime) {\n                availRooms.Add(usedRooms.Dequeue().Item2);\n            }\n            if (availRooms.Count == 0) {\n                curTime = usedRooms.Peek().Item1;\n                while (usedRooms.Count > 0 && usedRooms.Peek().Item1 <= curTime) {\n                    availRooms.Add(usedRooms.Dequeue().Item2);\n                }\n            }\n            int room = availRooms.Min;\n            availRooms.Remove(room);\n            usedCount[room]++;\n            usedRooms.Enqueue((curTime + meeting[1] - meeting[0], room), curTime + meeting[1] - meeting[0]);\n        }\n        int ans = 0;\n        for (int i = 1; i < n; i++) {\n            if (usedCount[i] > usedCount[ans]) {\n                ans = i;\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```C [sol1-C]\ntypedef int (*CmpFunc)(const void*, const void*);\n\ntypedef struct {\n    void* data;\n    int size;\n    int cap;\n    int elemSize;\n    CmpFunc cmp;\n} MinHeap;\n\nMinHeap* heapCreate(int cap, int elemSize, CmpFunc cmp) {\n    MinHeap* h = (MinHeap*)malloc(sizeof(MinHeap));\n    h->data = malloc(cap * elemSize);\n    h->size = 0;\n    h->cap = cap;\n    h->elemSize = elemSize;\n    h->cmp = cmp;\n    return h;\n}\n\nvoid heapSwap(MinHeap* h, int i, int j) {\n    char tmp[64];\n    char* a = (char*)h->data + i * h->elemSize;\n    char* b = (char*)h->data + j * h->elemSize;\n    memcpy(tmp, a, h->elemSize);\n    memcpy(a, b, h->elemSize);\n    memcpy(b, tmp, h->elemSize);\n}\n\nvoid heapPush(MinHeap* h, void* elem) {\n    memcpy((char*)h->data + h->size * h->elemSize, elem, h->elemSize);\n    int i = h->size++;\n    while (i > 0) {\n        int p = (i - 1) / 2;\n        if (h->cmp((char*)h->data + i * h->elemSize, (char*)h->data + p * h->elemSize) >= 0) {\n            break;\n        }\n        heapSwap(h, i, p);\n        i = p;\n    }\n}\n\nvoid heapPop(MinHeap* h, void* out) {\n    memcpy(out, h->data, h->elemSize);\n    h->size--;\n    memcpy(h->data, (char*)h->data + h->size * h->elemSize, h->elemSize);\n    int i = 0;\n    while (1) {\n        int l = i * 2 + 1, r = i * 2 + 2, minIdx = i;\n        if (l < h->size && h->cmp((char*)h->data + l * h->elemSize, (char*)h->data + minIdx * h->elemSize) < 0) {\n            minIdx = l;\n        }\n        if (r < h->size && h->cmp((char*)h->data + r * h->elemSize, (char*)h->data + minIdx * h->elemSize) < 0) {\n            minIdx = r;\n        }\n        if (minIdx == i) {\n            break;\n        }\n        heapSwap(h, i, minIdx);\n        i = minIdx;\n    }\n}\n\nvoid* heapTop(MinHeap* h) {\n    return h->data;\n}\n\nint heapEmpty(MinHeap* h) {\n    return h->size == 0;\n}\n\nvoid heapFree(MinHeap* h) {\n    free(h->data);\n    free(h);\n}\n\ntypedef struct {\n    long long endTime;\n    int room;\n} UsedRoom;\n\nint cmpInt(const void* a, const void* b) {\n    return *(int*)a - *(int*)b;\n}\n\nint cmpUsedRoom(const void* a, const void* b) {\n    const UsedRoom* ua = (const UsedRoom*)a;\n    const UsedRoom* ub = (const UsedRoom*)b;\n    if (ua->endTime != ub->endTime) {\n        return ua->endTime < ub->endTime ? -1 : 1;\n    }\n    return ua->room - ub->room;\n}\n\nint cmpMeeting(const void* a, const void* b) {\n    int* aa = *(int**)a;\n    int* bb = *(int**)b;\n    return aa[0] - bb[0];\n}\n\nint mostBooked(int n, int** meetings, int meetingsSize, int* meetingsColSize) {\n    qsort(meetings, meetingsSize, sizeof(int*), cmpMeeting);\n\n    MinHeap* availRooms = heapCreate(n, sizeof(int), cmpInt);\n    for (int i = 0; i < n; i++) {\n        heapPush(availRooms, &i);\n    }\n\n    MinHeap* usedRooms = heapCreate(meetingsSize, sizeof(UsedRoom), cmpUsedRoom);\n    int *usedCount = (int*)calloc(n, sizeof(int));\n    long long curTime = 0;\n\n    for (int idx = 0; idx < meetingsSize; idx++) {\n        int start = meetings[idx][0], end = meetings[idx][1];\n        curTime = curTime > start ? curTime : start;\n        UsedRoom ur;\n        while (!heapEmpty(usedRooms) && ((UsedRoom*)heapTop(usedRooms))->endTime <= curTime) {\n            heapPop(usedRooms, &ur);\n            heapPush(availRooms, &ur.room);\n        }\n        if (heapEmpty(availRooms)) {\n            curTime = ((UsedRoom*)heapTop(usedRooms))->endTime;\n            while (!heapEmpty(usedRooms) && ((UsedRoom*)heapTop(usedRooms))->endTime <= curTime) {\n                heapPop(usedRooms, &ur);\n                heapPush(availRooms, &ur.room);\n            }\n        }\n        int room;\n        heapPop(availRooms, &room);\n        usedCount[room]++;\n        ur.endTime = curTime + end - start;\n        ur.room = room;\n        heapPush(usedRooms, &ur);\n    }\n    int ans = 0;\n    for (int i = 1; i < n; i++) {\n        if (usedCount[i] > usedCount[ans]) {\n            ans = i;\n        }\n    }\n    heapFree(availRooms);\n    heapFree(usedRooms);\n    free(usedCount);\n    return ans;\n}\n```\n\n```Rust [sol1-Rust]\nuse std::collections::BinaryHeap;\nuse std::cmp::Reverse;\n\nimpl Solution {\n    pub fn most_booked(n: i32, mut meetings: Vec<Vec<i32>>) -> i32 {\n        meetings.sort_unstable_by_key(|v| v[0]);\n        let n = n as usize;\n        let mut avail_rooms = BinaryHeap::new();\n        for i in 0..n {\n            avail_rooms.push(Reverse(i));\n        }\n        let mut used_rooms = BinaryHeap::new();\n        let mut used_count = vec![0; n];\n        let mut cur_time = 0i64;\n        for meeting in meetings {\n            cur_time = cur_time.max(meeting[0] as i64);\n            while let Some(&Reverse((end_time, room))) = used_rooms.peek() {\n                if end_time <= cur_time {\n                    avail_rooms.push(Reverse(room));\n                    used_rooms.pop();\n                } else {\n                    break;\n                }\n            }\n            if avail_rooms.is_empty() {\n                cur_time = used_rooms.peek().unwrap().0.0;\n                while let Some(&Reverse((end_time, room))) = used_rooms.peek() {\n                    if end_time <= cur_time {\n                        avail_rooms.push(Reverse(room));\n                        used_rooms.pop();\n                    } else {\n                        break;\n                    }\n                }\n            }\n            let Reverse(room) = avail_rooms.pop().unwrap();\n            used_count[room] += 1;\n            used_rooms.push(Reverse((cur_time + (meeting[1] - meeting[0]) as i64, room)));\n        }\n        let mut ans = 0;\n        for i in 1..n {\n            if used_count[i] > used_count[ans] {\n                ans = i;\n            }\n        }\n        ans as i32\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log n + m \\log m + m \\log n)$，其中 $n$ 是会议室的数目，$m$ 是会议的数目。$\\textit{meetings}$ 排序需要 $O(m \\log m)$，$\\textit{availRooms}$ 初始化需要 $O(n \\log n)$，主循环需要 $O(m \\log n)$。\n\n- 空间复杂度：$O(n + \\log m)$。排序需要栈空间 $O(\\log m)$，优先队列需要 $O(n)$。",
+            "slateValue": "",
+            "slug": "hui-yi-shi-iii-by-leetcode-solution-8pao",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "FbF9Hd",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 1,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Sorting",
+                    "nameTranslated": "排序",
+                    "slug": "sorting",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Simulation",
+                    "nameTranslated": "模拟",
+                    "slug": "simulation",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Heap (Priority Queue)",
+                    "nameTranslated": "堆（优先队列）",
+                    "slug": "heap-priority-queue",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2025-12-24T00:30:08.560782+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：优先队列 + 模拟 思路与算法 根据题意，会议需要按照原开始时间进行分配会议室，因此将 [latex] 按照开始时间从小到大进行排序。我们对会议室的分配进行模拟，使用两个优先队列（最小堆）[latex] 和 [latex]，其中： [latex] 保存当前处于未占用状态的会议室，按照编号升序，方便获取编号最小的",
+            "topic": {
+                "id": 3864315,
+                "subscribed": false,
+                "commentCount": 19,
+                "viewCount": 14,
+                "post": {
+                    "id": 7051295,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 11,
+            "isEditorsPick": false,
+            "hitCount": 3774,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "meeting-rooms-iii",
+                "questionFrontendId": "2402"
+            },
+            "next": {
+                "slug": "shuang-dui-mo-ni-pythonjavacgo-by-endles-ctwc",
+                "title": "双堆模拟（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

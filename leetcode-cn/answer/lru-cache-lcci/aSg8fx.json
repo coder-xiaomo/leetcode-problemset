@@ -1,0 +1,134 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "aSg8fx",
+            "title": "LRU缓存",
+            "content": "### 📺 视频题解  \n![程序员面试金典 16.25.mp4](69a0279a-6969-4a13-a8a2-2c3c969fe5e7)\n\n### 📖 文字题解\n#### 前言\n\n实现本题的两种操作，需要用到一个哈希表和一个双向链表。在面试中，面试官一般会期望读者能够自己实现一个简单的双向链表，而不是使用语言自带的、封装好的数据结构。在 `Python` 语言中，有一种结合了哈希表与双向链表的数据结构 `OrderedDict`，只需要短短的几行代码就可以完成本题。在 `Java` 语言中，同样有类似的数据结构 `LinkedHashMap`。这些做法都不会符合面试官的要求，因此下面只给出使用封装好的数据结构实现的代码，而不多做任何阐述。\n\n```Python [sol0-Python3]\nclass LRUCache(collections.OrderedDict):\n\n    def __init__(self, capacity: int):\n        super().__init__()\n        self.capacity = capacity\n\n\n    def get(self, key: int) -> int:\n        if key not in self:\n            return -1\n        self.move_to_end(key)\n        return self[key]\n\n    def put(self, key: int, value: int) -> None:\n        if key in self:\n            self.move_to_end(key)\n        self[key] = value\n        if len(self) > self.capacity:\n            self.popitem(last=False)\n```\n\n```Java [sol0-Java]\nclass LRUCache extends LinkedHashMap<Integer, Integer>{\n    private int capacity;\n    \n    public LRUCache(int capacity) {\n        super(capacity, 0.75F, true);\n        this.capacity = capacity;\n    }\n\n    public int get(int key) {\n        return super.getOrDefault(key, -1);\n    }\n\n    public void put(int key, int value) {\n        super.put(key, value);\n    }\n\n    @Override\n    protected boolean removeEldestEntry(Map.Entry<Integer, Integer> eldest) {\n        return size() > capacity; \n    }\n}\n```\n\n#### 方法一：哈希表 + 双向链表\n\n**算法**\n\nLRU 缓存机制可以通过哈希表辅以双向链表实现，我们用一个哈希表和一个双向链表维护所有在缓存中的键值对。\n\n- 双向链表按照被使用的顺序存储了这些键值对，靠近头部的键值对是最近使用的，而靠近尾部的键值对是最久未使用的。\n\n- 哈希表即为普通的哈希映射（HashMap），通过缓存数据的键映射到其在双向链表中的位置。\n\n这样以来，我们首先使用哈希表进行定位，找出缓存项在双向链表中的位置，随后将其移动到双向链表的头部，即可在 $O(1)$ 的时间内完成 `get` 或者 `put` 操作。具体的方法如下：\n\n- 对于 `get` 操作，首先判断 `key` 是否存在：\n\n   - 如果 `key` 不存在，则返回 $-1$；\n\n   - 如果 `key` 存在，则 `key` 对应的节点是最近被使用的节点。通过哈希表定位到该节点在双向链表中的位置，并将其移动到双向链表的头部，最后返回该节点的值。\n\n- 对于 `put` 操作，首先判断 `key` 是否存在：\n\n   - 如果 `key` 不存在，使用 `key` 和 `value` 创建一个新的节点，在双向链表的头部添加该节点，并将 `key` 和该节点添加进哈希表中。然后判断双向链表的节点数是否超出容量，如果超出容量，则删除双向链表的尾部节点，并删除哈希表中对应的项；\n\n   - 如果 `key` 存在，则与 `get` 操作类似，先通过哈希表定位，再将对应的节点的值更新为 `value`，并将该节点移到双向链表的头部。\n\n上述各项操作中，访问哈希表的时间复杂度为 $O(1)$，在双向链表的头部添加节点、在双向链表的尾部删除节点的复杂度也为 $O(1)$。而将一个节点移到双向链表的头部，可以分成「删除该节点」和「在双向链表的头部添加节点」两步操作，都可以在 $O(1)$ 时间内完成。\n\n**小贴士**\n\n在双向链表的实现中，使用一个**伪头部**（dummy head）和**伪尾部**（dummy tail）标记界限，这样在添加节点和删除节点的时候就不需要检查相邻的节点是否存在。\n\n<![fig1](https://assets.leetcode.cn/solution-static/jindian_16.25/1.PNG),![fig2](https://assets.leetcode.cn/solution-static/jindian_16.25/2.PNG),![fig3](https://assets.leetcode.cn/solution-static/jindian_16.25/3.PNG),![fig4](https://assets.leetcode.cn/solution-static/jindian_16.25/4.PNG),![fig5](https://assets.leetcode.cn/solution-static/jindian_16.25/5.PNG),![fig6](https://assets.leetcode.cn/solution-static/jindian_16.25/6.PNG),![fig7](https://assets.leetcode.cn/solution-static/jindian_16.25/7.PNG),![fig8](https://assets.leetcode.cn/solution-static/jindian_16.25/8.PNG),![fig9](https://assets.leetcode.cn/solution-static/jindian_16.25/9.PNG),![fig10](https://assets.leetcode.cn/solution-static/jindian_16.25/10.PNG)>\n\n```Python [sol1-Python3]\nclass DLinkedNode:\n    def __init__(self, key=0, value=0):\n        self.key = key\n        self.value = value\n        self.prev = None\n        self.next = None\n\n\nclass LRUCache:\n\n    def __init__(self, capacity: int):\n        self.cache = dict()\n        # 使用伪头部和伪尾部节点    \n        self.head = DLinkedNode()\n        self.tail = DLinkedNode()\n        self.head.next = self.tail\n        self.tail.prev = self.head\n        self.capacity = capacity\n        self.size = 0\n\n    def get(self, key: int) -> int:\n        if key not in self.cache:\n            return -1\n        # 如果 key 存在，先通过哈希表定位，再移到头部\n        node = self.cache[key]\n        self.moveToHead(node)\n        return node.value\n\n    def put(self, key: int, value: int) -> None:\n        if key not in self.cache:\n            # 如果 key 不存在，创建一个新的节点\n            node = DLinkedNode(key, value)\n            # 添加进哈希表\n            self.cache[key] = node\n            # 添加至双向链表的头部\n            self.addToHead(node)\n            self.size += 1\n            if self.size > self.capacity:\n                # 如果超出容量，删除双向链表的尾部节点\n                removed = self.removeTail()\n                # 删除哈希表中对应的项\n                self.cache.pop(removed.key)\n                self.size -= 1\n        else:\n            # 如果 key 存在，先通过哈希表定位，再修改 value，并移到头部\n            node = self.cache[key]\n            node.value = value\n            self.moveToHead(node)\n    \n    def addToHead(self, node):\n        node.prev = self.head\n        node.next = self.head.next\n        self.head.next.prev = node\n        self.head.next = node\n    \n    def removeNode(self, node):\n        node.prev.next = node.next\n        node.next.prev = node.prev\n\n    def moveToHead(self, node):\n        self.removeNode(node)\n        self.addToHead(node)\n\n    def removeTail(self):\n        node = self.tail.prev\n        self.removeNode(node)\n        return node\n```\n\n```Java [sol1-Java]\npublic class LRUCache {\n    class DLinkedNode {\n        int key;\n        int value;\n        DLinkedNode prev;\n        DLinkedNode next;\n        public DLinkedNode() {}\n        public DLinkedNode(int _key, int _value) {key = _key; value = _value;}\n    }\n\n    private Map<Integer, DLinkedNode> cache = new HashMap<Integer, DLinkedNode>();\n    private int size;\n    private int capacity;\n    private DLinkedNode head, tail;\n\n    public LRUCache(int capacity) {\n        this.size = 0;\n        this.capacity = capacity;\n        // 使用伪头部和伪尾部节点\n        head = new DLinkedNode();\n        tail = new DLinkedNode();\n        head.next = tail;\n        tail.prev = head;\n    }\n\n    public int get(int key) {\n        DLinkedNode node = cache.get(key);\n        if (node == null) {\n            return -1;\n        }\n        // 如果 key 存在，先通过哈希表定位，再移到头部\n        moveToHead(node);\n        return node.value;\n    }\n\n    public void put(int key, int value) {\n        DLinkedNode node = cache.get(key);\n        if (node == null) {\n            // 如果 key 不存在，创建一个新的节点\n            DLinkedNode newNode = new DLinkedNode(key, value);\n            // 添加进哈希表\n            cache.put(key, newNode);\n            // 添加至双向链表的头部\n            addToHead(newNode);\n            ++size;\n            if (size > capacity) {\n                // 如果超出容量，删除双向链表的尾部节点\n                DLinkedNode tail = removeTail();\n                // 删除哈希表中对应的项\n                cache.remove(tail.key);\n                --size;\n            }\n        }\n        else {\n            // 如果 key 存在，先通过哈希表定位，再修改 value，并移到头部\n            node.value = value;\n            moveToHead(node);\n        }\n    }\n\n    private void addToHead(DLinkedNode node) {\n        node.prev = head;\n        node.next = head.next;\n        head.next.prev = node;\n        head.next = node;\n    }\n\n    private void removeNode(DLinkedNode node) {\n        node.prev.next = node.next;\n        node.next.prev = node.prev;\n    }\n\n    private void moveToHead(DLinkedNode node) {\n        removeNode(node);\n        addToHead(node);\n    }\n\n    private DLinkedNode removeTail() {\n        DLinkedNode res = tail.prev;\n        removeNode(res);\n        return res;\n    }\n}\n```\n\n```C++ [sol1-C++]\nstruct DLinkedNode {\n    int key, value;\n    DLinkedNode* prev;\n    DLinkedNode* next;\n    DLinkedNode(): key(0), value(0), prev(nullptr), next(nullptr) {}\n    DLinkedNode(int _key, int _value): key(_key), value(_value), prev(nullptr), next(nullptr) {}\n};\n\nclass LRUCache {\nprivate:\n    unordered_map<int, DLinkedNode*> cache;\n    DLinkedNode* head;\n    DLinkedNode* tail;\n    int size;\n    int capacity;\n\npublic:\n    LRUCache(int _capacity): capacity(_capacity), size(0) {\n        // 使用伪头部和伪尾部节点\n        head = new DLinkedNode();\n        tail = new DLinkedNode();\n        head->next = tail;\n        tail->prev = head;\n    }\n    \n    int get(int key) {\n        if (!cache.count(key)) {\n            return -1;\n        }\n        // 如果 key 存在，先通过哈希表定位，再移到头部\n        DLinkedNode* node = cache[key];\n        moveToHead(node);\n        return node->value;\n    }\n    \n    void put(int key, int value) {\n        if (!cache.count(key)) {\n            // 如果 key 不存在，创建一个新的节点\n            DLinkedNode* node = new DLinkedNode(key, value);\n            // 添加进哈希表\n            cache[key] = node;\n            // 添加至双向链表的头部\n            addToHead(node);\n            ++size;\n            if (size > capacity) {\n                // 如果超出容量，删除双向链表的尾部节点\n                DLinkedNode* removed = removeTail();\n                // 删除哈希表中对应的项\n                cache.erase(removed->key);\n                // 防止内存泄漏\n                delete removed;\n                --size;\n            }\n        }\n        else {\n            // 如果 key 存在，先通过哈希表定位，再修改 value，并移到头部\n            DLinkedNode* node = cache[key];\n            node->value = value;\n            moveToHead(node);\n        }\n    }\n\n    void addToHead(DLinkedNode* node) {\n        node->prev = head;\n        node->next = head->next;\n        head->next->prev = node;\n        head->next = node;\n    }\n    \n    void removeNode(DLinkedNode* node) {\n        node->prev->next = node->next;\n        node->next->prev = node->prev;\n    }\n\n    void moveToHead(DLinkedNode* node) {\n        removeNode(node);\n        addToHead(node);\n    }\n\n    DLinkedNode* removeTail() {\n        DLinkedNode* node = tail->prev;\n        removeNode(node);\n        return node;\n    }\n};\n```\n\n```golang [sol1-Golang]\ntype LRUCache struct {\n    size int\n    capacity int\n    cache map[int]*DLinkedNode\n    head, tail *DLinkedNode\n}\n\ntype DLinkedNode struct {\n    key, value int\n    prev, next *DLinkedNode\n}\n\nfunc initDLinkedNode(key, value int) *DLinkedNode {\n    return &DLinkedNode{\n        key: key,\n        value: value,\n    }\n}\n\nfunc Constructor(capacity int) LRUCache {\n    l := LRUCache{\n        cache: map[int]*DLinkedNode{},\n        head: initDLinkedNode(0, 0),\n        tail: initDLinkedNode(0, 0),\n        capacity: capacity,\n    }\n    l.head.next = l.tail\n    l.tail.prev = l.head\n    return l\n}\n\nfunc (this *LRUCache) Get(key int) int {\n    if _, ok := this.cache[key]; !ok {\n        return -1\n    }\n    node := this.cache[key]\n    this.moveToHead(node)\n    return node.value\n}\n\n\nfunc (this *LRUCache) Put(key int, value int)  {\n    if _, ok := this.cache[key]; !ok {\n        node := initDLinkedNode(key, value)\n        this.cache[key] = node\n        this.addToHead(node)\n        this.size++\n        if this.size > this.capacity {\n            removed := this.removeTail()\n            delete(this.cache, removed.key)\n            this.size--\n        }\n    } else {\n        node := this.cache[key]\n        node.value = value\n        this.moveToHead(node)\n    }\n}\n\nfunc (this *LRUCache) addToHead(node *DLinkedNode) {\n    node.prev = this.head\n    node.next = this.head.next\n    this.head.next.prev = node\n    this.head.next = node\n}\n\nfunc (this *LRUCache) removeNode(node *DLinkedNode) {\n    node.prev.next = node.next\n    node.next.prev = node.prev\n}\n\nfunc (this *LRUCache) moveToHead(node *DLinkedNode) {\n    this.removeNode(node)\n    this.addToHead(node)\n}\n\nfunc (this *LRUCache) removeTail() *DLinkedNode {\n    node := this.tail.prev\n    this.removeNode(node)\n    return node\n}\n```\n\n**复杂度分析**\n\n* 时间复杂度：对于 `put` 和 `get` 都是 $O(1)$。\n\n* 空间复杂度：$O(\\text{capacity})$，因为哈希表和双向链表最多存储 $\\text{capacity} + 1$ 个元素。",
+            "slateValue": "",
+            "slug": "lruhuan-cun-by-leetcode-solution",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "aSg8fx",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 71,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 3,
+                    "reactionType": "CONFUSED"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Design",
+                    "nameTranslated": "设计",
+                    "slug": "design",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Linked List",
+                    "nameTranslated": "链表",
+                    "slug": "linked-list",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Doubly-Linked List",
+                    "nameTranslated": "双向链表",
+                    "slug": "doubly-linked-list",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2020-11-20T06:56:33.232008+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "📺 视频题解 📖 文字题解 前言 实现本题的两种操作，需要用到一个哈希表和一个双向链表。在面试中，面试官一般会期望读者能够自己实现一个简单的双向链表，而不是使用语言自带的、封装好的数据结构。在 Python 语言中，有一种结合了哈希表与双向链表的数据结构 OrderedDict，只需要短短的几行代码就可以完成本题。在 ",
+            "topic": {
+                "id": 491688,
+                "subscribed": false,
+                "commentCount": 57,
+                "viewCount": 30190,
+                "post": {
+                    "id": 1166295,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 197,
+            "isEditorsPick": false,
+            "hitCount": 63132,
+            "videosInfo": [
+                {
+                    "videoId": "1aed3e9fad3d4a0e8d087321d7542664",
+                    "coverUrl": "https://video.leetcode.cn/image/cover/133B3F6EADB84166B5E13BE9ACFDFF57-6-2.png?auth_key=1782484274-619385f63bb84b528ebae6093f9d7c1a-0-ff828359fe038394288a177fb7b2d552",
+                    "duration": 337.8773
+                }
+            ],
+            "question": {
+                "titleSlug": "lru-cache-lcci",
+                "questionFrontendId": "面试题 16.25"
+            },
+            "next": {
+                "slug": "linkedhashmap-shuang-lian-biao-hashmap-dan-lian-2",
+                "title": "LinkedHashMap、双链表+HashMap、单链表三种解法"
+            },
+            "prev": null
+        }
+    }
+}

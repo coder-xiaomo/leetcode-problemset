@@ -1,0 +1,108 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "vD51KR",
+            "title": "过桥的时间",
+            "content": "#### 方法一：优先队列\n\n**思路与算法**\n\n在本题中，工人共有 $4$ 种状态：\n\n1. 在左侧等待\n2. 在右侧等待\n3. 在左侧工作（放下所选箱子）\n4. 在右侧工作（搬起所选箱子）\n\n每一种工作状态都有相应的优先级计算方法，因此我们用 $4$ 个优先队列来存放处于每种状态下的工人集合：\n\n1. 在左侧等待的工人：$\\textit{wait\\_left}$，题目中定义的效率越高，优先级越高。\n2. 在右侧等待的工人：$\\textit{wait\\_right}$，题目中定义的效率越高，优先级越高。\n3. 在左侧工作的工人：$\\textit{work\\_left}$，完成时间越早，优先级越高。\n4. 在右侧工作的工人：$\\textit{work\\_right}$，完成时间越早，优先级越高。\n\n我们令 $\\textit{remain}$ 表示右侧还有多少个箱子需要搬运，当 $\\textit{remain} > 0$ 时，搬运工作需要继续。除此之外，题目求解的是最后一个回到左边的工人的到达时间，因此当右侧还有工人在等待或在工作时（即 $\\textit{work\\_right}$ 或 $\\textit{wait\\_right}$ 不为空），搬运工作就需要继续：\n\n1. 若 $\\textit{work\\_left}$ 或 $\\textit{work\\_right}$ 中的工人在此刻已经完成工作，则需要将它们取出并分别加入到 $\\textit{wait\\_left}$ 和 $\\textit{wait\\_right}$ 中。\n2. 若 $\\textit{wait\\_right}$ 不为空，则取其中**优先级最低**的工人过桥，将其加入到 $\\textit{work\\_left}$ 队列中，并将时间更改为过桥后的时间。继续下一轮循环。\n3. 若 $\\textit{remain} > 0$，并且 $\\textit{wait\\_left}$ 不为空，则需要取**优先级最低**的工人过桥去取箱子，将其加入到 $\\textit{work\\_right}$ 队列中，令 $\\textit{remain}$ 减 $1$，并将时间更改为过桥后的时间。继续下一轮循环。\n4. 若 $2$ 和 $3$ 都不满足，表示当前没有人需要过桥，当前时间应该过渡到 $\\textit{work\\_left}$ 和 $\\textit{work\\_right}$ 中的最早完成时间。然后继续下一轮循环。\n\n按照上述过程模拟，直到循环条件不再满足。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    using PII = pair<int, int>;\n    int findCrossingTime(int n, int k, vector<vector<int>>& time) {\n        // 定义等待中的工人优先级比较规则，时间总和越高，效率越低，优先级越低，越优先被取出\n        auto wait_priority_cmp = [&](int x, int y) {\n            int time_x = time[x][0] + time[x][2];\n            int time_y = time[y][0] + time[y][2];\n            return time_x != time_y ? time_x < time_y : x < y;\n        };\n\n        priority_queue<int, vector<int>, decltype(wait_priority_cmp)> wait_left(wait_priority_cmp), wait_right(wait_priority_cmp);\n\n        priority_queue<PII, vector<PII>, greater<PII>> work_left, work_right;\n\n        int remain = n, cur_time = 0;\n        for (int i = 0; i < k; i++) {\n            wait_left.push(i);\n        }\n        while (remain > 0 || !work_right.empty() || !wait_right.empty()) {\n            // 1. 若 work_left 或 work_right 中的工人完成工作，则将他们取出，并分别放置到 wait_left 和 wait_right 中。\n            while (!work_left.empty() && work_left.top().first <= cur_time) {\n                wait_left.push(work_left.top().second);\n                work_left.pop();\n            }\n            while (!work_right.empty() && work_right.top().first <= cur_time) {\n                wait_right.push(work_right.top().second);\n                work_right.pop();\n            }\n\n            if (!wait_right.empty()) {\n                // 2. 若右侧有工人在等待，则取出优先级最低的工人并过桥\n                int id = wait_right.top();\n                wait_right.pop();\n                cur_time += time[id][2];\n                work_left.push({cur_time + time[id][3], id});\n            } else if (remain > 0 && !wait_left.empty()) {\n                // 3. 若右侧还有箱子，并且左侧有工人在等待，则取出优先级最低的工人并过桥\n                int id = wait_left.top();\n                wait_left.pop();\n                cur_time += time[id][0];\n                work_right.push({cur_time + time[id][1], id});\n                remain--;\n            } else {\n                // 4. 否则，没有人需要过桥，时间过渡到 work_left 和 work_right 中的最早完成时间\n                int next_time = INT_MAX;\n                if (!work_left.empty()) {\n                    next_time = min(next_time, work_left.top().first);\n                }\n                if (!work_right.empty()) {\n                    next_time = min(next_time, work_right.top().first);\n                }\n                if (next_time != INT_MAX) {\n                    cur_time = max(next_time, cur_time);\n                }\n            }\n        }\n        return cur_time;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int findCrossingTime(int n, int k, int[][] time) {\n        // 定义等待中的工人优先级比较规则，时间总和越高，效率越低，优先级越低，越优先被取出\n        PriorityQueue<Integer> waitLeft = new PriorityQueue<Integer>((x, y) -> {\n            int timeX = time[x][0] + time[x][2];\n            int timeY = time[y][0] + time[y][2];\n            return timeX != timeY ? timeY - timeX : y - x;\n        });\n        PriorityQueue<Integer> waitRight = new PriorityQueue<Integer>((x, y) -> {\n            int timeX = time[x][0] + time[x][2];\n            int timeY = time[y][0] + time[y][2];\n            return timeX != timeY ? timeY - timeX : y - x;\n        });\n\n        PriorityQueue<int[]> workLeft = new PriorityQueue<int[]>((x, y) -> {\n            if (x[0] != y[0]) {\n                return x[0] - y[0];\n            } else {\n                return x[1] - y[1];\n            }\n        });\n        PriorityQueue<int[]> workRight = new PriorityQueue<int[]>((x, y) -> {\n            if (x[0] != y[0]) {\n                return x[0] - y[0];\n            } else {\n                return x[1] - y[1];\n            }\n        });\n\n        int remain = n, curTime = 0;\n        for (int i = 0; i < k; i++) {\n            waitLeft.offer(i);\n        }\n        while (remain > 0 || !workRight.isEmpty() || !waitRight.isEmpty()) {\n            // 1. 若 workLeft 或 workRight 中的工人完成工作，则将他们取出，并分别放置到 waitLeft 和 waitRight 中。\n            while (!workLeft.isEmpty() && workLeft.peek()[0] <= curTime) {\n                waitLeft.offer(workLeft.poll()[1]);\n            }\n            while (!workRight.isEmpty() && workRight.peek()[0] <= curTime) {\n                waitRight.offer(workRight.poll()[1]);\n            }\n\n            if (!waitRight.isEmpty()) {\n                // 2. 若右侧有工人在等待，则取出优先级最低的工人并过桥\n                int id = waitRight.poll();\n                curTime += time[id][2];\n                workLeft.offer(new int[]{curTime + time[id][3], id});\n            } else if (remain > 0 && !waitLeft.isEmpty()) {\n                // 3. 若右侧还有箱子，并且左侧有工人在等待，则取出优先级最低的工人并过桥\n                int id = waitLeft.poll();\n                curTime += time[id][0];\n                workRight.offer(new int[]{curTime + time[id][1], id});\n                remain--;\n            } else {\n                // 4. 否则，没有人需要过桥，时间过渡到 workLeft 和 workRight 中的最早完成时间\n                int nextTime = Integer.MAX_VALUE;\n                if (!workLeft.isEmpty()) {\n                    nextTime = Math.min(nextTime, workLeft.peek()[0]);\n                }\n                if (!workRight.isEmpty()) {\n                    nextTime = Math.min(nextTime, workRight.peek()[0]);\n                }\n                if (nextTime != Integer.MAX_VALUE) {\n                    curTime = Math.max(nextTime, curTime);\n                }\n            }\n        }\n        return curTime;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int FindCrossingTime(int n, int k, int[][] time) {\n        // 定义等待中的工人优先级比较规则，时间总和越高，效率越低，优先级越低，越优先被取出\n        PriorityQueue<int, long> waitLeft = new PriorityQueue<int, long>();\n        PriorityQueue<int, long> waitRight = new PriorityQueue<int, long>();\n\n        PriorityQueue<int[], long> workLeft = new PriorityQueue<int[], long>();\n        PriorityQueue<int[], long> workRight = new PriorityQueue<int[], long>();\n\n        int remain = n, curTime = 0;\n        for (int i = 0; i < k; i++) {\n            long priority = -(time[i][0] + time[i][2]) * (long) 1001 - i;\n            waitLeft.Enqueue(i, priority);\n        }\n        while (remain > 0 || workRight.Count > 0 || waitRight.Count > 0) {\n            // 1. 若 workLeft 或 workRight 中的工人完成工作，则将他们取出，并分别放置到 waitLeft 和 waitRight 中。\n            while (workLeft.Count > 0 && workLeft.Peek()[0] <= curTime) {\n                int val = workLeft.Dequeue()[1];\n                long priority = -(time[val][0] + time[val][2]) * (long) 1001 - val;\n                waitLeft.Enqueue(val, priority);\n            }\n            while (workRight.Count > 0 && workRight.Peek()[0] <= curTime) {\n                int val = workRight.Dequeue()[1];\n                long priority = -(time[val][0] + time[val][2]) * (long) 1001 - val;\n                waitRight.Enqueue(val, priority);\n            }\n\n            if (waitRight.Count > 0) {\n                // 2. 若右侧有工人在等待，则取出优先级最低的工人并过桥\n                int id = waitRight.Dequeue();\n                curTime += time[id][2];\n                long priority = (curTime + time[id][3]) * (long) 1001 + id;\n                workLeft.Enqueue(new int[]{curTime + time[id][3], id}, priority);\n            } else if (remain > 0 && waitLeft.Count > 0) {\n                // 3. 若右侧还有箱子，并且左侧有工人在等待，则取出优先级最低的工人并过桥\n                int id = waitLeft.Dequeue();\n                curTime += time[id][0];\n                long priority = (curTime + time[id][1]) * (long) 1001 + id;\n                workRight.Enqueue(new int[]{curTime + time[id][1], id}, priority);\n                remain--;\n            } else {\n                // 4. 否则，没有人需要过桥，时间过渡到 workLeft 和 workRight 中的最早完成时间\n                int nextTime = int.MaxValue;\n                if (workLeft.Count > 0) {\n                    nextTime = Math.Min(nextTime, workLeft.Peek()[0]);\n                }\n                if (workRight.Count > 0) {\n                    nextTime = Math.Min(nextTime, workRight.Peek()[0]);\n                }\n                if (nextTime != int.MaxValue) {\n                    curTime = Math.Max(nextTime, curTime);\n                }\n            }\n        }\n        return curTime;\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n\\log k)$，其中 $n$ 为箱子的个数，$k$ 为工人的个数。过程中每个队列最多会进出元素 $n$ 次，每次进出的时间复杂度为 $O(\\log k)$，因此总的时间复杂度为 $O(n\\log k)$。\n\n- 空间复杂度：$O(k)$。过程中每个优先队列最多会包含 $k$ 个元素，因此总的空间复杂度为 $O(k)$。",
+            "slateValue": "",
+            "slug": "guo-qiao-de-shi-jian-by-leetcode-solutio-thj9",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "vD51KR",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 18,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Greedy",
+                    "nameTranslated": "贪心",
+                    "slug": "greedy",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Heap (Priority Queue)",
+                    "nameTranslated": "堆（优先队列）",
+                    "slug": "heap-priority-queue",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2023-07-04T02:11:46.019584+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：优先队列 思路与算法 在本题中，工人共有 $4$ 种状态： 在左侧等待 在右侧等待 在左侧工作（放下所选箱子） 在右侧工作（搬起所选箱子） 每一种工作状态都有相应的优先级计算方法，因此我们用 $4$ 个优先队列来存放处于每种状态下的工人集合： 在左侧等待的工人：$\\textit{wait_left}$，题目中定",
+            "topic": {
+                "id": 2329846,
+                "subscribed": false,
+                "commentCount": 52,
+                "viewCount": 835,
+                "post": {
+                    "id": 4386060,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 18,
+            "isEditorsPick": false,
+            "hitCount": 9418,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "time-to-cross-a-bridge",
+                "questionFrontendId": "2532"
+            },
+            "next": {
+                "slug": "by-endlesscheng-nzqo",
+                "title": "复杂模拟题如何思考？视频讲解！（Python/Java/C++/Go/JS）"
+            },
+            "prev": null
+        }
+    }
+}

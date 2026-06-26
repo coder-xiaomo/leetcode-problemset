@@ -1,0 +1,136 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "miH5GK",
+            "title": "两球之间的磁力",
+            "content": "#### 方法一：二分查找\n\n**思路与算法**\n\n对于此题我们需要先思考一个子问题：给定 $n$ 个空篮子，$m$ 个球放置的位置已经确定。那么「最小磁力」我们该如何计算？\n\n不难得出「最小磁力」为这 $m$ 个球中相邻两球距离的最小值的结论。对于 $i<j<k$ 三个位置的球，最小磁力一定是 $j-i$ 和 $k-j$ 的较小值，而不是跨越了位置 $j$ 的 $i$ 和 $k$ 的差值 $k-i$。\n\n明确了给定位置最小磁力的计算方法，回到本题，在本题中 $m$ 个球的位置是由我们决定的，只知道空篮子的位置，且题目希望通过排列 $m$ 个球的位置来「最大化最小磁力」。\n\n我们假定最终的答案是 $\\textit{ans}$，即这个时候最小磁力为 $\\textit{ans}$，那么我们知道小于 $\\textit{ans}$ 的答案一定也合法。因为既然我们存在一种放置的方法使得相邻小球间距的最小值大于等于 $\\textit{ans}$，那么也一定大于 $[1,\\textit{ans} - 1]$ 中的任意一个值，而大于 $\\textit{ans}$ 的均不合法，因此我们可以对答案进行**二分查找**。\n\n假设我们在 $[\\textit{left},\\textit{right}]$ 的区间查找。每次取 $\\textit{mid}$ 为 $\\textit{left}$ 和 $\\textit{right}$ 的平均值，进行如下操作：\n\n- 如果当前的 $\\textit{mid}$ 合法，则令 $\\textit{ans}=\\textit{mid}$，并将区间缩小为 $[\\textit{mid}+1,\\textit{right}]$；\n- 如果当前的 $\\textit{mid}$ 不合法，则将区间缩小为 $[\\textit{left},\\textit{mid}-1]$。\n\n最后剩下的问题是如何判断答案是否合法，即给定一个答案 $x$，是否存在一种放置方法使得相邻小球的间距最小值大于等于 $x$。这个问题其实很好解决，相邻小球的间距最小值大于等于 $x$，其实就等价于相邻小球的间距**均大于等于 $x$**。我们预先对给定的篮子的位置进行排序，那么从贪心的角度考虑，第一个小球放置的篮子一定是 $\\textit{position}$ 最小的篮子，即排序后的第一个篮子。那么为了满足上述条件，第二个小球放置的位置一定要大于等于 $\\textit{position}[0]+x$，接下来同理。因此我们从前往后扫 $\\textit{position}$ 数组，看在当前答案 $x$ 下我们最多能在篮子里放多少个小球，我们记这个数量为 $\\textit{cnt}$，如果 $\\textit{cnt}$ 大于等于 $m$，那么说明当前答案下我们的贪心策略能放下 $m$ 个小球且它们间距均大于等于 $x$ ，为合法的答案，否则不合法。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    bool check(int x, vector<int>& position, int m) {\n        int pre = position[0], cnt = 1;\n        for (int i = 1; i < position.size(); ++i) {\n            if (position[i] - pre >= x) {\n                pre = position[i];\n                cnt += 1;\n            }\n        }\n        return cnt >= m;\n    }\n\n    int maxDistance(vector<int>& position, int m) {\n        sort(position.begin(), position.end());\n        int left = 1, right = position.back() - position[0], ans = -1;\n        while (left <= right) {\n            int mid = (left + right) / 2;\n            if (check(mid, position, m)) {\n                ans = mid;\n                left = mid + 1;\n            } else {\n                right = mid - 1;\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int maxDistance(int[] position, int m) {\n        Arrays.sort(position);\n        int left = 1, right = position[position.length - 1] - position[0], ans = -1;\n        while (left <= right) {\n            int mid = (left + right) / 2;\n            if (check(mid, position, m)) {\n                ans = mid;\n                left = mid + 1;\n            } else {\n                right = mid - 1;\n            }\n        }\n        return ans;\n    }\n\n    public boolean check(int x, int[] position, int m) {\n        int pre = position[0], cnt = 1;\n        for (int i = 1; i < position.length; ++i) {\n            if (position[i] - pre >= x) {\n                pre = position[i];\n                cnt += 1;\n            }\n        }\n        return cnt >= m;\n    }\n}\n```\n\n```JavaScript [sol1-JavaScript]\nconst check = (x, position, m) => {\n    let pre = position[0], cnt = 1;\n    for (let i = 1; i < position.length; ++i) {\n        if (position[i] - pre >= x) {\n            pre = position[i];\n            cnt += 1;\n        }\n    }\n    return cnt >= m;\n}\nvar maxDistance = function(position, m) {\n    position.sort((x, y) => x - y);\n    let left = 1, right = position[position.length - 1] - position[0], ans = -1;\n    while (left <= right) {\n        const mid = Math.floor((left + right) / 2); \n        if (check(mid, position, m)) {\n            ans = mid;\n            left = mid + 1;\n        } else {\n            right = mid - 1;\n        }\n    }\n    return ans;\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def maxDistance(self, position: List[int], m: int) -> int:\n        def check(x: int) -> bool:\n            pre = position[0]\n            cnt = 1\n            for i in range(1, len(position)):\n                if position[i] - pre >= x:\n                    pre = position[i]\n                    cnt += 1\n            return cnt >= m\n\n        position.sort()\n        left, right, ans = 1, position[-1] - position[0], -1\n        while left <= right:\n            mid = (left + right) // 2;\n            if check(mid):\n                ans = mid\n                left = mid + 1\n            else:\n                right = mid - 1\n        \n        return ans\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MaxDistance(int[] position, int m) {\n        Array.Sort(position);\n        int left = 1, right = position[position.Length - 1] - position[0], ans = -1;\n        while (left <= right) {\n            int mid = (left + right) / 2;\n            if (Check(mid, position, m)) {\n                ans = mid;\n                left = mid + 1;\n            } else {\n                right = mid - 1;\n            }\n        }\n        return ans;\n    }\n\n    public bool Check(int x, int[] position, int m) {\n        int pre = position[0], cnt = 1;\n        for (int i = 1; i < position.Length; i++) {\n            if (position[i] - pre >= x) {\n                pre = position[i];\n                cnt++;\n            }\n        }\n        return cnt >= m;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc maxDistance(position []int, m int) int {\n    sort.Ints(position)\n    left, right := 1, position[len(position)-1] - position[0]\n    ans := -1\n    for left <= right {\n        mid := (left + right) / 2\n        if check(mid, position, m) {\n            ans = mid\n            left = mid + 1\n        } else {\n            right = mid - 1\n        }\n    }\n    return ans\n}\n\nfunc check(x int, position []int, m int) bool {\n    pre, cnt := position[0], 1\n    for i := 1; i < len(position); i++ {\n        if position[i] - pre >= x {\n            pre = position[i]\n            cnt++\n        }\n    }\n    return cnt >= m\n}\n```\n\n```C [sol1-C]\nstatic int compare(const void *a, const void *b) {\n    return *(int *)a - *(int *)b;\n}\n\nstatic bool check(int x, const int* position, int positionSize, int m) {\n    int pre = position[0], cnt = 1;\n    for (int i = 1; i < positionSize; ++i) {\n        if (position[i] - pre >= x) {\n            pre = position[i];\n            cnt += 1;\n        }\n    }\n    return cnt >= m;\n}\n\nint maxDistance(int* position, int positionSize, int m) {\n    qsort(position, positionSize, sizeof(int), compare);\n    int left = 1, right = position[positionSize - 1] - position[0], ans = -1;\n    while (left <= right) {\n        int mid = (left + right) / 2;\n        if (check(mid, position, positionSize, m)) {\n            ans = mid;\n            left = mid + 1;\n        } else {\n            right = mid - 1;\n        }\n    }\n    return ans;\n}\n```\n\n```TypeScript [sol1-TypeScript]\nfunction maxDistance(position: number[], m: number): number {\n    position.sort((x, y) => x - y);\n    let left = 1, right = position[position.length - 1] - position[0], ans = -1;\n    while (left <= right) {\n        const mid = Math.floor((left + right) / 2); \n        if (check(mid, position, m)) {\n            ans = mid;\n            left = mid + 1;\n        } else {\n            right = mid - 1;\n        }\n    }\n    return ans;\n};\n\nfunction check(x: number, position: number[], m: number): boolean {\n    let pre = position[0], cnt = 1;\n    for (let i = 1; i < position.length; ++i) {\n        if (position[i] - pre >= x) {\n            pre = position[i];\n            cnt += 1;\n        }\n    }\n    return cnt >= m;\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn max_distance(position: Vec<i32>, m: i32) -> i32 {\n        let mut position = position;\n        position.sort();\n        let mut left = 1;\n        let mut right = position[position.len() - 1] - position[0];\n        let mut ans = -1;\n        while left <= right {\n            let mid = (left + right) / 2;\n            if Self::check(mid, &position, m) {\n                ans = mid;\n                left = mid + 1;\n            } else {\n                right = mid - 1;\n            }\n        }\n        ans\n    }\n\n    fn check(x: i32, position: &Vec<i32>, m: i32) -> bool {\n        let mut pre = position[0];\n        let mut cnt = 1;\n        for &pos in &position[1..] {\n            if pos - pre >= x {\n                pre = pos;\n                cnt += 1;\n            }\n        }\n        cnt >= m\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n\\log (nS))$，其中 $n$ 为篮子的个数，$S$ 为篮子位置的上限。对篮子位置排序需要 $O(n\\log n)$ 的时间复杂度，二分查找对篮子位置间隔进行二分，需要 $O(\\log S)$ 的时间复杂度。每次统计答案是否符合要求需要 $O(n)$ 的时间复杂度，因此总时间复杂度为 $O(n\\log n+n\\log S) = O(n\\log (nS))$。\n\n- 空间复杂度：$O(\\log n)$，即为排序需要的栈空间。",
+            "slateValue": "",
+            "slug": "liang-qiu-zhi-jian-de-ci-li-by-leetcode-solution",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "miH5GK",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 63,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-09-06T13:41:57.390107+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：二分查找 思路与算法 对于此题我们需要先思考一个子问题：给定 [latex] 个空篮子，[latex] 个球放置的位置已经确定。那么「最小磁力」我们该如何计算？ 不难得出「最小磁力」为这 [latex] 个球中相邻两球距离的最小值的结论。对于 [latex] 三个位置的球，最小磁力一定是 [latex] 和 [",
+            "topic": {
+                "id": 403701,
+                "subscribed": false,
+                "commentCount": 93,
+                "viewCount": 11907,
+                "post": {
+                    "id": 983821,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 103,
+            "isEditorsPick": false,
+            "hitCount": 36216,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "magnetic-force-between-two-balls",
+                "questionFrontendId": "1552"
+            },
+            "next": {
+                "slug": "er-fen-da-an-pythonjavaccgojsrust-by-end-hb9o",
+                "title": "二分答案（Python/Java/C++/C/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

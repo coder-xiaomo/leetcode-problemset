@@ -1,0 +1,128 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "KNRQmH",
+            "title": "点菜展示表",
+            "content": "#### 方法一：哈希表\n\n我们首先分析题目需要我们做些什么：\n\n- 我们需要将订单信息进行汇总，存放在一张数据表中作为答案返回；\n- 数据表的第一行包含了所有的餐品名称，并且需要按照餐品名称的字典序排序，因此我们需要遍历订单信息，获取所有的餐品名称并对它们进行排序；\n- 数据表的第一列包含了所有的餐桌桌号，并且需要按照桌号排序，因此我们需要遍历订单信息，获取所有的桌号并对它们进行排序；\n- 数据表中间包含的信息为「某一桌下单的某一道菜的数量」。\n\n我们可以使用两个哈希表来保存订单中的数据：\n\n- 哈希表 $\\textit{nameSet}$ 保存所有的餐品名称；\n- 哈希表 $\\textit{foodsCnt}$ 保存桌号及该桌点餐数量，点餐数量也用一个哈希表保存。\n\n遍历订单并保存信息后，从 $\\textit{nameSet}$ 中提取餐品名称，并按字母顺序排列；从 $\\textit{foodsCnt}$ 中提取桌号，并按桌号升序排列。然后将餐品名称和桌号分别填入点菜展示表的第一行和第一列。对于表中的餐品数量，我们逐行填入，对于每一行，我们遍历餐品名称，在 $\\textit{foodsCnt}$ 中查找对应的点餐数量，然后填入表格中对应位置。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<vector<string>> displayTable(vector<vector<string>> &orders) {\n        // 从订单中获取餐品名称和桌号，统计每桌点餐数量\n        unordered_set<string> nameSet;\n        unordered_map<int, unordered_map<string, int>> foodsCnt;\n        for (auto &order : orders) {\n            nameSet.insert(order[2]);\n            int id = stoi(order[1]);\n            ++foodsCnt[id][order[2]];\n        }\n\n        // 提取餐品名称，并按字母顺序排列\n        int n = nameSet.size();\n        vector<string> names;\n        for (auto &name : nameSet) {\n            names.push_back(name);\n        }\n        sort(names.begin(), names.end());\n\n        // 提取桌号，并按餐桌桌号升序排列\n        int m = foodsCnt.size();\n        vector<int> ids;\n        for (auto &[id, _] : foodsCnt) {\n            ids.push_back(id);\n        }\n        sort(ids.begin(), ids.end());\n\n        // 填写点菜展示表\n        vector<vector<string>> table(m + 1, vector<string>(n + 1));\n        table[0][0] = \"Table\";\n        copy(names.begin(), names.end(), table[0].begin() + 1);\n        for (int i = 0; i < m; ++i) {\n            int id = ids[i];\n            auto &cnt = foodsCnt[id];\n            table[i + 1][0] = to_string(id);\n            for (int j = 0; j < n; ++j) {\n                table[i + 1][j + 1] = to_string(cnt[names[j]]);\n            }\n        }\n        return table;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public List<List<String>> displayTable(List<List<String>> orders) {\n        // 从订单中获取餐品名称和桌号，统计每桌点餐数量\n        Set<String> nameSet = new HashSet<String>();\n        Map<Integer, Map<String, Integer>> foodsCnt = new HashMap<Integer, Map<String, Integer>>();\n        for (List<String> order : orders) {\n            nameSet.add(order.get(2));\n            int id = Integer.parseInt(order.get(1));\n            Map<String, Integer> map = foodsCnt.getOrDefault(id, new HashMap<String, Integer>());\n            map.put(order.get(2), map.getOrDefault(order.get(2), 0) + 1);\n            foodsCnt.put(id, map);\n        }\n\n        // 提取餐品名称，并按字母顺序排列\n        int n = nameSet.size();\n        List<String> names = new ArrayList<String>();\n        for (String name : nameSet) {\n            names.add(name);\n        }\n        Collections.sort(names);\n\n        // 提取桌号，并按餐桌桌号升序排列\n        int m = foodsCnt.size();\n        List<Integer> ids = new ArrayList<Integer>();\n        for (int id : foodsCnt.keySet()) {\n            ids.add(id);\n        }\n        Collections.sort(ids);\n\n        // 填写点菜展示表\n        List<List<String>> table = new ArrayList<List<String>>();\n        List<String> header = new ArrayList<String>();\n        header.add(\"Table\");\n        for (String name : names) {\n            header.add(name);\n        }\n        table.add(header);\n        for (int i = 0; i < m; ++i) {\n            int id = ids.get(i);\n            Map<String, Integer> cnt = foodsCnt.get(id);\n            List<String> row = new ArrayList<String>();\n            row.add(Integer.toString(id));\n            for (int j = 0; j < n; ++j) {\n                row.add(Integer.toString(cnt.getOrDefault(names.get(j), 0)));\n            }\n            table.add(row);\n        }\n        return table;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public IList<IList<string>> DisplayTable(IList<IList<string>> orders) {\n        // 从订单中获取餐品名称和桌号，统计每桌点餐数量\n        ISet<string> nameSet = new HashSet<string>();\n        Dictionary<int, Dictionary<string, int>> foodsCnt = new Dictionary<int, Dictionary<string, int>>();\n        foreach (IList<string> order in orders) {\n            nameSet.Add(order[2]);\n            int id = int.Parse(order[1]);\n            Dictionary<string, int> dictionary = foodsCnt.ContainsKey(id) ? foodsCnt[id] : new Dictionary<string, int>();\n            if (dictionary.ContainsKey(order[2])) {\n                ++dictionary[order[2]];\n            } else {\n                dictionary.Add(order[2], 1);\n            }\n            if (!foodsCnt.ContainsKey(id)) {\n                foodsCnt.Add(id, dictionary);\n            }\n        }\n\n        // 提取餐品名称，并按字母顺序排列\n        int n = nameSet.Count;\n        List<string> names = new List<string>();\n        foreach (string name in nameSet) {\n            names.Add(name);\n        }\n        names.Sort((a, b) => string.CompareOrdinal(a, b));\n\n        // 提取桌号，并按餐桌桌号升序排列\n        int m = foodsCnt.Count;\n        List<int> ids = new List<int>();\n        foreach (int id in foodsCnt.Keys) {\n            ids.Add(id);\n        }\n        ids.Sort();\n\n        // 填写点菜展示表\n        IList<IList<string>> table = new List<IList<string>>();\n        IList<string> header = new List<string>();\n        header.Add(\"Table\");\n        foreach (string name in names) {\n            header.Add(name);\n        }\n        table.Add(header);\n        for (int i = 0; i < m; ++i) {\n            int id = ids[i];\n            Dictionary<string, int> cnt = foodsCnt[id];\n            IList<string> row = new List<string>();\n            row.Add(id.ToString());\n            for (int j = 0; j < n; ++j) {\n                int val = cnt.ContainsKey(names[j]) ? cnt[names[j]] : 0;\n                row.Add(val.ToString());\n            }\n            table.Add(row);\n        }\n        return table;\n    }\n}\n```\n\n```go [sol1-Golang]\nfunc displayTable(orders [][]string) [][]string {\n    // 从订单中获取餐品名称和桌号，统计每桌点餐数量\n    nameSet := map[string]struct{}{}\n    foodsCnt := map[int]map[string]int{}\n    for _, order := range orders {\n        id, _ := strconv.Atoi(order[1])\n        food := order[2]\n        nameSet[food] = struct{}{}\n        if foodsCnt[id] == nil {\n            foodsCnt[id] = map[string]int{}\n        }\n        foodsCnt[id][food]++\n    }\n\n    // 提取餐品名称，并按字母顺序排列\n    n := len(nameSet)\n    names := make([]string, 0, n)\n    for name := range nameSet {\n        names = append(names, name)\n    }\n    sort.Strings(names)\n\n    // 提取桌号，并按餐桌桌号升序排列\n    m := len(foodsCnt)\n    ids := make([]int, 0, m)\n    for id := range foodsCnt {\n        ids = append(ids, id)\n    }\n    sort.Ints(ids)\n\n    // 填写点菜展示表\n    table := make([][]string, m+1)\n    table[0] = make([]string, 1, n+1)\n    table[0][0] = \"Table\"\n    table[0] = append(table[0], names...)\n    for i, id := range ids {\n        cnt := foodsCnt[id]\n        table[i+1] = make([]string, n+1)\n        table[i+1][0] = strconv.Itoa(id)\n        for j, name := range names {\n            table[i+1][j+1] = strconv.Itoa(cnt[name])\n        }\n    }\n    return table\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar displayTable = function(orders) {\n    // 从订单中获取餐品名称和桌号，统计每桌点餐数量\n    const nameSet = new Set();\n    const foodsCnt = new Map();\n    for (const order of orders) {\n        nameSet.add(order[2]);\n        const id = parseInt(order[1]);\n        const map = foodsCnt.get(id) || new Map();\n        map.set(order[2], (map.get(order[2]) || 0) + 1);\n        foodsCnt.set(id, map);\n    }\n\n    // 提取餐品名称，并按字母顺序排列\n    const n = nameSet.size;\n    const names = [];\n    for (const name of nameSet) {\n        names.push(name);\n    }\n    names.sort();\n\n    // 提取桌号，并按餐桌桌号升序排列\n    const m = foodsCnt.size;\n    const ids = [];\n    for (const id of foodsCnt.keys()) {\n        ids.push(id);\n    }\n    ids.sort((a, b) => a - b);\n\n    // 填写点菜展示表\n    const table = [];\n    const header = [];\n    header.push(\"Table\");\n    for (const name of names) {\n        header.push(name);\n    }\n    table.push(header);\n    for (let i = 0; i < m; ++i) {\n        const id = ids[i];\n        const cnt = foodsCnt.get(id);\n        const row = [];\n        row.push(id.toString());\n        for (let j = 0; j < n; ++j) {\n            row.push((cnt.get(names[j]) || 0).toString());\n        }\n        table.push(row);\n    }\n    return table;\n};\n```\n\n**复杂度分析**\n\n为了便于进行复杂度分析，我们将所有字符串长度均视作常数。\n\n- 时间复杂度：$O(T + N\\log N + M\\log M + MN)$。其中 $T$ 是数组 $\\textit{orders}$ 的长度，$N$ 是数据表的列数（即餐品的数量），$M$ 是数据表的行数（即餐桌的数量）。时间复杂度由以下几个部分组成：\n    - 遍历订单并保存信息的时间复杂度为 $O(T)$；\n    - 对餐品名称和餐桌编号分别进行排序，时间复杂度分别为 $O(N \\log N)$ 和 $O(M \\log M)$；\n    - 将数据逐行填入表格，时间复杂度为 $O(MN)$。\n- 空间复杂度：$O(T + N + M)$。注意这里只计算额外的空间复杂度，不计入存放最终数据表（即答案）需要的空间。",
+            "slateValue": "",
+            "slug": "dian-cai-zhan-shi-biao-by-leetcode-solution",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "KNRQmH",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 25,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "CONFUSED"
+                },
+                {
+                    "count": 0,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-05-06T08:50:02.203576+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：哈希表 我们首先分析题目需要我们做些什么： 我们需要将订单信息进行汇总，存放在一张数据表中作为答案返回； 数据表的第一行包含了所有的餐品名称，并且需要按照餐品名称的字典序排序，因此我们需要遍历订单信息，获取所有的餐品名称并对它们进行排序； 数据表的第一列包含了所有的餐桌桌号，并且需要按照桌号排序，因此我们需要遍",
+            "topic": {
+                "id": 234981,
+                "subscribed": false,
+                "commentCount": 82,
+                "viewCount": 16615,
+                "post": {
+                    "id": 618603,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 31,
+            "isEditorsPick": false,
+            "hitCount": 24733,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "display-table-of-food-orders-in-a-restaurant",
+                "questionFrontendId": "1418"
+            },
+            "next": {
+                "slug": "display-table-of-food-orders-in-a-restaurant-by-ik",
+                "title": "【点菜展示表】合理保存"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,134 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "HgGR9k",
+            "title": "到达目的地的第二短时间",
+            "content": "#### 方法一：广度优先搜索\n\n**思路与算法**\n\n依题意知，同一路径长度所需要花费的时间是相同的，且路径越长，所需时间越久。因此，如果我们可以求得到达目的地的严格次短路径，就可以直接计算到达目的地的第二短时间。\n\n求解权重相同的最短路径问题可以采用广度优先搜索，这里我们做一些修改。使用广度优先搜索求解最短路径时，经过的点与初始点的路径长度是所有未搜索过的路径中的最小值，因此每次广度优先搜索获得的经过点与初始点的路径长度是非递减的。我们可以记录下所有点与初始点的最短路径与严格次短路径，一旦求得目的点的严格次短路径，我们就可以直接计算到达目的地的第二短时间。\n\n对于路径长度与时间的计算，假设到达节点 $i$ 的时间为 $t_i$，则到达节点 $i+1$ 的时间为：\n\n$$t_{i+1} = t_i + t_\\textit{wait} + \\textit{time}$$\n\n其中 $t_\\textit{wait}$ 的计算如下：\n\n$$\nt_\\textit{wait}=\n\\begin{cases}\n    0, & t_i \\bmod (2 \\times \\textit{change}) \\in [0, ~\\textit{change})\n    \\\\\n    2 \\times \\textit{change} - t_i \\bmod (2 \\times \\textit{change}), & t_i \\bmod (2 \\times \\textit{change}) \\in [\\textit{change}, ~2 \\times \\textit{change})\n\\end{cases}\n$$\n\n**代码**\n\n```Python [sol1-Python3]\nclass Solution:\n    def secondMinimum(self, n: int, edges: List[List[int]], time: int, change: int) -> int:\n        graph = [[] for _ in range(n + 1)]\n        for e in edges:\n            x, y = e[0], e[1]\n            graph[x].append(y)\n            graph[y].append(x)\n\n        # dist[i][0] 表示从 1 到 i 的最短路长度，dist[i][1] 表示从 1 到 i 的严格次短路长度\n        dist = [[float('inf')] * 2 for _ in range(n + 1)]\n        dist[1][0] = 0\n        q = deque([(1, 0)])\n        while dist[n][1] == float('inf'):\n            p = q.popleft()\n            for y in graph[p[0]]:\n                d = p[1] + 1\n                if d < dist[y][0]:\n                    dist[y][0] = d\n                    q.append((y, d))\n                elif dist[y][0] < d < dist[y][1]:\n                    dist[y][1] = d\n                    q.append((y, d))\n\n        ans = 0\n        for _ in range(dist[n][1]):\n            if ans % (change * 2) >= change:\n                ans += change * 2 - ans % (change * 2)\n            ans += time\n        return ans\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int secondMinimum(int n, vector<vector<int>>& edges, int time, int change) {\n        vector<vector<int>> graph(n + 1);\n        for (auto &e : edges) {\n            graph[e[0]].push_back(e[1]);\n            graph[e[1]].push_back(e[0]);\n        }\n\n        // path[i][0] 表示从 1 到 i 的最短路长度，path[i][1] 表示从 1 到 i 的严格次短路长度\n        vector<vector<int>> path(n + 1, vector<int>(2, INT_MAX));\n        path[1][0] = 0;\n        queue<pair<int, int>> q;\n        q.push({1, 0});\n        while (path[n][1] == INT_MAX) {\n            auto [cur, len] = q.front();\n            q.pop();\n            for (auto next : graph[cur]) {\n                if (len + 1 < path[next][0]) {\n                    path[next][0] = len + 1;\n                    q.push({next, len + 1});\n                } else if (len + 1 > path[next][0] && len + 1 < path[next][1]) {\n                    path[next][1] = len + 1;\n                    q.push({next, len + 1});\n                }\n            }\n        }\n\n        int ret = 0;\n        for (int i = 0; i < path[n][1]; i++) {\n            if (ret % (2 * change) >= change) {\n                ret = ret + (2 * change - ret % (2 * change));\n            }\n            ret = ret + time;\n        }\n        return ret;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int secondMinimum(int n, int[][] edges, int time, int change) {\n        List<Integer>[] graph = new List[n + 1];\n        for (int i = 0; i <= n; i++) {\n            graph[i] = new ArrayList<Integer>();\n        }\n        for (int[] edge : edges) {\n            graph[edge[0]].add(edge[1]);\n            graph[edge[1]].add(edge[0]);\n        }\n\n        // path[i][0] 表示从 1 到 i 的最短路长度，path[i][1] 表示从 1 到 i 的严格次短路长度\n        int[][] path = new int[n + 1][2];\n        for (int i = 0; i <= n; i++) {\n            Arrays.fill(path[i], Integer.MAX_VALUE);\n        }\n        path[1][0] = 0;\n        Queue<int[]> queue = new ArrayDeque<int[]>();\n        queue.offer(new int[]{1, 0});\n        while (path[n][1] == Integer.MAX_VALUE) {\n            int[] arr = queue.poll();\n            int cur = arr[0], len = arr[1];\n            for (int next : graph[cur]) {\n                if (len + 1 < path[next][0]) {\n                    path[next][0] = len + 1;\n                    queue.offer(new int[]{next, len + 1});\n                } else if (len + 1 > path[next][0] && len + 1 < path[next][1]) {\n                    path[next][1] = len + 1;\n                    queue.offer(new int[]{next, len + 1});\n                }\n            }\n        }\n\n        int ret = 0;\n        for (int i = 0; i < path[n][1]; i++) {\n            if (ret % (2 * change) >= change) {\n                ret = ret + (2 * change - ret % (2 * change));\n            }\n            ret = ret + time;\n        }\n        return ret;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int SecondMinimum(int n, int[][] edges, int time, int change) {\n        IList<int>[] graph = new IList<int>[n + 1];\n        for (int i = 0; i <= n; i++) {\n            graph[i] = new List<int>();\n        }\n        foreach (int[] edge in edges) {\n            graph[edge[0]].Add(edge[1]);\n            graph[edge[1]].Add(edge[0]);\n        }\n\n        // path[i][0] 表示从 1 到 i 的最短路长度，path[i][1] 表示从 1 到 i 的严格次短路长度\n        int[,] path = new int[n + 1, 2];\n        for (int i = 0; i <= n; i++) {\n            for (int j = 0; j < 2; j++) {\n                path[i, j] = int.MaxValue;\n            }\n        }\n        path[1, 0] = 0;\n        Queue<int[]> queue = new Queue<int[]>();\n        queue.Enqueue(new int[]{1, 0});\n        while (path[n, 1] == int.MaxValue) {\n            int[] arr = queue.Dequeue();\n            int cur = arr[0], len = arr[1];\n            foreach (int next in graph[cur]) {\n                if (len + 1 < path[next, 0]) {\n                    path[next, 0] = len + 1;\n                    queue.Enqueue(new int[]{next, len + 1});\n                } else if (len + 1 > path[next, 0] && len + 1 < path[next, 1]) {\n                    path[next, 1] = len + 1;\n                    queue.Enqueue(new int[]{next, len + 1});\n                }\n            }\n        }\n\n        int ret = 0;\n        for (int i = 0; i < path[n, 1]; i++) {\n            if (ret % (2 * change) >= change) {\n                ret = ret + (2 * change - ret % (2 * change));\n            }\n            ret = ret + time;\n        }\n        return ret;\n    }\n}\n```\n\n```C [sol1-C]\nstruct Node {\n    int val;\n    struct Node *next;\n};\n\nstruct Node *lst_alloc() {\n    struct Node *ret = (struct Node *)malloc(sizeof(struct Node));\n    memset(ret, 0, sizeof(struct Node));\n    return ret;\n}\n\nvoid lst_free(struct Node *lst) {\n    while (lst != NULL) {\n        struct Node *tmp = lst->next;\n        free(lst);\n        lst = tmp;\n    }\n}\n\nvoid lst_push_front(struct Node **plst, int val) {\n    struct Node *node = lst_alloc();\n    node->val = val;\n    node->next = *plst;\n    *plst = node;\n}\n\nstruct Pair {\n    int node;\n    int len;\n};\n\nint secondMinimum(int n, int** edges, int edgesSize, int* edgesColSize, int time, int change) {\n    struct Node **graph = (struct Node **)malloc((n + 1) * sizeof(struct Node *));\n    memset(graph, 0, (n + 1) * sizeof(struct Node *));\n    for (int i = 0; i < edgesSize; i++) {\n        lst_push_front(&graph[edges[i][0]], edges[i][1]);\n        lst_push_front(&graph[edges[i][1]], edges[i][0]);\n    }\n\n    // path[i] 表示从 1 到 i 的最短路长度，path[i+n] 表示从 1 到 i 的严格次短路长度\n    int *path = (int *)malloc((2 * n + 1) * sizeof(int));\n    for (int i = 1; i <= n; i++) {\n        path[i] = INT_MAX;\n        path[i + n] = INT_MAX;\n    }\n\n    struct Pair *queue = (struct Pair *)malloc((2 * n + 1) * sizeof(struct Pair));\n    int front = 0, back = 0;\n\n    path[1] = 0;\n    queue[back].node = 1;\n    queue[back++].len = 0;\n\n    while (path[n + n] == INT_MAX) {\n        int cur = queue[front].node;\n        int len = queue[front++].len;\n        struct Node *next = graph[cur];\n        while (next) {\n            if (len + 1 < path[next->val]) {\n                path[next->val] = len + 1;\n                queue[back].node = next->val;\n                queue[back++].len = len + 1;\n            } else if (len + 1 > path[next->val] && len + 1 < path[next->val + n]) {\n                path[next->val + n] = len + 1;\n                queue[back].node = next->val;\n                queue[back++].len = len + 1;\n            }\n            next = next->next;\n        }\n    }\n\n    int ret = 0;\n    for (int i = 0; i < path[n + n]; i++) {\n        if (ret % (2 * change) >= change) {\n            ret = ret + 2 * change - ret % (2 * change);\n        }\n        ret = ret + time;\n    }\n\n    free(queue);\n    free(path);\n    for (int i = 1; i <= n; i++) {\n        lst_free(graph[i]);\n    }\n    free(graph);\n\n    return ret;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar secondMinimum = function(n, edges, time, change) {\n    const graph = new Array(n + 1).fill(0).map(() => new Array());\n    for (const edge of edges) {\n        graph[edge[0]].push(edge[1]);\n        graph[edge[1]].push(edge[0]);\n    }\n\n    // path[i][0] 表示从 1 到 i 的最短路长度，path[i][1] 表示从 1 到 i 的严格次短路长度\n    const path = new Array(n + 1).fill(0).map(() => new Array(2).fill(Number.MAX_VALUE));\n    path[1][0] = 0;\n    const queue = [];\n    queue.push([1, 0]);\n    while (path[n][1] === Number.MAX_VALUE) {\n        const [cur, len] = queue.shift();\n        for (const next of graph[cur]) {\n            if (len + 1 < path[next][0]) {\n                path[next][0] = len + 1;\n                queue.push([next, len + 1]);\n            } else if (len + 1 > path[next][0] && len + 1 < path[next][1]) {\n                path[next][1] = len + 1;\n                queue.push([next, len + 1]);\n            }\n        }\n    }\n\n    let ret = 0;\n    for (let i = 0; i < path[n][1]; i++) {\n        if (ret % (2 * change) >= change) {\n            ret = ret + (2 * change - ret % (2 * change));\n        }\n        ret = ret + time;\n    }\n    return ret;\n};\n```\n\n```go [sol1-Golang]\nfunc secondMinimum(n int, edges [][]int, time, change int) (ans int) {\n    graph := make([][]int, n+1)\n    for _, e := range edges {\n        x, y := e[0], e[1]\n        graph[x] = append(graph[x], y)\n        graph[y] = append(graph[y], x)\n    }\n\n    // dist[i][0] 表示从 1 到 i 的最短路长度，dist[i][1] 表示从 1 到 i 的严格次短路长度\n    dist := make([][2]int, n+1)\n    dist[1][1] = math.MaxInt32\n    for i := 2; i <= n; i++ {\n        dist[i] = [2]int{math.MaxInt32, math.MaxInt32}\n    }\n    type pair struct{ x, d int }\n    q := []pair{{1, 0}}\n    for dist[n][1] == math.MaxInt32 {\n        p := q[0]\n        q = q[1:]\n        for _, y := range graph[p.x] {\n            d := p.d + 1\n            if d < dist[y][0] {\n                dist[y][0] = d\n                q = append(q, pair{y, d})\n            } else if dist[y][0] < d && d < dist[y][1] {\n                dist[y][1] = d\n                q = append(q, pair{y, d})\n            }\n        }\n    }\n\n    for i := 0; i < dist[n][1]; i++ {\n        if ans%(change*2) >= change {\n            ans += change*2 - ans%(change*2)\n        }\n        ans += time\n    }\n    return\n}\n```\n\n**复杂度分析**\n\n+ 时间复杂度：$O(n+e)$，其中 $n$ 是图的节点数，$e$ 是图的边数。广度优先搜索队列保存过的元素不超过 $2 \\times n$，因此整个循环的次数不超过 $2 \\times n$，即 $O(n)$，而循环内访问边的总次数不会超过 $2 \\times e$，因此访问边需要 $O(e)$。\n\n+ 空间复杂度：$O(n+e)$。建图 $\\textit{graph}$ 需要 $O(e)$ 的空间，保存路径长度 $\\textit{path}$ 需要 $O(n)$ 的空间，广度优先搜索队列的元素个数不超过 $2 \\times n$，需要 $O(n)$ 的空间。",
+            "slateValue": "",
+            "slug": "dao-da-mu-de-di-de-di-er-duan-shi-jian-b-05i0",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "HgGR9k",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 51,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 4,
+                    "reactionType": "CONFUSED"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Breadth-First Search",
+                    "nameTranslated": "广度优先搜索",
+                    "slug": "breadth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Graph",
+                    "nameTranslated": "图",
+                    "slug": "graph",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-01-23T10:09:34.024796+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：广度优先搜索 思路与算法 依题意知，同一路径长度所需要花费的时间是相同的，且路径越长，所需时间越久。因此，如果我们可以求得到达目的地的严格次短路径，就可以直接计算到达目的地的第二短时间。 求解权重相同的最短路径问题可以采用广度优先搜索，这里我们做一些修改。使用广度优先搜索求解最短路径时，经过的点与初始点的路径长",
+            "topic": {
+                "id": 1228283,
+                "subscribed": false,
+                "commentCount": 136,
+                "viewCount": 13689,
+                "post": {
+                    "id": 2576422,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 36,
+            "isEditorsPick": false,
+            "hitCount": 26094,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "second-minimum-time-to-reach-destination",
+                "questionFrontendId": "2045"
+            },
+            "next": {
+                "slug": "bfs-qiu-ci-duan-lu-fu-xiang-xi-zhu-shi-b-igf7",
+                "title": "BFS 求次短路，附详细注释"
+            },
+            "prev": null
+        }
+    }
+}

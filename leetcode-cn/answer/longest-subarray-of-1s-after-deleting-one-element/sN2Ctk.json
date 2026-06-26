@@ -1,0 +1,132 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "sN2Ctk",
+            "title": "删掉一个元素以后全为 1 的最长子数组",
+            "content": "#### 方法一：递推\n\n**思路**\n\n在删掉元素的结果数组中，最长的且只包含 $1$ 的非空子数组存在两种情况：\n\n+ 这个子数组在原数组中本身就是连续的，无论删或者不删其他的元素，它都是最长的且只包含 $1$ 的非空子数组；\n\n+ 这个子数组原本不连续，而是两个连续的全 $1$ 子数组，中间夹着一个 $0$，把这个 $0$ 删掉以后，左右两个子数组组合成一个最长的且只包含 $1$ 的非空子数组。\n\n我们可以枚举被删除的位置，假设下标为 $i$，我们希望知道「以第 $i - 1$ 位结尾的最长连续全 $1$ 子数组」和「以第 $i + 1$ 位开头的最长连续全 $1$ 子数组」的长度分别是多少，这两个量的和就是删除第 $i$ 位之后最长的且只包含 $1$ 的非空子数组的长度。假设我们可以得到这两个量，我们只要枚举所有的 $i$，就可以得到最终的答案。\n\n我们可以这样维护「以第 $i - 1$ 位结尾的最长连续全 $1$ 子数组」和「以第 $i + 1$ 位开头的最长连续全 $1$ 子数组」的长度：\n\n+ 记原数组为 $a$\n\n+ 记 ${\\rm pre}(i)$ 为「以第 $i$ 位结尾的最长连续全 $1$ 子数组」，那么\n$$ \n{\\rm pre}(i) = \\left\\{ \\begin{aligned} \n    & 0 , & a_i = 0 \\\\\n    & {\\rm pre}(i - 1) + 1 , & a_i = 1 \n   \\end{aligned} \\right.\n$$\n\n+ 记 ${\\rm suf}(i)$ 为「以第 $i$ 位开头的最长连续全 $1$ 子数组」，那么\n$$ \n{\\rm suf}(i) = \\left\\{ \\begin{aligned} \n    & 0 , & a_i = 0 \\\\\n    & {\\rm suf}(i + 1) + 1 , & a_i = 1 \n   \\end{aligned} \\right.\n$$\n\n我们可以对原数组做一次正向遍历，预处理出 $\\rm pre$，再做一次反向遍历，预处理出 $\\rm suf$。最后我们枚举所有的元素作为待删除的元素，计算出删除这些元素之后最长的且只包含 $1$ 的非空子数组的长度，比较并取最大值。\n\n代码如下。\n\n**算法**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int longestSubarray(vector<int>& nums) {\n        int n = nums.size();\n\n        vector<int> pre(n), suf(n);\n\n        pre[0] = nums[0];\n        for (int i = 1; i < n; ++i) {\n            pre[i] = nums[i] ? pre[i - 1] + 1 : 0; \n        }\n\n        suf[n - 1] = nums[n - 1];\n        for (int i = n - 2; i >= 0; --i) {\n            suf[i] = nums[i] ? suf[i + 1] + 1 : 0;\n        }\n\n        int ans = 0;\n        for (int i = 0; i < n; ++i) {\n            int preSum = i == 0 ? 0 : pre[i - 1];\n            int sufSum = i == n - 1 ? 0 : suf[i + 1];\n            ans = max(ans, preSum + sufSum);\n        }\n\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int longestSubarray(int[] nums) {\n        int n = nums.length;\n\n        int[] pre = new int[n];\n        int[] suf = new int[n];\n\n        pre[0] = nums[0];\n        for (int i = 1; i < n; ++i) {\n            pre[i] = nums[i] != 0 ? pre[i - 1] + 1 : 0; \n        }\n\n        suf[n - 1] = nums[n - 1];\n        for (int i = n - 2; i >= 0; --i) {\n            suf[i] = nums[i] != 0 ? suf[i + 1] + 1 : 0;\n        }\n\n        int ans = 0;\n        for (int i = 0; i < n; ++i) {\n            int preSum = i == 0 ? 0 : pre[i - 1];\n            int sufSum = i == n - 1 ? 0 : suf[i + 1];\n            ans = Math.max(ans, preSum + sufSum);\n        }\n\n        return ans;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def longestSubarray(self, nums: List[int]) -> int:\n        n = len(nums)\n        pre = [0] * n\n        suf = [0] * n\n        pre[0] = nums[0]\n        for i in range(1, n):\n            pre[i] = pre[i - 1] + 1 if nums[i] else 0\n        suf[-1] = nums[-1]\n        for i in range(n - 2, -1, -1):\n            suf[i] = suf[i + 1] + 1 if nums[i] else 0\n\n        ans = 0\n        for i in range(n):\n            pre_sum = pre[i - 1] if i > 0 else 0\n            suf_sum = suf[i + 1] if i < n - 1 else 0\n            ans = max(ans, pre_sum + suf_sum)\n\n        return ans\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int LongestSubarray(int[] nums) {\n        int n = nums.Length;\n        int[] pre = new int[n];\n        int[] suf = new int[n];\n        pre[0] = nums[0];\n        for (int i = 1; i < n; ++i) {\n            pre[i] = nums[i] != 0 ? pre[i - 1] + 1 : 0;\n        }\n        suf[n - 1] = nums[n - 1];\n        for (int i = n - 2; i >= 0; --i) {\n            suf[i] = nums[i] != 0 ? suf[i + 1] + 1 : 0;\n        }\n        \n        int ans = 0;\n        for (int i = 0; i < n; ++i) {\n            int preSum = i == 0 ? 0 : pre[i - 1];\n            int sufSum = i == n - 1 ? 0 : suf[i + 1];\n            ans = Math.Max(ans, preSum + sufSum);\n        }\n        return ans;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc longestSubarray(nums []int) int {\n    n := len(nums)\n    pre := make([]int, n)\n    suf := make([]int, n)\n    pre[0] = nums[0]\n    for i := 1; i < n; i++ {\n        if nums[i] != 0 {\n            pre[i] = pre[i - 1] + 1\n        } else {\n            pre[i] = 0\n        }\n    }\n    suf[n - 1] = nums[n - 1]\n    for i := n - 2; i >= 0; i-- {\n        if nums[i] != 0 {\n            suf[i] = suf[i + 1] + 1\n        } else {\n            suf[i] = 0\n        }\n    }\n\n    ans := 0\n    for i := 0; i < n; i++ {\n        preSum := 0\n        if i != 0 {\n            preSum = pre[i - 1]\n        }\n        sufSum := 0\n        if i != n - 1 {\n            sufSum = suf[i + 1]\n        }\n        if preSum + sufSum > ans {\n            ans = preSum + sufSum\n        }\n    }\n\n    return ans\n}\n```\n\n```C [sol1-C]\nint longestSubarray(int* nums, int numsSize) {\n    int* pre = (int*)malloc(numsSize * sizeof(int));\n    int* suf = (int*)malloc(numsSize * sizeof(int));\n    pre[0] = nums[0];\n    for (int i = 1; i < numsSize; ++i) {\n        pre[i] = nums[i] ? pre[i - 1] + 1 : 0;\n    }\n    suf[numsSize - 1] = nums[numsSize - 1];\n    for (int i = numsSize - 2; i >= 0; --i) {\n        suf[i] = nums[i] ? suf[i + 1] + 1 : 0;\n    }\n\n    int ans = 0;\n    for (int i = 0; i < numsSize; ++i) {\n        int preSum = i == 0 ? 0 : pre[i - 1];\n        int sufSum = i == numsSize - 1 ? 0 : suf[i + 1];\n        ans = fmax(ans, preSum + sufSum);\n    }\n    free(pre);\n    free(suf);\n\n    return ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar longestSubarray = function(nums) {\n    const n = nums.length;\n    const pre = new Array(n);\n    const suf = new Array(n);\n    pre[0] = nums[0];\n    for (let i = 1; i < n; ++i) {\n        pre[i] = nums[i] ? pre[i - 1] + 1 : 0;\n    }\n    suf[n - 1] = nums[n - 1];\n    for (let i = n - 2; i >= 0; --i) {\n        suf[i] = nums[i] ? suf[i + 1] + 1 : 0;\n    }\n\n    let ans = 0;\n    for (let i = 0; i < n; ++i) {\n        const preSum = i === 0 ? 0 : pre[i - 1];\n        const sufSum = i === n - 1 ? 0 : suf[i + 1];\n        ans = Math.max(ans, preSum + sufSum);\n    }\n\n    return ans;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction longestSubarray(nums: number[]): number {\n    const n = nums.length;\n    const pre: number[] = new Array(n);\n    const suf: number[] = new Array(n);\n    pre[0] = nums[0];\n    for (let i = 1; i < n; ++i) {\n        pre[i] = nums[i] ? pre[i - 1] + 1 : 0;\n    }\n    suf[n - 1] = nums[n - 1];\n    for (let i = n - 2; i >= 0; --i) {\n        suf[i] = nums[i] ? suf[i + 1] + 1 : 0;\n    }\n\n    let ans = 0;\n    for (let i = 0; i < n; ++i) {\n        const preSum = i === 0 ? 0 : pre[i - 1];\n        const sufSum = i === n - 1 ? 0 : suf[i + 1];\n        ans = Math.max(ans, preSum + sufSum);\n    }\n\n    return ans;\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn longest_subarray(nums: Vec<i32>) -> i32 {\n        let n = nums.len();\n        let mut pre = vec![0; n];\n        let mut suf = vec![0; n];\n        pre[0] = nums[0];\n        for i in 1..n {\n            pre[i] = if nums[i] != 0 { pre[i - 1] + 1 } else { 0 };\n        }\n        suf[n - 1] = nums[n - 1];\n        for i in (0..n - 1).rev() {\n            suf[i] = if nums[i] != 0 { suf[i + 1] + 1 } else { 0 };\n        }\n        \n        let mut ans = 0;\n        for i in 0..n {\n            let pre_sum = if i == 0 { 0 } else { pre[i - 1] };\n            let suf_sum = if i == n - 1 { 0 } else { suf[i + 1] };\n            ans = ans.max(pre_sum + suf_sum);\n        }\n\n        ans\n    }\n}\n```\n\n**复杂度**\n\n假设原数组长度为 $n$。\n\n+ 时间复杂度：$O(n)$。这里对原数组进行三次遍历，每次时间代价为 $O(n)$，故渐进时间复杂度为 $O(n)$。\n\n+ 空间复杂度：$O(n)$。这里预处理 $\\rm pre$ 和 $\\rm suf$ 需要两个长度为 $n$ 的数组。\n\n#### 方法二：递推优化\n\n**思路**\n\n我们也可以修改递推的方式使用一次就可以得到答案。\n\n记 $p_0(i)$ 为「以第 $i$ 位结尾的最长连续全 $1$ 子数组」，与方法一中的 ${\\rm pre}(i)$ 相同，递推式为：\n\n$$ \np_0(i) = \\left\\{ \\begin{aligned} \n    & 0 , & a_i = 0 \\\\\n    & p_0(i - 1) + 1 , & a_i = 1 \n   \\end{aligned} \\right.\n$$\n\n同时，我们记 $p_1(i)$ 为「以第 $i$ 位结尾，并且可以在某个位置删除一个 $0$ 的最长连续全 $1$ 子数组」。注意这里我们规定了只删除 $0$，而不是任意一个元素，这是因为只要数组中的元素不全为 $1$，那么删除 $1$ 就没有任何意义。$p_1(i)$ 的递推式为：\n\n$$ \np_1(i) = \\left\\{ \\begin{aligned} \n    & p_0(i - 1) , & a_i = 0 \\\\\n    & p_1(i - 1) + 1 , & a_i = 1 \n   \\end{aligned} \\right.\n$$\n\n当我们遇到 $1$ 时，$p_1(i)$ 的递推式与 $p_0(i)$ 相同；而当我们遇到 $0$ 时，由于 $p_1(i)$ 允许删除一个 $0$，那么我们可以把这个 $0$ 删除，将 $p_0(i-1)$ 的值赋予 $p_1(i)$。\n\n最后的答案即为 $p_1(i)$ 中的最大值。当遇到数组中的元素全为 $1$ 的特殊情况时，我们需要将答案减去 $1$，这是因为在这种情况下，我们不得不删除一个 $1$。注意到递推式中所有的 $p_0(i), p_1(i)$ 只和 $p_0(i-1), p_1(i-1)$ 相关，因此我们可以直接使用两个变量进行递推，减少空间复杂度。\n\n**算法**\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    int longestSubarray(vector<int>& nums) {\n        int ans = 0;\n        int p0 = 0, p1 = 0;\n        for (int num: nums) {\n            if (num == 0) {\n                p1 = p0;\n                p0 = 0;\n            }\n            else {\n                ++p0;\n                ++p1;\n            }\n            ans = max(ans, p1);\n        }\n        if (ans == nums.size()) {\n            --ans;\n        }\n        return ans;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public int longestSubarray(int[] nums) {\n        int ans = 0;\n        int p0 = 0, p1 = 0;\n        for (int num : nums) {\n            if (num == 0) {\n                p1 = p0;\n                p0 = 0;\n            } else {\n                ++p0;\n                ++p1;\n            }\n            ans = Math.max(ans, p1);\n        }\n        if (ans == nums.length) {\n            --ans;\n        }\n        return ans;\n    }\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def longestSubarray(self, nums: List[int]) -> int:\n        ans = 0\n        p0 = p1 = 0\n        for num in nums:\n            if num == 0:\n                p1, p0 = p0, 0\n            else:\n                p0 += 1\n                p1 += 1\n            ans = max(ans, p1)\n        if ans == len(nums):\n            ans -= 1\n        return ans\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int LongestSubarray(int[] nums) {\n        int ans = 0;\n        int p0 = 0, p1 = 0;\n        foreach (int num in nums) {\n            if (num == 0) {\n                p1 = p0;\n                p0 = 0;\n            }\n            else {\n                ++p0;\n                ++p1;\n            }\n            ans = Math.Max(ans, p1);\n        }\n        if (ans == nums.Length) {\n            --ans;\n        }\n        return ans;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc longestSubarray(nums []int) int {\n    ans := 0\n    p0, p1 := 0, 0\n    for _, num := range nums {\n        if num == 0 {\n            p1 = p0\n            p0 = 0\n        } else {\n            p0++\n            p1++\n        }\n        if p1 > ans {\n            ans = p1\n        }\n    }\n    if ans == len(nums) {\n        ans--\n    }\n    return ans\n}\n```\n\n```C [sol1-C]\nint longestSubarray(int* nums, int numsSize) {\n    int ans = 0;\n    int p0 = 0, p1 = 0;\n    for (int i = 0; i < numsSize; i++) {\n        if (nums[i] == 0) {\n            p1 = p0;\n            p0 = 0;\n        } else {\n            ++p0;\n            ++p1;\n        }\n        ans = fmax(ans, p1);\n    }\n    if (ans == numsSize) {\n        --ans;\n    }\n    return ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar longestSubarray = function(nums) {\n    let ans = 0;\n    let p0 = 0, p1 = 0;\n    for (const num of nums) {\n        if (num === 0) {\n            p1 = p0;\n            p0 = 0;\n        } else {\n            p0++;\n            p1++;\n        }\n        ans = Math.max(ans, p1);\n    }\n    if (ans === nums.length) {\n        ans--;\n    }\n    return ans;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction longestSubarray(nums: number[]): number {\n    let ans = 0;\n    let p0 = 0, p1 = 0;\n    for (const num of nums) {\n        if (num === 0) {\n            p1 = p0;\n            p0 = 0;\n        } else {\n            p0++;\n            p1++;\n        }\n        ans = Math.max(ans, p1);\n    }\n    if (ans === nums.length) {\n        ans--;\n    }\n    return ans;\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn longest_subarray(nums: Vec<i32>) -> i32 {\n        let mut ans = 0;\n        let mut p0 = 0;\n        let mut p1 = 0;\n        for &num in nums.iter() {\n            if num == 0 {\n                p1 = p0;\n                p0 = 0;\n            } else {\n                p0 += 1;\n                p1 += 1;\n            }\n            ans = ans.max(p1);\n        }\n        if ans == nums.len() as i32 {\n            ans -= 1;\n        }\n        ans\n    }\n}\n```\n\n**复杂度**\n\n假设原数组长度为 $n$。\n\n+ 时间复杂度：$O(n)$。这里对原数组进行一次遍历，时间代价为 $O(n)$，故渐进时间复杂度为 $O(n)$。\n\n+ 空间复杂度：$O(1)$。",
+            "slateValue": "",
+            "slug": "shan-diao-yi-ge-yuan-su-yi-hou-quan-wei-1-de-zui-c",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "sN2Ctk",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 46,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "递推",
+                    "nameTranslated": "",
+                    "slug": "di-tui",
+                    "tagType": "ADDITIONAL_TOPIC"
+                }
+            ],
+            "createdAt": "2020-07-12T08:46:24.961433+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：递推 思路 在删掉元素的结果数组中，最长的且只包含 [latex] 的非空子数组存在两种情况： 这个子数组在原数组中本身就是连续的，无论删或者不删其他的元素，它都是最长的且只包含 [latex] 的非空子数组； 这个子数组原本不连续，而是两个连续的全 [latex] 子数组，中间夹着一个 [latex]，把这个",
+            "topic": {
+                "id": 327132,
+                "subscribed": false,
+                "commentCount": 150,
+                "viewCount": 6673,
+                "post": {
+                    "id": 815985,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 132,
+            "isEditorsPick": false,
+            "hitCount": 40221,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "longest-subarray-of-1s-after-deleting-one-element",
+                "questionFrontendId": "1493"
+            },
+            "next": {
+                "slug": "hua-dong-chuang-kou-qiu-zui-chang-python-fa07",
+                "title": "滑动窗口（Python/Java/C++/C/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

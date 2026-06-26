@@ -1,0 +1,144 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "lDV2fd",
+            "title": "连接两字母单词得到的最长回文串",
+            "content": "#### 方法一：贪心 + 哈希表\n\n**思路与算法**\n\n根据回文串的定义，回文串可以由奇数或者偶数个 $\\textit{words}$ 中的单词拼接而成，但必须满足以下条件：\n\n- 如果数量为奇数，那么位于**正中间**的单词必须是**回文字符串**（即两个字符相等）；\n\n- 每个单词和反转后对应位置的单词必须**互为反转字符串**。\n\n根据上面的两个条件，我们可以得出构造最长回文串的规则：\n\n- 对于两个字符**不同**的单词，需要尽可能多的**成对选择**它和它的反转字符串（如有）；\n\n- 对于两个字符**相同**的单词，需要尽可能多的**成对选择**该单词；\n\n- 如果按照上述条件挑选后，仍然存在**未被选择**的两个字符相同的单词（此时该字符串只可能有**一个**未被选择，且该字符串一定在 $\\textit{words}$ 中出现**奇数次**），我们可以**任意选择一个**。\n\n因此，我们用哈希表统计 $\\textit{words}$ 中每个单词的出现次数。随后，我们遍历哈希表的所有元素，并用 $\\textit{res}$ 维护可能构成回文字符串的最长长度，同时用初值为 $\\texttt{false}$ 的布尔变量 $\\textit{mid}$ 判断是否存在可以作为中心单词的、出现奇数次的回文单词。在遍历到字符串 $\\textit{word}$ 时，我们首先求出它反转后的字符串 $\\textit{rev}$，此时根据 $\\textit{word}$ 与 $\\textit{rev}$ 的关系，有以下两种情况：\n\n- $\\textit{word} \\not = \\textit{rev}$，此时我们需要统计两者在 $\\textit{words}$ 出现次数的最小值，即为成对选择的最多数目。假设此时对数为 $n$，则其对最长回文字符串贡献的字符长度为 $4n$，我们将 $\\textit{res}$ 加上对应值；\n\n- $\\textit{word} = \\textit{rev}$，此时可以构成的对数为 $\\lfloor m / 2 \\rfloor$，即对最长回文字符串贡献的字符长度为 $4\\lfloor m / 2 \\rfloor$，我们同样将 $\\textit{res}$ 加上对应值。除此以外，我们还需要判断 $\\textit{word}$ 的出现次数 $m$ 是否为奇数：\n\n    - 如果 $m$ 为奇数，则存在可以作为中心单词的剩余回文单词，我们将 $\\textit{mid}$ 置为 $\\texttt{true}$；\n    \n    - 如果 $m$ 为偶数，则不存在可以作为中心单词的剩余回文单词，我们不改变 $\\textit{mid}$ 的取值。\n\n最后，我们根据 $\\textit{mid}$ 的取值，判断最长回文串是否含有中心单词。如果 $\\textit{mid}$ 为 $\\texttt{true}$，则代表含有，我们将 $\\textit{res}$ 加上 $2$；反之则没有，我们不进行任何操作。\n\n最后，我们返回 $\\textit{res}$ 作为最长回文串的长度。\n\n**细节**\n\n在遍历哈希表中的每个单词时，为了避免重复计算成对选择的单词，我们只在 $\\textit{word}$ 的**字典序大于等于** $\\textit{rev}$ 时更新 $\\textit{res}$。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int longestPalindrome(vector<string>& words) {\n        unordered_map<string, int> freq;   // 单词出现次数\n        for (const string& word: words) {\n            ++freq[word];\n        }\n        int res = 0;   // 最长回文串长度\n        bool mid = false;   // 是否含有中心单词\n        for (const auto& [word, cnt]: freq) {\n            // 遍历出现的单词，并更新长度\n            string rev = string(1, word[1]) + word[0];   // 反转后的单词\n            if (word == rev) {\n                if (cnt % 2 == 1) {\n                    mid = true;\n                }\n                res += 2 * (cnt / 2 * 2);\n            }\n            else if (word > rev) {   // 避免重复遍历\n                res += 4 * min(freq[word], freq[rev]);\n            }\n        }\n        if (mid) {\n            // 含有中心单词，更新长度\n            res += 2;\n        }\n        return res;\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def longestPalindrome(self, words: List[str]) -> int:\n        freq = Counter(words)   # 单词出现次数\n        res = 0   # 最长回文串长度\n        mid = False   # 是否含有中心单词\n        for word, cnt in freq.items():\n            # 遍历出现的单词，并更新长度\n            rev = word[1] + word[0]   # 反转后的单词\n            if word == rev:\n                if cnt % 2 == 1:\n                    mid = True\n                res += 2 * (cnt // 2 * 2)\n            elif word > rev:   # 避免重复遍历\n                res += 4 * min(freq[word], freq[rev])\n        if mid:\n            # 含有中心单词，更新长度\n            res += 2\n        return res\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int longestPalindrome(String[] words) {\n        Map<String, Integer> freq = new HashMap<>();\n        for (String word : words) {\n            freq.put(word, freq.getOrDefault(word, 0) + 1);\n        }\n        int res = 0;\n        boolean mid = false;\n        for (Map.Entry<String, Integer> entry : freq.entrySet()) {\n            String word = entry.getKey();\n            int cnt = entry.getValue();\n            String rev = \"\" + word.charAt(1) + word.charAt(0);\n            if (word.equals(rev)) {\n                if (cnt % 2 == 1) {\n                    mid = true;\n                }\n                res += 2 * (cnt / 2 * 2);\n            } else if (word.compareTo(rev) > 0) {\n                res += 4 * Math.min(freq.getOrDefault(word, 0), freq.getOrDefault(rev, 0));\n            }\n        }\n        if (mid) {\n            res += 2;\n        }\n        return res;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int LongestPalindrome(string[] words) {\n        Dictionary<string, int> freq = new Dictionary<string, int>();\n        foreach (string word in words) {\n            freq[word] = freq.GetValueOrDefault(word, 0) + 1;\n        }\n        int res = 0;\n        bool mid = false;\n        foreach (var entry in freq) {\n            string word = entry.Key;\n            int cnt = entry.Value;\n            string rev = \"\" + word[1] + word[0];\n            if (word == rev) {\n                if (cnt % 2 == 1) {\n                    mid = true;\n                }\n                res += 2 * (cnt / 2 * 2);\n            } else if (string.Compare(word, rev) > 0) {\n                res += 4 * Math.Min(freq.GetValueOrDefault(word, 0), freq.GetValueOrDefault(rev, 0));\n            }\n        }\n        if (mid) {\n            res += 2;\n        }\n        return res;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc longestPalindrome(words []string) int {\n    freq := make(map[string]int)\n    for _, word := range words {\n        freq[word]++\n    }\n    res := 0\n    mid := false\n    for word, cnt := range freq {\n        rev := string(word[1]) + string(word[0])\n        if word == rev {\n            if cnt%2 == 1 {\n                mid = true\n            }\n            res += 2 * (cnt / 2 * 2)\n        } else if strings.Compare(word, rev) > 0 {\n            res += 4 * min(freq[word], freq[rev])\n        }\n    }\n    if mid {\n        res += 2\n    }\n    return res\n}\n```\n\n```C [sol1-C]\nint longestPalindrome(char** words, int wordsSize) {\n    // 统计单词频率\n    int freq[26 * 26] = {0}; // 26 * 26 表示所有可能的 2 字母组合\n    for (int i = 0; i < wordsSize; i++) {\n        int idx = (words[i][0] - 'a') * 26 + (words[i][1] - 'a');\n        freq[idx]++;\n    }\n    int res = 0;\n    int mid = 0;\n    for (int i = 0; i < 26 * 26; i++) {\n        if (freq[i] == 0) continue;\n        int rev = (i % 26) * 26 + (i / 26); // 反转单词的索引\n        if (i == rev) {\n            if (freq[i] % 2 == 1) {\n                mid = 1;\n            }\n            res += 2 * (freq[i] / 2 * 2);\n        } else if (i > rev) {\n            res += 4 * fmin(freq[i], freq[rev]);\n        }\n    }\n    if (mid) {\n        res += 2;\n    }\n    return res;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar longestPalindrome = function(words) {\n    const freq = new Map();\n    for (const word of words) {\n        freq.set(word, (freq.get(word) || 0) + 1);\n    }\n    let res = 0;\n    let mid = false;\n    for (const [word, cnt] of freq.entries()) {\n        const rev = word[1] + word[0];\n        if (word === rev) {\n            if (cnt % 2 === 1) {\n                mid = true;\n            }\n            res += 2 * (Math.floor(cnt / 2) * 2);\n        } else if (word > rev) {\n            res += 4 * Math.min(freq.get(word) || 0, freq.get(rev) || 0);\n        }\n    }\n    if (mid) {\n        res += 2;\n    }\n    return res;\n}\n```\n\n```TypeScript [sol1-TypeScript]\nfunction longestPalindrome(words: string[]): number {\n    const freq = new Map<string, number>();\n    for (const word of words) {\n        freq.set(word, (freq.get(word) || 0) + 1);\n    }\n    let res = 0;\n    let mid = false;\n    for (const [word, cnt] of freq.entries()) {\n        const rev = word[1] + word[0];\n        if (word === rev) {\n            if (cnt % 2 === 1) {\n                mid = true;\n            }\n            res += 2 * (Math.floor(cnt / 2) * 2);\n        } else if (word > rev) {\n            res += 4 * Math.min(freq.get(word) || 0, freq.get(rev) || 0);\n        }\n    }\n    if (mid) {\n        res += 2;\n    }\n    return res;\n}\n```\n\n```Rust [sol1-Rust]\nuse std::collections::HashMap;\nuse std::cmp::{min, max};\n\nimpl Solution {\n    pub fn longest_palindrome(words: Vec<String>) -> i32 {\n        let mut freq = HashMap::new();\n        for word in &words {\n            *freq.entry(word.clone()).or_insert(0) += 1;\n        }\n        let mut res = 0;\n        let mut mid = false;\n        for (word, cnt) in &freq {\n            let rev = format!(\"{}{}\", word.chars().nth(1).unwrap(), word.chars().nth(0).unwrap());\n            if *word == rev {\n                if cnt % 2 == 1 {\n                    mid = true;\n                }\n                res += 2 * (cnt / 2 * 2);\n            } else if *word > rev {\n                res += 4 * min(*cnt, *freq.get(&rev).unwrap_or(&0));\n            }\n        }\n        if mid {\n            res += 2;\n        }\n        res\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 为数组 $\\textit{words}$ 的长度。即为遍历统计数组各个元素的出现次数以及遍历哈希表计算最长回文串长度的时间复杂度。\n\n- 空间复杂度：$O(\\min(n, |\\Sigma|^2))$，即为哈希表的空间开销。哈希表的大小受到两方面限制：\n    - 哈希表的大小小于等于两字母单词的数量，即 $O(|\\Sigma|^2)$；\n    - 哈希表的大小小于等于 $\\textit{words}$ 中单词数量，即 $O(n)$。",
+            "slateValue": "",
+            "slug": "lian-jie-liang-zi-mu-dan-ci-de-dao-de-zu-vs99",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "lDV2fd",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 15,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Greedy",
+                    "nameTranslated": "贪心",
+                    "slug": "greedy",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-01-10T01:54:59.603924+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：贪心 + 哈希表 思路与算法 根据回文串的定义，回文串可以由奇数或者偶数个 [latex] 中的单词拼接而成，但必须满足以下条件： 如果数量为奇数，那么位于正中间的单词必须是回文字符串（即两个字符相等）； 每个单词和反转后对应位置的单词必须互为反转字符串。 根据上面的两个条件，我们可以得出构造最长回文串的规则：",
+            "topic": {
+                "id": 1202034,
+                "subscribed": false,
+                "commentCount": 54,
+                "viewCount": 3856,
+                "post": {
+                    "id": 2526395,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 22,
+            "isEditorsPick": false,
+            "hitCount": 13935,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "longest-palindrome-by-concatenating-two-letter-words",
+                "questionFrontendId": "2131"
+            },
+            "next": {
+                "slug": "gou-zao-tan-xin-fen-lei-tao-lun-by-endle-dqr8",
+                "title": "构造题：贪心 + 分类讨论（Python/Java/C++/C/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,84 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "AyWSAP",
+            "title": "使用延迟执行可取消函数",
+            "content": "[TOC]\n\n---\n# 解决方案\n\n## 概述\n\n在这个教程中，我们将学习如何创建一个函数，它可以在指定的延迟之后执行给定的函数，除非在延迟到期之前调用了一个取消函数 `cancelFn`。取消函数应该能够阻止延迟函数的执行。\n\n## 闭包\n\n在 JavaScript 中，闭包是函数和函数被声明时的词法环境的组合。词法环境包括在闭包创建时可用的变量、函数和作用域。\n\n**工作原理：**\n\n当一个函数定义在另一个函数内部时，就创建了一个闭包。内部函数保留对外部函数的变量和作用域的引用。\n当外部函数执行完成并返回时，闭包仍然保持其捕获的变量和作用域链的引用。\n闭包允许内部函数访问和操作其外部函数的变量，即使外部函数的执行已经完成。\n这种行为是可能的，因为闭包保持对其外部函数的变量和作用域链的引用，防止它们被垃圾回收。\n\n在问题的上下文中，闭包被用于保持对定时器变量的引用，即使创建闭包的函数已经返回。这使得取消函数能够访问并修改定时器变量，有效地取消了延迟函数的执行。\n\n## setTimeout\n\n`setTimeout` 是 JavaScript 中的一个内置函数，它允许您在指定的延迟之后安排一个函数的执行。它可以接受无限数量的参数，但通常前两个参数总是要执行的函数和以毫秒为单位的延迟时间。\n\n**注意：** `setTimeout` 实际上是一个可变参数函数，可以接受无限数量的参数。\n\n以下是如何使用 `setTimeout` 的示例：\n\n```javascript\nfunction delayedFunction() {\n  console.log(\"延迟函数执行！\");\n}\n\nconst delay = 2000;\n\nconst timerId = setTimeout(delayedFunction, delay);\n\n// 在延迟到期之前取消执行：\nclearTimeout(timerId);\n```\n\n**工作原理：**\n\n- 当调用 `setTimeout` 时，它启动一个计时器，并设置它在指定的延迟后运行。\n- 在延迟到期后，JavaScript事件循环将指定的函数放入执行队列。\n- 一旦调用堆栈为空，函数就会被执行，其中的任何相关代码都会运行。\n- 如果在延迟到期之前取消了 `setTimeout` 函数，计划的函数将不会被执行。\n\n在问题的上下文中，`setTimeout` 用于在可取消函数中安排延迟函数（`fn`）的执行，延迟时间为`t`。\n\n总的来说，闭包和 `setTimeout` 在这个问题中共同工作，以创建一个可取消的延迟函数执行机制。闭包保持对 `timeoutId` 变量的引用，而 `setTimeout` 在指定的延迟后安排函数的执行。\n\n在该问题的上下文中，在 `cancellable` 函数内使用 `setTimeout` 来调度在指定的延迟(`t`)之后延迟函数(`fn`)的执行。\n\n## 方法 1：使用闭包\n\n**思路：**\n\n我们可以使用 `setTimeout` 函数安排在指定的延迟 `t` 之后执行延迟函数 `fn`。然后，我们使用 `apply` 方法将参数从 `args` 数组传递给 `fn`。\n\n此外，通过将 `setTimeout` 返回的 `timeoutId` 存储在 `timeoutId` 变量中，我们可以通过使用 `timeoutId` 来调用 `clearTimeout` 来取消延迟函数的执行。\n\n**算法：**\n\n- 在 `cancellable` 函数内部，我们使用 `setTimeout` 安排延迟时间 `t` 后执行 `fn`。使用 `apply` 方法将参数数组 `args` 作为参数传递给 `fn`。另外，`setTimeout` 函数返回一个计时器 ID，它存储在 `timeoutId` 变量中。\n- 接下来，定义一个 `cancelFn` 函数，它使用 `timeoutId` 调用 `clearTimeout` 以取消延迟函数的执行。\n- 最后，从 `cancelFn` 函数中返回 cancellable 函数。\n\n**实现：**\n\n```javascript []\n/**\n * @param {Function} fn\n * @param {Array} args\n * @param {number} t\n * @return {Function}\n */\nvar cancellable = function(fn, args, t) {\n  const timeoutId = setTimeout(function() {\n    fn.apply(null, args);\n  }, t);\n\n  const cancelFn = function() {\n    clearTimeout(timeoutId);\n  };\n\n  return cancelFn;\n};\n```\n\n```typescript []\nfunction cancellable(fn: Function, args: any[], t: number): Function {\n  const timeoutId = setTimeout(() => {\n    fn.apply(null, args);\n  }, t);\n\n  const cancelFn: Function = () => {\n    clearTimeout(timeoutId);\n  };\n\n  return cancelFn;\n}\n```\n\n**复杂度分析：**\n\n时间复杂度：$O(1)$\n空间复杂度：$O(1)$\n\n虽然可取消函数本身的时间和空间复杂度是 $O(1)$，但需要注意，作为参数传递的函数 `fn` 的时间复杂度可能会有所不同。\n\n## 方法 2：使用布尔标志\n\n**思路：**\n\n我们可以使用一个布尔变量来决定是否允许调用函数 `fn`。\n\n**算法：**\n\n- 将 `isCancelled` 初始化为 `false` 的布尔变量以跟踪取消状态。\n- 使用 `setTimeout()` 安排在 `t` 毫秒后执行 `fn`，但仅在 `isCancelled` 为 `false` 时。\n- 返回一个函数，该函数将 `isCancelled` 的值更改为 `true`，从而取消 `fn` 的执行。如果在延迟到期之前调用该取消函数，它确保如果在延迟到期之前调用它，`fn` 将永远不会被调用。\n> 虽然此方法确实防止了在调用取消函数后执行 `fn`，但值得注意的是，当延迟结束时，`setTimeout` 回调仍然会执行。这意味着即使取消，函数仍然会在 JavaScript 事件循环队列中占用一个位置。因此，从计算效率的角度来看，这种方法可能略逊色于方法 1，后者完全取消了 `setTimeout`。\n\n**实现：**\n\n```javascript []\n/**\n * @param {Function} fn\n * @param {Array} args\n * @param {number} t\n * @return {Function}\n */\nvar cancellable = function(fn, args, t) {\n  let isCancelled = false;\n  setTimeout(() => {\n      if(!isCancelled)\n          fn(...args);\n  }, t);\n\n  return () => {\n    isCancelled = true;\n  };\n};\n```\n```typescript []\nfunction cancellable(fn: Function, args: any[], t: number): Function {\n  let isCancelled: boolean = false;\n  \n  setTimeout(() => {\n    if (!isCancelled) {\n      fn(...args);\n    }\n  }, t);\n\n  return () => {\n    isCancelled = true;\n  };\n}\n```\n\n**复杂度分析：**\n\n时间复杂度：$O(1)$\n空间复杂度：$O(1)$\n\n虽然可取消函数本身的时间和空间复杂度是 $O(1)$，但需要注意，作为参数传递的函数 `fn` 的时间复杂度可能会有所不同。\n\n## 面试提示\n\n1. 你能解释在 `setTimeout` 回调中使用的 `apply` 方法的作用吗？\n\n   `apply` 方法用于使用提供的 `args` 数组作为参数调用延迟执行的函数 `fn`。它允许我们将 `args` 数组中的参数动态传递给 `fn`，以确保在最终执行 `fn` 时传递正确的参数。此外，使用 `null` 作为第一个参数的 `apply` 允许我们在不指定特定上下文（`this` 值）的情况下调用函数。由于延迟执行的函数不依赖于特定的上下文，因此使用 `null` 是合适的。\n\n2. 如何处理延迟函数需要特定上下文（`this` 值）的执行情况？\n\n   在延迟函数依赖特定上下文（`this` 值）的情况下，可以使用 `bind` 方法将所需的上下文绑定到 `fn`。这会创建一个具有指定上下文的新函数，然后您可以将绑定的函数传递给 `setTimeout` 以进行延迟执行。\n\n3. 是否可以修改实现以支持在执行过程中动态更改延迟？\n\n   是的，可以改进可取消函数的实现以支持动态更改延迟。您可以修改实现以存储计时器ID，并在设置新延迟之前使用 `clearTimeout` 来清除计时器。这样，您可以动态更改延迟。\n\n4. 有哪些适用于带延迟的可取消函数的潜在用例？\n\n   具有延迟的可取消函数在需要在一定延迟后执行某个操作的情况下非常有用，但在可能需要在执行前取消该操作的情况下。例如，在用户界面中的场景中，用户执行某个动作后，可能需要在一定延迟后显示通知。但是，如果用户执行了使通知无关紧要的不同动作，可以取消通知的计划显示。\n\n   另一个场景可能是在游戏环境中，需要在延迟后执行某个动作，但是中间的用户动作或游戏事件可能需要取消计划的动作。需要注意的是，这些用例与防抖或节流的情况不同，后者旨在控制函数调用的速率，而不是安排和取消可能的操作。\n\n5. 使用 `setTimeout` 来安排延迟执行的函数的执行的潜在缺点或限制是什么？\n\n   一个限制是 `setTimeout` 不是精确的，可能受到系统负载等其他因素的影响。如果需要精确的定时，一些情况下会使用替代方法，如 Web Workers 或 Web 动画 API，但它们用途不同，不能总是直接替代 `setTimeout`。\n\n   使用 `performance.now()` 方法可以实现更精确的时间控制，它提供了子毫秒分辨率的时间戳测量，但仍然不能保证函数会在指定的延迟后运行，因为 JavaScript 是单线程的。\n\n6. 是否可以修改可取消函数以支持在执行过程中可以动态更改的延迟？\n   \n   是的，可以增强可取消功能以支持延迟的动态变化。您可以修改实现以存储超时 ID，并在使用更新的延迟设置新的超时之前使用 `clearTimeout`。\n\n7. 你能解释一下“防抖”的概念吗？它与可取消的延迟功能有何关系？\n   \n   防抖是一种编程实践，用于确保耗时的任务不会如此频繁地触发，这在处理用户输入事件等可能频繁而快速触发事件的情况下尤其有用。防抖的核心概念是在执行函数之前设置延迟，然后在延迟到期之前每次请求函数时重置该延迟。\n\n   虽然带有延迟的可取消函数与防抖有相似之处，因为两者都涉及可以取消的延迟函数执行，但它们并没有内在联系。可取消函数更适合动作或计算在执行前就被废弃的情况。另一方面，防抖通常不涉及显式创建可取消函数；相反，它直接在函数内清除并重置计时器。",
+            "slateValue": "",
+            "slug": "shi-yong-yan-chi-zhi-xing-ke-qu-xiao-han-lslc",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "AyWSAP",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 3,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-10-31T03:27:07.895910+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "解决方案 概述 在这个教程中，我们将学习如何创建一个函数，它可以在指定的延迟之后执行给定的函数，除非在延迟到期之前调用了一个取消函数 cancelFn。取消函数应该能够阻止延迟函数的执行。 闭包 在 JavaScript 中，闭包是函数和函数被声明时的词法环境的组合。词法环境包括在闭包创建时可用的变量、函数和作用域。 ",
+            "topic": {
+                "id": 2506143,
+                "subscribed": false,
+                "commentCount": 9,
+                "viewCount": 44,
+                "post": {
+                    "id": 4669052,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 17,
+            "isEditorsPick": false,
+            "hitCount": 3792,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "timeout-cancellation",
+                "questionFrontendId": "2715"
+            },
+            "next": {
+                "slug": "tong-guo-bi-bao-diao-yong-lai-qu-xiao-di-yozq",
+                "title": "通过闭包调用来取消定时器"
+            },
+            "prev": null
+        }
+    }
+}

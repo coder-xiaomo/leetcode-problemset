@@ -1,0 +1,84 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "TEMQyn",
+            "title": "两个 Promise 对象相加",
+            "content": "[TOC]\n\n---\n# 解决方案\n\n## 概述\n\n\n在 JavaScript 中，Promise 用于表示异步操作的最终完成（或失败），并允许我们在结果可用时处理这些操作。它们是以更有组织和结构的方式处理异步代码的一种方法。Promise 有三种状态：挂起（pending）、已完成（fulfilled）或拒绝（rejected）。\n\n- **挂起**：Promise 的初始状态，表示异步操作仍在进行中，尚未完成。\n- **已完成**：Promise 的状态，表示异步操作成功完成，意味着 promises的结果或值可用。\n- **拒绝**：Promise 的状态，表示异步操作遇到错误或失败， promises的结果无法获得。Promise 提供了像 `.then()` 和 `.catch()` 这样的方法来处理已解析的值或错误。\n\n通常，使用 Promise 时会遇到 `async` 和 `await` 关键字。让我们也讨论一下这些关键字：`async` 和 `await` 关键字用于简化 Promise 的使用，使异步代码看起来更像同步代码。\n\n- **async**：用于定义异步函数，确保函数始终返回一个 Promise。当在函数声明或函数表达式前使用 `async` 关键字时，它变成一个异步函数。请注意，从异步函数返回的非 Promise 对象会自动包装成 Promise 对象。\n\n- **await**：用于暂停异步函数的执行，直到 Promise 解析。它只能在异步函数内部使用。当在 Promise 之前使用 `await` 时，它等待 Promise 解析或拒绝。如果已解析，它继续执行下一行代码；如果等待的 Promise 被拒绝，将抛出异常。使用 `await` 允许您以更顺序且可读的方式编写异步代码，而无需使用 `.then()` 显式链接 Promise。\n\n当需要同时执行多个异步操作并等待它们全部完成后，通常会使用 `Promise.all()` 方法。让我们深入了解它。\n\n`Promise.all()` 方法用于同时处理多个 Promise。它以一个 Promise 数组（或可迭代对象）作为输入，并返回一个新的 Promise，在输入数组中的所有 Promise 都已解析时才会解析。\n\n请注意：`Promise.all()` 不仅接受 Promise 作为输入，还可以接受只包含数字的数组，它将解析这些数字，例如：\n\n```javascript\nawait Promise.all([1, 2, Promise.resolve(3), Promise.resolve(4)]).then((value) => {\n  console.log(value)\n}, (error) => {\n  console.log(error)\n})\n```\n\n`Promise.all()`方法等待所有Promise解决（无论是fulfilled还是 rejected）。\n\n如果所有 Promise 都被解决，返回的 Promise 也会被解决，而输入  Promise 的已解析值将按照输入 Promise 的顺序作为数组可用。\n\n如果任何 Promise 被拒绝，返回的 Promise 将被拒绝，并将使用第一个被拒绝的Promise的原因。例如，下面的代码将解析为 'error'，尽管其他 3 个项目都已正确解析。\n\n```javascript\nawait Promise.all([1, 2, Promise.resolve(3), Promise.reject('error')]).then(\nvalue => {\n  console.log(value);\n},\nerror => {\n  console.log(error);\n}\n);\n```\n\n使用 `Promise.all()` 允许有效并行执行多个异步操作，并在它们全部可用后处理合并的结果。\n\n例如，当应用程序需要同时从多个 API 获取数据时，可以使用 `Promise.all()` 来并行启动所有请求并等待所有响应。一旦所有 Promise 都被解决，应用程序可以处理合并数据。\n\n## 方法 1：使用 Promise.all\n\n### 思路：\n\n我们可以使用 `Promise.all()` 创建一个新的 Promise，该 Promise 在 `promise1` 和 `promise2` 都被解决时解决。\n\n### 算法：\n\n在函数内部，我们使用 `Promise.all()` 创建一个新的 Promise ，该 Promise 在 `promise1` 和 `promise2` 都被解决时解决。`Promise.all()` 将一个包含 Promises 的数组作为其参数。\n\n使用 `Promise.all()` 时，我们将使用 `await` 关键字暂停函数的执行，直到由 `Promise.all()` 返回的 Promise 被解决。它等待 `promise1` 和 `promise2` 都被满足。\n\n一旦由 `Promise.all()` 返回的 Promise 被满足，`promise1` 和 `promise2` 的已解析值将以数组的形式可用。使用解构赋值，分别将这些值分配给 `res1` 和 `res2` 变量。\n\n最后，我们返回 `res1` 和 `res2` 的和。也可以将整个逻辑放在 `try{}` 和 `catch{}` 块中。\n\n### 实现：\n\n```javascript []\n/**\n * @param {Promise} promise1\n * @param {Promise} promise2\n * @return {Promise}\n */\nvar addTwoPromises = async function(promise1, promise2) {\n  try {\n    const [res1, res2] = await Promise.all([promise1, promise2]);\n    return res1 + res2;\n  } catch (error) {\n    console.error(error);\n    throw error; // 重新抛出错误以保持将错误传播给调用者的行为\n  }\n};\n```\n```typescript []\nasync function addTwoPromises(promise1: Promise<number>, promise2: Promise<number>): Promise<number> {\n  try {\n    const [res1, res2] = await Promise.all([promise1, promise2]);\n    return res1 + res2;\n  } catch (error) {\n    console.error(error);\n    throw error; // 重新抛出错误以保持将错误传播给调用者的行为\n  }\n}\n```\n\n### 复杂性分析：\n\n时间复杂度取决于解析时间较长的 Promise，因为我们必须等待两个 Promise 都被解决后才能返回答案。此外，除了结果之外，我们不需要额外的空间，结果不计入空间复杂度。\n\n时间复杂度：$O(max(promise1, promise2))$\n\n空间复杂度：$O(1)$\n\n## 方法 2：仅使用 `await`\n\n### 思路：\n\n`addTwoPromises` 函数被定义为一个异步函数，允许我们在其中使用 `await` 。这种方法的直观思想是等待 `promise1` 和 `promise2` 的解析，然后计算它们的已解析值，即我们可以直接在 Promise 上使用 `await`，然后返回和。\n\n请注意：直接在 `promise1` 和 `promise2` 上使用 `await` 不如使用 `Promise.all()` 并行，因为一个接一个地等待 Promise 将导致总解析时间较长，与使用 `Promise.all()` 并行等待相比。\n\n### 算法：\n\n`addTwoPromises` 函数被定义为异步函数，使用 `async` 关键字。这使我们可以在函数内部使用 `await`，以暂停执行，直到 Promises 被解决。\n\n在函数内部，直接在 `promise1` 和 `promise2` 上使用 `await` 关键字。这将暂停函数的执行，直到 Promises 被解决并且值可用。\n\n一旦 Promises 被解决，我们获得它们各自的已解析值。然后，使用 `+` 运算符将它们的已解析值相加。\n\n最后，我们可以返回一个新的 Promise，该 Promise 将以 `promise1` 和 `promise2` 的已解析值之和解决。\n\n### 实现：\n\n```javascript []\n/**\n * @param {Promise} promise1\n * @param {Promise} promise2\n * @return {Promise}\n */\nvar addTwoPromises = async function(promise1, promise2) {\n  try {\n    return await promise1 + await promise2;\n  } catch (error) {\n    console.error(error);\n    throw error; // 重新抛出错误以保持将错误传播给调用者的行为\n  }\n};\n```\n```typescript []\nasync function addTwoPromises(promise1: Promise<number>, promise2: Promise<number>): Promise<number> {\n  try {\n    return await promise1 + await promise2;\n  } catch (error) {\n    console.error(error);\n    throw error; // 重新抛出错误以保持将错误传播给调用者的行为\n  }\n}\n```\n\n### 复杂性分析：\n\n时间复杂度：$O(max(promise1, promise2))$\n\n空间复杂度：$O(1)$\n\n## 方法 3：使用 Promise.then()\n\n### 思路：\n\n我们可以使用 `.then()` 方法链接 Promise，并执行它们的已解析值之和，即首先我们可以解决 `promise1`，然后解决 `promise2`。\n\n### 算法：\n\n我们在 `promise1` 上使用 `.then()` 方法。这允许我们在 `promise1` 满足后链接 `promise2` 的解决。\n\n在 `.then()` 方法的回调函数中，`promise1` 的已解析值表示为 `val`。我们将在 `promise2` 上使用另一个 `.then()` 方法来访问其已解析值，表示为 `val2`。\n\n在第二个 `.then()` 回调中，使用 `+` 运算符将 `val` 和 `val2` 的值相加。如果任何 Promise 被拒绝，可以使用 `.catch()` 进行错误处理。\n\n最后，我们返回加法的结果，由于使用 `async` 关键字，它会隐式包装在 Promise 中。\n\n### 实现：\n\n```javascript []\n/**\n * @param {Promise} promise1\n * @param {Promise} promise2\n * @return {Promise}\n */\nvar addTwoPromises = async function(promise1, promise2) {\n  try {\n    return promise1.then((val) => promise2.then((val2) => val + val2))\n  } catch (error) {\n    console.error(error);\n    throw error; // 重新抛出错误以保持将错误传播给调用者的行为\n  }\n};\n```\n\n```typescript []\nasync function addTwoPromises(promise1: Promise<number>, promise2: Promise<number>): Promise<number> {\n  try {\n    return promise1.then((val) => promise2.then((val2) => val + val2))\n  } catch (error) {\n    console.error(error);\n    throw error; // 重新抛出错误以保持将错误传播给调用者的行为\n  }\n}\n```\n\n### 复杂性分析：\n\n时间复杂度：$O(max(promise1, promise2))$\n\n空间复杂度：$O(1)$\n\n## 方法 4：计算 Promises\n\n### 思路：\n\n我们可以并行处理 `promise1` 和 `promise2` 的解决，并累积结果，即我们可以使用计数器来跟踪已解决的 Promise 数量，一旦所有 Promise 都已解决，它将使用累积的结果解决新的 Promise。\n\n### 算法：\n\n创建两个变量，`count` 和 `res`，用于跟踪已解决的 Promise 数量和累积的结果。\n\n使用 `forEach` 循环来迭代包含 `promise1` 和 `promise2` 的数组。\n\n对于循环中的每个 Promise，定义一个异步函数来处理解决。\n\n在异步函数内部，使用 `await` 关键字来暂停执行，直到 Promise 解决。\n\n如果 Promise 成功解决，将已解析的值存储在 `subRes` 中。然后，通过将 `subRes` 添加到 `res` 中，更新 `res` 变量，并将 `count` 变量减 1。\n\n在更新变量后，我们检查 `count` 变量是否等于 0，表示所有 Promise 都已解决。如果 `count` 等于 0，这意味着所有 Promise 都已解决，新的 Promise 将使用累积的结果（`res`）解决，使用 `resolve` 函数。\n\n如果任何 Promise 被拒绝，会捕获错误，并立即通过调用 `reject` 函数拒绝新的 Promise。\n\n### 实现：\n\n```javascript []\n/**\n * @param {Promise} promise1\n * @param {Promise} promise2\n * @return {Promise}\n */\nvar addTwoPromises = async function (promise1, promise2) {\n  return new Promise((resolve, reject) => {\n\n\n    let count = 2;\n    let res = 0; \n\n    [promise1, promise2].forEach(async promise => {\n      try {\n        const subRes = await promise;\n        res += subRes;\n        count--;\n\n        if (count === 0) {\n          resolve(res);\n        }\n      } catch (err) {\n        reject(err);\n      }\n    });\n  });\n};\n```\n```typescript []\nasync function addTwoPromises(promise1: Promise<number>, promise2: Promise<number>): Promise<number> {\n  return new Promise<number>((resolve, reject) => {\n    let count = 2;\n    let res = 0;\n\n    [promise1, promise2].forEach(async (promise) => {\n      try {\n        const subRes = await promise;\n        res += subRes;\n        count--;\n\n        if (count === 0) {\n          resolve(res);\n        }\n      } catch (err) {\n        reject(err);\n      }\n    });\n  });\n}\n```\n\n### 复杂性分析：\n\n时间复杂度：$O(promise1 + promise2)$\n\n空间复杂度：$O(1)$\n\n## 面试小贴士：\n\n1. `Promise.all()` 方法的作用是什么？\n\n   `Promise.all()` 方法用于同时处理多个 Promise。它以一个 Promise 数组作为输入，并返回一个新的 Promise。这个新的 Promise 在输入数组中的所有 Promise 都已解决时才会解决。已解析的 Promise 的值在 `.then()` 块中作为数组按照输入 Promise 的顺序可用。\n\n2. 如何处理 Promise 中的错误？\n\n   可以使用 `try {} catch(err) {} finally` 块来处理 Promise 链中的错误。\n\n3. 同步操作和异步操作之间有什么区别？\n\n   同步操作会阻止程序的执行，直到操作完成。它们以顺序方式一个接一个地执行。而异步操作不会阻止程序的执行，它们允许程序在等待操作完成时继续执行其他任务。异步操作通常用于可能需要较长时间才能完成的任务，例如网络请求或文件操作，以避免阻塞主执行线程。\n\n4. JavaScript 中回调函数和 Promise 之间有什么区别？什么时候更喜欢使用 Promise 而不是回调？另外，回调地狱是什么，如何缓解它？\n\n   回调是 JavaScript 中处理异步操作的传统方式，它们是作为参数传递给其他函数的函数，并在异步操作完成时调用。Promise 是表示异步操作最终完成（或失败）的对象。与回调相比，Promise 提供了更结构化和可读的代码。通常，当处理复杂的异步操作、错误处理和代码可读性时，更倾向于使用 Promise 而不是回调。\n\n   回调地狱是指代码结构变得嵌套层次很深，每个回调都作为另一个回调的参数传递。这种嵌套会很快变得复杂，使代码难以理解，导致问题，如代码重复、错误处理问题以及难以维护和调试的困难。为了缓解回调地狱，可以使用几种方法，例如使用命名函数、使用控制流库（如 async.js 或 Promises）或使用现代 JavaScript 特性如 async/await。这些方法有助于扁平化代码结构，使其更可读和可维护，避免过多的回调嵌套。\n\n5. 用 promises 解释 `.catch()` 方法的用途。它与 `.then()` 方法有什么不同？\n   \n   promises 中的 `.catch()` 方法用于错误处理。它允许您指定一个回调函数，当 promise 在执行过程中被拒绝或遇到错误时将调用该回调函数。`.then()` 用于处理完成的 promises 和成功的结果。\n\n6. `Promise.resolve` 和 `Promise.reject()` 的区别是什么？\n\n  **Promise.resolve**：它返回用给定值解析的 promises。如果提供的值已经是 Promise，则按原样返回。如果该值不是 Promise，`Promise.Resolve()` 将创建一个新的 Promise，该新 Promise 将立即使用提供的值进行解析。\n\n  **Promise.reject()**：它返回因给定原因或错误而被拒绝的 promises。所提供的原因或错误被视为拒绝 promises 的原因。\n  \n  举个例子：\n  ```javascript\n  const rejectedPromise = Promise.reject(new Error('Something went wrong'));\n  ```\n\n7. 通常，当您想要创建一个立即用特定值解析的 promises 时，通常使用 `Promise.Resolve()`，而当您想要创建一个由于特定错误或原因而立即拒绝的 promises 时，则使用 `Promise.reject()`。",
+            "slateValue": "",
+            "slug": "shi-yong-promise-chu-li-yi-bu-cao-zuo-by-m5ob",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "TEMQyn",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 9,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-10-31T03:27:09.084046+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "解决方案 概述 在 JavaScript 中，Promise 用于表示异步操作的最终完成（或失败），并允许我们在结果可用时处理这些操作。它们是以更有组织和结构的方式处理异步代码的一种方法。Promise 有三种状态：挂起（pending）、已完成（fulfilled）或拒绝（rejected）。 挂起：Promise ",
+            "topic": {
+                "id": 2506145,
+                "subscribed": false,
+                "commentCount": 5,
+                "viewCount": 136,
+                "post": {
+                    "id": 4669054,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 26,
+            "isEditorsPick": false,
+            "hitCount": 5187,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "add-two-promises",
+                "questionFrontendId": "2723"
+            },
+            "next": {
+                "slug": "ji-chong-jian-dan-de-xie-fa-by-adela2012-aa4u",
+                "title": "几种写法"
+            },
+            "prev": null
+        }
+    }
+}

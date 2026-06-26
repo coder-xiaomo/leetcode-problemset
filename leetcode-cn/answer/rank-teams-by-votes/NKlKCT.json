@@ -1,0 +1,144 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "NKlKCT",
+            "title": "通过投票对团队排名",
+            "content": "#### 方法一：排序\n\n设参与排名的人数为 $n$（即数组 $\\textit{votes}$ 中任一字符串的长度），我们可以用一个哈希映射（HashMap）存储每一个人的排名情况。对于哈希映射中的每个键值对，键为一个在数组 $\\textit{votes}$ 中出现的大写英文字母，表示一个参与排名的人；值为一个长度为 $n$ 的数组 $\\textit{rank}$，表示这个人的排名情况，其中 $\\textit{rank}[i]$ 表示这个人排名为 $i$ 的次数。\n\n我们遍历数组 $\\textit{votes}$ 中的每一个字符串并进行统计，就可以得到上述存储了每一个人排名情况的哈希映射。随后我们将这些键值对取出，并放入数组中进行排序。记每一个键值对为 $(\\textit{vid}, \\textit{rank})$，根据题目要求，我们需要以 $\\textit{rank}$ 为第一关键字进行降序排序。在大部分语言中，我们是可以对变长的数组（例如 `C++` 中的 `vector`，`Python` 中的 `list`）直接进行比较排序的，比较的方式是从首部的元素开始，依次比较两个数组同一位置的元素的大小，若相等则继续比较下一位置，直至数组的尾部（此时长度较长的数组较大，若长度相同，则这两个数组同样大）。因此第一关键字可以直接进行比较。在 $\\textit{rank}$ 相等的情况下，我们需要以 $\\textit{vid}$ 为第二关键字进行升序排序。在 `C++` 中，我们可以自定义比较函数，完成多关键字的排序，而在 `Python` 中进行多关键字排序时，不同关键字的排序方式必须保持一致。我们可以将 $\\textit{vid}$ 从字符转换为对应的 `ASCII` 码，并用其相反数作为第二关键字，这样就与第一关键字保持一致，即都进行降序排序。\n\n在排序完成后，我们将每一个键值对中的键 $\\textit{vid}$ 依次加入到答案字符串 $\\textit{ans}$ 中，即可得到最终的答案。\n\n```Java [sol1-Java]\nclass Solution {\n    public String rankTeams(String[] votes) {\n        int n = votes.length;\n        // 初始化哈希映射\n        Map<Character, int[]> ranking = new HashMap<>();\n        for (char vid : votes[0].toCharArray()) {\n            ranking.put(vid, new int[votes[0].length()]);\n        }\n        // 遍历统计\n        for (String vote : votes) {\n            for (int i = 0; i < vote.length(); ++i) {\n                ++ranking.get(vote.charAt(i))[i];\n            }\n        }\n\n        // 取出所有的键值对\n        List<Map.Entry<Character, int[]>> result = new ArrayList<>(ranking.entrySet());\n        // 排序\n        result.sort((a, b) -> {\n            for (int i = 0; i < a.getValue().length; i++) {\n                if (a.getValue()[i] != b.getValue()[i]) {\n                    return b.getValue()[i] - a.getValue()[i];\n                }\n            }\n            return a.getKey() - b.getKey();\n        });\n\n        StringBuilder ans = new StringBuilder();\n        for (Map.Entry<Character, int[]> entry : result) {\n            ans.append(entry.getKey());\n        }\n        return ans.toString();\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public string RankTeams(string[] votes) {\n        int n = votes.Length;\n        // 初始化哈希映射\n        Dictionary<char, int[]> ranking = new Dictionary<char, int[]>();\n        foreach (char vid in votes[0]) {\n            ranking[vid] = new int[votes[0].Length];\n        }\n        // 遍历统计\n        foreach (string vote in votes) {\n            for (int i = 0; i < vote.Length; ++i) {\n                ++ranking[vote[i]][i];\n            }\n        }\n        // 取出所有的键值对\n        var result = ranking.ToList();\n        // 排序\n        result.Sort((a, b) => {\n            for (int i = 0; i < a.Value.Length; ++i) {\n                if (a.Value[i] != b.Value[i]) {\n                    return b.Value[i].CompareTo(a.Value[i]);\n                }\n            }\n            return a.Key.CompareTo(b.Key);\n        });\n        return string.Concat(result.Select(r => r.Key));\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    string rankTeams(vector<string>& votes) {\n        int n = votes.size();\n        // 初始化哈希映射\n        unordered_map<char, vector<int>> ranking;\n        for (char vid: votes[0]) {\n            ranking[vid].resize(votes[0].size());\n        }\n        // 遍历统计\n        for (const string& vote: votes) {\n            for (int i = 0; i < vote.size(); ++i) {\n                ++ranking[vote[i]][i];\n            }\n        }\n        \n        // 取出所有的键值对\n        using PCV = pair<char, vector<int>>;\n        vector<PCV> result(ranking.begin(), ranking.end());\n        // 排序\n        sort(result.begin(), result.end(), [](const PCV& l, const PCV& r) {\n            return l.second > r.second || (l.second == r.second && l.first < r.first);\n        });\n        string ans;\n        for (auto& [vid, rank]: result) {\n            ans += vid;\n        }\n        return ans;\n    }\n};\n```\n\n```Go [sol1-Go]\nfunc rankTeams(votes []string) string {\n    // 初始化哈希映射\n    ranking := make(map[byte][]int)\n    for i := 0; i < len(votes[0]); i++ {\n        ranking[votes[0][i]] = make([]int, len(votes[0]))\n    }\n    // 遍历统计\n    for _, vote := range votes {\n        for i := 0; i < len(vote); i++ {\n            ranking[vote[i]][i]++\n        }\n    }\n\n    // 取出所有的键值对\n    result := make([]struct {\n        vid  byte\n        rank []int\n    }, 0, len(ranking))\n    for k, v := range ranking {\n        result = append(result, struct {\n            vid  byte\n            rank []int\n        }{k, v})\n    }\n    // 排序\n    sort.Slice(result, func(i, j int) bool {\n        for k := 0; k < len(result[i].rank); k++ {\n            if result[i].rank[k] != result[j].rank[k] {\n                return result[i].rank[k] > result[j].rank[k]\n            }\n        }\n        return result[i].vid < result[j].vid\n    })\n    ans := make([]byte, 0, len(result))\n    for _, r := range result {\n        ans = append(ans, r.vid)\n    }\n    return string(ans)\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def rankTeams(self, votes: List[str]) -> str:\n        n = len(votes[0])\n        # 初始化哈希映射\n        ranking = collections.defaultdict(lambda: [0] * n)\n        # 遍历统计\n        for vote in votes:\n            for i, vid in enumerate(vote):\n                ranking[vid][i] += 1\n        \n        # 取出所有的键值对\n        result = list(ranking.items())\n        # 排序\n        result.sort(key=lambda x: (x[1], -ord(x[0])), reverse=True)\n        return \"\".join([vid for vid, rank in result])\n```\n\n```C [sol1-C]\ntypedef struct {\n    char vid;\n    int *rank;\n    int rankSize;\n    int valid;\n} Team;\n\nint cmp(const void *a, const void *b) {\n    Team *t1 = (Team *)a;\n    Team *t2 = (Team *)b;\n    if (t1->valid != t1->valid) {\n        return t2->valid - t1->valid;\n    }\n    for (int i = 0; i < t1->rankSize; ++i) {\n        if (t1->rank[i] != t2->rank[i]) {\n            return t2->rank[i] - t1->rank[i];\n        }\n    }\n    return t1->vid - t2->vid;\n}\n\nchar* rankTeams(char** votes, int votesSize) {\n    int len = strlen(votes[0]);\n    int **ranking = malloc(26 * sizeof(int *));\n    int valid[26] = {0};\n    for (int i = 0; i < 26; ++i) {\n        ranking[i] = calloc(len, sizeof(int));\n    }\n    // 遍历统计\n    for (int i = 0; i < votesSize; ++i) {\n        for (int j = 0; j < len; ++j) {\n            ranking[votes[i][j] - 'A'][j]++;\n            valid[votes[i][j] - 'A'] = 1;\n        }\n    }\n    Team result[26];\n    for (int i = 0; i < 26; ++i) {\n        result[i].vid = 'A' + i;\n        result[i].rank = ranking[i];\n        result[i].rankSize = len;\n        result[i].valid = valid[i];\n    }\n    qsort(result, 26, sizeof(Team), cmp);\n    char *ans = calloc(len + 1, sizeof(char));\n    for (int i = 0; i < len; ++i) {\n        ans[i] = result[i].vid;\n    }\n    ans[len] = '\\0';\n    for (int i = 0; i < 26; ++i) {\n        free(ranking[i]);\n    }\n    free(ranking);\n\n    return ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar rankTeams = function(votes) {\n    const n = votes.length;\n    const ranking = {};\n    // 初始化哈希映射\n    for (const vid of votes[0]) {\n        ranking[vid] = Array(votes[0].length).fill(0);\n    }\n    // 遍历统计\n    for (const vote of votes) {\n        for (let i = 0; i < vote.length; ++i) {\n            ranking[vote[i]][i]++;\n        }\n    }\n\n    // 取出所有的键值对\n    const result = Object.entries(ranking);\n    // 排序\n    result.sort((a, b) => {\n        for (let i = 0; i < a[1].length; i++) {\n            if (a[1][i] !== b[1][i]) {\n                return b[1][i] - a[1][i];\n            }\n        }\n        return a[0].localeCompare(b[0]);\n    });\n    return result.map(([vid]) => vid).join('');\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction rankTeams(votes: string[]): string {\n    const n = votes.length;\n    const ranking: { [key: string]: number[] } = {};\n    // 初始化哈希映射\n    for (const vid of votes[0]) {\n        ranking[vid] = new Array(votes[0].length).fill(0);\n    }\n    // 遍历统计\n    for (const vote of votes) {\n        for (let i = 0; i < vote.length; ++i) {\n            ranking[vote[i]][i]++;\n        }\n    }\n    // 取出所有的键值对\n    const result = Object.entries(ranking);\n    // 排序\n    result.sort((a, b) => {\n        for (let i = 0; i < a[1].length; i++) {\n            if (a[1][i] !== b[1][i]) {\n                return b[1][i] - a[1][i];\n            }\n        }\n        return a[0].localeCompare(b[0]);\n    });\n    return result.map(([vid]) => vid).join('');\n};\n```\n\n```Rust [sol1-Rust]\nuse std::collections::HashMap;\n\nimpl Solution {\n    pub fn rank_teams(votes: Vec<String>) -> String {\n        let n = votes.len();\n        // 初始化哈希映射\n        let mut ranking: HashMap<char, Vec<i32>> = HashMap::new();\n        for vid in votes[0].chars() {\n            ranking.entry(vid).or_insert(vec![0; votes[0].len()]);\n        }\n        // 遍历统计\n        for vote in votes {\n            for (i, c) in vote.chars().enumerate() {\n                if let Some(rank) = ranking.get_mut(&c) {\n                    rank[i] += 1;\n                }\n            }\n        }\n        // 取出所有的键值对\n        let mut result: Vec<(char, Vec<i32>)> = ranking.into_iter().collect();\n        // 排序\n        result.sort_by(|a, b| {\n            for i in 0..a.1.len() {\n                if a.1[i] != b.1[i] {\n                    return b.1[i].cmp(&a.1[i]);\n                }\n            }\n            a.0.cmp(&b.0)\n        });\n\n        // 构建结果字符串\n        let mut ans = String::new();\n        for (vid, _) in result {\n            ans.push(vid);\n        }\n        ans\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(NK + N^2\\log N)$，其中 $N$ 是数组 $\\textit{votes}$ 中每一个字符串的长度（参与排名的人数），$K$ 是数组 $\\textit{votes}$ 的长度（参与投票的人数）。「遍历统计」的时间复杂度为 $O(NK)$，「排序」的时间复杂度为 $O(N^2\\log N)$（其中 $O(N\\log N)$ 为排序本身的时间，还需要额外的比较两个键值对大小的 $O(N)$ 时间），建立最终答案字符串的时间复杂度为 $O(N)$，因此总时间复杂度为 $O(NK + N^2\\log N)$。\n\n- 空间复杂度：$O(N^2)$。哈希映射中键值对的数量为 $N$，每个键使用 $O(1)$ 的空间，每个值使用 $O(N)$ 的空间，空间复杂度为 $O(N^2)$。存储排序的结果同样需要使用 $O(N^2)$ 的空间，因此总空间复杂度为 $O(N^2)$。",
+            "slateValue": "",
+            "slug": "tong-guo-tou-piao-dui-tuan-dui-pai-ming-by-leetcod",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "NKlKCT",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 19,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Sorting",
+                    "nameTranslated": "排序",
+                    "slug": "sorting",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-03-02T08:08:58.299148+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：排序 设参与排名的人数为 [latex]（即数组 [latex] 中任一字符串的长度），我们可以用一个哈希映射（HashMap）存储每一个人的排名情况。对于哈希映射中的每个键值对，键为一个在数组 [latex] 中出现的大写英文字母，表示一个参与排名的人；值为一个长度为 [latex] 的数组 [latex]，",
+            "topic": {
+                "id": 123922,
+                "subscribed": false,
+                "commentCount": 45,
+                "viewCount": 8472,
+                "post": {
+                    "id": 388261,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 34,
+            "isEditorsPick": false,
+            "hitCount": 21732,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "rank-teams-by-votes",
+                "questionFrontendId": "1366"
+            },
+            "next": {
+                "slug": "zi-ding-yi-pai-xu-jian-ji-xie-fa-pythonj-de1p",
+                "title": "自定义排序，简洁写法（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,108 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "clqWdd",
+            "title": "求平方根",
+            "content": "#### 前言\n\n本题是一道常见的面试题，面试官一般会要求面试者在不使用 $\\sqrt{x}$ 函数的情况下，得到 $x$ 的平方根的整数部分。一般的思路会有以下几种：\n\n- 通过其它的数学函数代替平方根函数得到精确结果，取整数部分作为答案；\n\n- 通过数学方法得到近似结果，直接作为答案。\n\n#### 方法一：袖珍计算器算法\n\n「袖珍计算器算法」是一种用指数函数 $\\exp$ 和对数函数 $\\ln$ 代替平方根函数的方法。我们通过有限的可以使用的数学函数，得到我们想要计算的结果。\n\n我们将 $\\sqrt{x}$ 写成幂的形式 $x^{1/2}$，再使用自然对数 $e$ 进行换底，即可得到\n\n$$\n\\sqrt{x} = x^{1/2} = (e ^ {\\ln x})^{1/2} = e^{\\frac{1}{2} \\ln x}\n$$\n\n这样我们就可以得到 $\\sqrt{x}$ 的值了。\n\n**注意：** 由于计算机无法存储浮点数的精确值（浮点数的存储方法可以参考 [IEEE 754](https://baike.baidu.com/item/IEEE%20754)，这里不再赘述），而指数函数和对数函数的参数和返回值均为浮点数，因此运算过程中会存在误差。例如当 $x = 2147395600$ 时，$e^{\\frac{1}{2} \\ln x}$ 的计算结果与正确值 $46340$ 相差 $10^{-11}$，这样在对结果取整数部分时，会得到 $46339$ 这个错误的结果。\n\n因此在得到结果的整数部分 $\\textit{ans}$ 后，我们应当找出 $\\textit{ans}$ 与 $\\textit{ans} + 1$ 中哪一个是真正的答案。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int mySqrt(int x) {\n        if (x == 0) {\n            return 0;\n        }\n        int ans = exp(0.5 * log(x));\n        return ((long long)(ans + 1) * (ans + 1) <= x ? ans + 1 : ans);\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int mySqrt(int x) {\n        if (x == 0) {\n            return 0;\n        }\n        int ans = (int) Math.exp(0.5 * Math.log(x));\n        return (long) (ans + 1) * (ans + 1) <= x ? ans + 1 : ans;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def mySqrt(self, x: int) -> int:\n        if x == 0:\n            return 0\n        ans = int(math.exp(0.5 * math.log(x)))\n        return ans + 1 if (ans + 1) ** 2 <= x else ans\n```\n\n```golang [sol1-Golang]\nfunc mySqrt(x int) int {\n    if x == 0 {\n        return 0\n    }\n    ans := int(math.Exp(0.5 * math.Log(float64(x))))\n    if (ans + 1) * (ans + 1) <= x {\n        return ans + 1\n    }\n    return ans\n}\n```\n\n**复杂度分析**\n\n* 时间复杂度：$O(1)$，由于内置的 `exp` 函数与 `log` 函数一般都很快，我们在这里将其复杂度视为 $O(1)$。\n\n* 空间复杂度：$O(1)$。\n\n#### 方法二：二分查找\n\n由于 $x$ 平方根的整数部分 $\\textit{ans}$ 是**满足 $k^2 \\leq x$ 的最大 $k$ 值**，因此我们可以对 $k$ 进行二分查找，从而得到答案。\n\n二分查找的下界为 $0$，上界可以粗略地设定为 $x$。在二分查找的每一步中，我们只需要比较中间元素 $\\textit{mid}$ 的平方与 $x$ 的大小关系，并通过比较的结果调整上下界的范围。由于我们所有的运算都是整数运算，不会存在误差，因此在得到最终的答案 $\\textit{ans}$ 后，也就不需要再去尝试 $\\textit{ans} + 1$ 了。\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    int mySqrt(int x) {\n        int l = 0, r = x, ans = -1;\n        while (l <= r) {\n            int mid = l + (r - l) / 2;\n            if ((long long)mid * mid <= x) {\n                ans = mid;\n                l = mid + 1;\n            } else {\n                r = mid - 1;\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public int mySqrt(int x) {\n        int l = 0, r = x, ans = -1;\n        while (l <= r) {\n            int mid = l + (r - l) / 2;\n            if ((long) mid * mid <= x) {\n                ans = mid;\n                l = mid + 1;\n            } else {\n                r = mid - 1;\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def mySqrt(self, x: int) -> int:\n        l, r, ans = 0, x, -1\n        while l <= r:\n            mid = (l + r) // 2\n            if mid * mid <= x:\n                ans = mid\n                l = mid + 1\n            else:\n                r = mid - 1\n        return ans\n```\n\n```golang [sol2-Golang]\nfunc mySqrt(x int) int {\n    l, r := 0, x\n    ans := -1\n    for l <= r {\n        mid := l + (r - l) / 2\n        if mid * mid <= x {\n            ans = mid\n            l = mid + 1\n        } else {\n            r = mid - 1\n        }\n    }\n    return ans\n}\n```\n\n**复杂度分析**\n\n* 时间复杂度：$O(\\log x)$，即为二分查找需要的次数。\n\n* 空间复杂度：$O(1)$。\n\n#### 方法三：牛顿迭代\n\n**思路**\n\n[牛顿迭代法](https://baike.baidu.com/item/%E7%89%9B%E9%A1%BF%E8%BF%AD%E4%BB%A3%E6%B3%95)是一种可以用来快速求解函数零点的方法。\n\n为了叙述方便，我们用 $C$ 表示待求出平方根的那个整数。显然，$C$ 的平方根就是函数\n\n$$\ny = f(x) = x^2 - C\n$$\n\n的零点。\n\n牛顿迭代法的本质是借助泰勒级数，从初始值开始快速向零点逼近。我们任取一个 $x_0$ 作为初始值，在每一步的迭代中，我们找到函数图像上的点 $(x_i, f(x_i))$，过该点作一条斜率为该点导数 $f'(x_i)$ 的直线，与横轴的交点记为 $x_{i+1}$。$x_{i+1}$ 相较于 $x_i$ 而言距离零点更近。在经过多次迭代后，我们就可以得到一个距离零点非常接近的交点。下图给出了从 $x_0$ 开始迭代两次，得到 $x_1$ 和 $x_2$ 的过程。\n\n![fig1](https://assets.leetcode.cn/solution-static/jianzhi_II_072/fig1.png)\n\n**算法**\n\n我们选择 $x_0 = C$ 作为初始值。\n\n在每一步迭代中，我们通过当前的交点 $x_i$，找到函数图像上的点 $(x_i, x_i^2 - C)$，作一条斜率为 $f'(x_i) = 2x_i$ 的直线，直线的方程为：\n\n$$\n\\begin{aligned}\ny_l &= 2x_i(x - x_i) + x_i^2 - C \\\\\n&= 2x_ix - (x_i^2 + C)\n\\end{aligned}\n$$\n\n与横轴的交点为方程 $2x_ix - (x_i^2 + C) = 0$ 的解，即为新的迭代结果 $x_{i+1}$：\n\n$$\nx_{i+1} = \\frac{1}{2}\\left(x_i + \\frac{C}{x_i}\\right)\n$$\n\n在进行 $k$ 次迭代后，$x_k$ 的值与真实的零点 $\\sqrt{C}$ 足够接近，即可作为答案。\n\n**细节**\n\n- 为什么选择 $x_0 = C$ 作为初始值？\n\n    - 因为 $y = x^2 - C$ 有两个零点 $-\\sqrt{C}$ 和 $\\sqrt{C}$。如果我们取的初始值较小，可能会迭代到 $-\\sqrt{C}$ 这个零点，而我们希望找到的是 $\\sqrt{C}$ 这个零点。因此选择 $x_0 = C$ 作为初始值，每次迭代均有 $x_{i+1} < x_i$，零点 $\\sqrt{C}$ 在其左侧，所以我们一定会迭代到这个零点。\n\n- 迭代到何时才算结束？\n\n    - 每一次迭代后，我们都会距离零点更进一步，所以当相邻两次迭代得到的交点**非常接近**时，我们就可以断定，此时的结果已经足够我们得到答案了。一般来说，可以判断相邻两次迭代的结果的差值是否小于一个极小的非负数 $\\epsilon$，其中 $\\epsilon$ 一般可以取 $10^{-6}$ 或 $10^{-7}$。\n\n- 如何通过迭代得到的近似零点得出最终的答案？\n\n    - 由于 $y = f(x)$ 在 $[\\sqrt{C}, +\\infty]$ 上是凸函数（convex function）且恒大于等于零，那么只要我们选取的初始值 $x_0$ 大于等于 $\\sqrt{C}$，每次迭代得到的结果 $x_i$ 都会恒大于等于 $\\sqrt{C}$。因此只要 $\\epsilon$ 选择地足够小，最终的结果 $x_k$ 只会稍稍大于真正的零点 $\\sqrt{C}$。在题目给出的 32 位整数范围内，不会出现下面的情况：\n\n      > 真正的零点为 $n - 1/2\\epsilon$，其中 $n$ 是一个正整数，而我们迭代得到的结果为 $n + 1/2\\epsilon$。在对结果保留整数部分后得到 $n$，但正确的结果为 $n - 1$。\n\n```C++ [sol3-C++]\nclass Solution {\npublic:\n    int mySqrt(int x) {\n        if (x == 0) {\n            return 0;\n        }\n\n        double C = x, x0 = x;\n        while (true) {\n            double xi = 0.5 * (x0 + C / x0);\n            if (fabs(x0 - xi) < 1e-7) {\n                break;\n            }\n            x0 = xi;\n        }\n        return int(x0);\n    }\n};\n```\n\n```Java [sol3-Java]\nclass Solution {\n    public int mySqrt(int x) {\n        if (x == 0) {\n            return 0;\n        }\n\n        double C = x, x0 = x;\n        while (true) {\n            double xi = 0.5 * (x0 + C / x0);\n            if (Math.abs(x0 - xi) < 1e-7) {\n                break;\n            }\n            x0 = xi;\n        }\n        return (int) x0;\n    }\n}\n```\n\n```Python [sol3-Python3]\nclass Solution:\n    def mySqrt(self, x: int) -> int:\n        if x == 0:\n            return 0\n        \n        C, x0 = float(x), float(x)\n        while True:\n            xi = 0.5 * (x0 + C / x0)\n            if abs(x0 - xi) < 1e-7:\n                break\n            x0 = xi\n        \n        return int(x0)\n```\n\n```golang [sol3-Golang]\nfunc mySqrt(x int) int {\n    if x == 0 {\n        return 0\n    }\n    C, x0 := float64(x), float64(x)\n    for {\n        xi := 0.5 * (x0 + C/x0)\n        if math.Abs(x0 - xi) < 1e-7 {\n            break\n        }\n        x0 = xi\n    }\n    return int(x0)\n}\n```\n\n**复杂度分析**\n\n* 时间复杂度：$O(\\log x)$，此方法是二次收敛的，相较于二分查找更快。\n\n* 空间复杂度：$O(1)$。",
+            "slateValue": "",
+            "slug": "qiu-ping-fang-gen-by-leetcode-solution-ybnw",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "clqWdd",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 22,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-04-06T07:36:49.388985+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "前言 本题是一道常见的面试题，面试官一般会要求面试者在不使用 $\\sqrt{x}$ 函数的情况下，得到 $x$ 的平方根的整数部分。一般的思路会有以下几种： 通过其它的数学函数代替平方根函数得到精确结果，取整数部分作为答案； 通过数学方法得到近似结果，直接作为答案。 方法一：袖珍计算器算法 「袖珍计算器算法」是一种用指",
+            "topic": {
+                "id": 1398892,
+                "subscribed": false,
+                "commentCount": 37,
+                "viewCount": 8730,
+                "post": {
+                    "id": 2888413,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 96,
+            "isEditorsPick": false,
+            "hitCount": 26022,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "jJ0w9p",
+                "questionFrontendId": "LCR 072"
+            },
+            "next": {
+                "slug": "jian-zhi-offer-2-mian-shi-ti-72-shu-zhon-xett",
+                "title": "《剑指offer 2 面试题72》 书中算法C++实现"
+            },
+            "prev": null
+        }
+    }
+}

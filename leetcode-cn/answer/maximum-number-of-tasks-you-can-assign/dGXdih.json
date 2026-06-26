@@ -1,0 +1,158 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "dGXdih",
+            "title": "你可以安排的最多任务数目",
+            "content": "#### 方法一：二分查找 + 贪心选择工人\n\n**提示 $1$**\n\n如果我们已经知道「一定」可以完成 $k$ 个任务，那么：\n\n- 我们可以在 $\\textit{tasks}$ 中选择 $k$ 个值**最小**的任务；\n\n- 我们可以在 $\\textit{workers}$ 中选择 $k$ 个值**最大**的工人。\n\n**提示 $2$**\n\n如果我们可以完成 $k$ 个任务，并且满足提示 $1$，那么一定可以完成 $k-1$ 个任务，并且可以选择 $k-1$ 个值最小的任务以及 $k-1$ 个值最大的工人，同样满足提示 $1$。\n\n**思路与算法**\n\n根据提示 $2$，我们就可以使用二分查找的方法找到 $k$ 的上界 $k'$，使得我们可以完成 $k'$ 个任务，但不能完成 $k'+1$ 个任务。我们找到的 $k'$ 即为答案。\n\n在二分查找的每一步中，当我们得到 $k$ 个值最小的任务以及 $k$ 个值最大的工人后，我们应该如何判断这些任务是否都可以完成呢？\n\n我们可以考虑值**最大**的那个任务，此时会出现两种情况：\n\n- 如果有工人的值大于等于该任务的值，那么我们一定不需要使用药丸，并且一定让值**最大**的工人完成该任务。\n\n    > 证明的思路为：由于我们考虑的是值最大的那个任务，因此所有能完成该任务的工人都能完成剩余的所有任务。因此如果一个值并非最大的工人（无论是否使用药丸）完成该任务，而值最大的工人完成了另一个任务，那么我们将这两个工人完成的任务交换，仍然是可行的。\n\n- 如果所有工人的值都小于该任务的值，那么我们必须使用药丸让一名工人完成任务，并且一定让值**最小**的工人完成该任务。\n\n    > 这里的值**最小**指的是在使用药丸能完成任务的前提下，值最小的工人。\n\n    > 证明的思路为：由于我们考虑的是值最大的那个任务，因此所有通过使用药丸能完成该任务的工人都能完成剩余的所有任务。如果一个值并非最小的工人使用药丸完成该任务，而值最小的工人（无论是否使用药丸）完成了另一个任务，那么我们将这两个工人完成的任务交换，仍然是可行的。\n\n因此，我们可以从大到小枚举每一个任务，并使用有序集合维护所有的工人。当枚举到任务的值为 $t$ 时：\n\n- 如果有序集合中最大的元素大于等于 $t$，那么我们将最大的元素从有序集合中删除。\n\n- 如果有序集合中最大的元素小于 $t$，那么我们在有序集合中找出最小的大于等于 $t - \\textit{strength}$ 的元素并删除。\n\n    对于这种情况，如果我们没有药丸剩余，或者有序集合中不存在大于等于 $t - \\textit{strength}$ 的元素，那么我们就无法完成所有任务。\n\n这样一来，我们就解决了二分查找后判断可行性的问题。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int maxTaskAssign(vector<int>& tasks, vector<int>& workers, int pills, int strength) {\n        int n = tasks.size(), m = workers.size();\n        sort(tasks.begin(), tasks.end());\n        sort(workers.begin(), workers.end());\n        \n        auto check = [&](int mid) -> bool {\n            int p = pills;\n            // 工人的有序集合\n            multiset<int> ws;\n            for (int i = m - mid; i < m; ++i) {\n                ws.insert(workers[i]);\n            }\n            // 从大到小枚举每一个任务\n            for (int i = mid - 1; i >= 0; --i) {\n                // 如果有序集合中最大的元素大于等于 tasks[i]\n                if (auto it = prev(ws.end()); *it >= tasks[i]) {\n                    ws.erase(it);\n                }\n                else {\n                    if (!p) {\n                        return false;\n                    }\n                    auto rep = ws.lower_bound(tasks[i] - strength);\n                    if (rep == ws.end()) {\n                        return false;\n                    }\n                    --p;\n                    ws.erase(rep);\n                }\n            }\n            return true;\n        };\n        \n        int left = 1, right = min(m, n), ans = 0;\n        while (left <= right) {\n            int mid = (left + right) / 2;\n            if (check(mid)) {\n                ans = mid;\n                left = mid + 1;\n            }\n            else {\n                right = mid - 1;\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```Python [sol1-Python3]\nfrom sortedcontainers import SortedList\n\nclass Solution:\n    def maxTaskAssign(self, tasks: List[int], workers: List[int], pills: int, strength: int) -> int:\n        n, m = len(tasks), len(workers)\n        tasks.sort()\n        workers.sort()\n\n        def check(mid: int) -> bool:\n            p = pills\n            #  工人的有序集合\n            ws = SortedList(workers[m - mid:])\n            # 从大到小枚举每一个任务\n            for i in range(mid - 1, -1, -1):\n                # 如果有序集合中最大的元素大于等于 tasks[i]\n                if ws[-1] >= tasks[i]:\n                    ws.pop()\n                else:\n                    if p == 0:\n                        return False\n                    rep = ws.bisect_left(tasks[i] - strength)\n                    if rep == len(ws):\n                        return False\n                    p -= 1\n                    ws.pop(rep)\n            return True\n\n        left, right, ans = 1, min(m, n), 0\n        while left <= right:\n            mid = (left + right) // 2\n            if check(mid):\n                ans = mid\n                left = mid + 1\n            else:\n                right = mid - 1\n        \n        return ans\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int maxTaskAssign(int[] tasks, int[] workers, int pills, int strength) {\n        Arrays.sort(tasks);\n        Arrays.sort(workers);\n        int n = tasks.length, m = workers.length;\n        int left = 1, right = Math.min(m, n), ans = 0;\n        while (left <= right) {\n            int mid = (left + right) / 2;\n            if (check(tasks, workers, pills, strength, mid)) {\n                ans = mid;\n                left = mid + 1;\n            } else {\n                right = mid - 1;\n            }\n        }\n        return ans;\n    }\n\n    private boolean check(int[] tasks, int[] workers, int pills, int strength, int mid) {\n        int p = pills;\n        TreeMap<Integer, Integer> ws = new TreeMap<>();\n        for (int i = workers.length - mid; i < workers.length; ++i) {\n            ws.put(workers[i], ws.getOrDefault(workers[i], 0) + 1);\n        }\n        for (int i = mid - 1; i >= 0; --i) {\n            Integer key = ws.lastKey();\n            if (key >= tasks[i]) {\n                ws.put(key, ws.get(key) - 1);\n                if (ws.get(key) == 0) {\n                    ws.remove(key);\n                }\n            } else {\n                if (p == 0) {\n                    return false;\n                }\n                key = ws.ceilingKey(tasks[i] - strength);\n                if (key == null) {\n                    return false;\n                }\n                ws.put(key, ws.get(key) - 1);\n                if (ws.get(key) == 0) {\n                    ws.remove(key);\n                }\n                --p;\n            }\n        }\n        return true;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MaxTaskAssign(int[] tasks, int[] workers, int pills, int strength) {\n        Array.Sort(tasks);\n        Array.Sort(workers);\n        int n = tasks.Length, m = workers.Length;\n        int left = 1, right = Math.Min(m, n), ans = 0;\n        while (left <= right) {\n            int mid = (left + right) / 2;\n            if (Check(tasks, workers, pills, strength, mid)) {\n                ans = mid;\n                left = mid + 1;\n            } else {\n                right = mid - 1;\n            }\n        }\n        return ans;\n    }\n\n    private bool Check(int[] tasks, int[] workers, int pills, int strength, int mid) {\n        int p = pills;\n        var ws = new SortedDictionary<int, int>();\n        for (int i = workers.Length - mid; i < workers.Length; ++i) {\n            if (ws.ContainsKey(workers[i])) {\n                ws[workers[i]]++;\n            } else {\n                ws[workers[i]] = 1;\n            }\n        }\n        for (int i = mid - 1; i >= 0; --i) {\n            var lastKey = ws.Keys.Max();\n            if (lastKey >= tasks[i]) {\n                ws[lastKey]--;\n                if (ws[lastKey] == 0) {\n                    ws.Remove(lastKey);\n                }\n            } else {\n                if (p == 0) {\n                    return false;\n                }\n                var key = ws.Keys.Where(k => k >= tasks[i] - strength).DefaultIfEmpty(-1).First();\n                if (key == -1) {\n                    return false;\n                }\n                ws[key]--;\n                if (ws[key] == 0) {\n                    ws.Remove(key);\n                }\n                --p;\n            }\n        }\n        return true;\n    }\n}\n```\n\n```Rust [sol1-Rust]\nuse std::collections::BTreeMap;\n\nimpl Solution {\n    pub fn max_task_assign(tasks: Vec<i32>, workers: Vec<i32>, pills: i32, strength: i32) -> i32 {\n        let mut tasks = tasks;\n        let mut workers = workers;\n        tasks.sort();\n        workers.sort();\n        let n = tasks.len();\n        let m = workers.len();\n        let (mut left, mut right, mut ans) = (1, m.min(n), 0);\n\n        while left <= right {\n            let mid = (left + right) / 2;\n            if Self::check(&tasks, &workers, pills, strength, mid) {\n                ans = mid;\n                left = mid + 1;\n            } else {\n                right = mid - 1;\n            }\n        }\n        ans as i32\n    }\n\n    fn check(tasks: &[i32], workers: &[i32], pills: i32, strength: i32, mid: usize) -> bool {\n        let mut p = pills;\n        let mut ws = BTreeMap::new();\n        for &w in workers.iter().skip(workers.len() - mid) {\n            *ws.entry(w).or_insert(0) += 1;\n        }\n        for &t in tasks.iter().take(mid).rev() {\n            if let Some((&max_key, _)) = ws.iter().next_back() {\n                if max_key >= t {\n                    *ws.get_mut(&max_key).unwrap() -= 1;\n                    if ws[&max_key] == 0 {\n                        ws.remove(&max_key);\n                    }\n                } else {\n                    if p == 0 {\n                        return false;\n                    }\n                    if let Some((&key, _)) = ws.range(t - strength..).next() {\n                        *ws.get_mut(&key).unwrap() -= 1;\n                        if ws[&key] == 0 {\n                            ws.remove(&key);\n                        }\n                        p -= 1;\n                    } else {\n                        return false;\n                    }\n                }\n            }\n        }\n        true\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log n + m \\log m + \\min(m, n) \\log^2 \\min(m, n))$。\n\n    - 对数组 $\\textit{tasks}$ 排序需要 $O(n \\log n)$ 的时间；\n\n    - 对数组 $\\textit{workers}$ 排序需要 $O(m \\log m)$ 的时间；\n\n    - 二分查找的下界为 $1$，上界为 $m$ 和 $n$ 中的较小值，因此二分查找的次数为 $\\log \\min(m, n)$。每一次查找需要枚举 $\\min(m, n)$ 个任务，并且枚举的过程中需要对工人的有序集合进行删除操作，单次操作时间复杂度为 $\\log \\min(m, n)$。因此二分查找的总时间复杂度为 $O(\\min(m, n) \\log^2 \\min(m, n))$。\n\n- 空间复杂度：$O(\\log n + \\log m + \\min(m, n))$。\n\n    - 对数组 $\\textit{tasks}$ 排序需要 $O(\\log n)$ 的栈空间；\n\n    - 对数组 $\\textit{workers}$ 排序需要 $O(\\log m)$ 的栈空间；\n\n    - 二分查找中使用的有序集合需要 $O(\\min(m, n))$ 的空间。\n\n**扩展**\n\n可以发现，当我们从大到小枚举每一个任务时，如果我们维护了（在使用药丸的情况下）所有可以完成任务的工人，那么：\n\n- 如果有工人可以不使用药丸完成该任务，那么我们选择（删除）值最大的工人；\n\n- 如果所有工人都需要使用药丸才能完成该任务，那么我们选择（删除）值最小的工人。\n\n而随着任务值的减少，可以完成任务的工人只增不减，因此我们可以使用一个「双端队列」来维护所有可以（在使用药丸的情况下）所有可以完成任务的工人，此时要么队首的工人被选择（删除），要么队尾的工人被选择（删除），那么单次删除操作的时间复杂度由 $O(\\log \\min (m, n))$ 降低为 $O(1)$，总时间复杂度降低为：\n\n$$\nO(n \\log n + m \\log m + \\min(m, n) \\log \\min(m, n)) = O(n \\log n + m \\log m)\n$$\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    int maxTaskAssign(vector<int>& tasks, vector<int>& workers, int pills, int strength) {\n        int n = tasks.size(), m = workers.size();\n        sort(tasks.begin(), tasks.end());\n        sort(workers.begin(), workers.end());\n        \n        auto check = [&](int mid) -> bool {\n            int p = pills;\n            deque<int> ws;\n            int ptr = m - 1;\n            // 从大到小枚举每一个任务\n            for (int i = mid - 1; i >= 0; --i) {\n                while (ptr >= m - mid && workers[ptr] + strength >= tasks[i]) {\n                    ws.push_front(workers[ptr]);\n                    --ptr;\n                }\n                if (ws.empty()) {\n                    return false;\n                }\n                // 如果双端队列中最大的元素大于等于 tasks[i]\n                else if (ws.back() >= tasks[i]) {\n                    ws.pop_back();\n                }\n                else {\n                    if (!p) {\n                        return false;\n                    }\n                    --p;\n                    ws.pop_front();\n                }\n            }\n            return true;\n        };\n        \n        int left = 1, right = min(m, n), ans = 0;\n        while (left <= right) {\n            int mid = (left + right) / 2;\n            if (check(mid)) {\n                ans = mid;\n                left = mid + 1;\n            }\n            else {\n                right = mid - 1;\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```Python [sol2-Python3]\nfrom sortedcontainers import SortedList\n\nclass Solution:\n    def maxTaskAssign(self, tasks: List[int], workers: List[int], pills: int, strength: int) -> int:\n        n, m = len(tasks), len(workers)\n        tasks.sort()\n        workers.sort()\n\n        def check(mid: int) -> bool:\n            p = pills\n            ws = deque()\n            ptr = m - 1\n            # 从大到小枚举每一个任务\n            for i in range(mid - 1, -1, -1):\n                while ptr >= m - mid and workers[ptr] + strength >= tasks[i]:\n                    ws.appendleft(workers[ptr])\n                    ptr -= 1\n                if not ws:\n                    return False\n                # 如果双端队列中最大的元素大于等于 tasks[i]\n                elif ws[-1] >= tasks[i]:\n                    ws.pop()\n                else:\n                    if p == 0:\n                        return False\n                    p -= 1\n                    ws.popleft()\n            return True\n\n        left, right, ans = 1, min(m, n), 0\n        while left <= right:\n            mid = (left + right) // 2\n            if check(mid):\n                ans = mid\n                left = mid + 1\n            else:\n                right = mid - 1\n        \n        return ans\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public int maxTaskAssign(int[] tasks, int[] workers, int pills, int strength) {\n        int n = tasks.length, m = workers.length;\n        Arrays.sort(tasks);\n        Arrays.sort(workers);\n        int left = 1, right = Math.min(m, n), ans = 0;\n        while (left <= right) {\n            int mid = (left + right) / 2;\n            if (check(tasks, workers, pills, strength, mid)) {\n                ans = mid;\n                left = mid + 1;\n            } else {\n                right = mid - 1;\n            }\n        }\n        return ans;\n    }\n\n    // 检查是否可以在mid个任务中使用pills和strength\n    private boolean check(int[] tasks, int[] workers, int pills, int strength, int mid) {\n        int p = pills;\n        int m = workers.length;\n        Deque<Integer> ws = new ArrayDeque<>();\n        int ptr = m - 1;\n        // 从大到小枚举每一个任务\n        for (int i = mid - 1; i >= 0; --i) {\n            while (ptr >= m - mid && workers[ptr] + strength >= tasks[i]) {\n                ws.addFirst(workers[ptr]);\n                --ptr;\n            }\n            if (ws.isEmpty()) {\n                return false;\n            } else if (ws.getLast() >= tasks[i]) { \n                // 如果双端队列中最大的元素大于等于 tasks[i]\n                ws.pollLast();\n            } else {\n                if (p == 0) {\n                    return false;\n                }\n                --p;\n                ws.pollFirst();\n            }\n        }\n        return true;\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    public int MaxTaskAssign(int[] tasks, int[] workers, int pills, int strength) {\n        int n = tasks.Length, m = workers.Length;\n        Array.Sort(tasks);\n        Array.Sort(workers);\n        \n        Func<int, bool> check = mid => {\n            int p = pills;\n            var ws = new LinkedList<int>();\n            int ptr = m - 1;\n            // 从大到小枚举每一个任务\n            for (int i = mid - 1; i >= 0; --i) {\n                while (ptr >= m - mid && workers[ptr] + strength >= tasks[i]) {\n                    ws.AddFirst(workers[ptr]);\n                    --ptr;\n                }\n                if (ws.Count == 0) {\n                    return false;\n                } else if (ws.Last.Value >= tasks[i]) {\n                    // 如果双端队列中最大的元素大于等于 tasks[i]\n                    ws.RemoveLast();\n                } else {\n                    if (p == 0) {\n                        return false;\n                    }\n                    --p;\n                    ws.RemoveFirst();\n                }\n            }\n            return true;\n        };\n        \n        int left = 1, right = Math.Min(m, n), ans = 0;\n        while (left <= right) {\n            int mid = (left + right) / 2;\n            if (check(mid)) {\n                ans = mid;\n                left = mid + 1;\n            } else {\n                right = mid - 1;\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```Go [sol2-Go]\nfunc maxTaskAssign(tasks []int, workers []int, pills int, strength int) int {\n\tn, m := len(tasks), len(workers)\n\tsort.Ints(tasks)\n\tsort.Ints(workers)\n\n\tcheck := func(mid int) bool {\n\t\tp := pills\n\t\tws := list.New() // 使用双端队列\n\t\tptr := m - 1\n\t\t// 从大到小枚举每一个任务\n\t\tfor i := mid - 1; i >= 0; i-- {\n\t\t\tfor ptr >= m-mid && workers[ptr]+strength >= tasks[i] {\n\t\t\t\tws.PushFront(workers[ptr]) // 添加到队头\n\t\t\t\tptr--\n\t\t\t}\n\t\t\tif ws.Len() == 0 {\n\t\t\t\treturn false\n\t\t\t}\n\t\t\t// 如果双端队列中最大的元素大于等于 tasks[i]\n\t\t\tif ws.Back().Value.(int) >= tasks[i] {\n\t\t\t\tws.Remove(ws.Back()) // 移除队尾\n\t\t\t} else {\n\t\t\t\tif p == 0 {\n\t\t\t\t\treturn false\n\t\t\t\t}\n\t\t\t\tp--\n\t\t\t\tws.Remove(ws.Front()) // 移除队头\n\t\t\t}\n\t\t}\n\t\treturn true\n\t}\n\n\tleft, right, ans := 1, min(m, n), 0\n\tfor left <= right {\n\t\tmid := (left + right) / 2\n\t\tif check(mid) {\n\t\t\tans = mid\n\t\t\tleft = mid + 1\n\t\t} else {\n\t\t\tright = mid - 1\n\t\t}\n\t}\n\treturn ans\n}\n```\n\n```C [sol2-C]\nbool check(int* tasks, int* workers, int workersSize, int pills, int strength, int mid) {\n    int m = workersSize;\n    int p = pills;\n    int ws[m];\n    int ptr = m - 1;\n    int head = m - 1, tail = m - 1;\n    // 从大到小枚举每一个任务\n    for (int i = mid - 1; i >= 0; --i) {\n        while (ptr >= workersSize - mid && workers[ptr] + strength >= tasks[i]) {\n            ws[head] = workers[ptr];\n            --head;\n            --ptr;\n        }\n        if (head == tail) {\n            return false;\n        } else if (ws[tail] >= tasks[i]) {  // 如果双端队列中最大的元素大于等于 tasks[i]\n            tail--;\n        } else {\n            if (!p) {\n                return false;\n            }\n            --p;\n            head++;\n        }\n    }\n\n    return true;\n}\n\nint compare(const void *a, const void *b) {\n    return *(int *)a - *(int *)b;\n}\n\nint maxTaskAssign(int* tasks, int tasksSize, int* workers, int workersSize, int pills, int strength) {\n    int n = tasksSize, m = workersSize;\n    qsort(tasks, n, sizeof(int), compare);\n    qsort(workers, m, sizeof(int), compare);\n\n    int left = 1, right = (m < n) ? m : n, ans = 0;\n    while (left <= right) {\n        int mid = (left + right) / 2;\n        if (check(tasks, workers, workersSize, pills, strength, mid)) {\n            ans = mid;\n            left = mid + 1;\n        }\n        else {\n            right = mid - 1;\n        }\n    }\n    return ans;\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar maxTaskAssign = function(tasks, workers, pills, strength) {\n    let n = tasks.length, m = workers.length;\n    tasks.sort((a, b) => a - b);\n    workers.sort((a, b) => a - b);\n\n    const check = (mid) => {\n        let p = pills;\n        let ws = new Deque();\n        let ptr = m - 1;\n        // 从大到小枚举每一个任务\n        for (let i = mid - 1; i >= 0; --i) {\n            while (ptr >= m - mid && workers[ptr] + strength >= tasks[i]) {\n                ws.pushFront(workers[ptr]);\n                --ptr;\n            }\n            if (ws.isEmpty()) {\n                return false;\n            }\n            // 如果双端队列中最大的元素大于等于 tasks[i]\n            else if (ws.back() >= tasks[i]) {\n                ws.popBack();\n            }\n            else {\n                if (!p) {\n                    return false;\n                }\n                --p;\n                ws.popFront();\n            }\n        }\n        return true;\n    }\n\n    let left = 1, right = Math.min(m, n), ans = 0;\n    while (left <= right) {\n        let mid = Math.floor((left + right) / 2);\n        if (check(mid)) {\n            ans = mid;\n            left = mid + 1;\n        }\n        else {\n            right = mid - 1;\n        }\n    }\n    return ans;\n};\n```\n\n```TypeScript [sol2-TypeScript]\nfunction maxTaskAssign(tasks: number[], workers: number[], pills: number, strength: number): number {\n    let n = tasks.length, m = workers.length;\n    tasks.sort((a, b) => a - b);\n    workers.sort((a, b) => a - b);\n    const check = (mid: number): boolean => {\n        let p = pills;\n        let ws = new Deque();\n        let ptr = m - 1;\n        // 从大到小枚举每一个任务\n        for (let i = mid - 1; i >= 0; --i) {\n            while (ptr >= m - mid && workers[ptr] + strength >= tasks[i]) {\n                ws.pushFront(workers[ptr]);\n                --ptr;\n            }\n            if (ws.isEmpty()) {\n                return false;\n            }\n            // 如果双端队列中最大的元素大于等于 tasks[i]\n            else if (ws.back() >= tasks[i]) {\n                ws.popBack();\n            }\n            else {\n                if (!p) {\n                    return false;\n                }\n                --p;\n                ws.popFront();\n            }\n        }\n        return true;\n    }\n\n    let left = 1, right = Math.min(m, n), ans = 0;\n    while (left <= right) {\n        let mid = Math.floor((left + right) / 2);\n        if (check(mid)) {\n            ans = mid;\n            left = mid + 1;\n        }\n        else {\n            right = mid - 1;\n        }\n    }\n    return ans;\n}\n\n```\n\n```Rust [sol2-Rust]\nuse std::collections::VecDeque;\nuse std::cmp::{max, min};\n\nimpl Solution {\n    pub fn max_task_assign(tasks: Vec<i32>, workers: Vec<i32>, pills: i32, strength: i32) -> i32 {\n        let n = tasks.len();\n        let m = workers.len();\n        let mut tasks = tasks;\n        let mut workers = workers;\n        tasks.sort();\n        workers.sort();\n        \n        let check = |mid: usize| -> bool {\n            let mut p = pills;\n            let mut ws = VecDeque::new();\n            let mut ptr = m - 1;\n            // 从大到小枚举每一个任务\n            for i in (0..mid).rev() {\n                while ptr as i32 >= (m - mid) as i32 && workers[ptr] + strength >= tasks[i] {\n                    ws.push_front(workers[ptr]);\n                    ptr -= 1;\n                }\n                if ws.is_empty() {\n                    return false;\n                }\n                // 如果双端队列中最大的元素大于等于 tasks[i]\n                if *ws.back().unwrap() >= tasks[i] {\n                    ws.pop_back();\n                } else {\n                    if p == 0 {\n                        return false;\n                    }\n                    p -= 1;\n                    ws.pop_front();\n                }\n            }\n            true\n        };\n        \n        let mut left = 1;\n        let mut right = min(m, n);\n        let mut ans = 0;\n        while left <= right {\n            let mid = (left + right) / 2;\n            if check(mid) {\n                ans = mid as i32;\n                left = mid + 1;\n            } else {\n                right = mid - 1;\n            }\n        }\n        ans\n    }\n}\n```",
+            "slateValue": "",
+            "slug": "ni-ke-yi-an-pai-de-zui-duo-ren-wu-shu-mu-p7dm",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "dGXdih",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 57,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Queue",
+                    "nameTranslated": "队列",
+                    "slug": "queue",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Two Pointers",
+                    "nameTranslated": "双指针",
+                    "slug": "two-pointers",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Ordered Set",
+                    "nameTranslated": "有序集合",
+                    "slug": "ordered-set",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-11-14T12:55:54.040869+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：二分查找 + 贪心选择工人 提示 [latex] 如果我们已经知道「一定」可以完成 [latex] 个任务，那么： 我们可以在 [latex] 中选择 [latex] 个值最小的任务； 我们可以在 [latex] 中选择 [latex] 个值最大的工人。 提示 [latex] 如果我们可以完成 [latex] ",
+            "topic": {
+                "id": 1101831,
+                "subscribed": false,
+                "commentCount": 45,
+                "viewCount": 3427,
+                "post": {
+                    "id": 2332365,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 113,
+            "isEditorsPick": false,
+            "hitCount": 25209,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "maximum-number-of-tasks-you-can-assign",
+                "questionFrontendId": "2071"
+            },
+            "next": {
+                "slug": "er-fen-da-an-tan-xin-pi-pei-shuang-duan-avcrj",
+                "title": "二分答案+贪心匹配+双端队列（Python/Java/C++/C/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

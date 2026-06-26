@@ -1,0 +1,90 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "4ZQ2sO",
+            "title": "描述绘画结果",
+            "content": "#### 方法一：差分 + 前缀和\n\n**思路与算法**\n\n由于每条线段的起止点均为整数，因此我们可以在位置 $k$ 处记录数轴上单位长度区间 $[k, k + 1)$ 的颜色和，这样每条线段都覆盖了若干个连续的整数坐标。为了得到数轴上每个整数的颜色和，我们需要将每个线段对数轴的影响叠加。一般的做法是，对于线段覆盖的每个整数，我们都将该整数的颜色和加上线段对应的值。\n\n但这样的做法时间复杂度较高。因此我们可以维护每个线段对于数轴颜色和的**变化量**。对于每个位置为 $[l, r)$，颜色为 $c$ 的线段，它对于数轴颜色和的影响体现在两个部分：\n\n- $l$ 相对于 $l - 1$ 的颜色和增加 $c$；\n\n- $r$ 相对于 $r - 1$ 的颜色和减少 $c$。\n\n一般我们可以用数轴中整数位置对应的数组（又称差分数组）来维护颜色和变化量。但此处由于颜色和对应的颜色集合可能有很多种，使得即使出现某个边界点颜色和变化量为 $0$，其两侧的颜色也会不同。\n\n因此，我们使用哈希表来维护所有线段产生的变化量，在数轴上的位置对应哈希表的键，变化量对应哈希表的值。在遍历完所有线段后，我们将这些键值对按照在数轴上的位置升序排序。对于排序后的键值对，我们遍历这些键值对并对颜色和求解**前缀和**，就可以得出数轴上的颜色和分布。\n\n为了返回数轴的绘画结果，我们需要记录每个颜色和对应的区间，即当前键值对位置与下一个键值对位置组成的左闭右开区间。我们用数组按照格式记录这些区间中颜色和不为零的区间，并最终返回作为答案。\n\n另外，由于每个位置的颜色和变化量和最终的颜色和可能会超出 $32$ 位有符号整数的上界，因此我们需要用 $64$ 位整数存储这些值。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<vector<long long>> splitPainting(vector<vector<int>>& segments) {\n        // 计算每个位置对应的颜色和改变量并用哈希表存储\n        unordered_map<int, long long> color;\n        for (auto&& segment : segments){\n            int l = segment[0];\n            int r = segment[1];\n            int c = segment[2];\n            if (!color.count(l)){\n                color[l] = 0;\n            }\n            color[l] += c;\n            if (!color.count(r)){\n                color[r] = 0;\n            }\n            color[r] -= c;\n        }\n        // 将哈希表转化为数组并按数轴坐标升序排序\n        vector<pair<int, long long>> axis;\n        for (auto&& [k, v] : color){\n            axis.emplace_back(k, v);\n        }\n        sort(axis.begin(), axis.end());\n        // 对数组求前缀和计算对应颜色和\n        int n = axis.size();\n        for (int i = 1; i < n; ++i){\n            axis[i].second += axis[i-1].second;\n        }\n        // 遍历数组生成最终绘画结果\n        vector<vector<long long>> res;\n        for (int i = 0; i < n - 1; ++i){\n            if (axis[i].second){\n                res.emplace_back(vector<long long> {axis[i].first, axis[i+1].first, axis[i].second});\n            }\n        }\n        return res;\n    }\n};\n```\n\n```Python [sol1-Python3]\nfrom collections import defaultdict\n\nclass Solution:\n    def splitPainting(self, segments: List[List[int]]) -> List[List[int]]:\n        # 计算每个位置对应的颜色和改变量并用哈希表存储\n        color = defaultdict(lambda: 0)\n        for l, r, c in segments:\n            color[l] += c\n            color[r] -= c\n        # 将哈希表转化为数组并按数轴坐标升序排序\n        axis = sorted([[k, v] for k, v in color.items()])\n        # 对数组求前缀和计算对应颜色和\n        n = len(axis)\n        for i in range(1, n):\n            axis[i][1] += axis[i-1][1]\n        # 遍历数组生成最终绘画结果\n        res = []\n        for i in range(n - 1):\n            if axis[i][1]:\n                res.append([axis[i][0], axis[i+1][0], axis[i][1]])\n        return res\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n\\log n)$，其中 $n$ 为线段的数量。维护变化量哈希表的时间复杂度为 $O(n)$，将哈希表转化为数组并排序的时间复杂度为 $O(n\\log n)$，遍历数组求前缀和并生成返回数组的时间复杂度为 $O(n)$。\n\n- 空间复杂度：$O(n)$，即为存储变化量的哈希表和数组的空间开销。",
+            "slateValue": "",
+            "slug": "miao-shu-hui-hua-jie-guo-by-leetcode-sol-tnvy",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "4ZQ2sO",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 8,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Prefix Sum",
+                    "nameTranslated": "前缀和",
+                    "slug": "prefix-sum",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-07-25T06:21:25.512850+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：差分 + 前缀和 思路与算法 由于每条线段的起止点均为整数，因此我们可以在位置 $k$ 处记录数轴上单位长度区间 $[k, k + 1)$ 的颜色和，这样每条线段都覆盖了若干个连续的整数坐标。为了得到数轴上每个整数的颜色和，我们需要将每个线段对数轴的影响叠加。一般的做法是，对于线段覆盖的每个整数，我们都将该整数",
+            "topic": {
+                "id": 895477,
+                "subscribed": false,
+                "commentCount": 23,
+                "viewCount": 1870,
+                "post": {
+                    "id": 1941258,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 13,
+            "isEditorsPick": false,
+            "hitCount": 5378,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "describe-the-painting",
+                "questionFrontendId": "1943"
+            },
+            "next": {
+                "slug": "c-ji-lu-yan-se-fa-sheng-bian-hua-de-di-f-a7kh",
+                "title": "[C++] 记录颜色发生变化的地方"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,120 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "DxYkTv",
+            "title": "统计可能的树根数目",
+            "content": "#### 方法一：树形动态规划\n\n**思路与算法**\n\n首先计算固定树根时猜对的次数，假设以 $0$ 号节点为树根，从它开始执行深度优先搜索，使用哈希表统计所有树边 $(x, y)$ 在 $\\textit{guesses}$ 中出现的个数，其中 $x$ 是 $y$ 的父节点。\n\n然后考虑树根从 $0$ 移动到 $0$ 的子节点后，所有 $\\textit{guesses}$ 的状态变化。如下图所示，树根从 $x$ 变成 $y$ 之后，只有 $(x, y)$ 和 $(y, x)$ 这两个猜测的正确性发生变化。\n\n![pic1](https://assets.leetcode.cn/solution-static/2581/2581.png)\n\n因此基于已经计算出以 $x$ 为树根时猜对的次数，很容易就可以计算出以 $y$ 为树根时猜对的次数：\n\n- 如果 $(x, y)$ 存在于 $\\textit{guesses}$，猜对次数减一；\n- 如果 $(y, x)$ 存在于 $\\textit{guesses}$，猜对次数加一。\n\n最终答案就是所有猜对次数大于等于 $k$ 的节点个数。\n\n需要注意的是，某些语言可能需要手写树边 $(x, y)$ 的哈希函数，由于树上节点编号不超过 $10^5$，而且 $2^{20} > 10^5$，因此我们可以用 $x \\times 2^{20} + y$ \n作为哈希函数。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    using ll = long long;\n    int rootCount(vector<vector<int>>& edges, vector<vector<int>>& guesses, int k) {\n        int n = edges.size() + 1;\n        vector<vector<int>> g(n);\n        unordered_set<ll> st;\n        for (auto &v : edges) {\n            g[v[0]].push_back(v[1]);\n            g[v[1]].push_back(v[0]);\n        }\n        auto h = [&](int x, int y) -> ll {\n            return (ll) x << 20 | y;\n        };\n        for (auto &v : guesses) {\n            st.insert(h(v[0], v[1]));\n        }\n\n        int cnt = 0, res = 0;\n        function<void(int, int)> dfs = [&](int x, int fat) -> void {\n            for (auto &y : g[x]) {\n                if (y == fat) {\n                    continue;\n                }\n                cnt += st.count(h(x, y));\n                dfs(y, x);\n            }\n        };\n        dfs(0, -1);\n\n        function<void(int, int, int)> redfs = [&](int x, int fat, int cnt) {\n            if (cnt >= k) {\n                res++;\n            }\n            for (auto &y : g[x]) {\n                if (y == fat) {\n                    continue;\n                }\n                redfs(y, x, cnt - st.count(h(x, y)) + st.count(h(y, x)));\n            }\n        };\n        redfs(0, -1, cnt);\n        return res;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    int cnt = 0, res = 0;\n    int k;\n    List<Integer>[] g;\n    Set<Long> set;\n\n    public int rootCount(int[][] edges, int[][] guesses, int k) {\n        this.k = k;\n        int n = edges.length + 1;\n        g = new List[n];\n        for (int i = 0; i < n; i++) {\n            g[i] = new ArrayList<Integer>();\n        }\n        set = new HashSet<Long>();\n        for (int[] v : edges) {\n            g[v[0]].add(v[1]);\n            g[v[1]].add(v[0]);\n        }\n        for (int[] v : guesses) {\n            set.add(h(v[0], v[1]));\n        }\n\n        dfs(0, -1);\n        redfs(0, -1, cnt);\n        return res;\n    }\n\n    public long h(int x, int y) {\n        return (long) x << 20 | y;\n    }\n\n    public void dfs(int x, int fat) {\n        for (int y : g[x]) {\n            if (y == fat) {\n                continue;\n            }\n            cnt += set.contains(h(x, y)) ? 1 : 0;\n            dfs(y, x);\n        }\n    }\n\n    public void redfs(int x, int fat, int cnt) {\n        if (cnt >= k) {\n            res++;\n        }\n        for (int y : g[x]) {\n            if (y == fat) {\n                continue;\n            }\n            redfs(y, x, cnt - (set.contains(h(x, y)) ? 1 : 0) + (set.contains(h(y, x)) ? 1 : 0));\n        }\n    }\n}\n```\n\n```C [sol1-C]\ntypedef struct {\n    long long key;\n    int val;\n    UT_hash_handle hh;\n} HashItem; \n\nHashItem *hashFindItem(HashItem **obj, long long key) {\n    HashItem *pEntry = NULL;\n    HASH_FIND_INT(*obj, &key, pEntry);\n    return pEntry;\n}\n\nbool hashAddItem(HashItem **obj, long long key, int val) {\n    if (hashFindItem(obj, key)) {\n        return false;\n    }\n    HashItem *pEntry = (HashItem *)malloc(sizeof(HashItem));\n    pEntry->key = key;\n    pEntry->val = val;\n    HASH_ADD_INT(*obj, key, pEntry);\n    return true;\n}\n\nint hashGetItem(HashItem **obj, long long key, int defaultVal) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        return defaultVal;\n    }\n    return pEntry->val;\n}\n\nvoid hashFree(HashItem **obj) {\n    HashItem *curr = NULL, *tmp = NULL;\n    HASH_ITER(hh, *obj, curr, tmp) {\n        HASH_DEL(*obj, curr);  \n        free(curr);\n    }\n}\n\nlong long h(int x, int y) {\n    return (long long) x << 20 | (long long) y;\n}\n\nvoid dfs(int x, int fat, struct ListNode **g, HashItem *st, int *cnt) {\n    for (struct ListNode *p = g[x]; p; p = p->next) {\n        int y = p->val;\n        if (y == fat) {\n            continue;\n        }\n        (*cnt) += hashGetItem(&st, h(x, y), 0);\n        dfs(y, x, g, st, cnt);\n    }\n}\n\nvoid redfs(int x, int fat, int cnt, int k, int *res, struct ListNode **g, HashItem *st) {\n    if (cnt >= k) {\n        (*res)++;\n    }\n    for (struct ListNode *p = g[x]; p; p = p->next) {\n        int y = p->val;\n        if (y == fat) {\n            continue;\n        }\n        redfs(y, x, cnt - hashGetItem(&st, h(x, y), 0) + hashGetItem(&st, h(y, x), 0), k, res, g, st);\n    }\n}\n\nstruct ListNode *createListNode(int val) {\n    struct ListNode *obj = (struct ListNode *)malloc(sizeof(struct ListNode));\n    obj->val = val;\n    obj->next = NULL;\n    return obj;\n}\n\nvoid freeList(struct ListNode *list) {\n    while(list) {\n        struct ListNode *p = list;\n        list = list->next;\n        free(p);\n    }\n}\n\nint rootCount(int** edges, int edgesSize, int* edgesColSize, int** guesses, int guessesSize, int* guessesColSize, int k) {\n    int n = edgesSize + 1;\n    struct ListNode *g[n];\n    for (int i = 0; i < n; i++) {\n        g[i] = NULL;\n    }\n    HashItem *st = NULL;\n    for (int i = 0; i < edgesSize; i++) {\n        int x = edges[i][0], y = edges[i][1];\n        struct ListNode *nodex = createListNode(x);\n        nodex->next = g[y];\n        g[y] = nodex;\n        struct ListNode *nodey = createListNode(y);\n        nodey->next = g[x];\n        g[x] = nodey;\n    }\n    for (int i = 0; i < guessesSize; i++) {\n        hashAddItem(&st, h(guesses[i][0], guesses[i][1]), 1);\n    }\n    \n    int cnt = 0, res = 0;\n    dfs(0, -1, g, st, &cnt);\n    redfs(0, -1, cnt, k, &res, g, st);\n    for (int i = 0; i < n; i++) {\n        free(g[i]);\n    }\n    hashFree(&st);\n    return res;\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def rootCount(self, edges: List[List[int]], guesses: List[List[int]], k: int) -> int:\n        n = len(edges) + 1\n        g = [[] for _ in range(n)]\n        st = set()\n        \n        def h(x, y):\n            return x << 20 | y\n        for x, y in edges:\n            g[x].append(y)\n            g[y].append(x)\n        for u, v in guesses:\n            st.add(h(u, v))\n\n        res, cnt = 0, 0\n        def dfs(x, fat):\n            nonlocal cnt\n            for y in g[x]:\n                if y == fat:\n                    continue\n                cnt += h(x, y) in st\n                dfs(y, x)\n        dfs(0, -1)\n\n        def redfs(x, fat, cnt):\n            nonlocal res\n            if cnt >= k:\n                res += 1\n            for y in g[x]:\n                if y == fat:\n                    continue\n                redfs(y, x, cnt - (h(x, y) in st) + (h(y, x) in st))\n        redfs(0, -1, cnt)\n\n        return res\n```\n\n```Go [sol1-Go]\nfunc rootCount(edges [][]int, guesses [][]int, k int) int {\n    n := len(edges) + 1\n    g := make([][]int, n)\n    st := make(map[int64]int)\n\n    for _, v := range edges {\n        g[v[0]] = append(g[v[0]], v[1])\n        g[v[1]] = append(g[v[1]], v[0])\n    }\n    for _, v := range guesses {\n        st[h(v[0], v[1])] = 1\n    }\n\n    cnt, res := 0, 0\n    var dfs func(int, int)\n    dfs = func(x, fat int) {\n        for _, y := range g[x] {\n            if y == fat {\n                continue\n            }\n            if st[h(x, y)] == 1 {\n                cnt++\n            }\n            dfs(y, x)\n        }\n    }\n    dfs(0, -1)\n\n    var redfs func(int, int, int)\n    redfs = func(x, fat, cnt int) {\n        if cnt >= k {\n            res++\n        }\n        for _, y := range g[x] {\n            if y == fat {\n                continue\n            }\n            redfs(y, x, cnt - st[h(x, y)] + st[h(y, x)])\n        }\n    }\n    redfs(0, -1, cnt)\n    return res\n}\n\nfunc h(x, y int) int64 {\n    return int64(x) << 20 | int64(y)\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar rootCount = function(edges, guesses, k) {\n    const n = edges.length + 1;\n    const g = Array.from({ length: n }, () => []);\n    const st = new Set();\n\n    const h = (x, y) => {\n        return x << 20 | y;\n    }\n\n    edges.forEach(v => {\n        g[v[0]].push(v[1]);\n        g[v[1]].push(v[0]);\n    });\n\n    guesses.forEach(v => {\n        st.add(h(v[0], v[1]));\n    });\n\n    let cnt = 0;\n    let res = 0;\n\n    function dfs(x, fat) {\n        for (const y of g[x]) {\n            if (y === fat) {\n                continue;\n            }\n            cnt += st.has(h(x, y));\n            dfs(y, x);\n        }\n    }\n    dfs(0, -1);\n\n    function redfs(x, fat, cnt) {\n        if (cnt >= k) {\n            res++;\n        }\n        for (const y of g[x]) {\n            if (y === fat) {\n                continue;\n            }\n            redfs(y, x, cnt - (st.has(h(x, y))) + (st.has(h(y, x))));\n        }\n    }\n    redfs(0, -1, cnt);\n    return res;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction rootCount(edges: number[][], guesses: number[][], k: number): number {\n    const n = edges.length + 1;\n    const g: number[][] = Array.from({ length: n }, () => []);\n    const st: Set<number> = new Set();\n    const h = (x, y) => {\n        return x << 20 | y;\n    }\n\n    edges.forEach(v => {\n        g[v[0]].push(v[1]);\n        g[v[1]].push(v[0]);\n    });\n\n    guesses.forEach(v => {\n        st.add(h(v[0], v[1]));\n    });\n\n    let cnt = 0;\n    let res = 0;\n\n    function dfs(x: number, fat: number): void {\n        for (const y of g[x]) {\n            if (y === fat) {\n                continue;\n            }\n            cnt += Number(st.has(h(x, y)));\n            dfs(y, x);\n        }\n    }\n    dfs(0, -1);\n\n    function redfs(x: number, fat: number, cnt: number): void {\n        if (cnt >= k) {\n            res++;\n        }\n        for (const y of g[x]) {\n            if (y === fat) {\n                continue;\n            }\n            redfs(y, x, cnt - Number(st.has(h(x, y))) + Number(st.has(h(y, x))));\n        }\n    }\n    redfs(0, -1, cnt);\n    return res;\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n + m)$，其中 $n$ 为树上点的个数，$m$ 是 $\\textit{guesses}$ 的长度。\n\n- 空间复杂度：$O(n + m)$。",
+            "slateValue": "",
+            "slug": "tong-ji-ke-neng-de-shu-gen-shu-mu-by-lee-3gzg",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "DxYkTv",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 21,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Tree",
+                    "nameTranslated": "树",
+                    "slug": "tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Depth-First Search",
+                    "nameTranslated": "深度优先搜索",
+                    "slug": "depth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2024-02-26T03:56:20.244213+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：树形动态规划 思路与算法 首先计算固定树根时猜对的次数，假设以 $0$ 号节点为树根，从它开始执行深度优先搜索，使用哈希表统计所有树边 $(x, y)$ 在 $\\textit{guesses}$ 中出现的个数，其中 $x$ 是 $y$ 的父节点。 然后考虑树根从 $0$ 移动到 $0$ 的子节点后，所有 $\\t",
+            "topic": {
+                "id": 2654312,
+                "subscribed": false,
+                "commentCount": 41,
+                "viewCount": 715,
+                "post": {
+                    "id": 4893778,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 49,
+            "isEditorsPick": false,
+            "hitCount": 10464,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "count-number-of-possible-root-nodes",
+                "questionFrontendId": "2581"
+            },
+            "next": {
+                "slug": "huan-gen-dppythonjavacgo-by-endlesscheng-ccwy",
+                "title": "换根 DP（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

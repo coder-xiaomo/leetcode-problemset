@@ -1,0 +1,152 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "oNScFM",
+            "title": "得到新鲜甜甜圈的最多组数",
+            "content": "#### 方法一：状态压缩动态规划\n\n**思路与算法**\n\n根据题目的要求，当有一批顾客来到商店时，如果之前的顾客总数恰好是 $\\textit{batchSize}$ 的倍数，那么这一批顾客会开心。因此，一批顾客的数量本身并不重要，重要的是**其对 $\\textit{batchSize}$ 取模**的结果。\n\n这样一来，我们可以将数组 $\\textit{groups}$ 中的每个元素对 $\\textit{batchSize}$ 进行取模。此时，元素的种类就只有 $\\textit{batchSize}$ 种了。由于 $\\textit{batchSize} \\leq 9$，我们就可以考虑使用状态压缩动态规划解决本题。\n\n> 为了方便叙述，我们用 $n$ 表示 $\\textit{batchSize}$，$a_0, a_1, \\cdots, a_{n-1}$ 分别表示值为 $0, 1, \\cdots, n-1$ 的元素的个数。\n\n记 $f(a_0, a_1, \\cdots, a_{n-1})$ 表示当顾客的情况为 $a_0, a_1, \\cdots, a_{n-1}$ 时，最多可以感到开心的顾客总数。在进行状态转移时，根据第一段叙述中的「如果之前的顾客总数恰好是 $n$ 的倍数，那么这一批顾客会开心」，我们就可以枚举**最后一组顾客**是 $0, 1, \\cdots, n-1$ 中的哪一种。\n\n我们以最后一组顾客是 $i = 3$ 举例，那么 $f(a_0, a_1, \\cdots, a_{n-1})$ 就会从 $f(a_0, \\cdots, a_2, a_3-1, a_4, \\cdots, a_{n-1})$ 转移而来。顾客的总数对 $n$ 取模的结果为：\n\n$$\nS = \\left( \\sum_{j=0}^{n-1} j \\times a_j \\right) \\bmod n\n$$\n\n如果 $S$ 和 $i=3$ 在模 $n$ 的意义下同余，那么说明在最后一组之前，顾客总数恰好是 $n$ 的倍数，即最后一组顾客会感到开心。此时状态转移方程即为：\n\n$$\nf(a_0, a_1, \\cdots, a_{n-1}) = f(a_0, \\cdots, a_2, a_3-1, a_4, \\cdots, a_{n-1}) + 1\n$$\n\n如果不同余，最后一组顾客并不会感到开心。此时状态转移方程即为：\n\n$$\nf(a_0, a_1, \\cdots, a_{n-1}) = f(a_0, \\cdots, a_2, a_3-1, a_4, \\cdots, a_{n-1})\n$$\n\n当 $i$ 枚举了 $0, 1, \\cdots, n-1$ 中的所有值后，所有状态转移的最大值即为 $f(a_0, a_1, \\cdots, a_{n-1})$。需要注意在枚举时，$a_i$ 一定要大于 $0$。\n\n动态规划的边界情况为 $f(0, \\cdots, 0) = 0$。上述动态规划使用记忆化搜索编写代码较为方便。\n\n**如何存储 $a_0, a_1, \\cdots, a_{n-1}$**\n\n由于 $n \\leq 9$，我们可以使用一个 $9$ 维的数组进行上述的状态转移，但这样做显然会使得代码看起来非常混乱且不易维护。因此我们需要思考更好的解决方法。\n\n我们可以尝试对 $a_0, a_1, \\cdots, a_{n-1}$ 进行状态压缩。由于数组 $\\textit{groups}$ 的长度不超过 $30$，那么每一个 $a_i$ 也都不超过 $30$，可以用 $5$ 位二进制位来进行表示。那么整个 $a_0, a_1, \\cdots, a_{n-1}$ 就可以用不超过 $5 \\times 9 = 45$ 位二进制位来进行表示。大部分语言都支持 $64$ 位整数类型，因此可以存储这个 $45$ 位的二进制表示。\n\n具体地，我们用 $\\textit{mask}$ 来存储 $a_0, a_1, \\cdots, a_{n-1}$。$\\textit{mask}$ 最低的 $5$ 个二进制位存储了 $a_0$，更高的 $5$ 个二进制位存储了 $a_1$，以此类推。这样一来，我们可以通过位运算：\n\n$$\n\\texttt{(mask >> (i * 5)) \\& 0b11111}\n$$\n\n来获取 $a_i$ 的值。在进行状态转移时，如果我们需要将 $a_i$ 减去 $1$，就可以通过：\n\n$$\n\\texttt{mask - (1 << (i * 5))}\n$$\n\n来完成。\n\n**优化**\n\n注意到 $a_0$ 是没有意义的，因为它本身为 $0$，并不会改变任意一组顾客「之前的顾客总数是否为 $n$ 的倍数」的情况。\n\n这样一来，我们可以将所有的 $a_0$ 都放在最前面，即让数组 $\\textit{groups}$ 中人数为 $n$ 的倍数的组都最先购买甜甜圈。可以发现，这些组都会完整购买若干批甜甜圈，因此都是感到开心。\n\n因此，我们只需要将 $a_1, \\cdots, a_{n-1}$ 进行状态压缩，答案即为 $f(a_1, \\cdots, a_{n-1}) + a_0$。需要注意的是，因为我们丢弃了 $a_0$，所以前文的位运算中，$i$ 都需要被替换为 $i-1$。\n\n**时空复杂度分析**\n\n在进行了优化后，我们最多需要用一个 $40$ 位的二进制数表示状态，那么时空复杂度的数量级是 $O(2^{40})$ 吗？\n\n其实并没有这么多。对于 $a_1, \\cdots, a_{n-1}$，状态的数量为：\n\n$$\n\\prod_{j=1}^{n-1} (a_j + 1)\n$$\n\n这就是空间复杂度的数量级。我们只需要使用哈希表配合记忆化搜索即可实现。时间复杂度的数量级需要在此基础上再乘 $n-1$，这是因为我们需要枚举 $1, \\cdots, n-1$ 进行转移，而单次转移的时间是 $O(1)$ 的。\n\n在最坏情况下，$n=9$，数组 $\\textit{groups}$ 的长度为 $30$，那么所有 $a_j+1$ 的和为 $30+8=38$。要想使得它们的乘积最大，就应当平均进行分配。因此，当有 $2$ 个 $4$ 和 $6$ 个 $5$ 时，它们的乘积最大为：\n\n$$\n\\prod_{j=1}^{n-1} (a_j + 1) = 4^2 \\times 5^6 = 250000\n$$\n\n即空间复杂度的数量级在 $2 \\times 10^5$ 左右。时间复杂度需要再乘 $8$，数量级在 $2 \\times 10^6$ 左右，均可以满足现代 CPU 和内存的要求。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int maxHappyGroups(int batchSize, vector<int>& groups) {\n        vector<int> cnt(batchSize);\n        for (int x: groups) {\n            ++cnt[x % batchSize];\n        }\n\n        long long start = 0;\n        for (int i = batchSize - 1; i >= 1; --i) {\n            start = (start << kWidth) | cnt[i];\n        }\n\n        unordered_map<long long, int> memo;\n\n        function<int(long long)> dfs = [&](long long mask) -> int {\n            if (mask == 0) {\n                return 0;\n            }\n            if (memo.count(mask)) {\n                return memo[mask];\n            }\n\n            int total = 0;\n            for (int i = 1; i < batchSize; ++i) {\n                int amount = ((mask >> ((i - 1) * kWidth)) & kWidthMask);\n                total += i * amount;\n            }\n\n            int best = 0;\n            for (int i = 1; i < batchSize; ++i) {\n                int amount = ((mask >> ((i - 1) * kWidth)) & kWidthMask);\n                if (amount > 0) {\n                    int result = dfs(mask - (1LL << ((i - 1) * kWidth)));\n                    if ((total - i) % batchSize == 0) {\n                        ++result;\n                    }\n                    best = max(best, result);\n                }\n            }\n\n            return memo[mask] = best;\n        };\n\n        return dfs(start) + cnt[0];\n    }\n\nprivate:\n    static constexpr int kWidth = 5;\n    static constexpr int kWidthMask = (1 << kWidth) - 1;\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    static final int K_WIDTH = 5;\n    static final int K_WIDTH_MASK = (1 << K_WIDTH) - 1;\n\n    public int maxHappyGroups(int batchSize, int[] groups) {\n        int[] cnt = new int[batchSize];\n        for (int x : groups) {\n            ++cnt[x % batchSize];\n        }\n\n        long start = 0;\n        for (int i = batchSize - 1; i >= 1; --i) {\n            start = (start << K_WIDTH) | cnt[i];\n        }\n\n        Map<Long, Integer> memo = new HashMap<Long, Integer>();\n\n        return dfs(memo, batchSize, start) + cnt[0];\n    }\n\n    public int dfs(Map<Long, Integer> memo, int batchSize, long mask) {\n        if (mask == 0) {\n            return 0;\n        }\n\n        if (!memo.containsKey(mask)) {\n            long total = 0;\n            for (int i = 1; i < batchSize; ++i) {\n                long amount = ((mask >> ((i - 1) * K_WIDTH)) & K_WIDTH_MASK);\n                total += i * amount;\n            }\n\n            int best = 0;\n            for (int i = 1; i < batchSize; ++i) {\n                long amount = ((mask >> ((i - 1) * K_WIDTH)) & K_WIDTH_MASK);\n                if (amount > 0) {\n                    int result = dfs(memo, batchSize, mask - (1L << ((i - 1) * K_WIDTH)));\n                    if ((total - i) % batchSize == 0) {\n                        ++result;\n                    }\n                    best = Math.max(best, result);\n                }\n            }\n\n            memo.put(mask, best);\n        }\n        return memo.get(mask);\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    const int K_WIDTH = 5;\n    const int K_WIDTH_MASK = (1 << K_WIDTH) - 1;\n\n    public int MaxHappyGroups(int batchSize, int[] groups) {\n        int[] cnt = new int[batchSize];\n        foreach (int x in groups) {\n            ++cnt[x % batchSize];\n        }\n\n        long start = 0;\n        for (int i = batchSize - 1; i >= 1; --i) {\n            start = (start << K_WIDTH) | cnt[i];\n        }\n\n        IDictionary<long, int> memo = new Dictionary<long, int>();\n\n        return DFS(memo, batchSize, start) + cnt[0];\n    }\n\n    public int DFS(IDictionary<long, int> memo, int batchSize, long mask) {\n        if (mask == 0) {\n            return 0;\n        }\n\n        if (!memo.ContainsKey(mask)) {\n            long total = 0;\n            for (int i = 1; i < batchSize; ++i) {\n                long amount = ((mask >> ((i - 1) * K_WIDTH)) & K_WIDTH_MASK);\n                total += i * amount;\n            }\n\n            int best = 0;\n            for (int i = 1; i < batchSize; ++i) {\n                long amount = ((mask >> ((i - 1) * K_WIDTH)) & K_WIDTH_MASK);\n                if (amount > 0) {\n                    int result = DFS(memo, batchSize, mask - (1L << ((i - 1) * K_WIDTH)));\n                    if ((total - i) % batchSize == 0) {\n                        ++result;\n                    }\n                    best = Math.Max(best, result);\n                }\n            }\n\n            memo.Add(mask, best);\n        }\n        return memo[mask];\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def maxHappyGroups(self, batchSize: int, groups: List[int]) -> int:\n        kWidth = 5\n        kWidthMask = (1 << kWidth) - 1\n\n        cnt = Counter(x % batchSize for x in groups)\n\n        start = 0\n        for i in range(batchSize - 1, 0, -1):\n            start = (start << kWidth) | cnt[i]\n\n        @cache\n        def dfs(mask: int) -> int:\n            if mask == 0:\n                return 0\n\n            total = 0\n            for i in range(1, batchSize):\n                amount = ((mask >> ((i - 1) * kWidth)) & kWidthMask)\n                total += i * amount\n\n            best = 0\n            for i in range(1, batchSize):\n                amount = ((mask >> ((i - 1) * kWidth)) & kWidthMask)\n                if amount > 0:\n                    result = dfs(mask - (1 << ((i - 1) * kWidth)))\n                    if (total - i) % batchSize == 0:\n                        result += 1\n                    best = max(best, result)\n\n            return best\n\n        ans = dfs(start) + cnt[0]\n        dfs.cache_clear()\n        return ans\n```\n\n```C [sol1-C]\n#define MAX(a, b) ((a) > (b) ? (a) : (b))\n\nconst int kWidth = 5;\nconst int kWidthMask = (1 << kWidth) - 1;\n\ntypedef struct {\n    long long key;\n    int val;\n    UT_hash_handle hh;\n} HashItem; \n\nHashItem *hashFindItem(HashItem **obj, long long key) {\n    HashItem *pEntry = NULL;\n    HASH_FIND(hh, *obj, &key, sizeof(long long), pEntry);\n    return pEntry;\n}\n\nbool hashAddItem(HashItem **obj, long long key, int val) {\n    HashItem *pEntry = (HashItem *)malloc(sizeof(HashItem));\n    pEntry->key = key;\n    pEntry->val = val;\n    HASH_ADD(hh, *obj, key, sizeof(long long), pEntry);\n    return true;\n}\n\nbool hashSetItem(HashItem **obj, long long key, int val) {\n    HashItem *pEntry = NULL;\n    HASH_FIND(hh, *obj, &key, sizeof(long long), pEntry);\n    if (!pEntry) {\n        pEntry->val = val;\n    }\n    return true;\n}\n\nint hashGetItem(HashItem **obj, long long key, int defaultVal) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        return defaultVal;\n    }\n    return pEntry->val;\n}\n\nvoid hashFree(HashItem **obj) {\n    HashItem *curr = NULL, *tmp = NULL;\n    HASH_ITER(hh, *obj, curr, tmp) {\n        HASH_DEL(*obj, curr);  \n        free(curr);             \n    }\n}\n\nint dfs(long long mask, HashItem **memo, int batchSize) {\n    if (mask == 0) {\n        return 0;\n    }\n    int ret = hashGetItem(memo, mask, -1);\n    if (ret != -1) {\n        return ret;\n    }\n\n    int total = 0;\n    for (int i = 1; i < batchSize; ++i) {\n        int amount = ((mask >> ((i - 1) * kWidth)) & kWidthMask);\n        total += i * amount;\n    }\n\n    int best = 0;\n    for (int i = 1; i < batchSize; ++i) {\n        int amount = ((mask >> ((i - 1) * kWidth)) & kWidthMask);\n        if (amount > 0) {\n            long long nextMask = mask - (1LL << ((i - 1) * kWidth));\n            int result = nextMask == 0 ? 0 : dfs(nextMask, memo, batchSize);\n            if ((total - i) % batchSize == 0) {\n                ++result;\n            }\n            best = MAX(best, result);\n        }\n    }\n    hashAddItem(memo, mask, best);\n    return best;\n};\n\nint maxHappyGroups(int batchSize, int* groups, int groupsSize) {\n    int cnt[batchSize];\n    memset(cnt, 0, sizeof(cnt));\n    for (int i = 0; i < groupsSize; i++) {\n        ++cnt[groups[i] % batchSize];\n    }\n    long long start = 0;\n    for (int i = batchSize - 1; i >= 1; --i) {\n        start = (start << kWidth) | cnt[i];\n    }\n    HashItem *memo = NULL;\n    int ret = dfs(start, &memo, batchSize) + cnt[0];\n    hashFree(&memo);\n    return ret;\n}\n```\n\n```go [sol1-Golang]\nfunc maxHappyGroups(batchSize int, groups []int) (ans int) {\n\tconst kWidth = 5\n\tconst kWidthMask = 1<<kWidth - 1\n\n\tcnt := make([]int, batchSize)\n\tfor _, x := range groups {\n\t\tcnt[x%batchSize]++\n\t}\n\n\tstart := 0\n\tfor i := batchSize - 1; i > 0; i-- {\n\t\tstart = start<<kWidth | cnt[i]\n\t}\n\n\tmemo := map[int]int{}\n\tvar dfs func(int) int\n\tdfs = func(mask int) (best int) {\n\t\tif mask == 0 {\n\t\t\treturn\n\t\t}\n\t\tif res, ok := memo[mask]; ok {\n\t\t\treturn res\n\t\t}\n\n\t\ttotal := 0\n\t\tfor i := 1; i < batchSize; i++ {\n\t\t\tamount := mask >> ((i - 1) * kWidth) & kWidthMask\n\t\t\ttotal += i * amount\n\t\t}\n\n\t\tfor i := 1; i < batchSize; i++ {\n\t\t\tamount := mask >> ((i - 1) * kWidth) & kWidthMask\n\t\t\tif amount > 0 {\n\t\t\t\tresult := dfs(mask - 1<<((i-1)*kWidth))\n\t\t\t\tif (total-i)%batchSize == 0 {\n\t\t\t\t\tresult++\n\t\t\t\t}\n\t\t\t\tbest = max(best, result)\n\t\t\t}\n\t\t}\n\t\tmemo[mask] = best\n\t\treturn\n\t}\n\treturn dfs(start) + cnt[0]\n}\n\nfunc max(a, b int) int {\n\tif b > a {\n\t\treturn b\n\t}\n\treturn a\n}\n```",
+            "slateValue": "",
+            "slug": "de-dao-xin-xian-tian-tian-quan-de-zui-du-pzra",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "oNScFM",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 32,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 0,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Bit Manipulation",
+                    "nameTranslated": "位运算",
+                    "slug": "bit-manipulation",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Memoization",
+                    "nameTranslated": "记忆化",
+                    "slug": "memoization",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Bitmask",
+                    "nameTranslated": "位掩码",
+                    "slug": "bitmask",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-01-21T06:32:31.545840+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：状态压缩动态规划 思路与算法 根据题目的要求，当有一批顾客来到商店时，如果之前的顾客总数恰好是 $\\textit{batchSize}$ 的倍数，那么这一批顾客会开心。因此，一批顾客的数量本身并不重要，重要的是其对 $\\textit{batchSize}$ 取模的结果。 这样一来，我们可以将数组 $\\texti",
+            "topic": {
+                "id": 2071849,
+                "subscribed": false,
+                "commentCount": 61,
+                "viewCount": 1248,
+                "post": {
+                    "id": 3968409,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 40,
+            "isEditorsPick": false,
+            "hitCount": 11736,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "maximum-number-of-groups-getting-fresh-donuts",
+                "questionFrontendId": "1815"
+            },
+            "next": {
+                "slug": "by-endlesscheng-r5ve",
+                "title": "位运算的魔法（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

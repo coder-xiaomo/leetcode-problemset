@@ -1,0 +1,148 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "h5WMV9",
+            "title": "两个最好的不重叠活动",
+            "content": "#### 方法一：时间戳排序\n\n**思路与算法**\n\n我们可以将所有活动的左右边界放在一起进行自定义排序。具体地，我们用 $(\\textit{ts}, \\textit{op}, \\textit{val})$ 表示一个「事件」：\n\n- $\\textit{op}$ 表示该事件的类型。如果 $\\textit{op} = 0$，说明该事件表示一个活动的开始；如果 $\\textit{op} = 1$，说明该事件表示一个活动的结束。\n\n- $\\textit{ts}$ 表示该事件发生的时间，即活动的开始时间或结束时间。\n\n- $\\textit{val}$ 表示该事件的价值，即对应活动的 $\\textit{value}$ 值。\n\n我们将所有的时间按照 $\\textit{ts}$ 为第一关键字升序排序，这样我们就能按照时间顺序依次处理每一个事件。当 $\\textit{ts}$ 相等时，我们按照 $\\textit{op}$ 为第二关键字升序排序，这是因为题目中要求了「第一个活动的结束时间不能等于第二个活动的起始时间」，因此当时间相同时，我们先处理开始的事件，再处理结束的事件。\n\n当排序完成后，我们就可以通过对所有的事件进行一次遍历，从而算出最多两个时间不重叠的活动的最大价值：\n\n- 当我们遍历到一个结束事件时，我们用 $\\textit{val}$ 来更新 $\\textit{bestFirst}$，其中 $\\textit{bestFirst}$ 表示当前已经结束的所有活动的最大价值。这样做的意义在于，**所有已经结束的事件都可以当作第一个活动**。\n\n- 当我们遍历到一个开始事件时，我们将该活动当作第二个活动，由于第一个活动的最大价值为 $\\textit{bestFirst}$，因此我们用 $\\textit{val} + \\textit{bestFirst}$ 更新答案即可。\n\n**代码**\n\n```C++ [sol1-C++]\nstruct Event {\n    // 时间戳\n    int ts;\n    // op = 0 表示左边界，op = 1 表示右边界\n    int op;\n    int val;\n    Event(int _ts, int _op, int _val): ts(_ts), op(_op), val(_val) {}\n    bool operator< (const Event& that) const {\n        return tie(ts, op) < tie(that.ts, that.op);\n    }\n};\n\nclass Solution {\npublic:\n    int maxTwoEvents(vector<vector<int>>& events) {\n        vector<Event> evs;\n        for (const auto& event: events) {\n            evs.emplace_back(event[0], 0, event[2]);\n            evs.emplace_back(event[1], 1, event[2]);\n        }\n        sort(evs.begin(), evs.end());\n        \n        int ans = 0, bestFirst = 0;\n        for (const auto& [ts, op, val]: evs) {\n            if (op == 0) {\n                ans = max(ans, val + bestFirst);\n            }\n            else {\n                bestFirst = max(bestFirst, val);\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Event:\n    def __init__(self, ts: int, op: int, val: int):\n        self.ts = ts\n        self.op = op\n        self.val = val\n    \n    def __lt__(self, other: \"Event\") -> bool:\n        return (self.ts, self.op) < (other.ts, other.op)\n\n\nclass Solution:\n    def maxTwoEvents(self, events: List[List[int]]) -> int:\n        evs = list()\n        for event in events:\n            evs.append(Event(event[0], 0, event[2]))\n            evs.append(Event(event[1], 1, event[2]))\n        evs.sort()\n\n        ans = bestFirst = 0\n        for ev in evs:\n            if ev.op == 0:\n                ans = max(ans, ev.val + bestFirst)\n            else:\n                bestFirst = max(bestFirst, ev.val)\n        \n        return ans\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int maxTwoEvents(int[][] events) {\n        List<Event> evs = new ArrayList<>();\n        for (int[] event : events) {\n            evs.add(new Event(event[0], 0, event[2]));\n            evs.add(new Event(event[1], 1, event[2]));\n        }\n        Collections.sort(evs);\n        int ans = 0, bestFirst = 0;\n        for (Event event : evs) {\n            if (event.op == 0) {\n                ans = Math.max(ans, event.val + bestFirst);\n            } else {\n                bestFirst = Math.max(bestFirst, event.val);\n            }\n        }\n        return ans;\n    }\n    \n    class Event implements Comparable<Event> {\n        int ts;\n        int op;\n        int val;\n        \n        Event(int ts, int op, int val) {\n            this.ts = ts;\n            this.op = op;\n            this.val = val;\n        }\n        \n        @Override\n        public int compareTo(Event other) {\n            if (this.ts != other.ts) {\n                return Integer.compare(this.ts, other.ts);\n            }\n            return Integer.compare(this.op, other.op);\n        }\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MaxTwoEvents(int[][] events) {\n        List<Event> evs = new List<Event>();\n        foreach (var eventArr in events) {\n            evs.Add(new Event(eventArr[0], 0, eventArr[2]));\n            evs.Add(new Event(eventArr[1], 1, eventArr[2]));\n        }\n        evs.Sort();\n        \n        int ans = 0, bestFirst = 0;\n        foreach (var ev in evs) {\n            if (ev.Op == 0) {\n                ans = Math.Max(ans, ev.Val + bestFirst);\n            } else {\n                bestFirst = Math.Max(bestFirst, ev.Val);\n            }\n        }\n        return ans;\n    }\n    \n    class Event : IComparable<Event> {\n        public int Ts { get; set; }\n        public int Op { get; set; }\n        public int Val { get; set; }\n        \n        public Event(int ts, int op, int val) {\n            Ts = ts;\n            Op = op;\n            Val = val;\n        }\n        \n        public int CompareTo(Event other) {\n            if (Ts != other.Ts) {\n                return Ts.CompareTo(other.Ts);\n            }\n            return Op.CompareTo(other.Op);\n        }\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc maxTwoEvents(events [][]int) int {\n    type Event struct {\n        ts  int\n        op  int\n        val int\n    }\n    \n    evs := make([]Event, 0)\n    for _, event := range events {\n        evs = append(evs, Event{event[0], 0, event[2]})\n        evs = append(evs, Event{event[1], 1, event[2]})\n    }\n    \n    sort.Slice(evs, func(i, j int) bool {\n        if evs[i].ts != evs[j].ts {\n            return evs[i].ts < evs[j].ts\n        }\n        return evs[i].op < evs[j].op\n    })\n    \n    ans, bestFirst := 0, 0\n    for _, ev := range evs {\n        if ev.op == 0 {\n            if ev.val + bestFirst > ans {\n                ans = ev.val + bestFirst\n            }\n        } else {\n            if ev.val > bestFirst {\n                bestFirst = ev.val\n            }\n        }\n    }\n    return ans\n}\n```\n\n```C [sol1-C]\ntypedef struct {\n    int ts;\n    int op;\n    int val;\n} Event;\n\nint compareEvents(const void* a, const void* b) {\n    Event* e1 = (Event*)a;\n    Event* e2 = (Event*)b;\n    if (e1->ts != e2->ts) {\n        return e1->ts - e2->ts;\n    }\n    return e1->op - e2->op;\n}\n\nint maxTwoEvents(int** events, int eventsSize, int* eventsColSize) {\n    Event* evs = (Event*)malloc(2 * eventsSize * sizeof(Event));\n    int idx = 0;\n    for (int i = 0; i < eventsSize; i++) {\n        evs[idx++] = (Event){events[i][0], 0, events[i][2]};\n        evs[idx++] = (Event){events[i][1], 1, events[i][2]};\n    }\n    qsort(evs, 2 * eventsSize, sizeof(Event), compareEvents);\n\n    int ans = 0, bestFirst = 0;\n    for (int i = 0; i < 2 * eventsSize; i++) {\n        if (evs[i].op == 0) {\n            if (evs[i].val + bestFirst > ans) {\n                ans = evs[i].val + bestFirst;\n            }\n        } else {\n            if (evs[i].val > bestFirst) {\n                bestFirst = evs[i].val;\n            }\n        }\n    }\n    \n    free(evs);\n    return ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar maxTwoEvents = function(events) {\n    const evs = [];\n    for (const event of events) {\n        evs.push({ts: event[0], op: 0, val: event[2]});\n        evs.push({ts: event[1], op: 1, val: event[2]});\n    }\n    \n    evs.sort((a, b) => {\n        if (a.ts !== b.ts) {\n            return a.ts - b.ts;\n        }\n        return a.op - b.op;\n    });\n    \n    let ans = 0, bestFirst = 0;\n    for (const ev of evs) {\n        if (ev.op === 0) {\n            ans = Math.max(ans, ev.val + bestFirst);\n        } else {\n            bestFirst = Math.max(bestFirst, ev.val);\n        }\n    }\n    return ans;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction maxTwoEvents(events: number[][]): number {\n    interface Event {\n        ts: number;\n        op: number;\n        val: number;\n    }\n    \n    const evs: Event[] = [];\n    for (const event of events) {\n        evs.push({ts: event[0], op: 0, val: event[2]});\n        evs.push({ts: event[1], op: 1, val: event[2]});\n    }\n    \n    evs.sort((a, b) => {\n        if (a.ts !== b.ts) {\n            return a.ts - b.ts;\n        }\n        return a.op - b.op;\n    });\n    \n    let ans = 0, bestFirst = 0;\n    for (const ev of evs) {\n        if (ev.op === 0) {\n            ans = Math.max(ans, ev.val + bestFirst);\n        } else {\n            bestFirst = Math.max(bestFirst, ev.val);\n        }\n    }\n    return ans;\n}\n```\n\n```Rust [sol1-Rust]\n#[derive(Debug)]\nstruct Event {\n    ts: i32,\n    op: i32,\n    val: i32,\n}\n\nimpl Solution {\n    pub fn max_two_events(events: Vec<Vec<i32>>) -> i32 {\n        let mut evs: Vec<Event> = Vec::new();\n        for event in events {\n            evs.push(Event { ts: event[0], op: 0, val: event[2] });\n            evs.push(Event { ts: event[1], op: 1, val: event[2] });\n        }\n        \n        evs.sort_by(|a, b| {\n            if a.ts != b.ts {\n                a.ts.cmp(&b.ts)\n            } else {\n                a.op.cmp(&b.op)\n            }\n        });\n        \n        let mut ans = 0;\n        let mut best_first = 0;\n        for ev in evs {\n            if ev.op == 0 {\n                ans = ans.max(ev.val + best_first);\n            } else {\n                best_first = best_first.max(ev.val);\n            }\n        }\n        \n        ans\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log n)$，其中 $n$ 是数组 $\\textit{events}$ 的长度。\n\n- 空间复杂度：$O(n)$。",
+            "slateValue": "",
+            "slug": "liang-ge-zui-hao-de-bu-zhong-die-huo-don-urq5",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "h5WMV9",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 28,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 3,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Prefix Sum",
+                    "nameTranslated": "前缀和",
+                    "slug": "prefix-sum",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Sorting",
+                    "nameTranslated": "排序",
+                    "slug": "sorting",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Heap (Priority Queue)",
+                    "nameTranslated": "堆（优先队列）",
+                    "slug": "heap-priority-queue",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2021-10-31T16:19:46.526199+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：时间戳排序 思路与算法 我们可以将所有活动的左右边界放在一起进行自定义排序。具体地，我们用 [latex] 表示一个「事件」： [latex] 表示该事件的类型。如果 [latex]，说明该事件表示一个活动的开始；如果 [latex]，说明该事件表示一个活动的结束。 [latex] 表示该事件发生的时间，即活动",
+            "topic": {
+                "id": 1077100,
+                "subscribed": false,
+                "commentCount": 58,
+                "viewCount": 3126,
+                "post": {
+                    "id": 2284124,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 42,
+            "isEditorsPick": false,
+            "hitCount": 14371,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "two-best-non-overlapping-events",
+                "questionFrontendId": "2054"
+            },
+            "next": {
+                "slug": "yong-you-xian-dui-lie-wei-hu-ling-yi-ge-8ld3x",
+                "title": "排序 + 单调栈二分（通用做法是 DP）Python/Java/C++/Go"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,156 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "3EZR9d",
+            "title": "执行操作后元素的最高频率 I",
+            "content": "#### 方法一：排序 + 枚举 + 二分查找\n\n首先处理约束条件 $\\textit{numOperations}$。虽然题意要求**恰好**操作 $\\textit{numOperations}$ 次，但由于**可以选定若干个元素加 $0$** 且 $\\textit{numOperations}$ 小于 $\\textit{nums}$ 的长度，这实际上意味着可以**至多**选择 $\\textit{numOperations}$ 个元素，使它们在 $[-k, k]$ 范围内调整。\n\n考虑枚举目标众数。设 $\\textit{nums}$ 的最小值和最大值分别为 $\\textit{num}_{\\min}$，$\\textit{num}_{\\max}$，显然有枚举区间 $[\\textit{num}_{\\min}$，$\\textit{num}_{\\max}]$。\n\n假设对于每一个 $m_i$，都能算出最多有 $f_i$ 个数能变为 $m_i$，那么将 $f_i$ 作为 $\\textit{ans}_{\\textit{temp}}$ 去更新全局 $\\textit{ans}$，由于答案一定存在于某个 $m_i$ 中，此时正确性是显然的。\n\n下面考虑如何计算 $f_i$。\n\n对于每一个 $m_i$，首先考虑约束条件 $k$，易得只有 $[m_i - k , m_i + k]$ 这个范围内的数才能变成 $m_i$，若对 $\\textit{nums}$ 排序，很容易通过二分查找找到 $m_i - k$ 和 $m_i + k$ 在 $\\textit{nums}$ 对应的下界元素（第一个大于等于 $m_i - k$ 的元素，下标记为 $l$）和上界元素（最后一个小于等于 $m_i + k$ 的元素，下标记为 $r$）。\n\n这意味着任意 $\\textit{nums}[i], \\; i \\in [l, r]$ 都有机会消耗一次操作变为 $m_i$。为了满足 $\\textit{numOperations}$ 的约束，同时使这个区间内的数尽可能多的变为 $m_i$，$f_i$ 的值应该是区间长度和 $\\textit{numOperations}$ 的较小值，即 $f_i = \\min(r - l + 1, \\textit{numOperations})$。\n\n还有最后一件事情需要考虑：如果我们枚举的 $m_i$ 是 $\\textit{nums}$ 中的某个数，那么不应该在这些数上浪费操作次数。因此我们还需要预处理出 $\\textit{nums}$ 中每个数的出现次数。在最后计算 $f_i$ 的时候加上它。设某个 $m_i$ 的出现次数为 $\\textit{count}_i$，$f_i$ 最终的计算方法为 $f_i = \\min(r - l + 1, \\textit{numOperations} + \\textit{count}_i)$。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int maxFrequency(vector<int>& nums, int k, int numOperations) {\n        sort(nums.begin(), nums.end());\n\n        int ans = 0;\n        unordered_map<int, int> numCount;\n\n        int lastNumIndex = 0;\n        for (int i = 0; i < nums.size(); ++i) {\n            if (nums[i] != nums[lastNumIndex]) {\n                numCount[nums[lastNumIndex]] = i - lastNumIndex;\n                ans = max(ans, i - lastNumIndex);\n                lastNumIndex = i;\n            }\n        }\n\n        numCount[nums[lastNumIndex]] = nums.size() - lastNumIndex;\n        ans = max(ans, (int)nums.size() - lastNumIndex);\n\n        auto leftBound = [&](int value) {\n            int left = 0, right = nums.size() - 1;\n            while (left < right) {\n                int mid = (left + right) / 2;\n                if (nums[mid] < value) {\n                    left = mid + 1;\n                } else {\n                    right = mid;\n                }\n            }\n            return left;\n        };\n\n        auto rightBound = [&](int value) {\n            int left = 0, right = nums.size() - 1;\n            while (left < right) {\n                int mid = (left + right + 1) / 2;\n                if (nums[mid] > value) {\n                    right = mid - 1;\n                } else {\n                    left = mid;\n                }\n            }\n            return left;\n        };\n\n        for (int i = nums.front(); i <= nums.back(); i++) {\n            int l = leftBound(i - k);\n            int r = rightBound(i + k);\n\n            int tempAns;\n            if (numCount.count(i)) {\n                tempAns = min(r - l + 1, numCount[i] + numOperations);\n            } else {\n                tempAns = min(r - l + 1, numOperations);\n            }\n            ans = max(ans, tempAns);\n        }\n\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int maxFrequency(int[] nums, int k, int numOperations) {\n        Arrays.sort(nums);\n        \n        int ans = 0;\n        Map<Integer, Integer> numCount = new HashMap<>();\n        \n        int lastNumIndex = 0;\n        for (int i = 0; i < nums.length; ++i) {\n            if (nums[i] != nums[lastNumIndex]) {\n                numCount.put(nums[lastNumIndex], i - lastNumIndex);\n                ans = Math.max(ans, i - lastNumIndex);\n                lastNumIndex = i;\n            }\n        }\n        \n        numCount.put(nums[lastNumIndex], nums.length - lastNumIndex);\n        ans = Math.max(ans, nums.length - lastNumIndex);\n        \n        for (int i = nums[0]; i <= nums[nums.length - 1]; i++) {\n            int l = leftBound(nums, i - k);\n            int r = rightBound(nums, i + k);\n            int tempAns;\n            if (numCount.containsKey(i)) {\n                tempAns = Math.min(r - l + 1, numCount.get(i) + numOperations);\n            } else {\n                tempAns = Math.min(r - l + 1, numOperations);\n            }\n            ans = Math.max(ans, tempAns);\n        }\n        \n        return ans;\n    }\n    \n    private int leftBound(int[] nums, int value) {\n        int left = 0, right = nums.length - 1;\n        while (left < right) {\n            int mid = (left + right) / 2;\n            if (nums[mid] < value) {\n                left = mid + 1;\n            } else {\n                right = mid;\n            }\n        }\n        return left;\n    }\n    \n    private int rightBound(int[] nums, int value) {\n        int left = 0, right = nums.length - 1;\n        while (left < right) {\n            int mid = (left + right + 1) / 2;\n            if (nums[mid] > value) {\n                right = mid - 1;\n            } else {\n                left = mid;\n            }\n        }\n        return left;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MaxFrequency(int[] nums, int k, int numOperations) {\n        Array.Sort(nums);\n        \n        int ans = 0;\n        Dictionary<int, int> numCount = new Dictionary<int, int>();\n        \n        int lastNumIndex = 0;\n        for (int i = 0; i < nums.Length; ++i) {\n            if (nums[i] != nums[lastNumIndex]) {\n                numCount[nums[lastNumIndex]] = i - lastNumIndex;\n                ans = Math.Max(ans, i - lastNumIndex);\n                lastNumIndex = i;\n            }\n        }\n        \n        numCount[nums[lastNumIndex]] = nums.Length - lastNumIndex;\n        ans = Math.Max(ans, nums.Length - lastNumIndex);\n        \n        for (int i = nums[0]; i <= nums[nums.Length - 1]; i++) {\n            int l = LeftBound(nums, i - k);\n            int r = RightBound(nums, i + k);\n            \n            int tempAns;\n            if (numCount.ContainsKey(i)) {\n                tempAns = Math.Min(r - l + 1, numCount[i] + numOperations);\n            } else {\n                tempAns = Math.Min(r - l + 1, numOperations);\n            }\n            ans = Math.Max(ans, tempAns);\n        }\n        \n        return ans;\n    }\n    \n    private int LeftBound(int[] nums, int value) {\n        int left = 0, right = nums.Length - 1;\n        while (left < right) {\n            int mid = (left + right) / 2;\n            if (nums[mid] < value) {\n                left = mid + 1;\n            } else {\n                right = mid;\n            }\n        }\n        return left;\n    }\n    \n    private int RightBound(int[] nums, int value) {\n        int left = 0, right = nums.Length - 1;\n        while (left < right) {\n            int mid = (left + right + 1) / 2;\n            if (nums[mid] > value) {\n                right = mid - 1;\n            } else {\n                left = mid;\n            }\n        }\n        return left;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc maxFrequency(nums []int, k int, numOperations int) int {\n    sort.Ints(nums)\n    ans := 0\n    numCount := make(map[int]int)\n    \n    lastNumIndex := 0\n    for i := 0; i < len(nums); i++ {\n        if nums[i] != nums[lastNumIndex] {\n            numCount[nums[lastNumIndex]] = i - lastNumIndex\n            ans = max(ans, i - lastNumIndex)\n            lastNumIndex = i\n        }\n    }\n    \n    numCount[nums[lastNumIndex]] = len(nums) - lastNumIndex\n    ans = max(ans, len(nums) - lastNumIndex)\n    \n    leftBound := func(value int) int {\n        left, right := 0, len(nums)-1\n        for left < right {\n            mid := (left + right) / 2\n            if nums[mid] < value {\n                left = mid + 1\n            } else {\n                right = mid\n            }\n        }\n        return left\n    }\n    \n    rightBound := func(value int) int {\n        left, right := 0, len(nums)-1\n        for left < right {\n            mid := (left + right + 1) / 2\n            if nums[mid] > value {\n                right = mid - 1\n            } else {\n                left = mid\n            }\n        }\n        return left\n    }\n    \n    for i := nums[0]; i <= nums[len(nums)-1]; i++ {\n        l := leftBound(i - k)\n        r := rightBound(i + k)\n        \n        tempAns := 0\n        if count, exists := numCount[i]; exists {\n            tempAns = min(r - l + 1, count + numOperations)\n        } else {\n            tempAns = min(r - l + 1, numOperations)\n        }\n        ans = max(ans, tempAns)\n    }\n    \n    return ans\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def maxFrequency(self, nums: List[int], k: int, numOperations: int) -> int:\n        nums.sort()\n        ans = 0\n        num_count = {}\n        last_num_index = 0\n        for i in range(len(nums)):\n            if nums[i] != nums[last_num_index]:\n                num_count[nums[last_num_index]] = i - last_num_index\n                ans = max(ans, i - last_num_index)\n                last_num_index = i\n\n        num_count[nums[last_num_index]] = len(nums) - last_num_index\n        ans = max(ans, len(nums) - last_num_index)\n\n        for i in range(nums[0], nums[-1] + 1):\n            l = bisect.bisect_left(nums, i - k)\n            r = bisect.bisect_right(nums, i + k) - 1\n            if i in num_count:\n                temp_ans = min(r - l + 1, num_count[i] + numOperations)\n            else:\n                temp_ans = min(r - l + 1, numOperations)\n            ans = max(ans, temp_ans)\n\n        return ans\n```\n\n```C [sol1-C]\nint compare(const void* a, const void* b) {\n    return (*(int*)a - *(int*)b);\n}\n\nint leftBound(int* nums, int numsSize, int value) {\n    int left = 0, right = numsSize - 1;\n    while (left < right) {\n        int mid = (left + right) / 2;\n        if (nums[mid] < value) {\n            left = mid + 1;\n        } else {\n            right = mid;\n        }\n    }\n    return left;\n}\n\nint rightBound(int* nums, int numsSize, int value) {\n    int left = 0, right = numsSize - 1;\n    while (left < right) {\n        int mid = (left + right + 1) / 2;\n        if (nums[mid] > value) {\n            right = mid - 1;\n        } else {\n            left = mid;\n        }\n    }\n    return left;\n}\n\ntypedef struct {\n    int key;\n    int val;\n    UT_hash_handle hh;\n} HashItem; \n\nHashItem *hashFindItem(HashItem **obj, int key) {\n    HashItem *pEntry = NULL;\n    HASH_FIND_INT(*obj, &key, pEntry);\n    return pEntry;\n}\n\nbool hashAddItem(HashItem **obj, int key, int val) {\n    if (hashFindItem(obj, key)) {\n        return false;\n    }\n    HashItem *pEntry = (HashItem *)malloc(sizeof(HashItem));\n    pEntry->key = key;\n    pEntry->val = val;\n    HASH_ADD_INT(*obj, key, pEntry);\n    return true;\n}\n\nbool hashSetItem(HashItem **obj, int key, int val) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        hashAddItem(obj, key, val);\n    } else {\n        pEntry->val = val;\n    }\n    return true;\n}\n\nint hashGetItem(HashItem **obj, int key, int defaultVal) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        return defaultVal;\n    }\n    return pEntry->val;\n}\n\nvoid hashFree(HashItem **obj) {\n    HashItem *curr = NULL, *tmp = NULL;\n    HASH_ITER(hh, *obj, curr, tmp) {\n        HASH_DEL(*obj, curr);  \n        free(curr);\n    }\n}\n\nint maxFrequency(int* nums, int numsSize, int k, int numOperations) {\n    qsort(nums, numsSize, sizeof(int), compare);\n    int ans = 0;\n    HashItem *numCount = NULL;        \n    int lastNumIndex = 0;\n    for (int i = 0; i < numsSize; ++i) {\n        if (nums[i] != nums[lastNumIndex]) {\n            hashSetItem(&numCount, nums[lastNumIndex], i - lastNumIndex);\n            ans = fmax(ans, i - lastNumIndex);\n            lastNumIndex = i;\n        }\n    }\n    hashSetItem(&numCount, nums[lastNumIndex], numsSize - lastNumIndex);\n    ans = fmax(ans, numsSize - lastNumIndex);\n    for (int i = nums[0]; i <= nums[numsSize - 1]; i++) {\n        int l = leftBound(nums, numsSize, i - k);\n        int r = rightBound(nums, numsSize, i + k);\n        int tempAns;\n        if (hashFindItem(&numCount, i)) {\n            tempAns = fmin(r - l + 1, hashGetItem(&numCount, i, 0) + numOperations);\n        } else {\n            tempAns = fmin(r - l + 1, numOperations);\n        }\n        ans = fmax(ans, tempAns);\n    }\n    hashFree(&numCount);\n    return ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar maxFrequency = function (nums, k, numOperations) {\n    nums.sort((a, b) => a - b);\n\n    let ans = 0;\n    const numCount = new Map();\n\n    let lastNumIndex = 0;\n    for (let i = 0; i < nums.length; i++) {\n        if (nums[i] !== nums[lastNumIndex]) {\n            numCount.set(nums[lastNumIndex], i - lastNumIndex);\n            ans = Math.max(ans, i - lastNumIndex);\n\n            lastNumIndex = i;\n        }\n    }\n\n    numCount.set(nums[lastNumIndex], nums.length - lastNumIndex);\n    ans = Math.max(ans, nums.length - lastNumIndex);\n\n    const leftBound = (value) => {\n        let left = 0;\n        let right = nums.length - 1;\n        while (left < right) {\n            const mid = Math.floor((left + right) / 2);\n            if (nums[mid] < value) {\n                left = mid + 1;\n            } else {\n                right = mid;\n            }\n        }\n        return left;\n    };\n\n    const rightBound = (value) => {\n        let left = 0;\n        let right = nums.length - 1;\n        while (left < right) {\n            const mid = Math.floor((left + right + 1) / 2);\n            if (nums[mid] > value) {\n                right = mid - 1;\n            } else {\n                left = mid;\n            }\n        }\n        return left;\n    };\n\n    for (let i = nums.at(0); i <= nums.at(-1); i++) {\n        const [l, r] = [leftBound(i - k), rightBound(i + k)];\n\n        let tempAns;\n\n        if (numCount.has(i)) {\n            tempAns = Math.min(r - l + 1, numCount.get(i) + numOperations);\n        } else {\n            tempAns = Math.min(r - l + 1, numOperations);\n        }\n\n        ans = Math.max(ans, tempAns);\n    }\n\n    return ans;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction maxFrequency(nums: number[], k: number, numOperations: number): number {\n    nums.sort((a, b) => a - b);\n\n    let ans = 0;\n    const numCount: Map<number, number> = new Map();\n\n    let lastNumIndex = 0;\n    for (let i = 0; i < nums.length; i++) {\n        if (nums[i] !== nums[lastNumIndex]) {\n            numCount.set(nums[lastNumIndex], i - lastNumIndex);\n            ans = Math.max(ans, i - lastNumIndex);\n            lastNumIndex = i;\n        }\n    }\n\n    numCount.set(nums[lastNumIndex], nums.length - lastNumIndex);\n    ans = Math.max(ans, nums.length - lastNumIndex);\n\n    const leftBound = (value: number) => {\n        let left = 0;\n        let right = nums.length - 1;\n        while (left < right) {\n            const mid = Math.floor((left + right) / 2);\n            if (nums[mid] < value) {\n                left = mid + 1;\n            } else {\n                right = mid;\n            }\n        }\n        return left;\n    };\n\n    const rightBound = (value: number) => {\n        let left = 0;\n        let right = nums.length - 1;\n        while (left < right) {\n            const mid = Math.floor((left + right + 1) / 2);\n            if (nums[mid] > value) {\n                right = mid - 1;\n            } else {\n                left = mid;\n            }\n        }\n        return left;\n    };\n\n    for (let i = nums.at(0)!; i <= nums.at(-1)!; i++) {\n        const [l, r] = [leftBound(i - k), rightBound(i + k)];\n\n        let tempAns;\n\n        if (numCount.has(i)) {\n            tempAns = Math.min(r - l + 1, numCount.get(i)! + numOperations);\n        } else {\n            tempAns = Math.min(r - l + 1, numOperations);\n        }\n\n        ans = Math.max(ans, tempAns);\n    }\n\n    return ans;\n}\n```\n\n```Rust [sol1-Rust]\nuse std::collections::HashMap;\n\nimpl Solution {\n    pub fn max_frequency(nums: Vec<i32>, k: i32, num_operations: i32) -> i32 {\n        let mut nums = nums;\n        nums.sort();\n        \n        let mut ans = 0;\n        let mut num_count = HashMap::new();\n        \n        let mut last_num_index = 0;\n        for i in 0..nums.len() {\n            if nums[i] != nums[last_num_index] {\n                num_count.insert(nums[last_num_index], (i - last_num_index) as i32);\n                ans = ans.max((i - last_num_index) as i32);\n                last_num_index = i;\n            }\n        }\n        \n        num_count.insert(nums[last_num_index], (nums.len() - last_num_index) as i32);\n        ans = ans.max((nums.len() - last_num_index) as i32);\n        \n        let left_bound = |value: i32| -> usize {\n            let mut left = 0;\n            let mut right = nums.len() - 1;\n            while left < right {\n                let mid = (left + right) / 2;\n                if nums[mid] < value {\n                    left = mid + 1;\n                } else {\n                    right = mid;\n                }\n            }\n            left\n        };\n        \n        let right_bound = |value: i32| -> usize {\n            let mut left = 0;\n            let mut right = nums.len() - 1;\n            while left < right {\n                let mid = (left + right + 1) / 2;\n                if nums[mid] > value {\n                    right = mid - 1;\n                } else {\n                    left = mid;\n                }\n            }\n            left\n        };\n        \n        for i in nums[0]..=nums[nums.len() - 1] {\n            let l = left_bound(i - k);\n            let r = right_bound(i + k);\n            \n            let temp_ans = if let Some(&count) = num_count.get(&i) {\n                (r - l + 1).min(count as usize + num_operations as usize)\n            } else {\n                (r - l + 1).min(num_operations as usize)\n            };\n            ans = ans.max(temp_ans as i32);\n        }\n        \n        ans\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：设 $n$ 为 $\\textit{nums}$ 的长度，且 $0 \\le \\textit{nums}[i] \\le k$。排序需要 $O(n \\log n)$，预处理需要 $O(n)$，枚举众数需要 $O(k \\log n)$，总时间复杂度为 $O(\\max(n \\log n, k \\log n))$。\n\n- 空间复杂度：$O(n)$。",
+            "slateValue": "",
+            "slug": "zhi-xing-cao-zuo-hou-yuan-su-de-zui-gao-lk58w",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "3EZR9d",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 7,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Prefix Sum",
+                    "nameTranslated": "前缀和",
+                    "slug": "prefix-sum",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Sorting",
+                    "nameTranslated": "排序",
+                    "slug": "sorting",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Sliding Window",
+                    "nameTranslated": "滑动窗口",
+                    "slug": "sliding-window",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2025-10-11T17:19:36.190174+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：排序 + 枚举 + 二分查找 首先处理约束条件 [latex]。虽然题意要求恰好操作 [latex] 次，但由于可以选定若干个元素加 [latex] 且 [latex] 小于 [latex] 的长度，这实际上意味着可以至多选择 [latex] 个元素，使它们在 [latex] 范围内调整。 考虑枚举目标众数。设",
+            "topic": {
+                "id": 3803630,
+                "subscribed": false,
+                "commentCount": 30,
+                "viewCount": 43,
+                "post": {
+                    "id": 6944577,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 29,
+            "isEditorsPick": false,
+            "hitCount": 9482,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "maximum-frequency-of-an-element-after-performing-operations-i",
+                "questionFrontendId": "3346"
+            },
+            "next": {
+                "slug": "liang-chong-fang-fa-chai-fen-hua-dong-ch-spm9",
+                "title": "两种方法：差分/滑动窗口（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

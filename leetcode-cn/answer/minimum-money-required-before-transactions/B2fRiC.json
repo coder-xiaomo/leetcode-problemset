@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "B2fRiC",
+            "title": "完成所有交易的初始最少钱数",
+            "content": "#### 方法一：贪心\n\n**思路与算法**\n\n由于题目要求 **任意一种** 交易顺序，由于无法穷举所有的交易顺序，二分答案等算法无法在有效时间内对答案 $\\textit{money}$ 的合法性进行验证。\n\n考虑最坏情况下 $\\textit{money}$ 的最小值，这种结构容易想到使用贪心。\n\n一笔交易可能有两种情况：\n\n1. 亏损，即 $\\textit{cost}_i \\gt \\textit{cashback}_i$\n2. 盈利，即 $\\textit{cost}_i \\le \\textit{cashback}_i$\n\n不难发现，最坏情况是先进行所有的亏损交易，然后进行 $\\textit{cost}_i$ 最大的盈利交易。定义 $\\textit{totalLose}$ 为所有亏损交易的亏损总和，即 $\\textit{totalLose} = \\displaystyle \\sum _{i=0}^{n-1}\\textit{cost}_i - \\textit{cashback}_i, \\textit{cost}_i \\gt \\textit{cashback}_i$。\n\n设完成交易 $\\textit{transactions}_i$ 所需的最少资金为 $\\textit{money}_i$。遍历 $\\textit{transactions}$：\n\n- 当前交易为盈利交易，则 $\\textit{money}_i = \\textit{totalLose} + \\textit{cost}_i$。\n- 当前交易为亏损交易，假设这一笔交易是最后发生的亏损交易。由于 $\\textit{totalLose}$ 已包含了这一笔交易的亏损，需要从 $\\textit{totalLose}$ 中减去 $\\textit{cost}_i - \\textit{cashback}_i$，再加上 $\\textit{cost}_i$，则 $\\textit{money}_i = \\textit{totalLose} + \\textit{cashback}_i$。\n\n根据上述条件，$\\textit{money}_i$ 包含了所有亏损交易的亏损总和与该笔交易的开销，只要满足最坏情况下的交易进行，剩下的交易都能够得到保障，因此答案是所有 $\\textit{money}_i$ 的最大值。两种交易的公共部分均为 $\\textit{totalLose}$，对于剩余部分讨论：\n\n- 当 $\\textit{cost}_i \\gt \\textit{cashback}_i$ 即为亏损交易时，取 $\\textit{cashback}_i$\n- 当 $\\textit{cost}_i \\le \\textit{cashback}_i$ 即为盈利交易时，取 $\\textit{cost}_i$\n\n即剩余部分为 $\\min(\\textit{cost}_i,\\textit{cashback}_i)$。所以答案相当于是 $\\textit{totalLose} + \\min(\\textit{cost}_i,\\textit{cashback}_i)$ 的最大值。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    long long minimumMoney(vector<vector<int>>& transactions) {\n        long long total_lose = 0;\n        int res = 0;\n        for (auto& t : transactions) {\n            auto [cost, cashback] = pair(t[0], t[1]);\n            total_lose += max(cost - cashback, 0);\n            res = max(res, min(cost, cashback));\n        }\n        return total_lose + res;\n    }\n};\n```\n\n```C [sol1-C]\nlong long minimumMoney(int** transactions, int transactionsSize,\n                       int* transactionsColSize) {\n    long long total_lose = 0;\n    int res = 0;\n\n    for (int i = 0; i < transactionsSize; i++) {\n        int cost = transactions[i][0];\n        int cashback = transactions[i][1];\n        if (cost > cashback) {\n            total_lose += (cost - cashback);\n        }\n        if (cashback < cost) {\n            if (cashback > res) {\n                res = cashback;\n            }\n        } else {\n            if (cost > res) {\n                res = cost;\n            }\n        }\n    }\n    return total_lose + res;\n}\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public long minimumMoney(int[][] transactions) {\n        long totalLose = 0;\n        int res = 0;\n        for (int[] t : transactions) {\n            int cost = t[0];\n            int cashback = t[1];\n            totalLose += Math.max(cost - cashback, 0);\n            res = Math.max(res, Math.min(cost, cashback));\n        }\n        return totalLose + res;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public long MinimumMoney(int[][] transactions) {\n        long totalLose = 0;\n        int res = 0;\n        foreach (var t in transactions) {\n            int cost = t[0];\n            int cashback = t[1];\n            totalLose += Math.Max(cost - cashback, 0);\n            res = Math.Max(res, Math.Min(cost, cashback));\n        }\n        return totalLose + res;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc minimumMoney(transactions [][]int) int64 {\n\tvar totalLose int64 = 0\n\tvar res int = 0\n\tfor _, t := range transactions {\n\t\tcost, cashback := t[0], t[1]\n\t\ttotalLose += int64(max(cost-cashback, 0))\n\t\tres = max(res, min(cost, cashback))\n\t}\n\treturn totalLose + int64(res)\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def minimumMoney(self, transactions: List[List[int]]) -> int:\n        total_lose = 0\n        res = 0\n        for t in transactions:\n            cost, cashback = t[0], t[1]\n            total_lose += max(cost - cashback, 0)\n            res = max(res, min(cost, cashback))\n        return total_lose + res\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn minimum_money(transactions: Vec<Vec<i32>>) -> i64 {\n        let mut total_lose: i64 = 0;\n        let mut res: i32 = 0;\n\n        for t in transactions {\n            let cost = t[0];\n            let cashback = t[1];\n            total_lose += std::cmp::max(cost - cashback, 0) as i64;\n            res = std::cmp::max(res, std::cmp::min(cost, cashback));\n        }\n        total_lose + res as i64\n    }\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar minimumMoney = function(transactions) {\n    let totalLose = 0;\n    let res = 0;\n    for (let t of transactions) {\n        const cost = t[0];\n        const cashback = t[1];\n        totalLose += Math.max(cost - cashback, 0);\n        res = Math.max(res, Math.min(cost, cashback));\n    }\n    return totalLose + res;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction minimumMoney(transactions: number[][]): number {\n    let totalLose = 0;\n    let res = 0;\n    for (let t of transactions) {\n        const cost = t[0];\n        const cashback = t[1];\n        totalLose += Math.max(cost - cashback, 0);\n        res = Math.max(res, Math.min(cost, cashback));\n    }\n    return totalLose + res;\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是数组 $\\textit{transactions}$ 的长度。\n- 空间复杂度：$O(1)$。",
+            "slateValue": "",
+            "slug": "wan-cheng-suo-you-jiao-yi-de-chu-shi-zui-cde1",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "B2fRiC",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 15,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Greedy",
+                    "nameTranslated": "贪心",
+                    "slug": "greedy",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2025-01-14T14:51:35.023505+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：贪心 思路与算法 由于题目要求 任意一种 交易顺序，由于无法穷举所有的交易顺序，二分答案等算法无法在有效时间内对答案 [latex] 的合法性进行验证。 考虑最坏情况下 [latex] 的最小值，这种结构容易想到使用贪心。 一笔交易可能有两种情况： 亏损，即 [latex] 盈利，即 [latex] 不难发现，",
+            "topic": {
+                "id": 3047584,
+                "subscribed": false,
+                "commentCount": 19,
+                "viewCount": 547,
+                "post": {
+                    "id": 5509587,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 18,
+            "isEditorsPick": false,
+            "hitCount": 6012,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "minimum-money-required-before-transactions",
+                "questionFrontendId": "2412"
+            },
+            "next": {
+                "slug": "by-endlesscheng-lvym",
+                "title": "贪心 + 一次遍历（Python/Java/C++/C/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

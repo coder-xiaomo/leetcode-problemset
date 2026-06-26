@@ -1,0 +1,150 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "dz74iW",
+            "title": "统计理想数组的数目",
+            "content": "#### 方法一：组合数学\n\n**思路与算法**\n\n题目要求我们找出所有 $\\textit{arr}$ 数组，满足 $arr[i]\\in[1,\\textit{maxValue}]$ 且 $\\forall i \\in (0,n), \\textit{arr}[i-1]\\mid\\textit{arr}[i]$。换句话说，$\\frac{\\textit{arr}[i]}{\\textit{arr}[i-1]}=k_i,k_i\\in\\mathbb{N}, i\\in(0,n)$。\n\n我们考虑以 $x$ 结尾的 $\\textit{arr}$ 数组个数。不难想到有 $\\prod\\limits_{i=0}^{n-1}k_i=x$ 成立。反过来想，$k_i$ 即为 $x$ 的因子，问题转化为求有多少种不同的 $k_i$ 序列。我们可以先使用素数筛对 $x$ 分解质因数，再来寻找答案。\n\n我们可以把每个 $k_i$ 看作一个空位，每个空位中可以填入若干个质因子。假设 $x$ 的某个质因子有 $p$ 个，那么这些质因子能够组成的不同 $k_i$ 序列数量是一个经典的组合问题，可以用隔板法解决。在 $n$ 个空位中可以插入 $n-1$ 个隔板，加上 $p$ 个质因子共有 $n-1+p$ 个位置，在这些位置中放入 $p$ 个质因子，方案数即为 $C(n+p-1,p)$。对于不同的质因子，互相之间没有影响，使用乘法原理计算即可。\n\n最后，我们枚举所有 $[1,\\textit{maxValue}]$ 的 $x$，计算其对应的组合数，累加即为答案。\n\n**代码**\n\n```C++ [sol1-C++]\nconst int MOD = 1e9 + 7, MAX_N = 1e4 + 10, MAX_P = 15; // 最多有 15 个质因子\nint c[MAX_N + MAX_P][MAX_P + 1];\nvector<int> ps[MAX_N]; // 质因子个数列表\nint sieve[MAX_N]; // 最小质因子\n\nclass Solution {\npublic:\n    Solution() {\n        if (c[0][0]){\n            return;\n        }\n        for (int i = 2; i < MAX_N; i++) {\n            if (sieve[i] == 0) {\n                for (int j = i; j < MAX_N; j += i) {\n                    sieve[j] = i;\n                }\n            }\n        }\n        for (int i = 2; i < MAX_N; i++) {\n            int x = i;\n            while (x > 1) {\n                int p = sieve[x];\n                int cnt = 0;\n                while (x % p == 0) {\n                    x /= p;\n                    cnt++;\n                }\n                ps[i].push_back(cnt);\n            }\n        }\n        c[0][0] = 1;\n        for (int i = 1; i < MAX_N + MAX_P; i++) {\n            c[i][0] = 1;\n            for (int j = 1; j <= min(i, MAX_P); j++) {\n                c[i][j] = (c[i - 1][j] + c[i - 1][j - 1]) % MOD;\n            }\n        }\n    }\n    int idealArrays(int n, int maxValue) {\n        long long ans = 0;\n        for (int x = 1; x <= maxValue; x++) {\n            long long mul = 1;\n            for (int p : ps[x]) {\n                mul = mul * c[n + p - 1][p] % MOD;\n            }\n            ans = (ans + mul) % MOD;\n        }\n        return ans;\n    }\n};\n```\n\n```C [sol1-C]\nconst int MOD = 1e9 + 7;\n#define MAX_N 10010\n#define MAX_P 15 // 最多有 15 个质因子\n\nint c[MAX_N + MAX_P][MAX_P + 1];\nint sieve[MAX_N]; // 最小质因子\nint ps[MAX_N][MAX_P], psLen[MAX_N]; // 质因子个数列表\n\nvoid init() {\n    if (c[0][0]) {\n        return;\n    }\n    for (int i = 2; i < MAX_N; i++) {\n        if (sieve[i] == 0) {\n            for (int j = i; j < MAX_N; j += i) {\n                if (sieve[j] == 0) {\n                    sieve[j] = i;\n                }\n            }\n        }\n    }\n\n    for (int i = 2; i < MAX_N; i++) {\n        int x = i;\n        while (x > 1) {\n            int p = sieve[x];\n            int cnt = 0;\n            while (x % p == 0) {\n                x /= p;\n                cnt++;\n            }\n            ps[i][psLen[i]++] = cnt;\n        }\n    }\n\n    c[0][0] = 1;\n    for (int i = 1; i < MAX_N + MAX_P; i++) {\n        c[i][0] = 1;\n        for (int j = 1; j <= MAX_P && j <= i; j++) {\n            c[i][j] = (c[i - 1][j] + c[i - 1][j - 1]) % MOD;\n        }\n    }\n}\n\nint idealArrays(int n, int maxValue) {\n    init();\n    long long ans = 0;\n    for (int x = 1; x <= maxValue; x++) {\n        long long mul = 1;\n        for (int i = 0; i < psLen[x]; i++) {\n            mul = mul * c[n + ps[x][i] - 1][ps[x][i]] % MOD;\n        }\n        ans = (ans + mul) % MOD;\n    }\n    return ans;\n}\n```\n\n```Java [sol1-Java]\nclass Solution {\n    static int MOD = 1000000007;\n    static int MAX_N = 10010;\n    static int MAX_P = 15; // 最多有 15 个质因子\n    static int[][] c = new int[MAX_N + MAX_P][MAX_P + 1];\n    static int[] sieve = new int[MAX_N]; // 最小质因子\n    static List<Integer>[] ps = new List[MAX_N]; // 质因子个数列表\n\n    public Solution() {\n        if (c[0][0] == 1) {\n            return;\n        }\n\n        for (int i = 0; i < MAX_N; i++) {\n            ps[i] = new ArrayList<>();\n        }\n\n        for (int i = 2; i < MAX_N; i++) {\n            if (sieve[i] == 0) {\n                for (int j = i; j < MAX_N; j += i) {\n                    if (sieve[j] == 0) {\n                        sieve[j] = i;\n                    }\n                }\n            }\n        }\n\n        for (int i = 2; i < MAX_N; i++) {\n            int x = i;\n            while (x > 1) {\n                int p = sieve[x], cnt = 0;\n                while (x % p == 0) {\n                    x /= p;\n                    cnt++;\n                }\n                ps[i].add(cnt);\n            }\n        }\n\n        c[0][0] = 1;\n        for (int i = 1; i < MAX_N + MAX_P; i++) {\n            c[i][0] = 1;\n            for (int j = 1; j <= Math.min(i, MAX_P); j++) {\n                c[i][j] = (c[i - 1][j] + c[i - 1][j - 1]) % MOD;\n            }\n        }\n    }\n\n    public int idealArrays(int n, int maxValue) {\n        long ans = 0;\n        for (int x = 1; x <= maxValue; x++) {\n            long mul = 1;\n            for (int p : ps[x]) {\n                mul = mul * c[n + p - 1][p] % MOD;\n            }\n            ans = (ans + mul) % MOD;\n        }\n        return (int) ans;\n    }\n}\n```\n\n```Python [sol1-Python3]\nMOD = 10**9 + 7\nMAX_N = 10**4 + 10\nMAX_P = 15  # 最多 15 个质因子\n\nsieve = [0] * MAX_N  # 最小质因子\n\nfor i in range(2, MAX_N):\n    if sieve[i] == 0:\n        for j in range(i, MAX_N, i):\n            sieve[j] = i\n\nps = [[] for _ in range(MAX_N)]\n\nfor i in range(2, MAX_N):\n    x = i\n    while x > 1:\n        p = sieve[x]\n        cnt = 0\n        while x % p == 0:\n            x //= p\n            cnt += 1\n        ps[i].append(cnt)\n\nc = [[0] * (MAX_P + 1) for _ in range(MAX_N + MAX_P)]\n\nc[0][0] = 1\nfor i in range(1, MAX_N + MAX_P):\n    c[i][0] = 1\n    for j in range(1, min(i, MAX_P) + 1):\n        c[i][j] = (c[i - 1][j] + c[i - 1][j - 1]) % MOD\n\nclass Solution:\n    def idealArrays(self, n: int, maxValue: int) -> int:\n        ans = 0\n        for x in range(1, maxValue + 1):\n            mul = 1\n            for p in ps[x]:\n                mul = mul * c[n + p - 1][p] % MOD\n            ans = (ans + mul) % MOD\n        return ans\n\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    const int MOD = 1000000007;\n    const int MAX_N = 10010;\n    const int MAX_P = 15; // 最多有 15 个质因子\n    int[,] c = new int[MAX_N + MAX_P, MAX_P + 1];\n    int[] sieve = new int[MAX_N]; // 最小质因子\n    List<int>[] ps = new List<int>[MAX_N]; // 质因子个数列表\n\n    public Solution() {\n        if(c[0, 0] == 1){\n            return;\n        }\n        for (int i = 0; i < MAX_N; i++) {\n            ps[i] = new List<int>();\n        }\n        for (int i = 2; i < MAX_N; i++) {\n            if (sieve[i] == 0) {\n                for (int j = i; j < MAX_N; j += i) {\n                    if (sieve[j] == 0) {\n                        sieve[j] = i;\n                    }\n                }\n            }\n        }\n\n        for (int i = 2; i < MAX_N; i++) {\n            int x = i;\n            while (x > 1) {\n                int p = sieve[x];\n                int cnt = 0;\n                while (x % p == 0) {\n                    x /= p;\n                    cnt++;\n                }\n                ps[i].Add(cnt);\n            }\n        }\n        c[0, 0] = 1;\n        for (int i = 1; i < MAX_N + MAX_P; i++) {\n            c[i, 0] = 1;\n            for (int j = 1; j <= Math.Min(i, MAX_P); j++) {\n                c[i, j] = (c[i - 1, j] + c[i - 1, j - 1]) % MOD;\n            }\n        }\n    }\n\n    public int IdealArrays(int n, int maxValue) {\n        long ans = 0;\n        for (int x = 1; x <= maxValue; x++) {\n            long mul = 1;\n            foreach (var p in ps[x]) {\n                mul = mul * c[n + p - 1, p] % MOD;\n            }\n            ans = (ans + mul) % MOD;\n        }\n        return (int)ans;\n    }\n}\n```\n\n```JavaScript [sol1-JavaScript]\nconst MOD = 1e9 + 7;\nconst MAX_N = 10010;\nconst MAX_P = 15; // 最多有 15 个质因子\nconst c = Array.from({ length: MAX_N + MAX_P }, () => Array(MAX_P + 1).fill(0));\nconst sieve = Array(MAX_N).fill(0); // 最小质因子\nconst ps = Array.from({ length: MAX_N }, () => []); // 质因子个数列表\n\n(function init() {\n    for (let i = 2; i < MAX_N; i++) {\n        if (sieve[i] === 0) {\n            for (let j = i; j < MAX_N; j += i) {\n                if (sieve[j] === 0) {\n                    sieve[j] = i;\n                }\n            }\n        }\n    }\n\n    for (let i = 2; i < MAX_N; i++) {\n        let x = i;\n        while (x > 1) {\n            const p = sieve[x];\n            let cnt = 0;\n            while (x % p === 0) {\n                x = Math.floor(x / p);\n                cnt++;\n            }\n            ps[i].push(cnt);\n        }\n    }\n\n    c[0][0] = 1;\n    for (let i = 1; i < MAX_N + MAX_P; i++) {\n        c[i][0] = 1;\n        for (let j = 1; j <= Math.min(i, MAX_P); j++) {\n            c[i][j] = (c[i - 1][j] + c[i - 1][j - 1]) % MOD;\n        }\n    }\n})();\n\nfunction idealArrays(n, maxValue) {\n    let ans = 0n;\n    for (let x = 1; x <= maxValue; x++) {\n        let mul = 1n;\n        for (const p of ps[x]) {\n            mul = (mul * BigInt(c[n + p - 1][p])) % BigInt(MOD);\n        }\n        ans = (ans + mul) % BigInt(MOD);\n    }\n    return Number(ans);\n}\n```\n\n```TypeScript [sol1-TypeScript]\nconst MOD = 1e9 + 7;\nconst MAX_N = 10010;\nconst MAX_P = 15; // 最多有 15 个质因子\nconst c: number[][] = Array.from({ length: MAX_N + MAX_P }, () => Array(MAX_P + 1).fill(0));\nconst sieve: number[] = Array(MAX_N).fill(0); // 最小质因子\nconst ps: number[][] = Array.from({ length: MAX_N }, () => []); // 质因子个数列表\n\n(function init() {\n    for (let i = 2; i < MAX_N; i++) {\n        if (sieve[i] === 0) {\n            for (let j = i; j < MAX_N; j += i) {\n                if (sieve[j] === 0) {\n                    sieve[j] = i;\n                }\n            }\n        }\n    }\n\n    for (let i = 2; i < MAX_N; i++) {\n        let x = i;\n        while (x > 1) {\n            const p = sieve[x];\n            let cnt = 0;\n            while (x % p === 0) {\n                x = Math.floor(x / p);\n                cnt++;\n            }\n            ps[i].push(cnt);\n        }\n    }\n\n    c[0][0] = 1;\n    for (let i = 1; i < MAX_N + MAX_P; i++) {\n        c[i][0] = 1;\n        for (let j = 1; j <= Math.min(i, MAX_P); j++) {\n            c[i][j] = (c[i - 1][j] + c[i - 1][j - 1]) % MOD;\n        }\n    }\n})();\n\nfunction idealArrays(n: number, maxValue: number): number {\n    let ans = 0n;\n    for (let x = 1; x <= maxValue; x++) {\n        let mul = 1n;\n        for (const p of ps[x]) {\n            mul = (mul * BigInt(c[n + p - 1][p])) % BigInt(MOD);\n        }\n        ans = (ans + mul) % BigInt(MOD);\n    }\n    return Number(ans);\n}\n```\n\n```Go [sol1-Go]\nconst MOD int = 1e9 + 7\nconst MAX_N = 10010\nconst MAX_P = 15 // 最多有 15 个质因子\n\nvar c [MAX_N + MAX_P][MAX_P + 1]int\nvar sieve [MAX_N]int // 最小质因子\nvar ps [MAX_N][]int // 质因子个数列表\n\nfunc initialize() {\n\tif c[0][0] != 0 {\n\t\treturn\n\t}\n\n\tfor i := 2; i < MAX_N; i++ {\n\t\tif sieve[i] == 0 {\n\t\t\tfor j := i; j < MAX_N; j += i {\n\t\t\t\tif sieve[j] == 0 {\n\t\t\t\t\tsieve[j] = i\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t}\n\n\tfor i := 2; i < MAX_N; i++ {\n\t\tx := i\n\t\tfor x > 1 {\n\t\t\tp := sieve[x]\n\t\t\tcnt := 0\n\t\t\tfor x%p == 0 {\n\t\t\t\tx /= p\n\t\t\t\tcnt++\n\t\t\t}\n\t\t\tps[i] = append(ps[i], cnt)\n\t\t}\n\t}\n\n\tc[0][0] = 1\n\tfor i := 1; i < MAX_N+MAX_P; i++ {\n\t\tc[i][0] = 1\n\t\tfor j := 1; j <= MAX_P && j <= i; j++ {\n\t\t\tc[i][j] = (c[i-1][j] + c[i-1][j-1]) % MOD\n\t\t}\n\t}\n}\n\nfunc idealArrays(n int, maxValue int) int {\n\tinitialize()\n\tans := 0\n\tfor x := 1; x <= maxValue; x++ {\n\t\tmul := 1\n\t\tfor _, p := range ps[x] {\n\t\t\tmul = mul * c[n+p-1][p] % MOD\n\t\t}\n\t\tans = (ans + mul) % MOD\n\t}\n\treturn ans\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn ideal_arrays(n: i32, max_value: i32) -> i32 {\n        const MOD: i64 = 1_000_000_007;\n        const MAX_N: usize = 10_000 + 10;\n        const MAX_P: usize = 15; // 最多有 15 个质因子\n\n        let mut sieve = vec![0; MAX_N]; // 最小质因子\n        for i in 2..MAX_N {\n            if sieve[i] == 0 {\n                for j in (i..MAX_N).step_by(i) {\n                    sieve[j] = i as i32;\n                }\n            }\n        }\n\n        let mut ps = vec![vec![]; MAX_N]; // 质因子个数列表\n        for i in 2..=max_value as usize {\n            let mut x = i;\n            while x > 1 {\n                let p = sieve[x] as usize;\n                let mut cnt = 0;\n                while x % p == 0 {\n                    x /= p;\n                    cnt += 1;\n                }\n                ps[i].push(cnt);\n            }\n        }\n\n        let mut c = vec![vec![0; MAX_P + 1]; n as usize + MAX_P + 1];\n        c[0][0] = 1;\n        for i in 1..n as usize + MAX_P + 1 {\n            c[i][0] = 1;\n            for j in 1..=i.min(MAX_P) {\n                c[i][j] = (c[i - 1][j] + c[i - 1][j - 1]) % MOD;\n            }\n        }\n\n        let mut ans = 0i64;\n        let n = n as usize;\n        for x in 1..=max_value as usize {\n            let mut mul = 1i64;\n            for &p in &ps[x] {\n                mul = mul * c[n + p as usize - 1][p as usize] % MOD;\n            }\n            ans = (ans + mul) % MOD;\n        }\n\n        ans as i32\n    }\n}\n```\n\n**复杂度分析**\n\n令 $m$ 表示 $\\textit{maxValue}$，$n$ 表示 $\\textit{arr}$ 数组的长度，$\\omega(m)$ 表示 $m$ 的不同质因子的个数，其在数论中的平均阶数是 $\\log\\log m$。\n\n- 时间复杂度：$O((n+\\omega(m))\\cdot\\omega(m)+m\\omega(m))$。预处理中，用埃氏筛筛出最小质因子需要 $O(n\\log\\log n)$，分解质因数需要 $O(n\\log n)$，求组合数需要 $O((n+\\omega(m))\\cdot\\omega(m))$。正式求解中，求数组数量的时间复杂度是 $O(m\\omega(m))=O(m\\log\\log m)$。\n- 空间复杂度：$O((n+\\log(m))\\cdot\\log(m))$。我们需要保存从 $(n+\\log(m)-1)$ 个位置中选出 $\\log(m)$ 个位置的组合数和质因子的预处理结果。由于代码中开辟的是固定长度的数组，因子个数取最大值而不是平均值，所以空间复杂度因数是 $\\log(m)$ 而不是 $\\omega(m)$。",
+            "slateValue": "",
+            "slug": "tong-ji-li-xiang-shu-zu-de-shu-mu-by-lee-usvr",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "dz74iW",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 12,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Combinatorics",
+                    "nameTranslated": "组合数学",
+                    "slug": "combinatorics",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Number Theory",
+                    "nameTranslated": "数论",
+                    "slug": "number-theory",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2025-04-14T02:47:14.362072+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：组合数学 思路与算法 题目要求我们找出所有 [latex] 数组，满足 [latex] 且 [latex]。换句话说，[latex]。 我们考虑以 [latex] 结尾的 [latex] 数组个数。不难想到有 [latex] 成立。反过来想，[latex] 即为 [latex] 的因子，问题转化为求有多少种不同",
+            "topic": {
+                "id": 3650511,
+                "subscribed": false,
+                "commentCount": 40,
+                "viewCount": 107,
+                "post": {
+                    "id": 6663931,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 40,
+            "isEditorsPick": false,
+            "hitCount": 8980,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "count-the-number-of-ideal-arrays",
+                "questionFrontendId": "2338"
+            },
+            "next": {
+                "slug": "shu-lun-zu-he-shu-xue-zuo-fa-by-endlessc-iouh",
+                "title": "【图解】转化成放球问题（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

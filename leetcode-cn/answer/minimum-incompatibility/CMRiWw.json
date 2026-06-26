@@ -1,0 +1,132 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "CMRiWw",
+            "title": "最小不兼容性",
+            "content": "#### 前言\n\n本题解涉及到「二进制」中的「子集枚举」，具体表示为对给定的一个整数 $x$，不重复地枚举 $x$ 的「二进制」表示的非空子集 $y$，其中 $y$ 满足 $y \\And x = y$。以下为以 `C++` 实现枚举 $x$ 的非空子集的代码，其正确性证明详细可以见 [OI_WIKI-二进制集合操作-子集遍历部分](https://oi-wiki.org/math/binary-set/)。\n\n```C++\n// 降序遍历 x 的非空子集\nfor (int sub = x; sub; sub = (sub - 1) & x) {\n    // sub 是 x 的一个非空子集\n}\n```\n\n对于一个有「二进制」表示中有 $k$ 个 $1$ 的正整数 $x$，其非空子集有 $2^k - 1$ 个。所以对于 $x$ 枚举子集的时间复杂度为 $O(2^k)$。\n\n本题中，数组 $\\textit{nums}$ 的大小 $n$ 最多 $16$，所以我们可以通过「二进制」和「状态压缩」，用一个整数 $\\textit{mask}$ 来表示一个子集。从 $\\textit{mask}$ 「二进制」表示的低位到高位，第 $i$ 位为 $1$ 则表示元素 $\\textit{nums}[i]$ 存在这个子集中。\n\n#### 方法一：动态规划 + 状态压缩\n\n**思路与算法** \n\n题目给定一个整数数组 $\\textit{nums}$ 和一个整数 $k$。我们需要将这个数组划分到 $k$ 个相同大小的子集中，使得同一个子集里面没有两个相同的元素。题目保证 $\\textit{nums}$ 大小能被 $k$ 整除。\n\n一个子集的不兼容是该子集里面最大值和最小值的差。我们需要返回将数组分成 $k$ 个子集后，各子集不兼容性的和的最小值，如果无法分成分成 $k$ 个子集，返回 $-1$。\n\n首先我们做一步预处理，从 $1$ 到 $(1 << n) - 1$ 遍历所有子集，筛选出所有大小符合条件的子集 $\\textit{mask}$，并求出子集对应的不兼容性 $\\textit{values}[\\textit{mask}]$ 并保存在哈希表中，以便后续快速查找符合条件的子集。\n\n然后我们尝试用「状态压缩动态规划」来解决本题，设 $\\textit{dp}[\\textit{mask}]$ 表示已经分配过的元素集合的不兼容性之和，$\\textit{dp}[0]$ 初始化为 $0$，因为集合为空集，其余 $\\textit{dp}[\\textit{mask}]$ 初始化为最大整数，表示尚未确定最小不兼容性。\n\n我们从 $1$ 到 $(1 << n) - 1$ 依次遍历 $\\textit{mask}$ 所有状态。 对于每一个状态，我们求出还没有被分配的元素集合 $\\textit{sub}$，并且保证相等元素只保留最后出现的一个。再遍历 $\\textit{sub}$ 的子集 $\\textit{nxt}$，检查是否符合条件，作为下一组划分的元素集合。由此我们可以写出状态转移方程：\n\n$$\\textit{dp}[\\textit{mask} | \\textit{nxt}] = \\min_{\\textit{nxt} \\text{ is valid}}({dp[\\textit{mask}]} + \\textit{values}[\\textit{nxt}])$$\n\n按照上面状态转移方程，我们从小到大来遍历每一个状态，最终返回 $\\textit{dp}[(1 << n) - 1]$ 的结果，即为划分所有元素后的最小不兼容性。\n\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int minimumIncompatibility(vector<int>& nums, int k) {\n        int n = nums.size();\n        vector<int> dp(1 << n, INT_MAX);\n        dp[0] = 0;\n        int group = n / k;\n        unordered_map<int, int> values;\n\n        for (int mask = 1; mask < (1 << n); mask++) {\n            if (__builtin_popcount(mask) != group) {\n                continue;\n            }\n            int mn = 20, mx = 0;\n            unordered_set<int> cur;\n            for (int i = 0; i < n; i++) {\n                if (mask & (1 << i)) {\n                    if (cur.count(nums[i]) > 0) {\n                        break;\n                    }\n                    cur.insert(nums[i]);\n                    mn = min(mn, nums[i]);\n                    mx = max(mx, nums[i]);\n                }\n            }\n            if (cur.size() == group) {\n                values[mask] = mx - mn;\n            }\n        }\n\n        for (int mask = 0; mask < (1 << n); mask++) {\n            if (dp[mask] == INT_MAX) {\n                continue;\n            }\n            unordered_map<int, int> seen;\n            for (int i = 0; i < n; i++) {\n                if ((mask & (1 << i)) == 0) {\n                    seen[nums[i]] = i;\n                }\n            }\n            if (seen.size() < group) {\n                continue;\n            }\n            int sub = 0;\n            for (auto& pair : seen) {\n                sub |= (1 << pair.second);\n            }\n            int nxt = sub;\n            while (nxt > 0) {\n                if (values.count(nxt) > 0) {\n                    dp[mask | nxt] = min(dp[mask | nxt], dp[mask] + values[nxt]);\n                }\n                nxt = (nxt - 1) & sub;\n            }\n        }\n\n        return (dp[(1 << n) - 1] < INT_MAX) ? dp[(1 << n) - 1] : -1;\n    }\n};\n```\n\n```Python [sol1-Python3]\nfrom typing import *\n\n\nclass Solution:\n    def minimumIncompatibility(self, nums: List[int], k: int) -> int:\n        n = len(nums)\n        dp = [inf] * (1 << n)\n        dp[0] = 0\n        group = n // k\n        values = {}\n\n        for mask in range(1 << n):\n            if mask.bit_count() != group:\n                continue\n            mn = 20\n            mx = 0\n            cur = set()\n            for i in range(n):\n                if mask & (1 << i) > 0:\n                    if nums[i] in cur:\n                        break\n                    cur.add(nums[i])\n                    mn = min(mn, nums[i])\n                    mx = max(mx, nums[i])\n            if len(cur) == group:\n                values[mask] = mx - mn\n\n        for mask in range(1 << n):\n            if dp[mask] == inf:\n                continue\n            seen = {}\n            for i in range(n):\n                if mask & (1 << i) == 0:\n                    seen[nums[i]] = i\n            if len(seen) < group:\n                continue\n            sub = 0\n            for v in seen:\n                sub |= 1 << seen[v]\n            nxt = sub\n            while nxt > 0:\n                if nxt in values:\n                    dp[mask | nxt] = min(dp[mask | nxt], dp[mask] + values[nxt])\n                nxt = (nxt - 1) & sub\n\n        return dp[-1] if dp[-1] < inf else -1\n\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int minimumIncompatibility(int[] nums, int k) {\n        int n = nums.length, group = n / k, inf = Integer.MAX_VALUE;\n        int[] dp = new int[1 << n];\n        Arrays.fill(dp, inf);\n        dp[0] = 0;\n        HashMap<Integer, Integer> values = new HashMap<>();\n\n        for (int mask = 1; mask < (1 << n); mask++) {\n            if (Integer.bitCount(mask) != group) {\n                continue;\n            }\n            int mn = 20, mx = 0;\n            HashSet<Integer> cur = new HashSet<>();\n            for (int i = 0; i < n; i++) {\n                if ((mask & (1 << i)) > 0) {\n                    if (cur.contains(nums[i])) {\n                        break;\n                    }\n                    cur.add(nums[i]);\n                    mn = Math.min(mn, nums[i]);\n                    mx = Math.max(mx, nums[i]);\n                }\n            }\n            if (cur.size() == group) {\n                values.put(mask, mx - mn);\n            }\n        }\n\n        for (int mask = 0; mask < (1 << n); mask++) {\n            if (dp[mask] == inf) {\n                continue;\n            }\n            HashMap<Integer, Integer> seen = new HashMap<>();\n            for (int i = 0; i < n; i++) {\n                if ((mask & (1 << i)) == 0) {\n                    seen.put(nums[i], i);\n                }\n            }\n            if (seen.size() < group) {\n                continue;\n            }\n            int sub = 0;\n            for (int v : seen.values()) {\n                sub |= (1 << v);\n            }\n            int nxt = sub;\n            while (nxt > 0) {\n                if (values.containsKey(nxt)) {\n                    dp[mask | nxt] = Math.min(dp[mask | nxt], dp[mask] + values.get(nxt));\n                }\n                nxt = (nxt - 1) & sub;\n            }\n        }\n\n        return (dp[(1 << n) - 1] < inf) ? dp[(1 << n) - 1] : -1;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc minimumIncompatibility(nums []int, k int) int {\n    n := len(nums)\n    group := n / k\n    inf := math.MaxInt32\n    dp := make([]int, 1 << n)\n    for i := range dp {\n        dp[i] = inf\n    }\n    dp[0] = 0\n    values := make(map[int]int)\n\n    for mask := 1; mask < (1 << n); mask++ {\n        if bits.OnesCount(uint(mask)) != group {\n            continue\n        }\n        minVal := 20\n        maxVal := 0\n        cur := make(map[int]bool)\n        for i := 0; i < n; i++ {\n            if mask & (1 << i) != 0 {\n                if cur[nums[i]] {\n                    break\n                }\n                cur[nums[i]] = true\n                minVal = min(minVal, nums[i])\n                maxVal = max(maxVal, nums[i])\n            }\n        }\n        if len(cur) == group {\n            values[mask] = maxVal - minVal\n        }\n    }\n\n    for mask := 0; mask < (1 << n); mask++ {\n        if dp[mask] == inf {\n            continue\n        }\n        seen := make(map[int]int)\n        for i := 0; i < n; i++ {\n            if (mask & (1 << i)) == 0 {\n                seen[nums[i]] = i\n            }\n        }\n        if len(seen) < group {\n            continue\n        }\n        sub := 0\n        for _, v := range seen {\n            sub |= (1 << v)\n        }\n        nxt := sub\n        for nxt > 0 {\n            if val, ok := values[nxt]; ok {\n                dp[mask|nxt] = min(dp[mask|nxt], dp[mask] + val)\n            }\n            nxt = (nxt - 1) & sub\n        }\n    }\n    if (dp[(1 << n) - 1] < inf) {\n        return  dp[(1 << n) - 1]\n    }\n    return -1\n}\n\nfunc min(a, b int) int {\n    if a < b {\n        return a\n    }\n    return b\n}\n\nfunc max(a, b int) int {\n    if a > b {\n        return a\n    }\n    return b\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar minimumIncompatibility = function(nums, k) {\n    const n = nums.length, group = n / k, inf = Infinity;\n    const dp = new Array(1 << n).fill(inf);\n    dp[0] = 0;\n    const values = new Map();\n\n    for (let mask = 1; mask < (1 << n); mask++) {\n        if (countOnes(mask) !== group) {\n            continue;\n        }\n        let mn = 20,\n            mx = 0;\n        const cur = new Set();\n        for (let i = 0; i < n; i++) {\n            if ((mask & (1 << i)) > 0) {\n                if (cur.has(nums[i])) {\n                    break;\n                }\n                cur.add(nums[i]);\n                mn = Math.min(mn, nums[i]);\n                mx = Math.max(mx, nums[i]);\n            }\n        }\n        if (cur.size == group) {\n            values.set(mask, mx - mn);\n        }\n    }\n\n    for (let mask = 0; mask < (1 << n); mask++) {\n        if (dp[mask] == inf) {\n            continue;\n        }\n        const seen = new Map();\n        for (let i = 0; i < n; i++) {\n            if ((mask & (1 << i)) == 0) {\n                seen.set(nums[i], i);\n            }\n        }\n        if (seen.size < group) {\n            continue;\n        }\n        let sub = 0;\n        for (let v of seen.values()) {\n            sub |= (1 << v);\n        }\n        let nxt = sub;\n        while (nxt > 0) {\n            if (values.has(nxt)) {\n                dp[mask | nxt] = Math.min(dp[mask | nxt], dp[mask] + values.get(nxt));\n            }\n            nxt = (nxt - 1) & sub;\n        }\n    }\n\n    return (dp[(1 << n) - 1] < inf) ? dp[(1 << n) - 1] : -1;\n}\n\nfunction countOnes(n) {\n    let count = 0;\n    while (n > 0) {\n        count++;\n        n &= n - 1;\n    }\n    return count;\n}\n```\n\n```C [sol1-C]\ntypedef struct {\n    int key;\n    int val;\n    UT_hash_handle hh;\n} HashItem; \n\nHashItem *hashFindItem(HashItem **obj, int key) {\n    HashItem *pEntry = NULL;\n    HASH_FIND_INT(*obj, &key, pEntry);\n    return pEntry;\n}\n\nbool hashAddItem(HashItem **obj, int key, int val) {\n    if (hashFindItem(obj, key)) {\n        return false;\n    }\n    HashItem *pEntry = (HashItem *)malloc(sizeof(HashItem));\n    pEntry->key = key;\n    pEntry->val = val;\n    HASH_ADD_INT(*obj, key, pEntry);\n    return true;\n}\n\nint hashGetItem(HashItem **obj, int key, int defaultVal) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        return defaultVal;\n    }\n    return pEntry->val;\n}\n\nvoid hashFree(HashItem **obj) {\n    HashItem *curr = NULL, *tmp = NULL;\n    HASH_ITER(hh, *obj, curr, tmp) {\n        HASH_DEL(*obj, curr);  \n        free(curr);\n    }\n}\n\nint minimumIncompatibility(int* nums, int numsSize, int k) {\n    int n = numsSize;\n    HashItem *values = NULL;\n    int dp[1 << n];\n    for (int i = 0; i < (1 << n); i++) {\n        dp[i] = INT_MAX;\n    }\n    dp[0] = 0;\n    int group = n / k;\n\n    for (int mask = 1; mask < (1 << n); mask++) {\n        if (__builtin_popcount(mask) != group) {\n            continue;\n        }\n        int mn = 20, mx = 0;\n        int cur[n + 1];\n        memset(cur, 0, sizeof(cur));\n        for (int i = 0; i < n; i++) {\n            if (mask & (1 << i)) {\n                if (cur[nums[i]] > 0) {\n                    break;\n                }\n                cur[nums[i]] = 1;\n                mn = fmin(mn, nums[i]);\n                mx = fmax(mx, nums[i]);\n            }\n        }\n        int curSize = 0;\n        for (int i = 0; i <= n; i++) {\n            if (cur[i] > 0) {\n                curSize++;\n            }\n        }\n        if (curSize == group) {\n            hashAddItem(&values, mask, mx - mn);\n        }\n    }\n    for (int mask = 0; mask < (1 << n); mask++) {\n        if (dp[mask] == INT_MAX) {\n            continue;\n        }\n        HashItem *seen = NULL;\n        for (int i = 0; i < n; i++) {\n            if ((mask & (1 << i)) == 0) {\n                hashAddItem(&seen, nums[i], i);\n            }\n        }\n        if (HASH_COUNT(seen) < group) {\n            continue;\n        }\n        int sub = 0;\n        for (HashItem *pEntry = seen; pEntry; pEntry = pEntry->hh.next) {\n            sub |= (1 << pEntry->val);\n        }\n        hashFree(&seen);\n        int nxt = sub;\n        while (nxt > 0) {\n            if (hashFindItem(&values, nxt)) {\n                dp[mask | nxt] = fmin(dp[mask | nxt], dp[mask] + hashGetItem(&values, nxt, 0));\n            }\n            nxt = (nxt - 1) & sub;\n        }\n    }\n    hashFree(&values);\n    return (dp[(1 << n) - 1] < INT_MAX) ? dp[(1 << n) - 1] : -1;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(3^n)$，其中 $n$ 为数组长度。\n    \n    预处理中，每个元素有（已选，未选）共 $2$ 种状态，总共有 $O(2^n)$ 个子集，预处理每个子集需要遍历数组是 $O(n)$， 总体复杂度 $O(n\\times 2^n)$，小于 $O(3^n)$。\n\n    动态规划转移中，每个元素有（已选，将选，未选）共 $3$ 种状态，转移方程最多被执行 $O(3^n)$ 次，总体复杂度 $O(3^n)$。\n\n- 空间复杂度：$O(2^n)$，其中 $n$ 为数组长度。我们需要保存预处理和动态规划中的每一个状态。",
+            "slateValue": "",
+            "slug": "zui-xiao-bu-jian-rong-xing-by-leetcode-s-iiac",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "CMRiWw",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 38,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Bit Manipulation",
+                    "nameTranslated": "位运算",
+                    "slug": "bit-manipulation",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Bitmask",
+                    "nameTranslated": "位掩码",
+                    "slug": "bitmask",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-06-25T02:37:12.060804+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "前言 本题解涉及到「二进制」中的「子集枚举」，具体表示为对给定的一个整数 $x$，不重复地枚举 $x$ 的「二进制」表示的非空子集 $y$，其中 $y$ 满足 $y \\And x = y$。以下为以 C++ 实现枚举 $x$ 的非空子集的代码，其正确性证明详细可以见 OI_WIKI-二进制集合操作-子集遍历部分。 C+",
+            "topic": {
+                "id": 2319475,
+                "subscribed": false,
+                "commentCount": 63,
+                "viewCount": 1033,
+                "post": {
+                    "id": 4369246,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 43,
+            "isEditorsPick": false,
+            "hitCount": 11856,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "minimum-incompatibility",
+                "questionFrontendId": "1681"
+            },
+            "next": {
+                "slug": "zui-xiao-bu-jian-rong-xing-by-zerotrac2-rwje",
+                "title": "最小不兼容性"
+            },
+            "prev": null
+        }
+    }
+}

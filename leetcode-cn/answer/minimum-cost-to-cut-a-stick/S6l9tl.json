@@ -1,0 +1,132 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "S6l9tl",
+            "title": "切棍子的最小成本",
+            "content": "#### 前言\n\n本题和 [312. 戳气球](https://leetcode.cn/problems/burst-balloons/) 较为相似，都是经典的区间动态规划题。\n\n#### 方法一：动态规划\n\n**思路与算法**\n\n在我们任意一次切割时，待切割木棍的左端点要么是原始木棍的左端点 $0$，要么是之前某一次切割的位置；同理，待切割木棍的右端点要么是原始木棍的右端点 $n$，要么是之前某一次切割的位置。\n\n因此，如果我们将切割位置数组 $\\textit{cuts}$ 进行排序，并在左侧添加 $0$，右侧添加 $n$，那么待切割的木棍就对应着数组中一段连续的区间。这样一来，我们就可以用动态规划来解决本题。\n\n我们用数组 $\\textit{cuts}[1..m]$ 表示题目中给定的数组 $\\textit{cuts}$ 按照升序排序后的结果，其中 $m$ 是数组 $\\textit{cuts}$ 的长度，并令 $cuts[0] = 0$，$cuts[m+1] = n$。同时，我们用 $f[i][j]$ 表示在当前待切割的木棍的左端点为 $\\textit{cuts}[i-1]$，右端点为 $\\textit{cuts}[j+1]$ 时，将木棍**全部切开**的最小总成本。\n\n> 这里**全部切开的意思是**，木棍中有 $j-i+1$ 个切割位置 $\\textit{cuts}[i], \\cdots, \\textit{cuts}[j]$，我们需要将木棍根据这些位置，切割成 $j-i+2$ 段。\n\n为了得到最小总成本，我们可以枚举第一刀的位置。如果第一刀的位置为 $\\textit{cuts}[k]$，其中 $k \\in [i, j]$，那么我们会将待切割的木棍分成两部分，左侧部分的木棍为 $\\textit{cuts}[i-1..k]$，对应的可以继续切割的位置为 $\\textit{cuts}[i..k-1]$；右侧部分的木棍为 $\\textit{cuts}[k..j+1]$，对应的可以继续切割的位置为 $\\textit{cuts}[k+1..j]$。由于左右两侧均为规模较小的子问题，因此我们可以得到状态转移方程：\n\n$$\nf[i][j] = \\min_{k \\in [i,j]} \\{ f[i][k-1] + f[k+1][j] \\} + (\\textit{cuts}[j+1] - \\textit{cuts}[i-1])\n$$\n\n即我们无论在哪里切第一刀，这一刀的成本都是木棍的长度 $\\textit{cuts}[j+1] - \\textit{cuts}[i-1]$。\n\n状态转移方程的边界条件为：\n\n$$\nf[i][j] = 0, ~其中~ i > j\n$$\n\n也就是说，如果没有可以切割的位置，那么它要么是一根无法再切割的木棍（此时 $i=j+1$），要么根本就不是一根木棍（此时 $i>j+1$）。无论是哪一种情况，对应的最小总成本都是 $0$。\n\n最后的答案即为 $f[1][m]$。\n\n**细节**\n\n在区间动态规划中，我们要注意状态计算的顺序，即在计算 $f[i][j]$ 时，所有满足 $k \\in [i, j]$ 的 $f[i][k]$ 和 $f[k][j]$ 都需要已经被计算过。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int minCost(int n, vector<int>& cuts) {\n        int m = cuts.size();\n        sort(cuts.begin(), cuts.end());\n        cuts.insert(cuts.begin(), 0);\n        cuts.push_back(n);\n        vector<vector<int>> f(m + 2, vector<int>(m + 2));\n        for (int i = m; i >= 1; --i) {\n            for (int j = i; j <= m; ++j) {\n                f[i][j] = (i == j ? 0 : INT_MAX);\n                for (int k = i; k <= j; ++k) {\n                    f[i][j] = min(f[i][j], f[i][k - 1] + f[k + 1][j]);\n                }\n                f[i][j] += cuts[j + 1] - cuts[i - 1];\n            }\n        }\n        return f[1][m];\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int minCost(int n, int[] cuts) {\n        int m = cuts.length;\n        Arrays.sort(cuts);\n        int[] newCuts = new int[m + 2];\n        newCuts[0] = 0;\n        for (int i = 1; i <= m; ++i) {\n            newCuts[i] = cuts[i - 1];\n        }\n        newCuts[m + 1] = n;\n        int[][] f = new int[m + 2][m + 2];\n        for (int i = m; i >= 1; --i) {\n            for (int j = i; j <= m; ++j) {\n                f[i][j] = i == j ? 0 : Integer.MAX_VALUE;\n                for (int k = i; k <= j; ++k) {\n                    f[i][j] = Math.min(f[i][j], f[i][k - 1] + f[k + 1][j]);\n                }\n                f[i][j] += newCuts[j + 1] - newCuts[i - 1];\n            }\n        }\n        return f[1][m];\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def minCost(self, n: int, cuts: List[int]) -> int:\n        m = len(cuts)\n        cuts = [0] + sorted(cuts) + [n]\n        f = [[0] * (m + 2) for _ in range(m + 2)]\n\n        for i in range(m, 0, -1):\n            for j in range(i, m + 1):\n                f[i][j] = 0 if i == j else \\\n                    min(f[i][k - 1] + f[k + 1][j] for k in range(i, j + 1))\n                f[i][j] += cuts[j + 1] - cuts[i - 1]\n        \n        return f[1][m]\n```\n\n```C [sol1-C]\nint comp(const void* a, const void* b) {\n    return *(int*)a - *(int*)b;\n}\n\nint minCost(int n, int* cuts, int cutsSize) {\n    qsort(cuts, cutsSize, sizeof(int), comp);\n    int* tmp = malloc(sizeof(int) * (cutsSize + 2));\n    for (int i = 0; i < cutsSize; i++) {\n        tmp[i + 1] = cuts[i];\n    }\n    tmp[0] = 0, tmp[cutsSize + 1] = n;\n    int f[cutsSize + 2][cutsSize + 2];\n    memset(f, 0, sizeof(f));\n    for (int i = cutsSize; i >= 1; --i) {\n        for (int j = i; j <= cutsSize; ++j) {\n            f[i][j] = (i == j ? 0 : INT_MAX);\n            for (int k = i; k <= j; ++k) {\n                f[i][j] = fmin(f[i][j], f[i][k - 1] + f[k + 1][j]);\n            }\n            f[i][j] += tmp[j + 1] - tmp[i - 1];\n        }\n    }\n    free(tmp);\n    return f[1][cutsSize];\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MinCost(int n, int[] cuts) {\n        int m = cuts.Length;\n        Array.Sort(cuts);\n        int[] newCuts = new int[m + 2];\n        newCuts[0] = 0;\n        for (int i = 1; i <= m; ++i) {\n            newCuts[i] = cuts[i - 1];\n        }\n        newCuts[m + 1] = n;\n        int[,] f = new int[m + 2, m + 2];\n        for (int i = m; i >= 1; --i) {\n            for (int j = i; j <= m; ++j) {\n                f[i, j] = (i == j) ? 0 : int.MaxValue;\n                for (int k = i; k <= j; ++k) {\n                    f[i, j] = Math.Min(f[i, j], f[i, k - 1] + f[k + 1, j]);\n                }\n                f[i, j] += newCuts[j + 1] - newCuts[i - 1];\n            }\n        }\n        \n        return f[1, m];\n    }\n};\n```\n\n```Go [sol1-Go]\nfunc minCost(n int, cuts []int) int {\n    m := len(cuts)\n    cuts = append([]int{0}, cuts...)\n    cuts = append(cuts, n)\n    sort.Ints(cuts)\n    \n    f := make([][]int, m + 2)\n    for i := range f {\n        f[i] = make([]int, m + 2)\n    }\n\n    for i := m; i >= 1; i-- {\n        for j := i; j <= m; j++ {\n            if i == j {\n                f[i][j] = 0\n            } else {\n                f[i][j] = int(^uint(0) >> 1)\n            }\n            for k := i; k <= j; k++ {\n                f[i][j] = min(f[i][j], f[i][k - 1] + f[k + 1][j])\n            }\n            f[i][j] += cuts[j + 1] - cuts[i - 1]\n        }\n    }\n\n    return f[1][m]\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar minCost = function(n, cuts) {\n    cuts.push(0);\n    cuts.push(n);\n    cuts.sort((a, b) => a - b);\n    const m = cuts.length;\n    const f = Array.from({ length: m }, () => Array(m).fill(0));\n\n    for (let i = m - 3; i >= 0; i--) {\n        for (let j = i + 2; j < m; j++) {\n            let minCost = Infinity;\n            for (let k = i + 1; k < j; k++) {\n                minCost = Math.min(minCost, f[i][k] + f[k][j]);\n            }\n            f[i][j] = minCost + (cuts[j] - cuts[i]);\n        }\n    }\n\n    return f[0][m - 1];\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction minCost(n: number, cuts: number[]): number {\n    cuts.push(0);\n    cuts.push(n);\n    cuts.sort((a, b) => a - b);\n    const m = cuts.length;\n    const f: number[][] = Array.from({ length: m }, () => Array(m).fill(0));\n\n    for (let i = m - 3; i >= 0; i--) {\n        for (let j = i + 2; j < m; j++) {\n            let minCost = Infinity;\n            for (let k = i + 1; k < j; k++) {\n                minCost = Math.min(minCost, f[i][k] + f[k][j]);\n            }\n            f[i][j] = minCost + (cuts[j] - cuts[i]);\n        }\n    }\n\n    return f[0][m - 1];\n};\n```\n\n```Rust [sol1-Rust]\nuse std::cmp::min;\n\nimpl Solution {\n    pub fn min_cost(n: i32, cuts: Vec<i32>) -> i32 {\n        let mut cuts = cuts;\n        cuts.push(0);\n        cuts.push(n);\n        cuts.sort();\n        let m = cuts.len();\n        let mut f = vec![vec![0; m]; m];\n\n        for i in (0..m).rev() {\n            for j in i + 2..m {\n                f[i][j] = i32::MAX;\n                for k in i + 1..j {\n                    f[i][j] = min(f[i][j], f[i][k] + f[k][j]);\n                }\n                f[i][j] += cuts[j] - cuts[i];\n            }\n        }\n\n        f[0][m - 1]\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(m^3)$，其中 $m$ 是数组 $\\textit{cuts}$ 的长度。状态的数量为 $O(m^2)$，转移的时间复杂度为 $O(m)$，相乘即可得到总时间复杂度。此外，将数组 $\\textit{cuts}$ 进行排序的时间复杂度以及插入 $0$ 和 $n$ 的时间复杂度在渐进意义下小于 $O(m^3)$，因此可以忽略不计。\n\n- 空间复杂度：$O(m^2)$，即为存储所有状态需要的空间。",
+            "slateValue": "",
+            "slug": "qie-gun-zi-de-zui-xiao-cheng-ben-by-leetcode-solut",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "S6l9tl",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 32,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-08-18T03:32:19.835827+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "前言 本题和 312. 戳气球 较为相似，都是经典的区间动态规划题。 方法一：动态规划 思路与算法 在我们任意一次切割时，待切割木棍的左端点要么是原始木棍的左端点 [latex]，要么是之前某一次切割的位置；同理，待切割木棍的右端点要么是原始木棍的右端点 [latex]，要么是之前某一次切割的位置。 因此，如果我们将切",
+            "topic": {
+                "id": 379074,
+                "subscribed": false,
+                "commentCount": 32,
+                "viewCount": 6065,
+                "post": {
+                    "id": 930178,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 96,
+            "isEditorsPick": false,
+            "hitCount": 23522,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "minimum-cost-to-cut-a-stick",
+                "questionFrontendId": "1547"
+            },
+            "next": {
+                "slug": "jiao-ni-yi-bu-bu-si-kao-qu-jian-dpcong-j-f8px",
+                "title": "教你一步步思考区间 DP：从记忆化搜索到递推（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

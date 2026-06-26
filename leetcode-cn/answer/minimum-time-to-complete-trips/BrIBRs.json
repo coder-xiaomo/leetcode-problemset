@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "BrIBRs",
+            "title": "完成旅途的最少时间",
+            "content": "#### 方法一：二分查找转化为判定问题\n\n**提示 $1$**\n\n当时间增加时，所有公交车完成旅途的总数一定不会减少。\n\n**思路与算法**\n\n根据 **提示 $1$**，「花费 $t$ 时间能否完成 $\\textit{totalTrips}$ 趟旅途」这个**判定问题**如果对于某个 $t$ 成立，那么它对于 $[t, \\infty)$ 区间内的所有整数均成立。这也就说明这个判定问题对于花费时间 $t$ 具有**二值性**。因此我们可以通过二分查找确定使得该判定问题成立的**最小**的 $t$。\n\n由于我们至少需要 $1$ 时间来至少完成一趟旅途，因此二分查找的**下界**为 $1$。而对于二分查找的**上界**，出于方便计算的考虑，我们可以将「花费时间最长的公交车完成 $\\textit{totalTrips}$ 趟旅途的时间」作为二分查找的上界。\n\n对于花费 $t$ 时间对应的判定问题，我们引入辅助函数 $\\textit{check}(t)$ 来判断。\n\n在辅助函数 $\\textit{check}(t)$ 中，我们用 $\\textit{cnt}$ 统计所有公交车完成旅途数量的总和。随后，我们遍历 $\\textit{time}$ 数组的所有元素，对于其中花费为 $\\textit{period}$ 的公交车，它在 $t$ 时间内完成旅途的数目即为 $\\lfloor t / \\textit{period} \\rfloor$，其中 $\\lfloor x \\rfloor$ 表示对 $x$ 向下取整。最终，我们判断 $\\textit{cnt}$ 是否大于等于 $\\textit{totalTrips}$，并将该答案作为辅助函数的返回值。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    long long minimumTime(vector<int>& time, int totalTrips) {\n        // 判断 t 时间内是否可以完成 totalTrips 趟旅途\n        auto check = [&](long long t) -> bool {\n            long long cnt = 0;\n            for (int period: time) {\n                cnt += t / period;\n            }\n            return cnt >= totalTrips;\n        };\n        \n        // 二分查找下界与上界\n        long long l = 1;\n        long long r = (long long) totalTrips * *max_element(time.begin(), time.end());\n        // 二分查找寻找满足要求的最小的 t\n        while (l < r) {\n            long long mid = l + (r - l) / 2;\n            if (check(mid)) {\n                r = mid;\n            } else {\n              l = mid + 1;\n            }\n        }\n        return l;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public long minimumTime(int[] time, int totalTrips) {\n        // 二分查找下界与上界\n        long l = 1;\n        long r = (long) totalTrips * Arrays.stream(time).max().orElse(0);\n        // 二分查找寻找满足要求的最小的 t\n        while (l < r) {\n            long mid = l + (r - l) / 2;\n            if (check(mid, time, totalTrips)) {\n                r = mid;\n            } else {\n                l = mid + 1;\n            }\n        }\n        return l;\n    }\n\n    // 判断 t 时间内是否可以完成 totalTrips 趟旅途\n    public boolean check(long t, int[] time, int totalTrips) {\n        long cnt = 0;\n        for (int period : time) {\n            cnt += t / period;\n        }\n        return cnt >= totalTrips;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public long MinimumTime(int[] time, int totalTrips) {\n        // 判断 t 时间内是否可以完成 totalTrips 趟旅途\n        bool Check(long t) {\n            long cnt = 0;\n            foreach (int period in time) {\n                cnt += t / period;\n            }\n            return cnt >= totalTrips;\n        }\n\n        // 二分查找下界与上界\n        long l = 1;\n        long r = (long) totalTrips * time.Max();\n        // 二分查找寻找满足要求的最小的 t\n        while (l < r) {\n            long mid = l + (r - l) / 2;\n            if (Check(mid)) {\n                r = mid;\n            } else {\n                l = mid + 1;\n            }\n        }\n        return l;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc minimumTime(time []int, totalTrips int) int64 {\n    // 二分查找下界与上界\n\tl, r := int64(1), int64(totalTrips) * int64(time[0])\n\tfor _, period := range time {\n\t\tif period > int(r / int64(totalTrips)) {\n\t\t\tr = int64(totalTrips) * int64(period)\n\t\t}\n\t}\n\t// 二分查找寻找满足要求的最小的 t\n\tfor l < r {\n\t\tmid := l + (r - l) / 2\n\t\tif check(mid, time, totalTrips) {\n\t\t\tr = mid\n\t\t} else {\n\t\t\tl = mid + 1\n\t\t}\n\t}\n\treturn l\n}\n\n// 判断 t 时间内是否可以完成 totalTrips 趟旅途\nfunc check(t int64, time []int, totalTrips int) bool {\n\tvar cnt int64 = 0\n\tfor _, period := range time {\n\t\tcnt += t / int64(period)\n\t}\n\treturn cnt >= int64(totalTrips)\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def minimumTime(self, time: List[int], totalTrips: int) -> int:\n        # 判断 t 时间内是否可以完成 totalTrips 趟旅途\n        def check(t: int) -> bool:\n            cnt = 0\n            for period in time:\n                cnt += t // period\n            return cnt >= totalTrips\n        \n        # 二分查找下界与上界\n        l = 1\n        r = totalTrips * max(time)\n        # 二分查找寻找满足要求的最小的 t\n        while l < r:\n            mid = l + (r - l) // 2\n            if check(mid):\n                r = mid\n            else:\n                l = mid + 1\n        return l\n```\n\n```C [sol1-C]\n// 判断 t 时间内是否可以完成 totalTrips 趟旅途\nbool check(long long t, int* time, int timeSize, int totalTrips) {\n    long long cnt = 0;\n    for (int i = 0; i < timeSize; i++) {\n        cnt += t / time[i];\n    }\n    return cnt >= totalTrips;\n}\n\nlong long minimumTime(int* time, int timeSize, int totalTrips) {\n    // 二分查找下界与上界\n    long long l = 1;\n    long long r = (long long) totalTrips * time[0];\n    for (int i = 1; i < timeSize; i++) {\n        if (time[i] > r / totalTrips) {\n            r = (long long) totalTrips * time[i];\n        }\n    }\n    // 二分查找寻找满足要求的最小的 t\n    while (l < r) {\n        long long mid = l + (r - l) / 2;\n        if (check(mid, time, timeSize, totalTrips)) {\n            r = mid;\n        } else {\n            l = mid + 1;\n        }\n    }\n    return l;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar minimumTime = function(time, totalTrips) {\n    // 判断 t 时间内是否可以完成 totalTrips 趟旅途\n    const check = (t) => {\n        let cnt = 0;\n        for (const period of time) {\n            cnt += Math.floor(t / period);\n        }\n        return cnt >= totalTrips;\n    };\n    \n    // 二分查找下界与上界\n    let l = 1;\n    let r = totalTrips * Math.max(...time);\n    // 二分查找寻找满足要求的最小的 t\n    while (l < r) {\n        const mid = Math.floor((l + r) / 2);\n        if (check(mid)) {\n            r = mid;\n        } else {\n            l = mid + 1;\n        }\n    }\n    return l;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction minimumTime(time: number[], totalTrips: number): number {\n    // 判断 t 时间内是否可以完成 totalTrips 趟旅途\n    const check = (t: number): boolean => {\n        let cnt = 0;\n        for (const period of time) {\n            cnt += Math.floor(t / period);\n        }\n        return cnt >= totalTrips;\n    };\n    \n    // 二分查找下界与上界\n    let l = 1;\n    let r = totalTrips * Math.max(...time);\n    // 二分查找寻找满足要求的最小的 t\n    while (l < r) {\n        const mid = Math.floor((l + r) / 2);\n        if (check(mid)) {\n            r = mid;\n        } else {\n            l = mid + 1;\n        }\n    }\n    return l;\n};\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn minimum_time(time: Vec<i32>, total_trips: i32) -> i64 {\n        // 二分查找下界与上界\n        let mut l = 1i64;\n        let mut r = total_trips as i64 * *time.iter().max().unwrap() as i64;\n        // 二分查找寻找满足要求的最小的 t\n        while l < r {\n            let mid = l + (r - l) / 2;\n            if Self::check(mid, &time, total_trips) {\n                r = mid;\n            } else {\n                l = mid + 1;\n            }\n        }\n        l\n    }\n\n    // 判断 t 时间内是否可以完成 totalTrips 趟旅途\n    pub fn check(t: i64, time: &Vec<i32>, total_trips: i32) -> bool {\n        let mut cnt = 0i64;\n        for &period in time {\n            cnt += t / period as i64;\n        }\n        cnt >= total_trips as i64\n    }\n}\n```\n\n```Cangjie [sol1-Cangjie]\nclass Solution {\n    func minimumTime(time: Array<Int64>, totalTrips: Int64): Int64 {\n        var maxTime = 0\n        for (t in time) {\n            maxTime = max(maxTime, t)\n        }\n        // 判断 t 时间内是否可以完成 totalTrips 趟旅途\n        func check(t: Int64): Bool {\n            var cnt = 0\n            for (period in time) {\n                cnt += t / period\n            }\n            return cnt >= totalTrips\n        }\n        \n        // 二分查找下界与上界\n        var l = 1\n        var r = totalTrips * maxTime\n        // 二分查找寻找满足要求的最小的 t\n        while (l < r) {\n            let mid = (l + r) / 2\n            if (check(mid)) {\n                r = mid\n            } else {\n                l = mid + 1\n            }\n        }\n        return l\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log(mk))$，其中 $n$ 为 $\\textit{time}$ 数组的长度，$m = \\textit{totalTrips}$，$k$ 为 $\\textit{time}$ 中元素的最大值。我们总共需要进行 $O(\\log(mk))$ 次二分查找，每次判断完成旅途数目是否达到要求的时间复杂度均为 $O(n)$。\n\n- 空间复杂度：$O(1)$。",
+            "slateValue": "",
+            "slug": "wan-cheng-lu-tu-de-zui-shao-shi-jian-by-uxyrp",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "BrIBRs",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 15,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Cangjie",
+                    "nameTranslated": "",
+                    "slug": "cangjie",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-03-01T03:08:30.416114+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：二分查找转化为判定问题 提示 [latex] 当时间增加时，所有公交车完成旅途的总数一定不会减少。 思路与算法 根据 提示 [latex]，「花费 [latex] 时间能否完成 [latex] 趟旅途」这个判定问题如果对于某个 [latex] 成立，那么它对于 [latex] 区间内的所有整数均成立。这也就说明",
+            "topic": {
+                "id": 1300957,
+                "subscribed": false,
+                "commentCount": 59,
+                "viewCount": 3402,
+                "post": {
+                    "id": 2709161,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 32,
+            "isEditorsPick": false,
+            "hitCount": 17882,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "minimum-time-to-complete-trips",
+                "questionFrontendId": "2187"
+            },
+            "next": {
+                "slug": "er-fen-da-an-python-yi-xing-gao-ding-by-xwvs8",
+                "title": "二分答案，附题单（Python/Java/C++/C/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

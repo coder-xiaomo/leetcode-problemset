@@ -1,0 +1,102 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "UTXE9T",
+            "title": "合并排序链表",
+            "content": "#### 前置知识：合并两个有序链表\n\n**思路**\n在解决「合并K个排序链表」这个问题之前，我们先来看一个更简单的问题：如何合并两个有序链表？假设链表 $a$ 和 $b$ 的长度都是 $n$，**如何在 $O(n)$ 的时间代价以及 $O(1)$ 的空间代价完成合并？** 这个问题在面试中常常出现，为了达到空间代价是 $O(1)$，我们的宗旨是「原地调整链表元素的 $\\textit{next}$ 指针完成合并」。**以下是合并的步骤和注意事项，对这个问题比较熟悉的读者可以跳过这一部分。此部分建议结合代码阅读。**\n\n+ 首先我们需要一个变量 $\\textit{head}$ 来保存合并之后链表的头部，你可以把 $\\textit{head}$ 设置为一个虚拟的头（也就是 $\\textit{head}$ 的 $\\textit{val}$ 属性不保存任何值），这是为了方便代码的书写，在整个链表合并完之后，返回它的下一位置即可。\n+ 我们需要一个指针 $\\textit{tail}$ 来记录下一个插入位置的前一个位置，以及两个指针 $\\textit{aPtr}$ 和 $\\textit{bPtr}$ 来记录 $a$ 和 $b$ 未合并部分的第一位。**注意这里的描述，$\\textit{tail}$ 不是下一个插入的位置，$\\textit{aPtr}$ 和 $\\textit{bPtr}$ 所指向的元素处于「待合并」的状态，也就是说它们还没有合并入最终的链表。** 当然你也可以给他们赋予其他的定义，但是定义不同实现就会不同。\n+ 当 $\\textit{aPtr}$ 和 $\\textit{bPtr}$ 都不为空的时候，取 $\\textit{val}$ 熟悉较小的合并；如果 $\\textit{aPtr}$ 为空，则把整个 $\\textit{bPtr}$ 以及后面的元素全部合并；$\\textit{bPtr}$ 为空时同理。\n+ 在合并的时候，应该先调整 $\\textit{tail}$ 的 $\\textit{next}$ 属性，再后移 $\\textit{tail}$ 和 $\\textit{*Ptr}$（$\\textit{aPtr}$ 或者 $\\textit{bPtr}$）。那么这里 $\\textit{tail}$ 和 $\\textit{*Ptr}$ 是否存在先后顺序呢？它们谁先动谁后动都是一样的，不会改变任何元素的 $\\textit{next}$ 指针。\n\n**代码**\n\n```cpp [pre-C++]\nListNode* mergeTwoLists(ListNode *a, ListNode *b) {\n    if ((!a) || (!b)) return a ? a : b;\n    ListNode head, *tail = &head, *aPtr = a, *bPtr = b;\n    while (aPtr && bPtr) {\n        if (aPtr->val < bPtr->val) {\n            tail->next = aPtr; aPtr = aPtr->next;\n        } else {\n            tail->next = bPtr; bPtr = bPtr->next;\n        }\n        tail = tail->next;\n    }\n    tail->next = (aPtr ? aPtr : bPtr);\n    return head.next;\n}\n```\n\n```Java [pre-Java]\npublic ListNode mergeTwoLists(ListNode a, ListNode b) {\n    if (a == null || b == null) {\n        return a != null ? a : b;\n    }\n    ListNode head = new ListNode(0);\n    ListNode tail = head, aPtr = a, bPtr = b;\n    while (aPtr != null && bPtr != null) {\n        if (aPtr.val < bPtr.val) {\n            tail.next = aPtr;\n            aPtr = aPtr.next;\n        } else {\n            tail.next = bPtr;\n            bPtr = bPtr.next;\n        }\n        tail = tail.next;\n    }\n    tail.next = (aPtr != null ? aPtr : bPtr);\n    return head.next;\n}\n```\n\n**复杂度分析**\n\n+ 时间复杂度：$O(n)$。\n+ 空间复杂度：$O(1)$。\n\n#### 方法一：顺序合并\n\n**思路**\n\n我们可以想到一种最朴素的方法：用一个变量 $\\textit{ans}$ 来维护以及合并的链表，第 $i$ 次循环把第 $i$ 个链表和 $\\textit{ans}$ 合并，答案保存到 $\\textit{ans}$ 中。\n\n**代码**\n\n```cpp [sol1-C++]\nclass Solution {\npublic:\n    ListNode* mergeTwoLists(ListNode *a, ListNode *b) {\n        if ((!a) || (!b)) return a ? a : b;\n        ListNode head, *tail = &head, *aPtr = a, *bPtr = b;\n        while (aPtr && bPtr) {\n            if (aPtr->val < bPtr->val) {\n                tail->next = aPtr; aPtr = aPtr->next;\n            } else {\n                tail->next = bPtr; bPtr = bPtr->next;\n            }\n            tail = tail->next;\n        }\n        tail->next = (aPtr ? aPtr : bPtr);\n        return head.next;\n    }\n\n    ListNode* mergeKLists(vector<ListNode*>& lists) {\n        ListNode *ans = nullptr;\n        for (size_t i = 0; i < lists.size(); ++i) {\n            ans = mergeTwoLists(ans, lists[i]);\n        }\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public ListNode mergeKLists(ListNode[] lists) {\n        ListNode ans = null;\n        for (int i = 0; i < lists.length; ++i) {\n            ans = mergeTwoLists(ans, lists[i]);\n        }\n        return ans;\n    }\n\n    public ListNode mergeTwoLists(ListNode a, ListNode b) {\n        if (a == null || b == null) {\n            return a != null ? a : b;\n        }\n        ListNode head = new ListNode(0);\n        ListNode tail = head, aPtr = a, bPtr = b;\n        while (aPtr != null && bPtr != null) {\n            if (aPtr.val < bPtr.val) {\n                tail.next = aPtr;\n                aPtr = aPtr.next;\n            } else {\n                tail.next = bPtr;\n                bPtr = bPtr.next;\n            }\n            tail = tail.next;\n        }\n        tail.next = (aPtr != null ? aPtr : bPtr);\n        return head.next;\n    }\n}\n```\n\n**复杂度分析**\n\n+ 时间复杂度：假设每个链表的最长长度是 $n$。在第一次合并后，$\\textit{ans}$ 的长度为 $n$；第二次合并后，$\\textit{ans}$ 的长度为 $2\\times n$，第 $i$ 次合并后，$\\textit{ans}$ 的长度为 $i\\times n$。第 $i$ 次合并的时间代价是 $O(n + (i - 1) \\times n) = O(i \\times n)$，那么总的时间代价为 $O(\\sum_{i = 1}^{k} (i \\times n)) = O(\\frac{(1 + k)\\cdot k}{2} \\times n) = O(k^2 n)$，故渐进时间复杂度为 $O(k^2 n)$。\n+ 空间复杂度：没有用到与 $k$ 和 $n$ 规模相关的辅助空间，故渐进空间复杂度为 $O(1)$。\n\n#### 方法二：分治合并\n\n**思路**\n\n考虑优化方法一，用分治的方法进行合并。\n\n+ 将 $k$ 个链表配对并将同一对中的链表合并；\n+ 第一轮合并以后， $k$ 个链表被合并成了 $\\frac{k}{2}$ 个链表，平均长度为 $\\frac{2n}{k}$，然后是 $\\frac{k}{4}$ 个链表， $\\frac{k}{8}$ 个链表等等；\n+ 重复这一过程，直到我们得到了最终的有序链表。\n\n![](https://pic.leetcode.cn/6f70a6649d2192cf32af68500915d84b476aa34ec899f98766c038fc9cc54662-image.png)\n\n**代码**\n\n```cpp [sol2-C++]\nclass Solution {\npublic:\n    ListNode* mergeTwoLists(ListNode *a, ListNode *b) {\n        if ((!a) || (!b)) return a ? a : b;\n        ListNode head, *tail = &head, *aPtr = a, *bPtr = b;\n        while (aPtr && bPtr) {\n            if (aPtr->val < bPtr->val) {\n                tail->next = aPtr; aPtr = aPtr->next;\n            } else {\n                tail->next = bPtr; bPtr = bPtr->next;\n            }\n            tail = tail->next;\n        }\n        tail->next = (aPtr ? aPtr : bPtr);\n        return head.next;\n    }\n\n    ListNode* merge(vector <ListNode*> &lists, int l, int r) {\n        if (l == r) return lists[l];\n        if (l > r) return nullptr;\n        int mid = (l + r) >> 1;\n        return mergeTwoLists(merge(lists, l, mid), merge(lists, mid + 1, r));\n    }\n\n    ListNode* mergeKLists(vector<ListNode*>& lists) {\n        return merge(lists, 0, lists.size() - 1);\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public ListNode mergeKLists(ListNode[] lists) {\n        return merge(lists, 0, lists.length - 1);\n    }\n\n    public ListNode merge(ListNode[] lists, int l, int r) {\n        if (l == r) {\n            return lists[l];\n        }\n        if (l > r) {\n            return null;\n        }\n        int mid = (l + r) >> 1;\n        return mergeTwoLists(merge(lists, l, mid), merge(lists, mid + 1, r));\n    }\n\n    public ListNode mergeTwoLists(ListNode a, ListNode b) {\n        if (a == null || b == null) {\n            return a != null ? a : b;\n        }\n        ListNode head = new ListNode(0);\n        ListNode tail = head, aPtr = a, bPtr = b;\n        while (aPtr != null && bPtr != null) {\n            if (aPtr.val < bPtr.val) {\n                tail.next = aPtr;\n                aPtr = aPtr.next;\n            } else {\n                tail.next = bPtr;\n                bPtr = bPtr.next;\n            }\n            tail = tail.next;\n        }\n        tail.next = (aPtr != null ? aPtr : bPtr);\n        return head.next;\n    }\n}\n```\n\n**复杂度分析**\n\n+ 时间复杂度：考虑递归「向上回升」的过程——第一轮合并 $\\frac{k}{2}$ 组链表，每一组的时间代价是 $O(2n)$；第二轮合并 $\\frac{k}{4}$ 组链表，每一组的时间代价是 $O(4n)$......所以总的时间代价是 $O(\\sum_{i = 1}^{\\infty} \\frac{k}{2^i} \\times 2^i n) = O(kn \\times \\log k)$，故渐进时间复杂度为 $O(kn \\times \\log k)$。\n+ 空间复杂度：递归会使用到 $O(\\log k)$ 空间代价的栈空间。\n\n#### 方法三：使用优先队列合并\n\n**思路**\n\n这个方法和前两种方法的思路有所不同，我们需要维护当前每个链表没有被合并的元素的最前面一个，$k$ 个链表就最多有 $k$ 个满足这样条件的元素，每次在这些元素里面选取 $\\textit{val}$ 属性最小的元素合并到答案中。在选取最小元素的时候，我们可以用优先队列来优化这个过程。\n\n**代码**\n\n```cpp [sol3-C++]\nclass Solution {\npublic:\n    struct Status {\n        int val;\n        ListNode *ptr;\n        bool operator < (const Status &rhs) const {\n            return val > rhs.val;\n        }\n    };\n\n    priority_queue <Status> q;\n\n    ListNode* mergeKLists(vector<ListNode*>& lists) {\n        for (auto node: lists) {\n            if (node) q.push({node->val, node});\n        }\n        ListNode head, *tail = &head;\n        while (!q.empty()) {\n            auto f = q.top(); q.pop();\n            tail->next = f.ptr; \n            tail = tail->next;\n            if (f.ptr->next) q.push({f.ptr->next->val, f.ptr->next});\n        }\n        return head.next;\n    }\n};\n```\n\n```Java [sol3-Java]\nclass Solution {\n    class Status implements Comparable<Status> {\n        int val;\n        ListNode ptr;\n\n        Status(int val, ListNode ptr) {\n            this.val = val;\n            this.ptr = ptr;\n        }\n\n        public int compareTo(Status status2) {\n            return this.val - status2.val;\n        }\n    }\n\n    PriorityQueue<Status> queue = new PriorityQueue<Status>();\n\n    public ListNode mergeKLists(ListNode[] lists) {\n        for (ListNode node: lists) {\n            if (node != null) {\n                queue.offer(new Status(node.val, node));\n            }\n        }\n        ListNode head = new ListNode(0);\n        ListNode tail = head;\n        while (!queue.isEmpty()) {\n            Status f = queue.poll();\n            tail.next = f.ptr;\n            tail = tail.next;\n            if (f.ptr.next != null) {\n                queue.offer(new Status(f.ptr.next.val, f.ptr.next));\n            }\n        }\n        return head.next;\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：考虑优先队列中的元素不超过 $k$ 个，那么插入和删除的时间代价为 $O(\\log k)$，这里最多有 $kn$ 个点，对于每个点都被插入删除各一次，故总的时间代价即渐进时间复杂度为 $O(kn \\times \\log k)$。\n- 空间复杂度：这里用了优先队列，优先队列中的元素不超过 $k$ 个，故渐进空间复杂度为 $O(k)$。",
+            "slateValue": "",
+            "slug": "he-bing-pai-xu-lian-biao-by-leetcode-sol-w1zb",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "UTXE9T",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 28,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Linked List",
+                    "nameTranslated": "链表",
+                    "slug": "linked-list",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Divide and Conquer",
+                    "nameTranslated": "分治",
+                    "slug": "divide-and-conquer",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Heap (Priority Queue)",
+                    "nameTranslated": "堆（优先队列）",
+                    "slug": "heap-priority-queue",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2022-04-11T06:03:43.502828+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "前置知识：合并两个有序链表 思路 在解决「合并K个排序链表」这个问题之前，我们先来看一个更简单的问题：如何合并两个有序链表？假设链表 $a$ 和 $b$ 的长度都是 $n$，如何在 $O(n)$ 的时间代价以及 $O(1)$ 的空间代价完成合并？ 这个问题在面试中常常出现，为了达到空间代价是 $O(1)$，我们的宗旨是",
+            "topic": {
+                "id": 1412116,
+                "subscribed": false,
+                "commentCount": 30,
+                "viewCount": 9245,
+                "post": {
+                    "id": 2911681,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 85,
+            "isEditorsPick": false,
+            "hitCount": 32797,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "vvXgSW",
+                "questionFrontendId": "LCR 078"
+            },
+            "next": {
+                "slug": "liang-chong-fang-fa-zui-xiao-dui-fen-zhi-a1da",
+                "title": "两种方法：最小堆/分治（Python/Java/C++/Go/JS）"
+            },
+            "prev": null
+        }
+    }
+}

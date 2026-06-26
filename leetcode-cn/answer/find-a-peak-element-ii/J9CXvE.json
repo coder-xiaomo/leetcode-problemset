@@ -1,0 +1,132 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "J9CXvE",
+            "title": "寻找峰值 II",
+            "content": "#### 方法一：二分查找\n\n令 $m$ 和 $n$ 分别为 $\\textit{mat}$ 的行数和列数。首先对于一维数组，因为任意两个相邻的格子的值都不相同，所以它的最大值必定是该一维数组的峰值。基于这一点，我们可以只考虑每一行的最大值，记第 $i$ 行的最大值为第 $j_i$ 列元素，如果 $\\textit{mat}[i][j_i] \\gt \\textit{mat}[i - 1][j_i]$ 且 $\\textit{mat}[i][j_i] \\gt \\textit{mat}[i + 1][j_i]$（对于数组越界的情况，取 $-1$ 值），那么 $(i, j_i)$ 即为结果。\n\n对于题目给定的条件，是否一定存在峰值呢？答案是肯定的。证明可以采用反证法：\n\n> 如果不存在峰值，根据题目给定的条件，我们知道第 $0$ 行的最大值比它上面的格子（值为 $-1$）大，那么初始时有 $i = 0$ 行的最大值满足比上面格子大的条件。如果第 $i$ 行的最大值满足比它上面的格子大这一条件，那么根据不存在峰值的前提，我们有 $\\textit{mat}[i][j_i] \\lt \\textit{mat}[i + 1][j_i]$，而 $\\textit{mat}[i + 1][j_{i + 1}] \\ge \\textit{mat}[i + 1][j_i] \\gt \\textit{mat}[i][j_i] \\ge \\textit{mat}[i][j_{i+1}]$，从而我们有 $\\textit{mat}[i + 1][j_{i + 1}] \\gt \\textit{mat}[i][j_{i+1}]$，即 $i + 1$ 也满足条件。基于以上推导，使用数学归纳法，当 $i = m - 1$ 时，有 $\\textit{mat}[m - 1][j_{m - 1}] \\gt \\textit{mat}[m - 2][j_{m - 1}]$，而下面的格子值为 $-1$，显然 $(m - 1, j_{m - 1})$ 为峰值，与不存在峰值矛盾。\n\n根据以上证明，我们也可以得出这样一个结论，即如果 $i_1$ 行的最大值比它上面的格子大，$i_2$ 行比它下面的格子大，且 $i_1 \\le i_2$，那么 $[i_1, i_2]$ 之间一定存在峰值。基于这个结论，我们可以使用二分法来求解问题，初始时 $\\textit{low} = 0$，$\\textit{high} = m - 1$:\n\n1. 令 $i = \\lfloor \\frac{\\textit{low} + \\textit{high}}{2} \\rfloor$，第 $i$ 行的最大值为第 $j$ 列。\n\n2. 如果 $\\textit{mat}[i][j] \\lt \\textit{mat}[i - 1][j]$，那么令 $\\textit{high} = i - 1$，继续步骤 $1$。\n\n3. 如果 $\\textit{mat}[i][j] \\lt \\textit{mat}[i + 1][j]$，那么令 $\\textit{low} = i + 1$，继续步骤 $1$。\n\n4. 返回 $(i, j)$ 为结果。\n\n> 类似地，我们也可以只考虑每一列的最大值，读者可以思考一下类似的求解过程，时间复杂度为 $O(m \\log n)$。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<int> findPeakGrid(vector<vector<int>>& mat) {\n        int m = mat.size();\n        int low = 0, high = m - 1;\n        while (low <= high) {\n            int i = (low + high) / 2;\n            int j = max_element(mat[i].begin(), mat[i].end()) - mat[i].begin();\n            if (i - 1 >= 0 && mat[i][j] < mat[i - 1][j]) {\n                high = i - 1;\n                continue;\n            }\n            if (i + 1 < m && mat[i][j] < mat[i + 1][j]) {\n                low = i + 1;\n                continue;\n            }\n            return {i, j};\n        }\n        return {}; // impossible\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int[] findPeakGrid(int[][] mat) {\n        int m = mat.length, n = mat[0].length;\n        int low = 0, high = m - 1;\n        while (low <= high) {\n            int i = (low + high) / 2;\n            int j = -1, maxElement = -1;\n            for (int k = 0; k < n; k++) {\n                if (mat[i][k] > maxElement) {\n                    j = k;\n                    maxElement = mat[i][k];\n                }\n            }\n            if (i - 1 >= 0 && mat[i][j] < mat[i - 1][j]) {\n                high = i - 1;\n                continue;\n            }\n            if (i + 1 < m && mat[i][j] < mat[i + 1][j]) {\n                low = i + 1;\n                continue;\n            }\n            return new int[]{i, j};\n        }\n        return new int[0]; // impossible\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int[] FindPeakGrid(int[][] mat) {\n        int m = mat.Length, n = mat[0].Length;\n        int low = 0, high = m - 1;\n        while (low <= high) {\n            int i = (low + high) / 2;\n            int j = -1, maxElement = -1;\n            for (int k = 0; k < n; k++) {\n                if (mat[i][k] > maxElement) {\n                    j = k;\n                    maxElement = mat[i][k];\n                }\n            }\n            if (i - 1 >= 0 && mat[i][j] < mat[i - 1][j]) {\n                high = i - 1;\n                continue;\n            }\n            if (i + 1 < m && mat[i][j] < mat[i + 1][j]) {\n                low = i + 1;\n                continue;\n            }\n            return new int[]{i, j};\n        }\n        return new int[0]; // impossible\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc maxElement(row []int) int {\n    i := 0\n    for j := range row {\n        if row[i] < row[j] {\n            i = j\n        }\n    }\n    return i\n}\n\nfunc findPeakGrid(mat [][]int) []int {\n    m := len(mat)\n    low, high := 0, m - 1\n    for low <= high {\n        i := (low + high) / 2\n        j := maxElement(mat[i])\n        if i - 1 >= 0 && mat[i][j] < mat[i - 1][j] {\n            high = i - 1\n            continue\n        }\n        if i + 1 < m && mat[i][j] < mat[i + 1][j] {\n            low = i + 1\n            continue\n        }\n        return []int{i, j}\n    }\n    return nil // impossible\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def findPeakGrid(self, mat: List[List[int]]) -> List[int]:\n        m = len(mat)\n        low, high = 0, m - 1\n        while low <= high:\n            i = (low + high) // 2\n            j = mat[i].index(max(mat[i]))\n            if i - 1 >= 0 and mat[i][j] < mat[i - 1][j]:\n                high = i - 1\n                continue\n            if i + 1 < m and mat[i][j] < mat[i + 1][j]:\n                low = i + 1\n                continue\n            return [i, j]\n        return None # impossible\n```\n\n```C [sol1-C]\nint maxElement(int *row, int n) {\n    int i = 0;\n    for (int j = 0; j < n; j++) {\n        if (row[i] < row[j]) {\n            i = j;\n        }\n    }\n    return i;\n}\n\nint* findPeakGrid(int **mat, int matSize, int *matColSize, int *returnSize) {\n    int m = matSize, n = matColSize[0];\n    int low = 0, high = m - 1;\n    while (low <= high) {\n        int i = (low + high) / 2;\n        int j = maxElement(mat[i], n);\n        if (i - 1 >= 0 && mat[i][j] < mat[i - 1][j]) {\n            high = i - 1;\n            continue;\n        }\n        if (i + 1 < m && mat[i][j] < mat[i + 1][j]) {\n            low = i + 1;\n            continue;\n        }\n        int *ret = (int *)malloc(sizeof(int) * 2);\n        ret[0] = i;\n        ret[1] = j;\n        *returnSize = 2;\n        return ret;\n    }\n    *returnSize = 0;\n    return NULL; // impossible\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar maxElement = function(arr) {\n    let i = 0;\n    for (let j = 0; j < arr.length; j++) {\n        if (arr[i] < arr[j]) {\n            i = j;\n        }\n    }\n    return i;\n}\n\nvar findPeakGrid = function(mat) {\n    const m = mat.length;\n    let low = 0, high = m - 1;\n    while (low <= high) {\n        let i = Math.floor((low + high) / 2);\n        let j = maxElement(mat[i]);\n        if (i - 1 >= 0 && mat[i][j] < mat[i - 1][j]) {\n            high = i - 1;\n            continue;\n        }\n        if (i + 1 < m && mat[i][j] < mat[i + 1][j]) {\n            low = i + 1;\n            continue;\n        }\n        return [i, j];\n    }\n    return []; // impossible\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log m)$，其中 $m$ 和 $n$ 分别是 $\\textit{mat}$ 的行数和列数。\n\n- 空间复杂度：$O(1)$。",
+            "slateValue": "",
+            "slug": "xun-zhao-feng-zhi-ii-by-leetcode-solutio-y57g",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "J9CXvE",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 24,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Matrix",
+                    "nameTranslated": "矩阵",
+                    "slug": "matrix",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-12-14T04:05:59.918030+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：二分查找 令 $m$ 和 $n$ 分别为 $\\textit{mat}$ 的行数和列数。首先对于一维数组，因为任意两个相邻的格子的值都不相同，所以它的最大值必定是该一维数组的峰值。基于这一点，我们可以只考虑每一行的最大值，记第 $i$ 行的最大值为第 $j_i$ 列元素，如果 $\\textit{mat}[i][j",
+            "topic": {
+                "id": 2566062,
+                "subscribed": false,
+                "commentCount": 60,
+                "viewCount": 997,
+                "post": {
+                    "id": 4760745,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 59,
+            "isEditorsPick": false,
+            "hitCount": 19505,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "find-a-peak-element-ii",
+                "questionFrontendId": "1901"
+            },
+            "next": {
+                "slug": "tu-jie-li-yong-xing-zui-da-zhi-pan-duan-r4e0n",
+                "title": "【图解】利用行最大值判断峰顶位置，附二分题单（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

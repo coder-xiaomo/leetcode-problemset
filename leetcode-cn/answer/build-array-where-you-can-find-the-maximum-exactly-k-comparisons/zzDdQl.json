@@ -1,0 +1,96 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "zzDdQl",
+            "title": "生成数组",
+            "content": "#### 方法一：动态规划\n\n**说明**\n\n为了叙述方便，我们用关键词「搜索代价」代替 `search_cost`。\n\n**分析**\n\n我们可以使用动态规划解决这个问题。\n\n我们用 $f[i][s][j]$ 表示长度为 $i$，搜索代价为 $s$，最大值为 $j$ 的数组的数量。在设计状态转移方程时，我们考虑枚举数组中的最后一个数（第 $i$ 个数），也就是说，$f[i][s][j]$ 会从 $f[i-1][..][..]$ 转移而来。我们可以这样思考：\n\n- 如果第 $i$ 个数没有改变搜索代价，那么说明它不严格大于数组中的前 $i-1$ 个数。也就是说，$f[i][s][j]$ 会从 $f[i-1][s][j]$ 转移而来，即数组中的前 $i-1$ 个数的最大值已经是 $j$ 了，第 $i$ 个数没有改变最大值。在这种情况下，第 $i$ 个数可以在 $[1,j]$ 的范围中任意选择，即：\n\n    $$\n    f[i][s][j] = f[i-1][s][j] * j\n    $$\n\n- 如果第 $i$ 个数改变了搜索代价，那么说明前 $i-1$ 个数的最大值严格小于 $j$，并且第 $i$ 个数恰好等于 $j$。此时，$f[i][s][j]$ 会从所有的 $f[i-1][s-1][j']$ 转移而来，其中 $j' < j$，即：\n\n    $$\n    f[i][s][j] = \\sum_{j'=1}^{j-1} f[i-1][s-1][j]\n    $$\n\n将上面的两种情况相加，就可以得到状态转移方程：\n\n$$\nf[i][s][j] = f[i-1][s][j] * j + \\sum_{j'=1}^{j-1} f[i-1][s-1][j]\n$$\n\n最终的答案即为所有 $f[n][k][..]$ 的和。\n\n```C++ [sol1-C++]\nclass Solution {\nprivate:\n    int f[51][51][101];\n    static constexpr int mod = 1000000007;\n\npublic:\n    int numOfArrays(int n, int m, int k) {\n        // 不存在搜索代价为 0 的数组\n        if (!k) {\n            return 0;\n        }\n        \n        memset(f, 0, sizeof(f));\n        // 边界条件，所有长度为 1 的数组的搜索代价都为 1\n        for (int j = 1; j <= m; ++j) {\n            f[1][1][j] = 1;\n        }\n        for (int i = 2; i <= n; ++i) {\n            // 搜索代价不会超过数组长度\n            for (int s = 1; s <= k && s <= i; ++s) {\n                for (int j = 1; j <= m; ++j) {\n                    f[i][s][j] = (long long)f[i - 1][s][j] * j % mod;\n                    for (int j0 = 1; j0 < j; ++j0) {\n                        f[i][s][j] += f[i - 1][s - 1][j0];\n                        f[i][s][j] %= mod;\n                    }\n                }\n            }\n        }\n\n        // 最终的答案是所有 f[n][k][..] 的和\n        // 即数组长度为 n，搜索代价为 k，最大值任意\n        int ans = 0;\n        for (int j = 1; j <= m; ++j) {\n            ans += f[n][k][j];\n            ans %= mod;\n        }\n        return ans;\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def numOfArrays(self, n: int, m: int, k: int) -> int:\n        # 不存在搜索代价为 0 的数组\n        if k == 0:\n            return 0\n\n        f = [[[0] * (m + 1) for _ in range(k + 1)] for __ in range(n + 1)]\n        mod = 10**9 + 7\n        # 边界条件，所有长度为 1 的数组的搜索代价都为 1\n        for j in range(1, m + 1):\n            f[1][1][j] = 1\n        for i in range(2, n + 1):\n            # 搜索代价不会超过数组长度\n            for s in range(1, min(k, i) + 1):\n                for j in range(1, m + 1):\n                    f[i][s][j] = f[i - 1][s][j] * j\n                    for j0 in range(1, j):\n                        f[i][s][j] += f[i - 1][s - 1][j0]\n                    f[i][s][j] %= mod\n        \n        # 最终的答案是所有 f[n][k][..] 的和\n        # 即数组长度为 n，搜索代价为 k，最大值任意\n        ans = sum(f[n][k][j] for j in range(1, m + 1)) % mod\n        return ans\n```\n\n```Java [sol1-Java]\nclass Solution {\n    int[][][] f = new int[51][51][101];\n    final int MOD = 1000000007;\n\n    public int numOfArrays(int n, int m, int k) {\n        // 不存在搜索代价为 0 的数组\n        if (k == 0) {\n            return 0;\n        }\n        \n        // 边界条件，所有长度为 1 的数组的搜索代价都为 1\n        for (int j = 1; j <= m; j++) {\n            f[1][1][j] = 1;\n        }\n        for (int i = 2; i <= n; ++i) {\n            // 搜索代价不会超过数组长度\n            for (int s = 1; s <= k && s <= i; ++s) {\n                for (int j = 1; j <= m; ++j) {\n                    f[i][s][j] = (int) ((long) f[i - 1][s][j] * j % MOD);\n                    for (int j0 = 1; j0 < j; ++j0) {\n                        f[i][s][j] += f[i - 1][s - 1][j0];\n                        f[i][s][j] %= MOD;\n                    }\n                }\n            }\n        }\n\n        // 最终的答案是所有 f[n][k][..] 的和\n        // 即数组长度为 n，搜索代价为 k，最大值任意\n        int ans = 0;\n        for (int j = 1; j <= m; ++j) {\n            ans += f[n][k][j];\n            ans %= MOD;\n        }\n        return ans;\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(NM^2K)$。在进行动态规划时，我们需要使用三重循环遍历所有的 $f[i][s][j]$，循环的次数分别为 $O(N)$，$O(K)$ 和 $O(M)$。在进行状态的转移时，我们还需要额外 $O(j) = O(M)$ 的时间计算 $f[i][s][j]$ 的值。\n\n- 空间复杂度：$O(NMK)$，即为数组 $f$ 需要的空间。\n\n#### 方法二：前缀和优化\n\n我们重新写下方法一中的状态转移方程：\n\n$$\nf[i][s][j] = f[i-1][s][j] * j + \\sum_{j'=1}^{j-1} f[i-1][s-1][j]\n$$\n\n从上面的状态转移方程中，我们可以看出：方法一的时间复杂度瓶颈在于右侧的求和操作，对于每一个 $f[i][s][j]$ 需要使用 $O(j)$ 的时间计算这个和。\n\n然而这个求和操作是一个 **前缀和**，也就是说：\n\n$$\n\\begin{aligned}\n& f[i][s][j] &= \\ldots + \\sum_{j'=1}^{j-1} f[i-1][s-1][j] \\\\\n& f[i][s][j+1] &= \\ldots + \\sum_{j'=1}^{j} f[i-1][s-1][j] \\\\\n\\end{aligned}\n$$\n\n$f[i][s][j+1]$ 的求和部分只比 $f[i][s][j]$ 多出一个 $f[i-1][s-1][j]$，因此我们不需要每次使用 $O(j)$ 的时间计算，而是使用一个变量存储这个前缀和，每次使用 $O(1)$ 的时间将其累加 $f[i-1][s-1][j]$ 进行更新即可。\n\n```C++ [sol2-C++]\nclass Solution {\nprivate:\n    int f[51][51][101];\n    static constexpr int mod = 1000000007;\n\npublic:\n    int numOfArrays(int n, int m, int k) {\n        // 不存在搜索代价为 0 的数组\n        if (!k) {\n            return 0;\n        }\n        \n        memset(f, 0, sizeof(f));\n        // 边界条件，所有长度为 1 的数组的搜索代价都为 1\n        for (int j = 1; j <= m; ++j) {\n            f[1][1][j] = 1;\n        }\n        for (int i = 2; i <= n; ++i) {\n            // 搜索代价不会超过数组长度\n            for (int s = 1; s <= k && s <= i; ++s) {\n                // 前缀和\n                int presum_j = 0;\n                for (int j = 1; j <= m; ++j) {\n                    f[i][s][j] = (long long)f[i - 1][s][j] * j % mod;\n                    f[i][s][j] = (f[i][s][j] + presum_j) % mod;\n                    presum_j = (presum_j + f[i - 1][s - 1][j]) % mod;\n                }\n            }\n        }\n\n        // 最终的答案是所有 f[n][k][..] 的和\n        // 即数组长度为 n，搜索代价为 k，最大值任意\n        int ans = 0;\n        for (int j = 1; j <= m; ++j) {\n            ans += f[n][k][j];\n            ans %= mod;\n        }\n        return ans;\n    }\n};\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def numOfArrays(self, n: int, m: int, k: int) -> int:\n        # 不存在搜索代价为 0 的数组\n        if k == 0:\n            return 0\n\n        f = [[[0] * (m + 1) for _ in range(k + 1)] for __ in range(n + 1)]\n        mod = 10**9 + 7\n        # 边界条件，所有长度为 1 的数组的搜索代价都为 1\n        for j in range(1, m + 1):\n            f[1][1][j] = 1\n        for i in range(2, n + 1):\n            # 搜索代价不会超过数组长度\n            for s in range(1, min(k, i) + 1):\n                # 前缀和\n                presum_j = 0\n                for j in range(1, m + 1):\n                    f[i][s][j] = (f[i - 1][s][j] * j + presum_j) % mod\n                    presum_j += f[i - 1][s - 1][j]\n        \n        # 最终的答案是所有 f[n][k][..] 的和\n        # 即数组长度为 n，搜索代价为 k，最大值任意\n        ans = sum(f[n][k][j] for j in range(1, m + 1)) % mod\n        return ans\n```\n\n```Java [sol2-Java]\nclass Solution {\n    int[][][] f = new int[51][51][101];\n    final int MOD = 1000000007;\n\n    public int numOfArrays(int n, int m, int k) {\n        // 不存在搜索代价为 0 的数组\n        if (k == 0) {\n            return 0;\n        }\n        \n        // 边界条件，所有长度为 1 的数组的搜索代价都为 1\n        for (int j = 1; j <= m; ++j) {\n            f[1][1][j] = 1;\n        }\n        for (int i = 2; i <= n; ++i) {\n            // 搜索代价不会超过数组长度\n            for (int s = 1; s <= k && s <= i; ++s) {\n                // 前缀和\n                int presum_j = 0;\n                for (int j = 1; j <= m; ++j) {\n                    f[i][s][j] = (int) ((long)f[i - 1][s][j] * j % MOD);\n                    f[i][s][j] = (f[i][s][j] + presum_j) % MOD;\n                    presum_j = (presum_j + f[i - 1][s - 1][j]) % MOD;\n                }\n            }\n        }\n\n        // 最终的答案是所有 f[n][k][..] 的和\n        // 即数组长度为 n，搜索代价为 k，最大值任意\n        int ans = 0;\n        for (int j = 1; j <= m; ++j) {\n            ans += f[n][k][j];\n            ans %= MOD;\n        }\n        return ans;\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(NMK)$。在进行动态规划时，我们需要使用三重循环遍历所有的 $f[i][s][j]$，循环的次数分别为 $O(N)$，$O(K)$ 和 $O(M)$。在进行状态的转移时，我们使用前缀和进行优化，只需要 $O(1)$ 的时间计算 $f[i][s][j]$ 的值。\n\n- 空间复杂度：$O(NMK)$，即为数组 $f$ 需要的空间。",
+            "slateValue": "",
+            "slug": "sheng-cheng-shu-zu-by-leetcode-solution-yswf",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "zzDdQl",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 14,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-12-08T15:07:37.973050+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 说明 为了叙述方便，我们用关键词「搜索代价」代替 search_cost。 分析 我们可以使用动态规划解决这个问题。 我们用 $f[i][s][j]$ 表示长度为 $i$，搜索代价为 $s$，最大值为 $j$ 的数组的数量。在设计状态转移方程时，我们考虑枚举数组中的最后一个数（第 $i$ 个数），也就",
+            "topic": {
+                "id": 514326,
+                "subscribed": false,
+                "commentCount": 7,
+                "viewCount": 1958,
+                "post": {
+                    "id": 1213083,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 14,
+            "isEditorsPick": false,
+            "hitCount": 4582,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "build-array-where-you-can-find-the-maximum-exactly-k-comparisons",
+                "questionFrontendId": "1420"
+            },
+            "next": {
+                "slug": "dong-tai-gui-hua-by-nks5117",
+                "title": "动态规划（python）"
+            },
+            "prev": null
+        }
+    }
+}

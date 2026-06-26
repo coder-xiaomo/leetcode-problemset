@@ -1,0 +1,124 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "x5iDGj",
+            "title": "二分图",
+            "content": "#### 前言\n\n对于图中的任意两个节点 $u$ 和 $v$，如果它们之间有一条边直接相连，那么 $u$ 和 $v$ 必须属于不同的集合。\n\n如果给定的无向图连通，那么我们就可以任选一个节点开始，给它染成红色。随后我们对整个图进行遍历，将该节点直接相连的所有节点染成绿色，表示这些节点不能与起始节点属于同一个集合。我们再将这些绿色节点直接相连的所有节点染成红色，以此类推，直到无向图中的每个节点均被染色。\n\n如果我们能够成功染色，那么红色和绿色的节点各属于一个集合，这个无向图就是一个二分图；如果我们未能成功染色，即在染色的过程中，某一时刻访问到了一个已经染色的节点，并且它的颜色与我们将要给它染上的颜色不相同，也就说明这个无向图不是一个二分图。\n\n算法的流程如下：\n\n- 我们任选一个节点开始，将其染成红色，并从该节点开始对整个无向图进行遍历；\n\n- 在遍历的过程中，如果我们通过节点 $u$ 遍历到了节点 $v$（即 $u$ 和 $v$ 在图中有一条边直接相连），那么会有两种情况：\n\n    - 如果 $v$ 未被染色，那么我们将其染成与 $u$ 不同的颜色，并对 $v$ 直接相连的节点进行遍历；\n\n    - 如果 $v$ 被染色，并且颜色与 $u$ 相同，那么说明给定的无向图不是二分图。我们可以直接退出遍历并返回 $\\text{false}$ 作为答案。\n\n- 当遍历结束时，说明给定的无向图是二分图，返回 $\\text{true}$ 作为答案。\n\n我们可以使用「深度优先搜索」或「广度优先搜索」对无向图进行遍历，下文分别给出了这两种搜索对应的代码。\n\n注意：题目中给定的无向图不一定保证连通，因此我们需要进行多次遍历，直到每一个节点都被染色，或确定答案为 $\\text{false}$ 为止。每次遍历开始时，我们任选一个未被染色的节点，将所有与该节点直接或间接相连的节点进行染色。\n\n#### 方法一：深度优先搜索\n\n```C++ [sol1-C++]\nclass Solution {\nprivate:\n    static constexpr int UNCOLORED = 0;\n    static constexpr int RED = 1;\n    static constexpr int GREEN = 2;\n    vector<int> color;\n    bool valid;\n\npublic:\n    void dfs(int node, int c, const vector<vector<int>>& graph) {\n        color[node] = c;\n        int cNei = (c == RED ? GREEN : RED);\n        for (int neighbor: graph[node]) {\n            if (color[neighbor] == UNCOLORED) {\n                dfs(neighbor, cNei, graph);\n                if (!valid) {\n                    return;\n                }\n            }\n            else if (color[neighbor] != cNei) {\n                valid = false;\n                return;\n            }\n        }\n    }\n\n    bool isBipartite(vector<vector<int>>& graph) {\n        int n = graph.size();\n        valid = true;\n        color.assign(n, UNCOLORED);\n        for (int i = 0; i < n && valid; ++i) {\n            if (color[i] == UNCOLORED) {\n                dfs(i, RED, graph);\n            }\n        }\n        return valid;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    private static final int UNCOLORED = 0;\n    private static final int RED = 1;\n    private static final int GREEN = 2;\n    private int[] color;\n    private boolean valid;\n\n    public boolean isBipartite(int[][] graph) {\n        int n = graph.length;\n        valid = true;\n        color = new int[n];\n        Arrays.fill(color, UNCOLORED);\n        for (int i = 0; i < n && valid; ++i) {\n            if (color[i] == UNCOLORED) {\n                dfs(i, RED, graph);\n            }\n        }\n        return valid;\n    }\n\n    public void dfs(int node, int c, int[][] graph) {\n        color[node] = c;\n        int cNei = c == RED ? GREEN : RED;\n        for (int neighbor : graph[node]) {\n            if (color[neighbor] == UNCOLORED) {\n                dfs(neighbor, cNei, graph);\n                if (!valid) {\n                    return;\n                }\n            } else if (color[neighbor] != cNei) {\n                valid = false;\n                return;\n            }\n        }\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def isBipartite(self, graph: List[List[int]]) -> bool:\n        n = len(graph)\n        UNCOLORED, RED, GREEN = 0, 1, 2\n        color = [UNCOLORED] * n\n        valid = True\n\n        def dfs(node: int, c: int):\n            nonlocal valid\n            color[node] = c\n            cNei = (GREEN if c == RED else RED)\n            for neighbor in graph[node]:\n                if color[neighbor] == UNCOLORED:\n                    dfs(neighbor, cNei)\n                    if not valid:\n                        return\n                elif color[neighbor] != cNei:\n                    valid = False\n                    return\n\n        for i in range(n):\n            if color[i] == UNCOLORED:\n                dfs(i, RED)\n                if not valid:\n                    break\n        \n        return valid\n\n```\n\n```C [sol1-C]\nbool dfs(int node, int c, int* color, int** graph, int* graphColSize) {\n    color[node] = c;\n    int cNei = (c == 1 ? 2 : 1);\n    for (int i = 0; i < graphColSize[node]; ++i) {\n        int neighbor = graph[node][i];\n        if (color[neighbor] == 0) {\n            if (!dfs(neighbor, cNei, color, graph, graphColSize)) {\n                return false;\n            }\n        } else if (color[neighbor] != cNei) {\n            return false;\n        }\n    }\n    return true;\n}\n\nbool isBipartite(int** graph, int graphSize, int* graphColSize) {\n    int* color = (int*)malloc(sizeof(int) * graphSize);\n    memset(color, 0, sizeof(int) * graphSize);\n    for (int i = 0; i < graphSize; ++i) {\n        if (color[i] == 0) {\n            if (!dfs(i, 1, color, graph, graphColSize)) {\n                free(color);\n                return false;\n            }\n        }\n    }\n    free(color);\n    return true;\n}\n```\n\n```golang [sol1-Golang]\nvar (\n    UNCOLORED, RED, GREEN = 0, 1, 2\n    color []int\n    valid bool\n)\n\nfunc isBipartite(graph [][]int) bool {\n    n := len(graph)\n    valid = true\n    color = make([]int, n)\n    for i := 0; i < n && valid; i++ {\n        if color[i] == UNCOLORED {\n            dfs(i, RED, graph)\n        }\n    }\n    return valid\n}\n\nfunc dfs(node, c int, graph [][]int) {\n    color[node] = c\n    cNei := RED\n    if c == RED {\n        cNei = GREEN\n    }\n    for _, neighbor := range graph[node] {\n        if color[neighbor] == UNCOLORED {\n            dfs(neighbor, cNei, graph)\n            if !valid {\n                return \n            }\n        } else if color[neighbor] != cNei {\n            valid = false\n            return\n        }\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n+m)$，其中 $n$ 和 $m$ 分别是无向图中的点数和边数。\n\n- 空间复杂度：$O(n)$，存储节点颜色的数组需要 $O(n)$ 的空间，并且在深度优先搜索的过程中，栈的深度最大为 $n$，需要 $O(n)$ 的空间。\n\n#### 方法二：广度优先搜索\n\n```C++ [sol2-C++]\nclass Solution {\nprivate:\n    static constexpr int UNCOLORED = 0;\n    static constexpr int RED = 1;\n    static constexpr int GREEN = 2;\n    vector<int> color;\n\npublic:\n    bool isBipartite(vector<vector<int>>& graph) {\n        int n = graph.size();\n        vector<int> color(n, UNCOLORED);\n        for (int i = 0; i < n; ++i) {\n            if (color[i] == UNCOLORED) {\n                queue<int> q;\n                q.push(i);\n                color[i] = RED;\n                while (!q.empty()) {\n                    int node = q.front();\n                    int cNei = (color[node] == RED ? GREEN : RED);\n                    q.pop();\n                    for (int neighbor: graph[node]) {\n                        if (color[neighbor] == UNCOLORED) {\n                            q.push(neighbor);\n                            color[neighbor] = cNei;\n                        }\n                        else if (color[neighbor] != cNei) {\n                            return false;\n                        }\n                    }\n                }\n            }\n        }\n        return true;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    private static final int UNCOLORED = 0;\n    private static final int RED = 1;\n    private static final int GREEN = 2;\n    private int[] color;\n\n    public boolean isBipartite(int[][] graph) {\n        int n = graph.length;\n        color = new int[n];\n        Arrays.fill(color, UNCOLORED);\n        for (int i = 0; i < n; ++i) {\n            if (color[i] == UNCOLORED) {\n                Queue<Integer> queue = new LinkedList<Integer>();\n                queue.offer(i);\n                color[i] = RED;\n                while (!queue.isEmpty()) {\n                    int node = queue.poll();\n                    int cNei = color[node] == RED ? GREEN : RED;\n                    for (int neighbor : graph[node]) {\n                        if (color[neighbor] == UNCOLORED) {\n                            queue.offer(neighbor);\n                            color[neighbor] = cNei;\n                        } else if (color[neighbor] != cNei) {\n                            return false;\n                        }\n                    }\n                }\n            }\n        }\n        return true;\n    }\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def isBipartite(self, graph: List[List[int]]) -> bool:\n        n = len(graph)\n        UNCOLORED, RED, GREEN = 0, 1, 2\n        color = [UNCOLORED] * n\n        \n        for i in range(n):\n            if color[i] == UNCOLORED:\n                q = collections.deque([i])\n                color[i] = RED\n                while q:\n                    node = q.popleft()\n                    cNei = (GREEN if color[node] == RED else RED)\n                    for neighbor in graph[node]:\n                        if color[neighbor] == UNCOLORED:\n                            q.append(neighbor)\n                            color[neighbor] = cNei\n                        elif color[neighbor] != cNei:\n                            return False\n\n        return True\n```\n\n```C [sol2-C]\nbool isBipartite(int** graph, int graphSize, int* graphColSize) {\n    int* color = (int*)malloc(sizeof(int) * graphSize);\n    memset(color, 0, sizeof(int) * graphSize);\n\n    int* q = (int*)malloc(sizeof(int) * graphSize);\n    for (int i = 0; i < graphSize; ++i) {\n        if (color[i] == 0) {\n            int l = 0, r = 0;\n            q[0] = i;\n            color[i] = 1;\n            while (l <= r) {\n                int node = q[l++];\n                int cNei = (color[node] == 1 ? 2 : 1);\n                for (int j = 0; j < graphColSize[node]; ++j) {\n                    int neighbor = graph[node][j];\n                    if (color[neighbor] == 0) {\n                        q[++r] = neighbor;\n                        color[neighbor] = cNei;\n                    } else if (color[neighbor] != cNei) {\n                        free(color);\n                        free(q);\n                        return false;\n                    }\n                }\n            }\n        }\n    }\n    free(color);\n    free(q);\n    return true;\n}\n```\n\n```golang [sol2-Golang]\nvar (\n    UNCOLORED, RED, GREEN = 0, 1, 2\n)\n\nfunc isBipartite(graph [][]int) bool {\n    n := len(graph)\n    color := make([]int, n)\n    for i := 0; i < n; i++ {\n        if color[i] == UNCOLORED {\n            queue := []int{}\n            queue = append(queue, i)\n            color[i] = RED\n            for i := 0; i < len(queue); i++ {\n                node := queue[i]\n                cNei := RED\n                if color[node] == RED {\n                    cNei = GREEN\n                }\n                for _, neighbor := range graph[node] {\n                    if color[neighbor] == UNCOLORED {\n                        queue = append(queue, neighbor)\n                        color[neighbor] = cNei\n                    } else if color[neighbor] != cNei {\n                        return false\n                    } \n                }\n            }\n        }\n    }\n    return true\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n+m)$，其中 $n$ 和 $m$ 分别是无向图中的点数和边数。\n\n- 空间复杂度：$O(n)$，存储节点颜色的数组需要 $O(n)$ 的空间，并且在广度优先搜索的过程中，队列中最多有 $n-1$ 个节点，需要 $O(n)$ 的空间。",
+            "slateValue": "",
+            "slug": "er-fen-tu-by-leetcode-solution-dryu",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "x5iDGj",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 17,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Depth-First Search",
+                    "nameTranslated": "深度优先搜索",
+                    "slug": "depth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Breadth-First Search",
+                    "nameTranslated": "广度优先搜索",
+                    "slug": "breadth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Graph",
+                    "nameTranslated": "图",
+                    "slug": "graph",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-04-11T06:30:05.827927+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "前言 对于图中的任意两个节点 $u$ 和 $v$，如果它们之间有一条边直接相连，那么 $u$ 和 $v$ 必须属于不同的集合。 如果给定的无向图连通，那么我们就可以任选一个节点开始，给它染成红色。随后我们对整个图进行遍历，将该节点直接相连的所有节点染成绿色，表示这些节点不能与起始节点属于同一个集合。我们再将这些绿色节点",
+            "topic": {
+                "id": 1412180,
+                "subscribed": false,
+                "commentCount": 16,
+                "viewCount": 4390,
+                "post": {
+                    "id": 2911784,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 32,
+            "isEditorsPick": false,
+            "hitCount": 13711,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "vEAB3K",
+                "questionFrontendId": "LCR 106"
+            },
+            "next": {
+                "slug": "jian-zhi-offer-2-mian-shi-ti-106-shu-zho-dsnt",
+                "title": "《剑指offer 2 面试题106》 书中算法C++实现"
+            },
+            "prev": null
+        }
+    }
+}

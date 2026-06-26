@@ -1,0 +1,162 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "6FrwP6",
+            "title": "设计路由器",
+            "content": "#### 方法一：模拟\n\n**思路及解法**\n\n本题需要我们根据题目描述实现一个路由器，该路由器需要支持以下操作：\n\n- $\\textit{addPacket}$：添加一个数据包，如果路由器内存中已经存在该数据包，则返回 $\\text{false}$，否则返回 $\\text{true}$。若在添加数据包时，路由器内存已满，则需要将内存中时间戳最小（也就是最旧）的数据包移除，然后再添加该数据包。\n- $\\textit{forwardPacket}$：以先进先出的顺序转发下一个数据包，并以数组的形式返回该数据包的 $\\textit{source}$、$\\textit{destination}$ 和 $\\textit{timestamp}$。\n- $\\textit{getCount}$：返回在当前路由器中目标地址为 $\\textit{destination}$ 且时间戳在 $\\textit{startTime}$ 和 $\\textit{endTime}$ 之间（包括两端）的数据包数量。\n\n首先我们需要定义 $\\textit{Router}$ 类中包含的成员：\n\n1. $\\textit{memLimit}$： $\\texttt{int}$ 类型数据，表示路由器内存大小。\n2. $\\textit{length}$：$\\texttt{int}$ 类型数据，表示当前路由器内存中数据包的数量。\n3. $\\textit{isExist}$：一个以三元组（元素为 $\\texttt{int}$ 类型数据）为元素的有序集合，表示当前路由器内存中是否存在某个数据包。\n4. $\\textit{sameDestQue}$：一个无序哈希表，以数据包中 $\\textit{destination}$ 为 $\\textit{key}$ ，以目的地址为 $\\textit{destination}$ 的每个数据包的时间戳组成的双端队列为值，表示当前路由器内存中每个目标地址对应的数据包的时间戳。\n5. $\\textit{que}$：一个双端队列，其元素为三元组，表示当前路由器内存中的数据包。\n\n接下来我们分别实现上述三个操作：\n\n- $\\textit{addPacket}$：首先判断当前路由器内存中是否已经存在该数据包，若存在则返回 $\\text{false}$。若路由器内存已满，则需要将内存中时间戳最小（也就是最旧）的数据包移除，移除的操作可以由 $\\textit{forwardPacket}$ 来完成；其次将需要添加的数据包存入 $\\textit{que}$ 中，将对应该目的地址 $\\textit{destination}$ 的时间戳 $\\textit{timestamp}$ 存入 $\\textit{sameDestQue}$ 中，然后在 $\\textit{isExist}$ 中登记该数据包，最后返回 $\\text{true}$ 即可。\n- $\\textit{forwardPacket}$：首先判断 $\\textit{que}$ 是否为空，若为空则返回空数组；否则取出 $\\textit{que}$ 中的第一个元素，将其从 $\\textit{que}$ 中移除，然后从 $\\textit{isExist}$ 中移除该数据包，从 $\\textit{sameDestQue}$ 中移除该数据包的时间戳，最后返回该数据包的 $\\textit{source}$、$\\textit{destination}$ 和 $\\textit{timestamp}$ 即可。\n- $\\textit{getCount}$：在 $\\textit{sameDestQue}$ 目标地址为 $\\textit{destination}$ 对应的队列中，使用二分查找 $\\textit{lower\\_bound}$ 和 $\\textit{upper\\_bound}$ 找到 $\\textit{startTime}$ 和 $\\textit{endTime}$ 之间的元素个数即可。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Router {\npublic:\n    int memLimit = 0;\n    int length = 0;\n    set<tuple<int, int, int>> isExist;\n    unordered_map<int, deque<int>> sameDestQue;\n    deque<tuple<int, int, int>> que;\n\n    Router(int memoryLimit) { memLimit = memoryLimit; }\n\n    bool addPacket(int source, int destination, int timestamp) {\n        tuple<int, int, int> packet =\n            make_tuple(source, destination, timestamp);\n        if (isExist.contains(packet)) {\n            return false;\n        }\n        if (length == memLimit) {\n            forwardPacket();\n        }\n        length++;\n        que.push_back(packet);\n        sameDestQue[destination].push_back(timestamp);\n        isExist.insert(packet);\n        return true;\n    }\n\n    vector<int> forwardPacket() {\n        vector<int> data;\n        if (!que.empty()) {\n            tuple<int, int, int> packet = que.front();\n            que.pop_front();\n            data = vector<int>{get<0>(packet), get<1>(packet), get<2>(packet)};\n            isExist.erase(packet);\n            sameDestQue[data[1]].pop_front();\n            length--;    \n        }\n        return data;\n    }\n\n    int getCount(int destination, int startTime, int endTime) {\n        auto pos1 = lower_bound(sameDestQue[destination].begin(),\n                                sameDestQue[destination].end(), startTime);\n        auto pos2 = upper_bound(sameDestQue[destination].begin(),\n                                sameDestQue[destination].end(), endTime);\n        return pos2 - pos1;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Router {\n    private record Packet(int source, int destination, int timestamp) {}\n\n    private static class Pair {\n        List<Integer> timestamps;\n        int head;\n        Pair() {\n            this.timestamps = new ArrayList<>();\n            this.head = 0;\n        }\n    }\n\n    private final int memoryLimit;\n    private final Queue<Packet> packetQ = new ArrayDeque<>();\n    private final Set<Packet> packetSet = new HashSet<>();\n    private final Map<Integer, Pair> destToTimestamps = new HashMap<>();\n\n    public Router(int memoryLimit) {\n        this.memoryLimit = memoryLimit;\n    }\n\n    public boolean addPacket(int source, int destination, int timestamp) {\n        Packet packet = new Packet(source, destination, timestamp);\n        if (!packetSet.add(packet)) return false;\n        if (packetQ.size() == memoryLimit) forwardPacket();\n        packetQ.add(packet);\n        destToTimestamps.computeIfAbsent(destination, k -> new Pair())\n                        .timestamps.add(timestamp);\n        return true;\n    }\n\n    public int[] forwardPacket() {\n        if (packetQ.isEmpty()) return new int[]{};\n        Packet packet = packetQ.poll();\n        packetSet.remove(packet);\n        Pair p = destToTimestamps.get(packet.destination);\n        p.head++;\n        return new int[]{packet.source, packet.destination, packet.timestamp};\n    }\n\n    public int getCount(int destination, int startTime, int endTime) {\n        Pair p = destToTimestamps.get(destination);\n        if (p == null) return 0;\n        int left = lowerBound(p.timestamps, startTime, p.head);\n        int right = lowerBound(p.timestamps, endTime + 1, p.head);\n        return right - left;\n    }\n\n    private int lowerBound(List<Integer> nums, int target, int left) {\n        int right = nums.size();\n        while (left < right) {\n            int mid = (left + right) >>> 1;\n            if (nums.get(mid) >= target) {\n                right = mid;\n            } else {\n                left = mid + 1;\n            }\n        }\n        return right;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Router {\n    private record Packet(int Source, int Destination, int Timestamp);\n\n    private class Pair {\n        public List<int> Timestamps = new();\n        public int Head = 0;\n    }\n\n    private readonly int memoryLimit;\n    private readonly Queue<Packet> packetQ = new();\n    private readonly HashSet<Packet> packetSet = new();\n    private readonly Dictionary<int, Pair> destToTimestamps = new();\n\n    public Router(int memoryLimit) {\n        this.memoryLimit = memoryLimit;\n    }\n\n    public bool AddPacket(int source, int destination, int timestamp) {\n        var packet = new Packet(source, destination, timestamp);\n        if (!packetSet.Add(packet)) return false;\n        if (packetQ.Count == memoryLimit) ForwardPacket();\n        packetQ.Enqueue(packet);\n        if (!destToTimestamps.ContainsKey(destination))\n            destToTimestamps[destination] = new Pair();\n        destToTimestamps[destination].Timestamps.Add(timestamp);\n        return true;\n    }\n\n    public int[] ForwardPacket() {\n        if (packetQ.Count == 0) return Array.Empty<int>();\n        var packet = packetQ.Dequeue();\n        packetSet.Remove(packet);\n        destToTimestamps[packet.Destination].Head++;\n        return new int[] { packet.Source, packet.Destination, packet.Timestamp };\n    }\n\n    public int GetCount(int destination, int startTime, int endTime) {\n        if (!destToTimestamps.ContainsKey(destination)) return 0;\n        var p = destToTimestamps[destination];\n        int left = LowerBound(p.Timestamps, startTime, p.Head);\n        int right = LowerBound(p.Timestamps, endTime + 1, p.Head);\n        return right - left;\n    }\n\n    private int LowerBound(List<int> nums, int target, int left) {\n        int right = nums.Count;\n        while (left < right) {\n            int mid = (left + right) >> 1;\n            if (nums[mid] >= target) right = mid;\n            else left = mid + 1;\n        }\n        return right;\n    }\n}\n```\n\n```C [sol1-C]\n#define PACKET_HASH_SIZE 4096\n#define DEST_HASH_SIZE 4096\n\ntypedef struct {\n    int source;\n    int destination;\n    int timestamp;\n} Packet;\n\ntypedef struct PacketSetNode {\n    Packet packet;\n    struct PacketSetNode* next;\n} PacketSetNode;\n\ntypedef struct {\n    PacketSetNode** table;\n    int size;\n} PacketSet;\n\nunsigned int hashPacket(Packet* p, int mod) {\n    unsigned int h = 17;\n    h = h * 31 + p->source;\n    h = h * 31 + p->destination;\n    h = h * 31 + p->timestamp;\n    return h % mod;\n}\n\nPacketSet* packetSetCreate(int size) {\n    PacketSet* set = malloc(sizeof(PacketSet));\n    set->size = size;\n    set->table = calloc(size, sizeof(PacketSetNode*));\n    return set;\n}\n\nbool packetSetContains(PacketSet* set, Packet* p) {\n    unsigned int idx = hashPacket(p, set->size);\n    PacketSetNode* node = set->table[idx];\n    while (node) {\n        if (node->packet.source == p->source &&\n            node->packet.destination == p->destination &&\n            node->packet.timestamp == p->timestamp)\n            return true;\n        node = node->next;\n    }\n    return false;\n}\n\nvoid packetSetAdd(PacketSet* set, Packet* p) {\n    unsigned int idx = hashPacket(p, set->size);\n    PacketSetNode* node = malloc(sizeof(PacketSetNode));\n    node->packet = *p;\n    node->next = set->table[idx];\n    set->table[idx] = node;\n}\n\nvoid packetSetRemove(PacketSet* set, Packet* p) {\n    unsigned int idx = hashPacket(p, set->size);\n    PacketSetNode* node = set->table[idx];\n    PacketSetNode* prev = NULL;\n    while (node) {\n        if (node->packet.source == p->source &&\n            node->packet.destination == p->destination &&\n            node->packet.timestamp == p->timestamp) {\n            if (prev)\n                prev->next = node->next;\n            else\n                set->table[idx] = node->next;\n            free(node);\n            return;\n        }\n        prev = node;\n        node = node->next;\n    }\n}\n\nvoid packetSetFree(PacketSet* set) {\n    for (int i = 0; i < set->size; i++) {\n        PacketSetNode* node = set->table[i];\n        while (node) {\n            PacketSetNode* tmp = node;\n            node = node->next;\n            free(tmp);\n        }\n    }\n    free(set->table);\n    free(set);\n}\n\ntypedef struct Pair {\n    int* timestamps;\n    int size;\n    int capacity;\n    int head;\n} Pair;\n\ntypedef struct DestNode {\n    int destination;\n    Pair pair;\n    struct DestNode* next;\n} DestNode;\n\ntypedef struct {\n    int memoryLimit;\n    int packetCount;\n    Packet* queue;\n    int head, tail;\n    PacketSet* packetSet;\n    DestNode** destTable;\n} Router;\n\nunsigned int hashDest(int destination) { return destination % DEST_HASH_SIZE; }\n\nPair* getPair(Router* obj, int destination) {\n    unsigned int idx = hashDest(destination);\n    DestNode* node = obj->destTable[idx];\n    while (node) {\n        if (node->destination == destination)\n            return &node->pair;\n        node = node->next;\n    }\n    node = malloc(sizeof(DestNode));\n    node->destination = destination;\n    node->pair.timestamps = NULL;\n    node->pair.size = 0;\n    node->pair.capacity = 0;\n    node->pair.head = 0;\n    node->next = obj->destTable[idx];\n    obj->destTable[idx] = node;\n    return &node->pair;\n}\n\nint lowerBound(int* nums, int size, int target, int left) {\n    int right = size;\n    while (left < right) {\n        int mid = (left + right) / 2;\n        if (nums[mid] >= target)\n            right = mid;\n        else\n            left = mid + 1;\n    }\n    return right;\n}\n\nRouter* routerCreate(int memoryLimit) {\n    Router* obj = malloc(sizeof(Router));\n    obj->memoryLimit = memoryLimit;\n    obj->packetCount = 0;\n    obj->queue = malloc(sizeof(Packet) * memoryLimit);\n    obj->head = obj->tail = 0;\n    obj->packetSet = packetSetCreate(PACKET_HASH_SIZE);\n    obj->destTable = calloc(DEST_HASH_SIZE, sizeof(DestNode*));\n    return obj;\n}\n\nint* routerForwardPacket(Router* obj, int* retSize) {\n    *retSize = 0;\n    if (obj->packetCount == 0)\n        return NULL;\n\n    Packet packet = obj->queue[obj->head];\n    obj->head = (obj->head + 1) % obj->memoryLimit;\n    obj->packetCount--;\n\n    packetSetRemove(obj->packetSet, &packet);\n\n    Pair* pair = getPair(obj, packet.destination);\n    pair->head++;\n\n    int* res = malloc(sizeof(int) * 3);\n    res[0] = packet.source;\n    res[1] = packet.destination;\n    res[2] = packet.timestamp;\n    *retSize = 3;\n    return res;\n}\n\nbool routerAddPacket(Router* obj, int source, int destination, int timestamp) {\n    Packet p = {source, destination, timestamp};\n\n    if (packetSetContains(obj->packetSet, &p))\n        return false;\n\n    if (obj->packetCount == obj->memoryLimit) {\n        int retSize;\n        routerForwardPacket(obj, &retSize);\n    }\n\n    obj->queue[obj->tail] = p;\n    obj->tail = (obj->tail + 1) % obj->memoryLimit;\n    obj->packetCount++;\n\n    packetSetAdd(obj->packetSet, &p);\n\n    Pair* pair = getPair(obj, destination);\n    if (pair->size == pair->capacity) {\n        pair->capacity = pair->capacity == 0 ? 4 : pair->capacity * 2;\n        pair->timestamps =\n            realloc(pair->timestamps, sizeof(int) * pair->capacity);\n    }\n    pair->timestamps[pair->size++] = timestamp;\n\n    return true;\n}\n\nint routerGetCount(Router* obj, int destination, int startTime, int endTime) {\n    Pair* pair = getPair(obj, destination);\n    if (!pair || pair->size == 0)\n        return 0;\n    int left = lowerBound(pair->timestamps, pair->size, startTime, pair->head);\n    int right =\n        lowerBound(pair->timestamps, pair->size, endTime + 1, pair->head);\n    return right - left;\n}\n\nvoid routerFree(Router* obj) {\n    free(obj->queue);\n    packetSetFree(obj->packetSet);\n    for (int i = 0; i < DEST_HASH_SIZE; i++) {\n        DestNode* node = obj->destTable[i];\n        while (node) {\n            free(node->pair.timestamps);\n            DestNode* tmp = node;\n            node = node->next;\n            free(tmp);\n        }\n    }\n    free(obj->destTable);\n    free(obj);\n}\n```\n\n```Go [sol1-Go]\ntype Packet struct {\n\tSource, Destination, Timestamp int\n}\n\ntype Pair struct {\n\tTimestamps []int\n\tHead       int\n}\n\ntype Router struct {\n\tmemoryLimit      int\n\tpacketQ          []Packet\n\tpacketSet        map[Packet]struct{}\n\tdestToTimestamps map[int]*Pair\n}\n\nfunc Constructor(memoryLimit int) Router {\n\treturn Router{\n\t\tmemoryLimit:      memoryLimit,\n\t\tpacketQ:          []Packet{},\n\t\tpacketSet:        map[Packet]struct{}{},\n\t\tdestToTimestamps: map[int]*Pair{},\n\t}\n}\n\nfunc (this *Router) AddPacket(source int, destination int, timestamp int) bool {\n\tp := Packet{source, destination, timestamp}\n\tif _, ok := this.packetSet[p]; ok {\n\t\treturn false\n\t}\n\tif len(this.packetQ) == this.memoryLimit {\n\t\tthis.ForwardPacket()\n\t}\n\tthis.packetQ = append(this.packetQ, p)\n\tthis.packetSet[p] = struct{}{}\n\tif _, ok := this.destToTimestamps[destination]; !ok {\n\t\tthis.destToTimestamps[destination] = &Pair{}\n\t}\n\tthis.destToTimestamps[destination].Timestamps = append(this.destToTimestamps[destination].Timestamps, timestamp)\n\treturn true\n}\n\nfunc (this *Router) ForwardPacket() []int {\n\tif len(this.packetQ) == 0 {\n\t\treturn []int{}\n\t}\n\tpacket := this.packetQ[0]\n\tthis.packetQ = this.packetQ[1:]\n\tdelete(this.packetSet, packet)\n\tthis.destToTimestamps[packet.Destination].Head++\n\treturn []int{packet.Source, packet.Destination, packet.Timestamp}\n}\n\nfunc (this *Router) GetCount(destination int, startTime int, endTime int) int {\n\tp, ok := this.destToTimestamps[destination]\n\tif !ok {\n\t\treturn 0\n\t}\n\tleft := lowerBound(p.Timestamps, startTime, p.Head)\n\tright := lowerBound(p.Timestamps, endTime+1, p.Head)\n\treturn right - left\n}\n\nfunc lowerBound(nums []int, target, left int) int {\n\tright := len(nums)\n\tfor left < right {\n\t\tmid := (left + right) >> 1\n\t\tif nums[mid] >= target {\n\t\t\tright = mid\n\t\t} else {\n\t\t\tleft = mid + 1\n\t\t}\n\t}\n\treturn right\n}\n```\n\n```Python [sol1-Python3]\nclass Router:\n    def __init__(self, memoryLimit):\n        self.memLimit = memoryLimit\n        self.length = 0\n        self.isExist = set()\n        self.sameDestQue = {}\n        self.que = []\n\n    def addPacket(self, source, destination, timestamp):\n        packet = (source, destination, timestamp)\n        if packet in self.isExist:\n            return False\n        if self.length == self.memLimit:\n            self.forwardPacket()\n        self.length += 1\n        self.que.append(packet)\n        if destination not in self.sameDestQue:\n            self.sameDestQue[destination] = SortedList()\n        self.sameDestQue[destination].add(timestamp)\n        self.isExist.add(packet)\n        return True\n\n    def forwardPacket(self):\n        data = []\n        if self.que:\n            packet = self.que.pop(0)\n            data = list(packet)\n            self.isExist.remove(packet)\n            self.sameDestQue[data[1]].remove(data[2])\n            self.length -= 1\n        return data\n\n    def getCount(self, destination, startTime, endTime):\n        if destination not in self.sameDestQue:\n            return 0\n        sl = self.sameDestQue[destination]\n        l = sl.bisect_left(startTime)\n        r = sl.bisect_right(endTime)\n        return r - l\n```\n\n```JavaScript [sol1-JavaScript]\nclass Router {\n    constructor(memoryLimit) {\n        this.memoryLimit = memoryLimit;\n        this.packetQ = [];\n        this.packetSet = new Set();\n        this.destToTimestamps = new Map();\n    }\n\n    _key(p) {\n        return `${p.source},${p.destination},${p.timestamp}`;\n    }\n\n    addPacket(source, destination, timestamp) {\n        const packet = { source, destination, timestamp };\n        const key = this._key(packet);\n        if (this.packetSet.has(key)) return false;\n        if (this.packetQ.length === this.memoryLimit) this.forwardPacket();\n        this.packetQ.push(packet);\n        this.packetSet.add(key);\n        if (!this.destToTimestamps.has(destination))\n            this.destToTimestamps.set(destination, { timestamps: [], head: 0 });\n        this.destToTimestamps.get(destination).timestamps.push(timestamp);\n        return true;\n    }\n\n    forwardPacket() {\n        if (this.packetQ.length === 0) return [];\n        const packet = this.packetQ.shift();\n        this.packetSet.delete(this._key(packet));\n        this.destToTimestamps.get(packet.destination).head++;\n        return [packet.source, packet.destination, packet.timestamp];\n    }\n\n    getCount(destination, startTime, endTime) {\n        const p = this.destToTimestamps.get(destination);\n        if (!p) return 0;\n        const left = this.lowerBound(p.timestamps, startTime, p.head);\n        const right = this.lowerBound(p.timestamps, endTime + 1, p.head);\n        return right - left;\n    }\n\n    lowerBound(nums, target, left) {\n        let right = nums.length;\n        while (left < right) {\n            const mid = (left + right) >> 1;\n            if (nums[mid] >= target) right = mid;\n            else left = mid + 1;\n        }\n        return right;\n    }\n}\n```\n\n```TypeScript [sol1-TypeScript]\nclass Router {\n    private memoryLimit: number;\n    private packetQ: { source: number; destination: number; timestamp: number }[] = [];\n    private packetSet: Set<string> = new Set();\n    private destToTimestamps: Map<number, { timestamps: number[]; head: number }> = new Map();\n\n    constructor(memoryLimit: number) {\n        this.memoryLimit = memoryLimit;\n    }\n\n    private key(p: { source: number; destination: number; timestamp: number }): string {\n        return `${p.source},${p.destination},${p.timestamp}`;\n    }\n\n    addPacket(source: number, destination: number, timestamp: number): boolean {\n        const packet = { source, destination, timestamp };\n        const key = this.key(packet);\n        if (this.packetSet.has(key)) return false;\n        if (this.packetQ.length === this.memoryLimit) this.forwardPacket();\n        this.packetQ.push(packet);\n        this.packetSet.add(key);\n        if (!this.destToTimestamps.has(destination))\n            this.destToTimestamps.set(destination, { timestamps: [], head: 0 });\n        this.destToTimestamps.get(destination)!.timestamps.push(timestamp);\n        return true;\n    }\n\n    forwardPacket(): number[] {\n        if (this.packetQ.length === 0) return [];\n        const packet = this.packetQ.shift()!;\n        this.packetSet.delete(this.key(packet));\n        this.destToTimestamps.get(packet.destination)!.head++;\n        return [packet.source, packet.destination, packet.timestamp];\n    }\n\n    getCount(destination: number, startTime: number, endTime: number): number {\n        const p = this.destToTimestamps.get(destination);\n        if (!p) return 0;\n        const left = this.lowerBound(p.timestamps, startTime, p.head);\n        const right = this.lowerBound(p.timestamps, endTime + 1, p.head);\n        return right - left;\n    }\n\n    private lowerBound(nums: number[], target: number, left: number): number {\n        let right = nums.length;\n        while (left < right) {\n            const mid = (left + right) >> 1;\n            if (nums[mid] >= target) right = mid;\n            else left = mid + 1;\n        }\n        return right;\n    }\n}\n```\n\n```Rust [sol1-Rust]\nuse std::collections::{HashSet, HashMap, VecDeque};\n\n#[derive(Hash, Eq, PartialEq, Clone)]\nstruct Packet(i32, i32, i32);\n\nstruct Router {\n    mem_limit: i32,\n    length: i32,\n    is_exist: HashSet<Packet>,\n    same_dest_que: HashMap<i32, VecDeque<i32>>,\n    que: VecDeque<Packet>,\n}\n\nimpl Router {\n    fn new(memory_limit: i32) -> Self {\n        Router {\n            mem_limit: memory_limit,\n            length: 0,\n            is_exist: HashSet::new(),\n            same_dest_que: HashMap::new(),\n            que: VecDeque::new(),\n        }\n    }\n\n    fn add_packet(&mut self, source: i32, destination: i32, timestamp: i32) -> bool {\n        let packet = Packet(source, destination, timestamp);\n        if self.is_exist.contains(&packet) {\n            return false;\n        }\n        if self.length == self.mem_limit {\n            self.forward_packet();\n        }\n        self.length += 1;\n        self.que.push_back(packet.clone());\n        self.same_dest_que.entry(destination).or_insert(VecDeque::new()).push_back(timestamp);\n        self.is_exist.insert(packet);\n        true\n    }\n\n    fn forward_packet(&mut self) -> Vec<i32> {\n        let mut data = Vec::new();\n        if let Some(packet) = self.que.pop_front() {\n            data = vec![packet.0, packet.1, packet.2];\n            self.is_exist.remove(&packet);\n            if let Some(dq) = self.same_dest_que.get_mut(&data[1]) {\n                dq.pop_front();\n            }\n            self.length -= 1;\n        }\n        data\n    }\n\n    fn get_count(&self, destination: i32, start_time: i32, end_time: i32) -> i32 {\n        if let Some(dq) = self.same_dest_que.get(&destination) {\n            dq.iter().filter(|&&t| t >= start_time && t <= end_time).count() as i32\n        } else {\n            0\n        }\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：构造函数 $\\textit{Router}$ 的时间复杂度为 $O(1)$，仅赋值操作；$\\textit{addPacket}$ 的时间复杂度为 $O(\\log n)$， 主要体现在 $\\textit{set}$ 的查找和插入操作上；$\\textit{forwardPacket}$ 的时间复杂度为 $O(\\log n)$，主要体现在$\\textit{set}$ 的删除操作上；$\\textit{getCount}$ 的时间复杂度为 $O(\\log n)$，主要体现在使用二分查找上；其中 $n$ 为路由器内存大小。\n\n- 空间复杂度：$\\textit{Router}$ 类总体的空间复杂度为构造函数 $O(n)$，其中 $n$ 为路由器内存大小。其他方法均未使用额外的存储空间，空间复杂度均为 $O(1)$。",
+            "slateValue": "",
+            "slug": "she-ji-lu-you-qi-by-leetcode-solution-hgxc",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "6FrwP6",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 8,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Design",
+                    "nameTranslated": "设计",
+                    "slug": "design",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Queue",
+                    "nameTranslated": "队列",
+                    "slug": "queue",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Ordered Set",
+                    "nameTranslated": "有序集合",
+                    "slug": "ordered-set",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2025-09-05T04:14:34.176655+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：模拟 思路及解法 本题需要我们根据题目描述实现一个路由器，该路由器需要支持以下操作： [latex]：添加一个数据包，如果路由器内存中已经存在该数据包，则返回 [latex]，否则返回 [latex]。若在添加数据包时，路由器内存已满，则需要将内存中时间戳最小（也就是最旧）的数据包移除，然后再添加该数据包。 [",
+            "topic": {
+                "id": 3772883,
+                "subscribed": false,
+                "commentCount": 17,
+                "viewCount": 19,
+                "post": {
+                    "id": 6890280,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 14,
+            "isEditorsPick": false,
+            "hitCount": 6149,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "implement-router",
+                "questionFrontendId": "3508"
+            },
+            "next": {
+                "slug": "mo-ni-ha-xi-biao-dui-lie-er-fen-cha-zhao-y7l7",
+                "title": "哈希表 + 队列 + 二分查找（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

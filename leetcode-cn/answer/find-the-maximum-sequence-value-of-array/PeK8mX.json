@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "PeK8mX",
+            "title": "求出数组中最大序列值",
+            "content": "#### 方法一：动态规划\n\n**思路**\n\n长度为 $2k$ 的序列的值的计算方式为，先将其拆成长度相同的前后子串，然后分别计算各子串的所有元素的按位或的结果，再将两个按位或的结果进行按位异或。为了求出 $\\textit{nums}$ 的长度为 $2k$ 的子序列的最大值，可以将 $\\textit{nums}$ 分成左右两半，分别求出每一半中，长度为 $k$ 的子序列的按位或的所有可能性，再两两求异或的最大值。这样的分法一共有 $n-2k+1$ 种，其中 $n$ 为数组 $\\textit{nums}$ 的长度。并且我们可以用动态规划的方法来求出长度为 $k$ 的子序列的按位或的结果的所有可能性。\n\n记 $\\textit{dp}[i][j]$ 为哈希集合，表示 $\\textit{nums}[0...i]$ 中长度为 $j$ 的自序列按位或的所有可能性。$j \\leq k$，且当 $j$ 为 $0$ 时，$\\textit{dp}[i][j]$ 为空集。又根据题目限制，$\\textit{nums}$ 元素的值为 $0$ 到 $127$，因此 $\\textit{dp}[i][j]$ 最多包含 $128$ 个元素。进行转移时，$\\textit{dp}[i][j]$ 首先会包含 $\\textit{dp}[i-1][j]$ 的所有元素，表示不选取 $\\textit{nums}[i]$。还可以将 $\\textit{dp}[i-1][j-1]$ 中的所有元素与 $\\textit{nums}[i]$ 进行按位或，将结果添加进 $\\textit{dp}[i][j]$，表示选取$\\textit{nums}[i]$。我们可以将上述步骤抽象成一个函数，并进一步降低空间复杂度，只返回值 $j=k$ 时的 $dp$值，可以算出左一半的长度为 $k$ 的子序列的按位或的所有可能性。再将 $\\textit{nums}$ 进行逆序后再次应用这个函数，即可计算出右一半的的长度为 $k$ 的子序列的按位或的所有可能性。再两两求异或的最大值返回。\n\n我们可以将\n\n**代码**\n\n```Python [sol1-Python3]\nclass Solution:\n    def maxValue(self, nums: List[int], k: int) -> int:\n        def findORs(nums: List[int], k: int) -> List[set[int]]:\n            dp = []\n            prev = [set() for _ in range(k + 1)]\n            prev[0].add(0) \n            for i, num in enumerate(nums):\n                for j in range(min(k - 1, i + 1), -1, -1):\n                    for x in prev[j]:\n                        prev[j + 1].add(x | num)\n                dp.append(prev[k].copy())\n            return dp\n\n        A = findORs(nums, k)\n        B = findORs(nums[::-1], k)\n\n        mx = 0\n        for i in range(k - 1, len(nums) - k):\n                mx = max(mx, *(a ^ b for a in A[i] for b in B[-i - 2]))\n        return mx\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int maxValue(int[] nums, int k) {\n        List<Set<Integer>> A = findORs(nums, k);\n        List<Set<Integer>> B = findORs(reverse(nums), k);\n        int mx = 0;\n        for (int i = k - 1; i < nums.length - k; i++) {\n            for (int a : A.get(i)) {\n                for (int b : B.get(nums.length - i - 2)) {\n                    mx = Math.max(mx, a ^ b);\n                }\n            }\n        }\n        return mx;\n    }\n\n    private List<Set<Integer>> findORs(int[] nums, int k) {\n        List<Set<Integer>> dp = new ArrayList<>();\n        List<Set<Integer>> prev = new ArrayList<>();\n        for (int i = 0; i <= k; i++) {\n            prev.add(new HashSet<>());\n        }\n        prev.get(0).add(0);\n        for (int i = 0; i < nums.length; i++) {\n            for (int j = Math.min(k - 1, i + 1); j >= 0; j--) {\n                for (int x : prev.get(j)) {\n                    prev.get(j + 1).add(x | nums[i]);\n                }\n            }\n            dp.add(new HashSet<>(prev.get(k)));\n        }\n        return dp;\n    }\n\n    private int[] reverse(int[] nums) {\n        int[] reversed = new int[nums.length];\n        for (int i = 0; i < nums.length; i++) {\n            reversed[i] = nums[nums.length - 1 - i];\n        }\n        return reversed;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MaxValue(int[] nums, int k) {\n        var A = FindORs(nums, k);\n        Array.Reverse(nums);\n        var B = FindORs(nums, k);\n        int mx = 0;\n        for (int i = k - 1; i < nums.Length - k; i++) {\n            foreach (int a in A[i]) {\n                foreach (int b in B[nums.Length - i - 2]) {\n                    mx = Math.Max(mx, a ^ b);\n                }\n            }\n        }\n        return mx;\n    }\n\n    public List<HashSet<int>> FindORs(int[] nums, int k) {\n        var dp = new List<HashSet<int>>();\n        var prev = new List<HashSet<int>>();\n        for (int i = 0; i <= k; i++) {\n            prev.Add(new HashSet<int>());\n        }\n        prev[0].Add(0);\n        for (int i = 0; i < nums.Length; i++) {\n            for (int j = Math.Min(k - 1, i + 1); j >= 0; j--) {\n                foreach (int x in prev[j]) {\n                    prev[j + 1].Add(x | nums[i]);\n                }\n            }\n            dp.Add(new HashSet<int>(prev[k]));\n        }\n        return dp;\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int maxValue(vector<int>& nums, int k) {\n        auto findORs = [&](const vector<int>& nums, int k) -> vector<unordered_set<int>> {\n            vector<unordered_set<int>> dp;\n            vector<unordered_set<int>> prev(k + 1);\n            prev[0].insert(0);\n            for (int i = 0; i < nums.size(); ++i) {\n                for (int j = min(k - 1, i + 1); j >= 0; --j) {\n                    for (int x : prev[j]) {\n                        prev[j + 1].insert(x | nums[i]);\n                    }\n                }\n                dp.push_back(prev[k]);\n            }\n            return dp;\n        };\n\n        vector<unordered_set<int>> A = findORs(nums, k);\n        vector<unordered_set<int>> B = findORs(vector<int>(nums.rbegin(), nums.rend()), k);\n        int mx = 0;\n        for (size_t i = k - 1; i < nums.size() - k; ++i) {\n            for (int a : A[i]) {\n                for (int b : B[nums.size() - i - 2]) {\n                    mx = max(mx, a ^ b);\n                }\n            }\n        }\n        return mx;\n    }\n};\n```\n\n```Go [sol1-Go]\nfunc maxValue(nums []int, k int) int {\n    findORs := func(nums []int, k int) []map[int]bool {\n\t\tdp := make([]map[int]bool, 0)\n\t\tprev := make([]map[int]bool, k + 1)\n\t\tfor i := 0; i <= k; i++ {\n\t\t\tprev[i] = make(map[int]bool)\n\t\t}\n\t\tprev[0][0] = true\n\n\t\tfor i := 0; i < len(nums); i++ {\n\t\t\tfor j := min(k - 1, i + 1); j >= 0; j-- {\n\t\t\t\tfor x := range prev[j] {\n\t\t\t\t\tprev[j + 1][x | nums[i]] = true\n\t\t\t\t}\n\t\t\t}\n\t\t\tcurrent := make(map[int]bool)\n\t\t\tfor key := range prev[k] {\n\t\t\t\tcurrent[key] = true\n\t\t\t}\n\t\t\tdp = append(dp, current)\n\t\t}\n\t\treturn dp\n\t}\n\n\tA := findORs(nums, k)\n\treverse(nums)\n\tB := findORs(nums, k)\n\tmx := 0\n\n\tfor i := k - 1; i < len(nums) - k; i++ {\n\t\tfor a := range A[i] {\n\t\t\tfor b := range B[len(nums) - i - 2] {\n\t\t\t\tif a ^ b > mx {\n\t\t\t\t\tmx = a ^ b\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t}\n\treturn mx\n}\n\nfunc reverse(nums []int) {\n\tfor i, j := 0, len(nums)-1; i < j; i, j = i+1, j-1 {\n\t\tnums[i], nums[j] = nums[j], nums[i]\n\t}\n}\n```\n\n```C [sol1-C]\ntypedef struct {\n    int key;\n    UT_hash_handle hh;\n} HashItem; \n\nHashItem *hashFindItem(HashItem **obj, int key) {\n    HashItem *pEntry = NULL;\n    HASH_FIND_INT(*obj, &key, pEntry);\n    return pEntry;\n}\n\nbool hashAddItem(HashItem **obj, int key) {\n    if (hashFindItem(obj, key)) {\n        return false;\n    }\n    HashItem *pEntry = (HashItem *)malloc(sizeof(HashItem));\n    pEntry->key = key;\n    HASH_ADD_INT(*obj, key, pEntry);\n    return true;\n}\n\nvoid hashFree(HashItem **obj) {\n    HashItem *curr = NULL, *tmp = NULL;\n    HASH_ITER(hh, *obj, curr, tmp) {\n        HASH_DEL(*obj, curr);  \n        free(curr);\n    }\n}\n\nvoid findORs(int* nums, int numsSize, int k, HashItem** dp) {\n    HashItem *prev[k + 1];\n    for (int i = 0; i <= k; i++) {\n        prev[i] = NULL;\n    }\n    hashAddItem(&prev[0], 0);\n    for (int i = 0; i < numsSize; ++i) {\n        for (int j = fmin(k - 1, i + 1); j >= 0; --j) {\n            for (HashItem *pEntry = prev[j]; pEntry; pEntry = pEntry->hh.next) {\n                int x = pEntry->key;\n                hashAddItem(&prev[j + 1], x | nums[i]);\n            }\n        }\n        for (HashItem *pEntry = prev[k]; pEntry; pEntry = pEntry->hh.next) {\n            int x = pEntry->key;\n            hashAddItem(&dp[i], x);\n        }\n    }\n    for (int i = 0; i <= k; i++) {\n        hashFree(&prev[i]);\n    }\n};\n\nvoid reverse(int *nums, int numsSize) {\n    for (int i = 0, j = numsSize - 1; i < j; i++, j--) {\n        int x = nums[i];\n        nums[i] = nums[j];\n        nums[j] = x;\n    }\n}\n\nint maxValue(int* nums, int numsSize, int k) {\n    HashItem *A[numsSize];\n    HashItem *B[numsSize];\n\n    for (int i = 0; i < numsSize; i++) {\n        A[i] = B[i] = NULL;\n    }\n    findORs(nums, numsSize, k, A);\n    reverse(nums, numsSize);\n    findORs(nums, numsSize, k, B);\n    int mx = 0;\n    for (size_t i = k - 1; i < numsSize - k; ++i) {\n        for (HashItem *pEntry = A[i]; pEntry; pEntry = pEntry->hh.next) {\n            int a = pEntry->key;\n            for (HashItem *pEntry = B[numsSize - i - 2]; pEntry; pEntry = pEntry->hh.next) {\n                int b = pEntry->key;\n                mx = fmax(mx, a ^ b);\n            }\n        }\n    }\n    for (int i = 0; i < numsSize; i++) {\n        hashFree(&A[i]);\n        hashFree(&B[i]);\n    }\n    return mx;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar maxValue = function(nums, k) {\n    function findORs(nums, k) {\n        const dp = [];\n        const prev = Array.from({ length: k + 1 }, () => new Set());\n        prev[0].add(0);\n\n        for (let i = 0; i < nums.length; i++) {\n            for (let j = Math.min(k - 1, i + 1); j >= 0; j--) {\n                for (const x of prev[j]) {\n                    prev[j + 1].add(x | nums[i]);\n                }\n            }\n            dp.push(new Set(prev[k]));\n        }\n        return dp;\n    }\n\n    const A = findORs(nums, k);\n    nums.reverse();\n    const B = findORs(nums, k);\n    let mx = 0;\n\n    for (let i = k - 1; i < nums.length - k; i++) {\n        for (const a of A[i]) {\n            for (const b of B[nums.length - i - 2]) {\n                mx = Math.max(mx, a ^ b);\n            }\n        }\n    }\n    return mx;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction maxValue(nums: number[], k: number): number {\n    function findORs(nums: number[], k: number): Set<number>[] {\n        const dp: Set<number>[] = [];\n        const prev: Set<number>[] = Array.from({ length: k + 1 }, () => new Set());\n        prev[0].add(0);\n\n        for (let i = 0; i < nums.length; i++) {\n            for (let j = Math.min(k - 1, i + 1); j >= 0; j--) {\n                for (const x of prev[j]) {\n                    prev[j + 1].add(x | nums[i]);\n                }\n            }\n            dp.push(new Set(prev[k]));\n        }\n        return dp;\n    }\n\n    const A = findORs(nums, k);\n    nums.reverse();\n    const B = findORs(nums, k);\n    let mx = 0;\n\n    for (let i = k - 1; i < nums.length - k; i++) {\n        for (const a of A[i]) {\n            for (const b of B[nums.length - i - 2]) {\n                mx = Math.max(mx, a ^ b);\n            }\n        }\n    }\n    return mx;\n};\n```\n\n```Rust [sol1-Rust]\nuse std::collections::HashSet;\nuse std::cmp::{max, min};\n\nimpl Solution {\n    pub fn max_value(nums: Vec<i32>, k: i32) -> i32 {\n        fn find_ors(nums: &Vec<i32>, k: i32) -> Vec<HashSet<i32>> {\n            let mut dp = Vec::new();\n            let mut prev = vec![HashSet::new(); k as usize + 1];\n            prev[0].insert(0);\n\n            for i in 0..nums.len() {\n                for j in (0..= min(k as usize - 1, i + 1)).rev() {\n                    let (before, after) = prev.split_at_mut(j + 1);\n                    for &x in &before[j] {\n                        after[0].insert(x | nums[i]);\n                    }\n                }\n                dp.push(prev[k as usize].clone());\n            }\n            dp\n        }\n\n        let a = find_ors(&nums, k);\n        let reversed_nums: Vec<i32> = nums.iter().rev().cloned().collect();\n        let b = find_ors(&reversed_nums, k);\n        let mut mx = 0;\n        for i in k as usize - 1..nums.len() - k as usize {\n            for &a_val in &a[i] {\n                for &b_val in &b[nums.len() - i - 2] {\n                    mx = mx.max(a_val ^ b_val);\n                }\n            }\n        }\n        mx\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\times k \\times U + n \\times U^2)$，其中 $n$ 是数组 $\\textit{nums}$ 的长度，$U$ 是数组元素的可能性集合大小。$\\textit{dp}$ 的状态有 $O(n\\times k)$ 种，每个状态消耗 $O(U)$ 计算。最后两两求异或消耗 $O(n\\times U^2)$ 的时间。\n\n- 空间复杂度：$O(n \\times U)$。",
+            "slateValue": "",
+            "slug": "qiu-chu-shu-zu-zhong-zui-da-xu-lie-zhi-b-bhnk",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "PeK8mX",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 14,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2025-01-03T01:21:15.302535+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 思路 长度为 [latex] 的序列的值的计算方式为，先将其拆成长度相同的前后子串，然后分别计算各子串的所有元素的按位或的结果，再将两个按位或的结果进行按位异或。为了求出 [latex] 的长度为 [latex] 的子序列的最大值，可以将 [latex] 分成左右两半，分别求出每一半中，长度为 [la",
+            "topic": {
+                "id": 3037275,
+                "subscribed": false,
+                "commentCount": 26,
+                "viewCount": 681,
+                "post": {
+                    "id": 5492125,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 39,
+            "isEditorsPick": false,
+            "hitCount": 9255,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "find-the-maximum-sequence-value-of-array",
+                "questionFrontendId": "3287"
+            },
+            "next": {
+                "slug": "qian-hou-zhui-fen-jie-er-wei-0-1-bei-bao-8icz",
+                "title": "前后缀分解 + 二维 0-1 背包 + 优化所选元素个数 + 试填法（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

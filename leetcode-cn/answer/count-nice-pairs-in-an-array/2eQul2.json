@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "2eQul2",
+            "title": "统计一个数组中好对子的数目",
+            "content": "#### 方法一：哈希表\n\n**思路与算法**\n\n首先题目给出一个下标从 $0$ 开始长度为 $n$ 的非负整数数组 $\\textit{nums}$，并给出「好下标对」的定义——对于某一个下标对 $(i, j)$，$0 \\le i < j < n$，若满足：\n\n$$\n\\textit{nums}[i] + \\textit{rev}(\\textit{nums}[j]) = \\textit{nums}[j] + \\textit{rev}(\\textit{nums}[i]) \\tag{1}\n$$\n\n则该下标对为「好下标对」。现在我们设：$f(i) = \\textit{nums}[i] - \\textit{rev}(\\textit{nums}[i])$，则表达式 $(1)$ 可以等价于：\n\n$$\nf(i) = f(j) \\tag{2}\n$$\n\n那么我们从左到右遍历数组 $\\textit{nums}$，并在遍历的过程用「哈希表」统计每一个位置 $i$，$0 \\le i < n$ 的 $f(i)$ 的个数，则对于位置 $j$，$0 \\le j < n$，以 $j$ 结尾的「好下标对」的个数为此时「哈希表」中 $f(j)$ 的数目。那么我们只需要在遍历时同时统计以每一个位置为结尾的「好下标对」数目即可。\n\n**代码**\n\n```Python [sol1-Python3]\nclass Solution:\n    def countNicePairs(self, nums: List[int]) -> int:\n        res = 0\n        cnt = Counter()\n        for i in nums:\n            j = int(str(i)[::-1])\n            res += cnt[i - j]\n            cnt[i - j] += 1\n        return res % (10 ** 9 + 7)\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int countNicePairs(int[] nums) {\n        final int MOD = 1000000007;\n        int res = 0;\n        Map<Integer, Integer> h = new HashMap<Integer, Integer>();\n        for (int i : nums) {\n            int temp = i, j = 0;\n            while (temp > 0) {\n                j = j * 10 + temp % 10;\n                temp /= 10;\n            }\n            res = (res + h.getOrDefault(i - j, 0)) % MOD;\n            h.put(i - j, h.getOrDefault(i - j, 0) + 1);\n        }\n        return res;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int CountNicePairs(int[] nums) {\n        const int MOD = 1000000007;\n        int res = 0;\n        IDictionary<int, int> h = new Dictionary<int, int>();\n        foreach (int i in nums) {\n            int temp = i, j = 0;\n            while (temp > 0) {\n                j = j * 10 + temp % 10;\n                temp /= 10;\n            }\n            h.TryAdd(i - j, 0);\n            res = (res + h[i - j]) % MOD;\n            h[i - j]++;\n        }\n        return res;\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int countNicePairs(vector<int>& nums) {\n        const int MOD = 1000000007;\n        int res = 0;\n        unordered_map<int, int> h;\n        for (int i : nums) {\n            int temp = i, j = 0;\n            while (temp > 0) {\n                j = j * 10 + temp % 10;\n                temp /= 10;\n            }\n            res = (res + h[i - j]) % MOD;\n            h[i - j]++;\n        }\n        return res;\n    }\n};\n```\n\n```C [sol1-C]\ntypedef struct {\n    int key;\n    int val;\n    UT_hash_handle hh;\n} HashItem; \n\nHashItem *hashFindItem(HashItem **obj, int key) {\n    HashItem *pEntry = NULL;\n    HASH_FIND_INT(*obj, &key, pEntry);\n    return pEntry;\n}\n\nbool hashAddItem(HashItem **obj, int key, int val) {\n    if (hashFindItem(obj, key)) {\n        return false;\n    }\n    HashItem *pEntry = (HashItem *)malloc(sizeof(HashItem));\n    pEntry->key = key;\n    pEntry->val = val;\n    HASH_ADD_INT(*obj, key, pEntry);\n    return true;\n}\n\nbool hashSetItem(HashItem **obj, int key, int val) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        hashAddItem(obj, key, val);\n    } else {\n        pEntry->val = val;\n    }\n    return true;\n}\n\nint hashGetItem(HashItem **obj, int key, int defaultVal) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        return defaultVal;\n    }\n    return pEntry->val;\n}\n\nvoid hashFree(HashItem **obj) {\n    HashItem *curr = NULL, *tmp = NULL;\n    HASH_ITER(hh, *obj, curr, tmp) {\n        HASH_DEL(*obj, curr);  \n        free(curr);             \n    }\n}\n\nint countNicePairs(int* nums, int numsSize) {\n    const int MOD = 1000000007;\n    int res = 0;\n    HashItem *h = NULL;\n    for (int i = 0; i < numsSize; i++) {\n        int temp = nums[i], j = 0;\n        while (temp > 0) {\n            j = j * 10 + temp % 10;\n            temp /= 10;\n        }\n        int val = hashGetItem(&h, nums[i] - j, 0);\n        res = (res + val) % MOD;\n        hashSetItem(&h, nums[i] - j, val + 1);\n    }\n    hashFree(&h);\n    return res;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar countNicePairs = function(nums) {\n    const MOD = 1000000007;\n    let res = 0;\n    const h = new Map();\n    for (const i of nums) {\n        let temp = i, j = 0;\n        while (temp > 0) {\n            j = j * 10 + temp % 10;\n            temp = Math.floor(temp / 10);\n        }\n        res = (res + (h.get(i - j) || 0)) % MOD;\n        h.set(i - j, (h.get(i - j) || 0) + 1);\n    }\n    return res;\n};\n```\n\n```go [sol1-Golang]\nfunc countNicePairs(nums []int) (ans int) {\n    cnt := map[int]int{}\n    for _, num := range nums {\n        rev := 0\n        for x := num; x > 0; x /= 10 {\n            rev = rev*10 + x%10\n        }\n        ans += cnt[num-rev]\n        cnt[num-rev]++\n    }\n    return ans % (1e9 + 7)\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\times \\log C)$，其中 $n$ 为数组 $\\textit{nums}$ 的长度，$C$ 为数组 $\\textit{nums}$ 中的数字范围。其中 $O(\\log C)$ 为反转数位的时间复杂度。\n- 空间复杂度：$O(n)$，其中 $n$ 为数组 $\\textit{nums}$ 的长度，主要为哈希表的空间开销。",
+            "slateValue": "",
+            "slug": "tong-ji-yi-ge-shu-zu-zhong-hao-dui-zi-de-ywux",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "2eQul2",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 41,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Counting",
+                    "nameTranslated": "计数",
+                    "slug": "counting",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-01-16T02:25:35.887564+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：哈希表 思路与算法 首先题目给出一个下标从 [latex] 开始长度为 [latex] 的非负整数数组 [latex]，并给出「好下标对」的定义——对于某一个下标对 [latex]，[latex]，若满足： [latex] 则该下标对为「好下标对」。现在我们设：[latex]，则表达式 [latex] 可以等价",
+            "topic": {
+                "id": 2064186,
+                "subscribed": false,
+                "commentCount": 95,
+                "viewCount": 892,
+                "post": {
+                    "id": 3955783,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 26,
+            "isEditorsPick": false,
+            "hitCount": 17227,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "count-nice-pairs-in-an-array",
+                "questionFrontendId": "1814"
+            },
+            "next": {
+                "slug": "1814-tong-ji-yi-ge-shu-zu-zhong-hao-dui-r0ccj",
+                "title": "1814. 统计一个数组中好对子的数目"
+            },
+            "prev": null
+        }
+    }
+}

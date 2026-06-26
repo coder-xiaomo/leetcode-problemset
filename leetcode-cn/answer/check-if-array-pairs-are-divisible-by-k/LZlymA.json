@@ -1,0 +1,106 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "LZlymA",
+            "title": "检查数组对是否可以被 k 整除",
+            "content": "#### 方法一：按照余数进行统计\n\n两个数 $x$ 和 $y$ 的和能被 $k$ 整除，当且仅当这两个数对 $k$ 取模的结果 $x_k$ 和 $y_k$ 的和就能被 $k$ 整除。这里我们规定取模的结果大于等于 $0$，无论 $x$ 和 $y$ 的正负性。因此，我们将数组 $\\it arr$ 中的每个数 $x$ 对 $k$ 进行取模，并将得到的余数 $x_k$ 进行配对：\n\n- 配对要求 $1$：如果 $x_k = 0$，那么需要找到另一个满足 $y_k = 0$ 的 $y$ 进行配对；\n\n- 配对要求 $2$：如果 $x_k > 0$，那么需要找到另一个满足 $y_k = k - x_k$ 的 $y$ 进行配对。\n\n我们可以使用哈希映射（HashMap）统计取模的结果。对于哈希映射中的每个键值对，键表示一个余数，值表示这个余数出现的次数。在统计完成之后，为了满足题目的要求，将所有的数都进行配对，我们需要保证：\n\n- 统计要求 $1$：哈希映射中键 $0$ 对应的值为偶数，参照第一条配对要求；\n\n- 统计要求 $2$：哈希映射中键 $t~(t>0)$ 和键 $k-t$ 对应的值相等，参照第二条配对要求。\n\n注意在第二条统计要求中，如果 $k$ 为偶数并且 $t = k/2$，那么实际上我们需要键 $t$ 对应的值也为偶数。实际上，如果第一条统计要求满足，那么对应的数有偶数个；如果第二条统计要求除了 $t = k/2$ 的键都满足，那么对应的数也有偶数个。由于题目保证了 $n$ 也为偶数，因此键 $t$ 对应的值也为偶数，我们可以不用对键 $t$ 进行判断。\n\n**细节**\n\n在 `C++` 和 `Java` 语言中，将负数 $x$ 对一个正数 $k$ 进行取模操作，得到的结果小于等于 $0$（即在 $[-k+1, 0]$ 的范围内）。我们可以通过：\n\n```\nxk = (x % k + k) % k\n```\n\n得到在 $[0, k-1]$ 的范围内的余数。\n\n**代码**\n\n由于哈希映射中的键的范围为 $[0, k-1]$，因此我们可以使用一个长度为 $k$ 的数组代替哈希表，减少编码难度。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    bool canArrange(vector<int>& arr, int k) {\n        vector<int> mod(k);\n        for (int num: arr) {\n            ++mod[(num % k + k) % k];\n        }\n        for (int i = 1; i + i < k; ++i) {\n            if (mod[i] != mod[k - i]) {\n                return false;\n            }\n        }\n        return mod[0] % 2 == 0;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public boolean canArrange(int[] arr, int k) {\n        int[] mod = new int[k];\n        for (int num : arr) {\n            ++mod[(num % k + k) % k];\n        }\n        for (int i = 1; i + i < k; ++i) {\n            if (mod[i] != mod[k - i]) {\n                return false;\n            }\n        }\n        return mod[0] % 2 == 0;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def canArrange(self, arr: List[int], k: int) -> bool:\n        mod = [0] * k\n        for num in arr:\n            mod[num % k] += 1\n        if any(mod[i] != mod[k - i] for i in range(1, k // 2 + 1)):\n            return False\n        return mod[0] % 2 == 0\n```\n\n由于我们需要 $O(n)$ 的时间对余数进行统计，以及 $O(k)$ 的时间对数组进行遍历，这种方法的时间复杂度为 $O(n+k)$。\n\n当然我们也可以使用哈希表。\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    bool canArrange(vector<int>& arr, int k) {\n        unordered_map<int, int> mod;\n        for (int num: arr) {\n            ++mod[(num % k + k) % k];\n        }\n        for (auto [t, occ]: mod) {\n            if (t > 0 && (!mod.count(k - t) || mod[k - t] != occ)) {\n                return false;\n            }\n        }\n        return mod[0] % 2 == 0;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public boolean canArrange(int[] arr, int k) {\n        Map<Integer, Integer> mod = new HashMap<Integer, Integer>();\n        for (int num : arr) {\n            mod.put((num % k + k) % k, mod.getOrDefault((num % k + k) % k, 0) + 1);\n        }\n        for (Map.Entry<Integer, Integer> entry : mod.entrySet()) {\n            int t = entry.getKey(), occ = entry.getValue();\n            if (t > 0 && mod.getOrDefault(k - t, 0) != occ) {\n                return false;\n            }\n        }\n        return mod.getOrDefault(0, 0) % 2 == 0;\n    }\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def canArrange(self, arr: List[int], k: int) -> bool:\n        mod = collections.Counter(num % k for num in arr)\n        for t, occ in mod.items():\n            if t > 0 and (k - t not in mod or mod[k - t] != occ):\n                return False\n        return mod[0] % 2 == 0\n```\n\n遍历数组的时间复杂度为 $O(n)$。当 $n \\geq k$ 时，遍历哈希表的时间复杂度为 $O(k)$；当 $n < k$ 时，哈希表中最多只会有 $n$ 个键值对，遍历哈希表的时间复杂度为 $O(n)$，因此总时间复杂度为 $O(n)$。\n\n**复杂度分析**\n\n- 时间复杂度：$O(n + k)$ 或 $O(n)$。\n\n- 空间复杂度：$O(n)$，即为哈希表需要的空间。",
+            "slateValue": "",
+            "slug": "jian-cha-shu-zu-dui-shi-fou-ke-yi-bei-k-zheng-chu-",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "LZlymA",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 16,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-06-30T16:16:07.715267+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：按照余数进行统计\n两个数 x 和 y 的和能被 k 整除，当且仅当这两个数对 k 取模的结果 x_k 和 y_k 的和就能被 k 整除。这里我们规定取模的结果大于等于 0，无论 x 和 y 的正负性。因此，我们将数组 \\it arr 中的每个数 x 对 k 进行取模，并将得到的余数 x_k 进行配对：\n\n\n配",
+            "topic": {
+                "id": 310418,
+                "subscribed": false,
+                "commentCount": 42,
+                "viewCount": 7690,
+                "post": {
+                    "id": 779492,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 36,
+            "isEditorsPick": false,
+            "hitCount": 15219,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "check-if-array-pairs-are-divisible-by-k",
+                "questionFrontendId": "1497"
+            },
+            "next": {
+                "slug": "ji-lu-yu-shu-chu-xian-ci-shu-zhuan-huan-7l4fj",
+                "title": "记录余数出现次数，转换为两数之和"
+            },
+            "prev": null
+        }
+    }
+}

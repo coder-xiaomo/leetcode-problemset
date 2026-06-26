@@ -1,0 +1,122 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "Yy9X1Z",
+            "title": "交易逆序对的总数",
+            "content": "### 📖 文字题解\n#### 方法一：归并排序\n\n**预备知识**\n\n「归并排序」是分治思想的典型应用，它包含这样三个步骤：\n\n+ **分解：** 待排序的区间为 $[l, r]$，令 $m = \\lfloor \\frac{l + r}{2} \\rfloor$，我们把 $[l, r]$ 分成 $[l, m]$ 和 $[m + 1, r]$\n+ **解决：** 使用归并排序递归地排序两个子序列\n+ **合并：** 把两个已经排好序的子序列 $[l, m]$ 和 $[m + 1, r]$ 合并起来\n\n在待排序序列长度为 $1$ 的时候，递归开始「回升」，因为我们默认长度为 $1$ 的序列是排好序的。\n\n**思路**\n\n那么求逆序对和归并排序又有什么关系呢？关键就在于「归并」当中「并」的过程。我们通过一个实例来看看。假设我们有两个已排序的序列等待合并，分别是 $L = \\{ 8, 12, 16, 22, 100 \\}$ 和 $R = \\{ 9, 26, 55, 64, 91 \\}$。一开始我们用指针 `lPtr = 0` 指向 $L$ 的首部，`rPtr = 0` 指向 $R$ 的头部。记已经合并好的部分为 $M$。\n\n```\nL = [8, 12, 16, 22, 100]   R = [9, 26, 55, 64, 91]  M = []\n     |                          |\n   lPtr                       rPtr\n```\n\n我们发现 `lPtr` 指向的元素小于 `rPtr` 指向的元素，于是把 `lPtr` 指向的元素放入答案，并把 `lPtr` 后移一位。\n\n```\nL = [8, 12, 16, 22, 100]   R = [9, 26, 55, 64, 91]  M = [8]\n        |                       |\n      lPtr                     rPtr\n```\n\n这个时候我们把左边的 $8$ 加入了答案，我们发现右边没有数比 $8$ 小，所以 $8$ 对逆序对总数的「贡献」为 $0$。\n\n接着我们继续合并，把 $9$ 加入了答案，此时 `lPtr` 指向 $12$，`rPtr` 指向 $26$。\n\n```\nL = [8, 12, 16, 22, 100]   R = [9, 26, 55, 64, 91]  M = [8, 9]\n        |                          |\n       lPtr                       rPtr\n```\n\n此时 `lPtr` 比 `rPtr` 小，把 `lPtr` 对应的数加入答案，并考虑它对逆序对总数的贡献为 `rPtr` 相对 $R$ 首位置的偏移 $1$（即右边只有一个数比 $12$ 小，所以只有它和 $12$ 构成逆序对），以此类推。\n\n我们发现用这种「算贡献」的思想在合并的过程中计算逆序对的数量的时候，只在 `lPtr` 右移的时候计算，是基于这样的事实：当前 `lPtr` 指向的数字比 `rPtr` 小，但是比 $R$ 中 `[0 ... rPtr - 1]` 的其他数字大，`[0 ... rPtr - 1]` 的其他数字本应当排在 `lPtr` 对应数字的左边，但是它排在了右边，所以这里就贡献了 `rPtr` 个逆序对。\n\n利用这个思路，我们可以写出如下代码。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int mergeSort(vector<int>& record, vector<int>& tmp, int l, int r) {\n        if (l >= r) {\n            return 0;\n        }\n\n        int mid = (l + r) / 2;\n        int inv_count = mergeSort(record, tmp, l, mid) + mergeSort(record, tmp, mid + 1, r);\n        int i = l, j = mid + 1, pos = l;\n        while (i <= mid && j <= r) {\n            if (record[i] <= record[j]) {\n                tmp[pos] = record[i];\n                ++i;\n                inv_count += (j - (mid + 1));\n            }\n            else {\n                tmp[pos] = record[j];\n                ++j;\n            }\n            ++pos;\n        }\n        for (int k = i; k <= mid; ++k) {\n            tmp[pos++] = record[k];\n            inv_count += (j - (mid + 1));\n        }\n        for (int k = j; k <= r; ++k) {\n            tmp[pos++] = record[k];\n        }\n        copy(tmp.begin() + l, tmp.begin() + r + 1, record.begin() + l);\n        return inv_count;\n    }\n\n    int reversePairs(vector<int>& record) {\n        int n = record.size();\n        vector<int> tmp(n);\n        return mergeSort(record, tmp, 0, n - 1);\n    }\n};\n```\n\n```Java [sol1-Java]\npublic class Solution {\n    public int reversePairs(int[] record) {\n        int len = record.length;\n\n        if (len < 2) {\n            return 0;\n        }\n\n        int[] copy = new int[len];\n        for (int i = 0; i < len; i++) {\n            copy[i] = record[i];\n        }\n\n        int[] temp = new int[len];\n        return reversePairs(copy, 0, len - 1, temp);\n    }\n\n    private int reversePairs(int[] record, int left, int right, int[] temp) {\n        if (left == right) {\n            return 0;\n        }\n\n        int mid = left + (right - left) / 2;\n        int leftPairs = reversePairs(record, left, mid, temp);\n        int rightPairs = reversePairs(record, mid + 1, right, temp);\n\n        if (record[mid] <= record[mid + 1]) {\n            return leftPairs + rightPairs;\n        }\n\n        int crossPairs = mergeAndCount(record, left, mid, right, temp);\n        return leftPairs + rightPairs + crossPairs;\n    }\n\n    private int mergeAndCount(int[] record, int left, int mid, int right, int[] temp) {\n        for (int i = left; i <= right; i++) {\n            temp[i] = record[i];\n        }\n\n        int i = left;\n        int j = mid + 1;\n\n        int count = 0;\n        for (int k = left; k <= right; k++) {\n\n            if (i == mid + 1) {\n                record[k] = temp[j];\n                j++;\n            } else if (j == right + 1) {\n                record[k] = temp[i];\n                i++;\n            } else if (temp[i] <= temp[j]) {\n                record[k] = temp[i];\n                i++;\n            } else {\n                record[k] = temp[j];\n                j++;\n                count += (mid - i + 1);\n            }\n        }\n        return count;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def mergeSort(self, record, tmp, l, r):\n        if l >= r:\n            return 0\n\n        mid = (l + r) // 2\n        inv_count = self.mergeSort(record, tmp, l, mid) + self.mergeSort(record, tmp, mid + 1, r)\n        i, j, pos = l, mid + 1, l\n        while i <= mid and j <= r:\n            if record[i] <= record[j]:\n                tmp[pos] = record[i]\n                i += 1\n                inv_count += (j - (mid + 1))\n            else:\n                tmp[pos] = record[j]\n                j += 1\n            pos += 1\n        for k in range(i, mid + 1):\n            tmp[pos] = record[k]\n            inv_count += (j - (mid + 1))\n            pos += 1\n        for k in range(j, r + 1):\n            tmp[pos] = record[k]\n            pos += 1\n        record[l:r+1] = tmp[l:r+1]\n        return inv_count\n\n    def reversePairs(self, record: List[int]) -> int:\n        n = len(record)\n        tmp = [0] * n\n        return self.mergeSort(record, tmp, 0, n - 1)\n```\n\n```Golang [sol1-Golang]\nfunc reversePairs(record []int) int {\n    return mergeSort(record, 0, len(record)-1)\n}\n\nfunc mergeSort(record []int, start, end int) int {\n    if start >= end {\n        return 0\n    }\n    mid := start + (end - start)/2\n    cnt := mergeSort(record, start, mid) + mergeSort(record, mid + 1, end)\n    tmp := []int{}\n    i, j := start, mid + 1\n    for i <= mid && j <= end {\n        if record[i] <= record[j] {\n            tmp = append(tmp, record[i])\n            cnt += j - (mid + 1)\n            i++\n        } else {\n            tmp = append(tmp, record[j])\n            j++\n        }\n    }\n    for ; i <= mid; i++ {\n        tmp = append(tmp, record[i])\n        cnt += end - (mid + 1) + 1\n    }\n    for ; j <= end; j++ {\n        tmp = append(tmp, record[j])\n    }\n    for i := start; i <= end; i++ {\n        record[i] = tmp[i - start]\n    }\n    return cnt\n}\n```\n\n**复杂度分析**\n\n记序列长度为 $n$。\n\n- 时间复杂度：同归并排序 $O(n \\log n)$。\n- 空间复杂度：同归并排序 $O(n)$，因为归并排序需要用到一个临时数组。\n\n#### 方法二：离散化树状数组\n\n**预备知识**\n\n「树状数组」是一种可以动态维护序列前缀和的数据结构，它的功能是：\n\n+ **单点更新 `update(i, v)`：** 把序列 $i$ 位置的数加上一个值 $v$，这题 $v = 1$\n+ **区间查询 `query(i)`：** 查询序列 $[1 \\cdots i]$ 区间的区间和，即 $i$ 位置的前缀和\n\n修改和查询的时间代价都是 $O(\\log n)$，其中 $n$ 为需要维护前缀和的序列的长度。\n\n\n**思路**\n\n记题目给定的序列为 $a$，我们规定 $a_i$ 的取值集合为 $a$ 的「值域」。我们用桶来表示值域中的每一个数，桶中记录这些数字出现的次数。假设$a = \\{5, 5, 2, 3, 6\\}$，那么遍历这个序列得到的桶是这样的：\n\n```\nindex  ->  1 2 3 4 5 6 7 8 9\nvalue  ->  0 1 1 0 2 1 0 0 0\n```\n\n我们可以看出它第 $i - 1$ 位的前缀和表示「有多少个数比 $i$ 小」。那么我们可以从后往前遍历序列 $a$，记当前遍历到的元素为 $a_i$，我们把 $a_i$ 对应的桶的值自增 $1$，把 $i - 1$ 位置的前缀和加入到答案中算贡献。为什么这么做是对的呢，因为我们在循环的过程中，我们把原序列分成了两部分，后半部部分已经遍历过（已入桶），前半部分是待遍历的（未入桶），那么我们求到的 $i - 1$ 位置的前缀和就是「已入桶」的元素中比 $a_i$ 大的元素的总和，而这些元素在原序列中排在 $a_i$ 的后面，但它们本应该排在 $a_i$ 的前面，这样就形成了逆序对。\n\n我们显然可以用数组来实现这个桶，可问题是如果 $a_i$ 中有很大的元素，比如 $10^9$，我们就要开一个大小为 $10^9$ 的桶，内存中是存不下的。这个桶数组中很多位置是 $0$，有效位置是稀疏的，我们要想一个办法让有效的位置全聚集到一起，减少无效位置的出现，这个时候我们就需要用到一个方法——离散化。\n\n离散化一个序列的前提是我们只关心这个序列里面元素的相对大小，而不关心绝对大小（即只关心元素在序列中的排名）；离散化的目的是让原来分布零散的值聚集到一起，减少空间浪费。那么如何获得元素排名呢，我们可以对原序列排序后去重，对于每一个 $a_i$ 通过二分查找的方式计算排名作为离散化之后的值。当然这里也可以不去重，不影响排名。\n\n**代码**\n\n```C++ [sol2-C++]\nclass BIT {\nprivate:\n    vector<int> tree;\n    int n;\n\npublic:\n    BIT(int _n): n(_n), tree(_n + 1) {}\n\n    static int lowbit(int x) {\n        return x & (-x);\n    }\n\n    int query(int x) {\n        int ret = 0;\n        while (x) {\n            ret += tree[x];\n            x -= lowbit(x);\n        }\n        return ret;\n    }\n\n    void update(int x) {\n        while (x <= n) {\n            ++tree[x];\n            x += lowbit(x);\n        }\n    }\n};\n\nclass Solution {\npublic:\n    int reversePairs(vector<int>& record) {\n        int n = record.size();\n        vector<int> tmp = record;\n        // 离散化\n        sort(tmp.begin(), tmp.end());\n        for (int& num: record) {\n            num = lower_bound(tmp.begin(), tmp.end(), num) - tmp.begin() + 1;\n        }\n        // 树状数组统计逆序对\n        BIT bit(n);\n        int ans = 0;\n        for (int i = n - 1; i >= 0; --i) {\n            ans += bit.query(record[i] - 1);\n            bit.update(record[i]);\n        }\n        return ans;\n    }\n};\n```\n```Java [sol2-Java]\nclass Solution {\n    public int reversePairs(int[] record) {\n        int n = record.length;\n        int[] tmp = new int[n];\n        System.arraycopy(record, 0, tmp, 0, n);\n        // 离散化\n        Arrays.sort(tmp);\n        for (int i = 0; i < n; ++i) {\n            record[i] = Arrays.binarySearch(tmp, record[i]) + 1;\n        }\n        // 树状数组统计逆序对\n        BIT bit = new BIT(n);\n        int ans = 0;\n        for (int i = n - 1; i >= 0; --i) {\n            ans += bit.query(record[i] - 1);\n            bit.update(record[i]);\n        }\n        return ans;\n    }\n}\n\nclass BIT {\n    private int[] tree;\n    private int n;\n\n    public BIT(int n) {\n        this.n = n;\n        this.tree = new int[n + 1];\n    }\n\n    public static int lowbit(int x) {\n        return x & (-x);\n    }\n\n    public int query(int x) {\n        int ret = 0;\n        while (x != 0) {\n            ret += tree[x];\n            x -= lowbit(x);\n        }\n        return ret;\n    }\n\n    public void update(int x) {\n        while (x <= n) {\n            ++tree[x];\n            x += lowbit(x);\n        }\n    }\n}\n```\n\n```Python [sol2-Python3]\nclass BIT:\n    def __init__(self, n):\n        self.n = n\n        self.tree = [0] * (n + 1)\n\n    @staticmethod\n    def lowbit(x):\n        return x & (-x)\n    \n    def query(self, x):\n        ret = 0\n        while x > 0:\n            ret += self.tree[x]\n            x -= BIT.lowbit(x)\n        return ret\n\n    def update(self, x):\n        while x <= self.n:\n            self.tree[x] += 1\n            x += BIT.lowbit(x)\n\nclass Solution:\n    def reversePairs(self, record: List[int]) -> int:\n        n = len(record)\n        # 离散化\n        tmp = sorted(record)\n        for i in range(n):\n            record[i] = bisect.bisect_left(tmp, record[i]) + 1\n        # 树状数组统计逆序对\n        bit = BIT(n)\n        ans = 0\n        for i in range(n - 1, -1, -1):\n            ans += bit.query(record[i] - 1)\n            bit.update(record[i])\n        return ans\n```\n\n```Golang [sol2-Golang]\nfunc reversePairs(record []int) int {\n     n := len(record)\n     tmp := make([]int, n)\n     copy(tmp, record)\n     sort.Ints(tmp)\n\n     for i := 0; i < n; i++ {\n         record[i] = sort.SearchInts(tmp, record[i]) + 1\n     }\n\n     bit := BIT{\n         n: n,\n         tree: make([]int, n + 1),\n     }\n\n     ans := 0\n     for i := n - 1; i >= 0; i-- {\n         ans += bit.query(record[i] - 1)\n         bit.update(record[i])\n     }\n     return ans\n}\n\ntype BIT struct {\n    n int\n    tree []int\n}\n\nfunc (b BIT) lowbit(x int) int { return x & (-x) }\n\nfunc (b BIT) query(x int) int {\n    ret := 0\n    for x > 0 {\n        ret += b.tree[x]\n        x -= b.lowbit(x)\n    }\n    return ret\n}\n\nfunc (b BIT) update(x int) {\n    for x <= b.n {\n        b.tree[x]++\n        x += b.lowbit(x)\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：离散化的过程中使用了时间代价为 $O(n \\log n)$ 的排序，单次二分的时间代价为 $O(\\log n)$，一共有 $n$ 次，总时间代价为 $O(n \\log n)$；循环执行 $n$ 次，每次进行 $O(\\log n)$ 的修改和 $O(\\log n)$ 的查找，总时间代价为 $O(n \\log n)$。故渐进时间复杂度为 $O(n \\log n)$。\n- 空间复杂度：树状数组需要使用长度为 $n$ 的数组作为辅助空间，故渐进空间复杂度为 $O(n)$。",
+            "slateValue": "",
+            "slug": "shu-zu-zhong-de-ni-xu-dui-by-leetcode-solution",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "Yy9X1Z",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 569,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 53,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 16,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Binary Indexed Tree",
+                    "nameTranslated": "树状数组",
+                    "slug": "binary-indexed-tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Divide and Conquer",
+                    "nameTranslated": "分治",
+                    "slug": "divide-and-conquer",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-04-23T13:37:36.020721+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "📖 文字题解 方法一：归并排序 预备知识 「归并排序」是分治思想的典型应用，它包含这样三个步骤： 分解： 待排序的区间为 $[l, r]$，令 $m = \\lfloor \\frac{l + r}{2} \\rfloor$，我们把 $[l, r]$ 分成 $[l, m]$ 和 $[m + 1, r]$ 解决： 使用归并排序",
+            "topic": {
+                "id": 216984,
+                "subscribed": false,
+                "commentCount": 456,
+                "viewCount": 162741,
+                "post": {
+                    "id": 581168,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 876,
+            "isEditorsPick": false,
+            "hitCount": 316526,
+            "videosInfo": [
+                {
+                    "videoId": "5bfd4fd23a924db2b7e8659562655794",
+                    "coverUrl": "https://video.leetcode.cn/image/cover/152BFF2E02F74805A7CFBDE2AADB9078-6-2.png?auth_key=1782484335-68b230f4caee48a98ddccfe02a1283fc-0-43dc0554af2ee2b0f085b90323b0dac2",
+                    "duration": 1064.448
+                }
+            ],
+            "question": {
+                "titleSlug": "shu-zu-zhong-de-ni-xu-dui-lcof",
+                "questionFrontendId": "LCR 170"
+            },
+            "next": {
+                "slug": "jian-zhi-offer-51-shu-zu-zhong-de-ni-xu-pvn2h",
+                "title": "LCR 170. 交易逆序对的总数（归并排序，清晰图解）"
+            },
+            "prev": null
+        }
+    }
+}

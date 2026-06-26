@@ -1,0 +1,96 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "cP4L0j",
+            "title": "移除指定数字得到的最大结果",
+            "content": "#### 方法一：枚举移除下标\n\n**思路与算法**\n\n我们可以遍历 $\\textit{number}$ 寻找所有可以移除的下标。同时我们用字符串 $\\textit{res}$ 记录可以得到的最大结果。$\\textit{res}$ 初始为空字符串。每当我们找到 $\\textit{number}[i] = \\textit{digit}$ 的下标 $i$，我们构造移除下标 $i$ 后的字符串 $\\textit{tmp}$。由于移除下标后字符串的长度一定相等，因此**字典序的大小关系等于对应数值的大小关系**。同时由于空字符串在字典序中小于任何非空字符串，我们只需要令 $\\textit{res}$ 等于 $\\textit{res}$ 与 $\\textit{tmp}$ 的较大值即可。最终，我们返回 $\\textit{res}$ 作为答案。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    string removeDigit(string number, char digit) {\n        int n = number.size();\n        string res;   // 可以得到的最大结果\n        for (int i = 0; i < n; ++i) {\n            if (number[i] == digit) {\n                string tmp = number.substr(0, i);\n                tmp.append(number.substr(i + 1, n - i));\n                res = max(res, tmp);\n            }\n        }\n        return res;\n    }\n};\n```\n\n\n```Python [sol1-Python3]\nclass Solution:\n    def removeDigit(self, number: str, digit: str) -> str:\n        n = len(number)\n        res = \"\"   # 可以得到的最大结果\n        for i in range(n):\n            if number[i] == digit:\n                tmp = number[:i] + number[i+1:]\n                res = max(res, tmp)\n        return res\n```\n\n\n**复杂度分析**\n\n- 时间复杂度：$O(n^2)$，其中 $n$ 为 $\\textit{number}$ 的长度。我们至多需要移除 $O(n)$ 次字符串，每次生成移除后字符串并比较的时间复杂度为 $O(n)$。\n\n- 空间复杂度：$O(n)$，即为生成移除后字符串时辅助字符串的空间开销。\n\n\n#### 方法二：贪心\n\n**提示 $1$**\n\n按照以下策略移除数字可以使得最终结果最大：\n\n1. 我们从左至右遍历 $\\textit{number}$，如果遍历到 $\\textit{number}[i] = \\textit{digit}$，且 $\\textit{number}[i] < \\textit{number}[i + 1]$（如果存在，下同），则我们删除该字符后得到的结果最大；\n\n2. 如果遍历完成依旧不存在满足上一个条件的下标，则我们删除 $\\textit{digit}$ 出现的最后一个下标，此时删除该字符后得到的结果最大。\n\n**提示 $1$ 解释**\n\n我们可以以条件 $2$ 得到的数 $\\textit{num}$ 作为基准，并将其与其它可能得到的结果进行比较。\n\n首先，如果移除的位数 $i$ 更靠前，移除后的结果与 $\\textit{num}$ 之差的**绝对值**一定更高。\n\n其次，我们根据 $\\textit{number}[i]$ 与 $\\textit{number}[i + 1]$ 的大小关系分类讨论：\n\n- $\\textit{number}[i] < \\textit{number}[i + 1]$，此时删除后的结果一定大于 $\\textit{num}$，且**大于删除后面所有位置得到的结果**。\n\n- $\\textit{number}[i] = \\textit{number}[i + 1]$，此时删除 $\\textit{number}[i]$ 与删除 $\\textit{number}[i + 1]$ 得到的结果相同；\n\n- $\\textit{number}[i] > \\textit{number}[i + 1]$，此时删除后的结果一定小于 $\\textit{num}$，因此我们不能删除该元素。\n\n综上，**提示 $1$** 中的方法一定可以使得最终结果最大。\n\n**思路与算法**\n\n我们可以根据 **提示 $1$** 找到最佳的删除下标。\n\n具体地，我们从左至右遍历 为 $\\textit{number}$，并用 $\\textit{last}$ 记录最近遍历到的可以删除的下标。如果遍历到 $\\textit{number}[i] = \\textit{digit}$时，我们将 $\\textit{last}$ 更新为 $i$。如果还满足 $\\textit{number}[i] < \\textit{number}[i + 1]$，则我们返回删除该字符得到的结果作为答案。\n\n如果遍历完成后仍未找到符合上述要求的下标，则我们删除 $\\textit{last}$ 下标对应的字符并返回。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    string removeDigit(string number, char digit) {\n        int n = number.size();\n        int last = -1; // 最后一个可删除的下标\n        for (int i = 0; i < n; ++i) {\n            if (number[i] == digit) {\n                last = i;\n                if (i + 1 < n && number[i] < number[i + 1]) {\n                    string res = number.substr(0, i);\n                    res.append(number.substr(i + 1, n - i));\n                    return res;\n                }\n            }\n        }\n        string res = number.substr(0, last);\n        res.append(number.substr(last + 1, n - last));\n        return res;\n    }\n};\n```\n\n\n```Python [sol1-Python3]\nclass Solution:\n    def removeDigit(self, number: str, digit: str) -> str:\n        n = len(number)\n        last = -1   # 最后一个可删除的下标\n        for i in range(n):\n            if number[i] == digit:\n                last = i\n                if i < n - 1 and number[i] < number[i+1]:\n                    return number[:i] + number[i+1:]\n        return number[:last] + number[last+1:]\n```\n\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 为 $\\textit{number}$ 的长度。即为寻找最佳移除位置和构造移除后字符串的时间复杂度。\n\n- 空间复杂度：$O(n)$，即为生成移除后字符串时辅助字符串的空间开销。",
+            "slateValue": "",
+            "slug": "yi-chu-zhi-ding-shu-zi-de-dao-de-zui-da-ikpqo",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "cP4L0j",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 6,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Greedy",
+                    "nameTranslated": "贪心",
+                    "slug": "greedy",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-05-11T06:04:35.203424+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：枚举移除下标 思路与算法 我们可以遍历 [latex] 寻找所有可以移除的下标。同时我们用字符串 [latex] 记录可以得到的最大结果。[latex] 初始为空字符串。每当我们找到 [latex] 的下标 [latex]，我们构造移除下标 [latex] 后的字符串 [latex]。由于移除下标后字符串的长度",
+            "topic": {
+                "id": 1486072,
+                "subscribed": false,
+                "commentCount": 21,
+                "viewCount": 1704,
+                "post": {
+                    "id": 3043290,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 16,
+            "isEditorsPick": false,
+            "hitCount": 5964,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "remove-digit-from-number-to-maximize-result",
+                "questionFrontendId": "2259"
+            },
+            "next": {
+                "slug": "bao-li-by-endlesscheng-g5qz",
+                "title": "暴力（附 Python 一行）"
+            },
+            "prev": null
+        }
+    }
+}

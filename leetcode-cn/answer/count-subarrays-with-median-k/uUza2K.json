@@ -1,0 +1,136 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "uUza2K",
+            "title": "统计中位数为 K 的子数组",
+            "content": "#### 方法一：前缀和\n\n由于数组 $\\textit{nums}$ 的长度是 $n$，数组由从 $1$ 到 $n$ 的不同整数组成，因此数组中的元素各不相同，满足 $1 \\le k \\le n$ 的正整数 $k$ 在数组中恰好出现一次。\n\n用 $\\textit{kIndex}$ 表示正整数 $k$ 在数组 $\\textit{nums}$ 中的下标。根据中位数的定义，中位数等于 $k$ 的非空子数组应满足以下条件：\n\n- 子数组的开始下标小于等于 $\\textit{kIndex}$ 且结束下标大于等于 $\\textit{kIndex}$；\n\n- 子数组中的大于 $k$ 的元素个数与小于 $k$ 的元素个数之差为 $0$ 或 $1$。\n\n为了计算每个子数组中的大于 $k$ 的元素个数与小于 $k$ 的元素个数之差，需要将原始数组做转换，将大于 $k$ 的元素转换成 $1$，小于 $k$ 的元素转换成 $-1$，等于 $k$ 的元素转换成 $0$，转换后的数组中，每个子数组的元素和为对应的原始子数组中的大于 $k$ 的元素个数与小于 $k$ 的元素个数之差。\n\n为了在转换后的数组中寻找符合要求的子数组，可以计算转换后的数组的前缀和，根据前缀和寻找符合要求的子数组。规定空前缀的前缀和是 $0$ 且对应下标 $-1$。如果存在下标 $\\textit{left}$ 和 $\\textit{right}$ 满足 $-1 \\le \\textit{left} < \\textit{kIndex} \\le \\textit{right} < n$ 且下标 $\\textit{right}$ 处的前缀和与下标 $\\textit{left}$ 处的前缀和之差为 $0$ 或 $1$，则等价于下标范围 $[\\textit{left} + 1, \\textit{right}]$ 包含下标 $\\textit{kIndex}$ 且该下标范围的转换后的子数组的元素和为 $0$ 或 $1$，对应该下标范围的原始子数组的中位数等于 $k$。\n\n根据上述分析，可以从左到右遍历数组 $\\textit{nums}$，遍历过程中计算转换后的数组的前缀和，并计算中位数等于 $k$ 的非空子数组的数目。\n\n使用哈希表记录转换后的数组的每个前缀和的出现次数。由于空前缀的前缀和是 $0$，因此首先将前缀和 $0$ 与次数 $1$ 存入哈希表。\n\n用 $\\textit{sum}$ 表示转换后的数组的前缀和，遍历过程中维护 $\\textit{sum}$ 的值。对于 $0 \\le i < n$，当遍历到下标 $i$ 时，更新 $\\textit{sum}$ 的值，然后执行如下操作：\n\n- 如果 $i < \\textit{kIndex}$，则下标 $i + 1$ 可以作为中位数等于 $k$ 的非空子数组的开始下标，将 $\\textit{sum}$ 在哈希表中的出现次数加 $1$；\n\n- 如果 $i \\ge \\textit{kIndex}$，则下标 $i$ 可以作为中位数等于 $k$ 的非空子数组的结束下标，从哈希表中获得前缀和 $\\textit{sum}$ 的出现次数 $\\textit{prev}_0$ 与前缀和 $\\textit{sum} - 1$ 的出现次数 $\\textit{prev}_1$，则以下标 $i$ 作为结束下标且中位数等于 $k$ 的非空子数组的数目是 $\\textit{prev}_0 + \\textit{prev}_1$，将答案增加 $\\textit{prev}_0 + \\textit{prev}_1$。\n\n遍历结束之后，即可得到中位数等于 $k$ 的非空子数组的数目。\n\n```Python [sol1-Python3]\nclass Solution:\n    def sign(self, num: int) -> int:\n        return (num > 0) - (num < 0)\n\n    def countSubarrays(self, nums: List[int], k: int) -> int:\n        kIndex = nums.index(k)\n        ans = 0\n        counts = Counter()\n        counts[0] = 1\n        sum = 0\n        for i, num in enumerate(nums):\n            sum += self.sign(num - k)\n            if i < kIndex:\n                counts[sum] += 1\n            else:\n                prev0 = counts[sum]\n                prev1 = counts[sum - 1]\n                ans += prev0 + prev1\n        return ans\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int countSubarrays(int[] nums, int k) {\n        int n = nums.length;\n        int kIndex = -1;\n        for (int i = 0; i < n; i++) {\n            if (nums[i] == k) {\n                kIndex = i;\n                break;\n            }\n        }\n        int ans = 0;\n        Map<Integer, Integer> counts = new HashMap<Integer, Integer>();\n        counts.put(0, 1);\n        int sum = 0;\n        for (int i = 0; i < n; i++) {\n            sum += sign(nums[i] - k);\n            if (i < kIndex) {\n                counts.put(sum, counts.getOrDefault(sum, 0) + 1);\n            } else {\n                int prev0 = counts.getOrDefault(sum, 0);\n                int prev1 = counts.getOrDefault(sum - 1, 0);\n                ans += prev0 + prev1;\n            }\n        }\n        return ans;\n    }\n\n    public int sign(int num) {\n        if (num == 0) {\n            return 0;\n        }\n        return num > 0 ? 1 : -1;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int CountSubarrays(int[] nums, int k) {\n        int n = nums.Length;\n        int kIndex = -1;\n        for (int i = 0; i < n; i++) {\n            if (nums[i] == k) {\n                kIndex = i;\n                break;\n            }\n        }\n        int ans = 0;\n        IDictionary<int, int> counts = new Dictionary<int, int>();\n        counts.Add(0, 1);\n        int sum = 0;\n        for (int i = 0; i < n; i++) {\n            sum += sign(nums[i] - k);\n            if (i < kIndex) {\n                if (!counts.ContainsKey(sum)) {\n                    counts.Add(sum, 1);\n                } else {\n                    counts[sum]++;\n                }\n            } else {\n                int prev0 = counts.ContainsKey(sum) ? counts[sum] : 0;\n                int prev1 = counts.ContainsKey(sum - 1) ? counts[sum - 1] : 0;\n                ans += prev0 + prev1;\n            }\n        }\n        return ans;\n    }\n\n    public int sign(int num) {\n        if (num == 0) {\n            return 0;\n        }\n        return num > 0 ? 1 : -1;\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    inline int sign(int num) {\n        if (num == 0) {\n            return 0;\n        }\n        return num > 0 ? 1 : -1;\n    }\n\n    int countSubarrays(vector<int>& nums, int k) {\n        int n = nums.size();\n        int kIndex = -1;\n        for (int i = 0; i < n; i++) {\n            if (nums[i] == k) {\n                kIndex = i;\n                break;\n            }\n        }\n        int ans = 0;\n        unordered_map<int, int> counts;\n        counts[0] = 1;\n        int sum = 0;\n        for (int i = 0; i < n; i++) {\n            sum += sign(nums[i] - k);\n            if (i < kIndex) {\n                counts[sum]++;\n            } else {\n                int prev0 = counts[sum];\n                int prev1 = counts[sum - 1];\n                ans += prev0 + prev1;\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```C [sol1-C]\ntypedef struct {\n    int key;\n    int val;\n    UT_hash_handle hh;\n} HashItem; \n\nHashItem *hashFindItem(HashItem **obj, int key) {\n    HashItem *pEntry = NULL;\n    HASH_FIND_INT(*obj, &key, pEntry);\n    return pEntry;\n}\n\nbool hashAddItem(HashItem **obj, int key, int val) {\n    if (hashFindItem(obj, key)) {\n        return false;\n    }\n    HashItem *pEntry = (HashItem *)malloc(sizeof(HashItem));\n    pEntry->key = key;\n    pEntry->val = val;\n    HASH_ADD_INT(*obj, key, pEntry);\n    return true;\n}\n\nbool hashSetItem(HashItem **obj, int key, int val) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        hashAddItem(obj, key, val);\n    } else {\n        pEntry->val = val;\n    }\n    return true;\n}\n\nint hashGetItem(HashItem **obj, int key, int defaultVal) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        return defaultVal;\n    }\n    return pEntry->val;\n}\n\nvoid hashFree(HashItem **obj) {\n    HashItem *curr = NULL, *tmp = NULL;\n    HASH_ITER(hh, *obj, curr, tmp) {\n        HASH_DEL(*obj, curr);  \n        free(curr);             \n    }\n}\n\nstatic inline int sign(int num) {\n    if (num == 0) {\n        return 0;\n    }\n    return num > 0 ? 1 : -1;\n}\n\nint countSubarrays(int* nums, int numsSize, int k) {\n    int kIndex = -1;\n    for (int i = 0; i < numsSize; i++) {\n        if (nums[i] == k) {\n            kIndex = i;\n            break;\n        }\n    }\n    int ans = 0;\n    HashItem *counts = NULL;\n    hashAddItem(&counts, 0, 1);\n    int sum = 0;\n    for (int i = 0; i < numsSize; i++) {\n        sum += sign(nums[i] - k);\n        if (i < kIndex) {\n            hashSetItem(&counts, sum, hashGetItem(&counts, sum, 0) + 1);\n        } else {\n            int prev0 = hashGetItem(&counts, sum, 0);\n            int prev1 = hashGetItem(&counts, sum - 1, 0);\n            ans += prev0 + prev1;\n        }\n    }\n    hashFree(&counts);\n    return ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar countSubarrays = function(nums, k) {\n    const n = nums.length;\n    let kIndex = -1;\n    for (let i = 0; i < n; i++) {\n        if (nums[i] === k) {\n            kIndex = i;\n            break;\n        }\n    }\n    let ans = 0;\n    const counts = new Map();\n    counts.set(0, 1);\n    let sum = 0;\n    for (let i = 0; i < n; i++) {\n        sum += sign(nums[i] - k);\n        if (i < kIndex) {\n            counts.set(sum, (counts.get(sum) || 0) + 1);\n        } else {\n            const prev0 = (counts.get(sum) || 0);\n            const prev1 = (counts.get(sum - 1) || 0);\n            ans += prev0 + prev1;\n        }\n    }\n    return ans;\n}\n\nconst sign = (num) => {\n    if (num === 0) {\n        return 0;\n    }\n    return num > 0 ? 1 : -1;\n};\n```\n\n```go [sol1-Golang]\nfunc countSubarrays(nums []int, k int) int {\n    kIndex := -1\n    for i, num := range nums {\n        if num == k {\n            kIndex = i\n            break\n        }\n    }\n    ans := 0\n    counts := map[int]int{}\n    counts[0] = 1\n    sum := 0\n    for i, num := range nums {\n        sum += sign(num - k)\n        if i < kIndex {\n            counts[sum]++\n        } else {\n            prev0 := counts[sum]\n            prev1 := counts[sum-1]\n            ans += prev0 + prev1\n        }\n    }\n    return ans\n}\n\nfunc sign(num int) int {\n    if num == 0 {\n        return 0\n    }\n    if num > 0 {\n        return 1\n    }\n    return -1\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是数组 $\\textit{nums}$ 的长度。遍历数组寻找正整数 $k$ 所在下标需要 $O(n)$ 的时间，遍历数组计算中位数等于 $k$ 的非空子数组数目需要 $O(n)$ 的时间。\n\n- 空间复杂度：$O(n)$，其中 $n$ 是数组 $\\textit{nums}$ 的长度。哈希表需要 $O(n)$ 的空间。",
+            "slateValue": "",
+            "slug": "tong-ji-zhong-wei-shu-wei-k-de-zi-shu-zu-ryix",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "uUza2K",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 36,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 0,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Prefix Sum",
+                    "nameTranslated": "前缀和",
+                    "slug": "prefix-sum",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-03-15T07:49:00.112007+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：前缀和 由于数组 $\\textit{nums}$ 的长度是 $n$，数组由从 $1$ 到 $n$ 的不同整数组成，因此数组中的元素各不相同，满足 $1 \\le k \\le n$ 的正整数 $k$ 在数组中恰好出现一次。 用 $\\textit{kIndex}$ 表示正整数 $k$ 在数组 $\\textit{num",
+            "topic": {
+                "id": 2170462,
+                "subscribed": false,
+                "commentCount": 81,
+                "viewCount": 1386,
+                "post": {
+                    "id": 4127084,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 45,
+            "isEditorsPick": false,
+            "hitCount": 19215,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "count-subarrays-with-median-k",
+                "questionFrontendId": "2488"
+            },
+            "next": {
+                "slug": "deng-jie-zhuan-huan-pythonjavacgo-by-end-5w11",
+                "title": "转化成 560 题，一次遍历（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

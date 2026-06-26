@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "iSXTcw",
+            "title": "统计树中的合法路径数目",
+            "content": "#### 方法一：埃氏筛 + 深度优先搜索\n\n**思路与算法**\n\n根据题意，我们需要知道一个数是不是质数，可以采用「埃氏筛」来找出范围内所有的质数。关于质数筛选，可以参考题解[204. 计数质数](https://leetcode.cn/problems/count-primes/solutions/507273/ji-shu-zhi-shu-by-leetcode-solution/)。\n\n然后我们分别以质数节点为根，用「深度优先搜索」的方式，递归搜索所有的非质数的子树，并求出所有子树的大小，搜索过程中只搜索非质数节点。任何两个来自不同子树的节点，其路径都通过质数根节点，路径上恰好只有根节点一个质数节点，根据题意路径是合法的。我们只需要把所子树大小，两两相乘并求和，就可以得到包含根节点的所有合法路径。\n\n遍历所有质数节点，并且重复上述过程，便可以得到所有合法路径的数目，返回为最终结果。\n\n**代码**\n\n```C++ [sol1-C++]\nconst int N = 100001;\nbool isPrime[N];\nint init = []() {\n    // 埃氏筛\n    fill(begin(isPrime), end(isPrime), true);\n    isPrime[1] = false;\n    for (int i = 2; i * i < N; i++) {\n        if (isPrime[i]) {\n            for (int j = i * i; j < N; j += i) {\n                isPrime[j] = false;\n            }\n        }\n    }\n    return 0;\n}();\n\nclass Solution {\nprivate:\n    void dfs(const vector<vector<int>>& G, vector<int>& seen, int i, int pre) {\n        seen.push_back(i);\n        for (int j : G[i]) {\n            if (j != pre && !isPrime[j]) {\n                dfs(G, seen, j, i);\n            }\n        }\n    }\npublic:\n    long long countPaths(int n, const vector<vector<int>>& edges) {\n        fill(begin(isPrime), end(isPrime), true);\n        isPrime[1] = false;\n        for (int i = 2; i * i <= n; i++) {\n            if (isPrime[i]) {\n                for (int j = i * i; j <= n; j += i) {\n                    isPrime[j] = false;\n                }\n            }\n        }\n\n        vector<vector<int>> G(n + 1);\n        for (const auto& edge : edges) {\n            int i = edge[0];\n            int j = edge[1];\n            G[i].push_back(j);\n            G[j].push_back(i);\n        }\n\n        vector<int> seen;\n        long long res = 0;\n        vector<long long> count(n + 1, 0);\n        for (int i = 1; i <= n; i++) {\n            if (!isPrime[i]) {\n                continue;\n            }\n            long long cur = 0;\n            for (int j : G[i]) {\n                if (isPrime[j]) {\n                    continue;\n                }\n                if (count[j] == 0) {\n                    seen.clear();\n                    dfs(G, seen, j, 0);\n                    long long cnt = seen.size();\n                    for (int k : seen) {\n                        count[k] = cnt;\n                    }\n                }\n                res += count[j] * cur;\n                cur += count[j];\n            }\n            res += cur;\n        }\n        return res;\n    }\n};\n```\n\n```Java [sol1-Java]\npublic class Solution {\n    // 埃氏筛\n    private static final int N = 100001;\n    private static boolean[] isPrime = new boolean[N];\n    static {\n        Arrays.fill(isPrime, true);\n        isPrime[1] = false;\n        for (int i = 2; i * i < N; i++) {\n            if (isPrime[i]) {\n                for (int j = i * i; j < N; j += i) {\n                    isPrime[j] = false;\n                }\n            }\n        }\n    }\n\n    public long countPaths(int n, int[][] edges) {\n        List<Integer>[] G = new ArrayList[n + 1];\n        for (int i = 0; i <= n; i++) {\n            G[i] = new ArrayList<>();\n        }\n\n        for (int[] edge : edges) {\n            int i = edge[0], j = edge[1];\n            G[i].add(j);\n            G[j].add(i);\n        }\n\n        List<Integer> seen = new ArrayList<>();\n        long res = 0;\n        long[] count = new long[n + 1];\n        for (int i = 1; i <= n; i++) {\n            if (!isPrime[i]) {\n                continue;\n            }\n            long cur = 0;\n            for (int j : G[i]) {\n                if (isPrime[j]) {\n                    continue;\n                }\n                if (count[j] == 0) {\n                    seen.clear();\n                    dfs(G, seen, j, 0);\n                    long cnt = seen.size();\n                    for (int k : seen) {\n                        count[k] = cnt;\n                    }\n                }\n                res += count[j] * cur;\n                cur += count[j];\n            }\n            res += cur;\n        }\n        return res;\n    }\n\n    private void dfs(List<Integer>[] G, List<Integer> seen, int i, int pre) {\n        seen.add(i);\n        for (int j : G[i]) {\n            if (j != pre && !isPrime[j]) {\n                dfs(G, seen, j, i);\n            }\n        }\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    private const int N = 100001;\n    private static bool[] isPrime;\n\n    public long CountPaths(int n, int[][] edges) {\n        // 埃氏筛\n        if (isPrime == null) {\n            isPrime = new bool[N];\n            Array.Fill(isPrime, true);\n            isPrime[1] = false;\n            for (int i = 2; i * i < N; i++) {\n                if (isPrime[i]) {\n                    for (int j = i * i; j < N; j += i) {\n                        isPrime[j] = false;\n                    }\n                }\n            }\n        }\n\n        IList<int>[] G = new IList<int>[n + 1];\n        for (int i = 0; i <= n; i++) {\n            G[i] = new List<int>();\n        }\n\n        foreach (int[] edge in edges) {\n            int i = edge[0], j = edge[1];\n            G[i].Add(j);\n            G[j].Add(i);\n        }\n\n        IList<int> seen = new List<int>();\n        long res = 0;\n        long[] count = new long[n + 1];\n        for (int i = 1; i <= n; i++) {\n            if (!isPrime[i]) {\n                continue;\n            }\n            long cur = 0;\n            foreach (int j in G[i]) {\n                if (isPrime[j]) {\n                    continue;\n                }\n                if (count[j] == 0) {\n                    seen.Clear();\n                    DFS(G, seen, j, 0);\n                    long cnt = seen.Count;\n                    foreach (int k in seen) {\n                        count[k] = cnt;\n                    }\n                }\n                res += count[j] * cur;\n                cur += count[j];\n            }\n            res += cur;\n        }\n        return res;\n    }\n\n    private void DFS(IList<int>[] G, IList<int> seen, int i, int pre) {\n        seen.Add(i);\n        foreach (int j in G[i]) {\n            if (j != pre && !isPrime[j]) {\n                DFS(G, seen, j, i);\n            }\n        }\n    }\n}\n```\n\n```Python [sol1-Python3]\n# 埃氏筛\nN = 100001\nis_prime = [True] * N\nis_prime[1] = False\nfor i in range(2, N):\n    if is_prime[i]:\n        for j in range(i * i, N, i):\n            is_prime[j] = False\n\nclass Solution:\n    def countPaths(self, n: int, edges: List[List[int]]) -> int:\n        G = [[] for _ in range(n + 1)]\n        for i, j in edges:\n            G[i].append(j)\n            G[j].append(i)\n\n        def dfs(i, pre):\n            seen.append(i)\n            for j in G[i]:\n                if j != pre and not is_prime[j]:\n                    dfs(j, i)\n\n        res = 0\n        count = [0] * (n + 1)\n        for i in range(1, n + 1):\n            if not is_prime[i]:\n                continue\n            cur = 0\n            for j in G[i]:\n                if is_prime[j]:\n                    continue\n                if count[j] == 0:\n                    seen = []\n                    dfs(j, 0)\n                    for k in seen:\n                        count[k] = len(seen)\n                res += count[j] * cur\n                cur += count[j]\n            res += cur\n        return res\n```\n\n```JavaScript [sol1-JavaScript]\n// 埃氏筛\nconst N = 100001;\nlet isPrime = new Array(N).fill(true);\nisPrime[1] = false;\nfor (let i = 2; i * i < N; i++) {\n    if (isPrime[i]) {\n        for (let j = i * i; j < N; j += i) {\n            isPrime[j] = false;\n        }\n    }\n}\n\nvar countPaths = function(n, edges) {\n    let G = new Array(n + 1).fill(null).map(() => []);\n    for (const [i, j] of edges) {\n        G[i].push(j);\n        G[j].push(i);\n    }\n\n    function dfs(i, pre) {\n        seen.push(i);\n        for (const j of G[i]) {\n            if (j !== pre && !isPrime[j]) {\n                dfs(j, i);\n            }\n        }\n    }\n\n    let seen = [];\n    let res = 0;\n    let count = new Array(n + 1).fill(0);\n    for (let i = 1; i <= n; i++) {\n        if (!isPrime[i]) {\n            continue;\n        }\n        let cur = 0;\n        for (const j of G[i]) {\n            if (isPrime[j]) {\n                continue;\n            }\n            if (count[j] === 0) {\n                seen = [];\n                dfs(j, 0);\n                let cnt = seen.length;\n                for (const k of seen) {\n                    count[k] = cnt;\n                }\n            }\n            res += count[j] * cur;\n            cur += count[j];\n        }\n        res += cur;\n    }\n    return res;\n}\n```\n\n```TypeScript [sol1-TypeScript]\n// 埃氏筛\nconst N = 100001;\nlet isPrime = new Array(N).fill(true);\nisPrime[1] = false;\nfor (let i = 2; i * i < N; i++) {\n    if (isPrime[i]) {\n        for (let j = i * i; j < N; j += i) {\n            isPrime[j] = false;\n        }\n    }\n}\n\nfunction countPaths(n: number, edges: number[][]): number {\n    let G = new Array(n + 1).fill(null).map(() => []);\n    for (const [i, j] of edges) {\n        G[i].push(j);\n        G[j].push(i);\n    }\n\n    function dfs(i, pre) {\n        seen.push(i);\n        for (const j of G[i]) {\n            if (j !== pre && !isPrime[j]) {\n                dfs(j, i);\n            }\n        }\n    }\n\n    let seen = [];\n    let res = 0;\n    let count = new Array(n + 1).fill(0);\n    for (let i = 1; i <= n; i++) {\n        if (!isPrime[i]) {\n            continue;\n        }\n        let cur = 0;\n        for (const j of G[i]) {\n            if (isPrime[j]) {\n                continue;\n            }\n            if (count[j] === 0) {\n                seen = [];\n                dfs(j, 0);\n                let cnt = seen.length;\n                for (const k of seen) {\n                    count[k] = cnt;\n                }\n            }\n            res += count[j] * cur;\n            cur += count[j];\n        }\n        res += cur;\n    }\n    return res;\n}\n```\n\n```Go [sol1-Go]\n// 埃氏筛\nconst N = 100001\nvar is_prime [N]bool\nfunc init() {\n    for i := 0; i < N; i++ {\n        is_prime[i] = true\n    }\n    is_prime[1] = false\n    for i := 2; i*i < N; i++ {\n        if is_prime[i] {\n            for j := i * i; j < N; j += i {\n                is_prime[j] = false\n            }\n        }\n    }\n}\n\nfunc countPaths(n int, edges [][]int) int64 {\n    G := make([][]int, n + 1)\n    for _, edge := range edges {\n        i, j := edge[0], edge[1]\n        G[i] = append(G[i], j)\n        G[j] = append(G[j], i)\n    }\n\n    var dfs func(int, int)\n    var seen []int\n    dfs = func(i, pre int) {\n        seen = append(seen, i)\n        for _, j := range G[i] {\n            if j != pre && !is_prime[j] {\n                dfs(j, i)\n            }\n        }\n    }\n    res := int64(0)\n    count := make([]int64, n+1)\n    for i := 1; i <= n; i++ {\n        if !is_prime[i] {\n            continue\n        }\n        cur := int64(0)\n        for _, j := range G[i] {\n            if is_prime[j] {\n                continue\n            }\n            if count[j] == 0 {\n                seen = []int{}\n                dfs(j, 0)\n                cnt := int64(len(seen))\n                for _, k := range seen {\n                    count[k] = cnt\n                }\n            }\n            res += count[j] * cur\n            cur += count[j]\n        }\n        res += cur\n    }\n    return res\n}\n```\n\n```C [sol1-C]\n#define N 100001\nbool isPrime[N];\n\ntypedef struct {\n    int key;\n    UT_hash_handle hh;\n} HashItem;\n\nHashItem *hashFindItem(HashItem **obj, long long key) {\n    HashItem *pEntry = NULL;\n    HASH_FIND_INT(*obj, &key, pEntry);\n    return pEntry;\n}\n\nbool hashAddItem(HashItem **obj, int key) {\n    if (hashFindItem(obj, key)) {\n        return false;\n    }\n    HashItem *pEntry = (HashItem *)malloc(sizeof(HashItem));\n    pEntry->key = key;\n    HASH_ADD_INT(*obj, key, pEntry);\n    return true;\n}\n\nvoid hashFree(HashItem **obj) {\n    HashItem *curr = NULL, *tmp = NULL;\n    HASH_ITER(hh, *obj, curr, tmp) {\n        HASH_DEL(*obj, curr);\n        free(curr);\n    }\n}\n\nstruct ListNode *createListNode(int val) {\n    struct ListNode *obj = (struct ListNode *)malloc(sizeof(struct ListNode));\n    obj->val = val;\n    obj->next = NULL;\n    return obj;\n}\n\nvoid freeList(struct ListNode *list) {\n    while(list) {\n        struct ListNode *p = list;\n        list = list->next;\n        free(p);\n    }\n}\n\nvoid dfs(struct ListNode **G, HashItem **seen, int i, int pre) {\n    hashAddItem(seen, i);\n    for (struct ListNode *p = G[i]; p; p = p->next) {\n        int j = p->val;\n        if (j != pre && !isPrime[j]) {\n            dfs(G, seen, j, i);\n        }\n    }\n}\n\nlong long countPaths(int n, int** edges, int edgesSize, int* edgesColSize) {\n    // 埃氏筛\n    memset(isPrime, 1, sizeof(isPrime));\n    isPrime[1] = false;\n    for (int i = 2; i * i <= n; i++) {\n        if (isPrime[i]) {\n            for (int j = i * i; j <= n; j += i) {\n                isPrime[j] = false;\n            }\n        }\n    }\n\n    struct ListNode *G[n + 1];\n    for (int i = 0; i <= n; i++) {\n        G[i] = NULL;\n    }\n    for (int i = 0; i < edgesSize; i++) {\n        int x = edges[i][0], y = edges[i][1];\n        struct ListNode *nodex = createListNode(x);\n        nodex->next = G[y];\n        G[y] = nodex;\n        struct ListNode *nodey = createListNode(y);\n        nodey->next = G[x];\n        G[x] = nodey;\n    }\n\n    HashItem *seen = NULL;\n    long long res = 0;\n    long long count[n + 1];\n    memset(count, 0, sizeof(count));\n    for (int i = 1; i <= n; i++) {\n        if (!isPrime[i]) {\n            continue;\n        }\n        long long cur = 0;\n        for (struct ListNode *p = G[i]; p; p = p->next) {\n            int j = p->val;\n            if (isPrime[j]) {\n                continue;\n            }\n            if (count[j] == 0) {\n                hashFree(&seen);\n                seen = NULL;\n                dfs(G, &seen, j, 0);\n                long long cnt = HASH_COUNT(seen);\n                for (HashItem *pEntry = seen; pEntry; pEntry = pEntry->hh.next) {\n                    int k = pEntry->key;\n                    count[k] = cnt;\n                }\n            }\n            res += count[j] * cur;\n            cur += count[j];\n        }\n        res += cur;\n    }\n    for (int i = 0; i <= n; i++) {\n        free(G[i]);\n    }\n    hashFree(&seen);\n    return res;\n}\n```\n\n**复杂度分析**\n对于埃氏筛\n- 时间复杂度：$O(n\\times\\log\\log n)$，其中 $n$ 是要筛查的数字范围。\n- 空间复杂度：$O(n)$，其中 $n$ 是要筛查的数字范围。\n\n对于其余算法部分\n- 时间复杂度：$O(n)$，其中 $n$ 是树的大小。\n- 空间复杂度：$O(n)$，其中 $n$ 是树的大小。",
+            "slateValue": "",
+            "slug": "tong-ji-shu-zhong-de-he-fa-lu-jing-shu-m-yyuw",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "iSXTcw",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 19,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Tree",
+                    "nameTranslated": "树",
+                    "slug": "tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Depth-First Search",
+                    "nameTranslated": "深度优先搜索",
+                    "slug": "depth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Number Theory",
+                    "nameTranslated": "数论",
+                    "slug": "number-theory",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2024-02-26T02:27:36.085424+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：埃氏筛 + 深度优先搜索 思路与算法 根据题意，我们需要知道一个数是不是质数，可以采用「埃氏筛」来找出范围内所有的质数。关于质数筛选，可以参考题解204. 计数质数。 然后我们分别以质数节点为根，用「深度优先搜索」的方式，递归搜索所有的非质数的子树，并求出所有子树的大小，搜索过程中只搜索非质数节点。任何两个来自",
+            "topic": {
+                "id": 2654126,
+                "subscribed": false,
+                "commentCount": 44,
+                "viewCount": 1003,
+                "post": {
+                    "id": 4893529,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 56,
+            "isEditorsPick": false,
+            "hitCount": 16691,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "count-valid-paths-in-a-tree",
+                "questionFrontendId": "2867"
+            },
+            "next": {
+                "slug": "tu-jie-on-xian-xing-zuo-fa-pythonjavacgo-tjz2",
+                "title": "【图解】O(n) 线性做法（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

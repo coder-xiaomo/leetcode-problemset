@@ -1,0 +1,126 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "XnpRWN",
+            "title": "价值和小于等于 K 的最大数字",
+            "content": "#### 方法一：二分查找\n\n**思路**\n\n记函数 $\\textit{accumulatedPrice}(\\textit{num}, x)$ 是 $\\textit{num}$ 的累加价值，那么这道题就要求解最大的 $\\textit{num}$，并且满足 $\\textit{accumulatedPrice}(\\textit{num}, x) \\leq k$。$\\textit{num}$ 越大，它的累加价值就越大，因此这题可以用二分查找来求解。\n\n接下来我们需要正向求解 $\\textit{accumulatedPrice}(\\textit{num}, x)$。记函数 $\\textit{accumulatedBitPrice}(\\textit{num}, x)$ 来求解从 $1$ 到 $\\textit{num}$ 所有整数在二进制表示下在 $x$ 位置处设置位的数字之和。那么 $\\textit{accumulatedPrice}(\\textit{num}, x) = \\sum_{k=1}^n{\\textit{accumulatedBitPrice}(\\textit{num}, k\\times x)}$，其中 $n$ 为 $n\\times x$ 不超过 $\\textit{num}$ 二进制表示位数的最大值。\n\n有了上述公式，我们只需要求解 $\\textit{accumulatedBitPrice}(\\textit{num}, x)$。从 $0$ 到 $\\textit{num}$，可以发现这一位的规律是一个循环，周期为 $2^x$，前半个周期的值均为 $0$，后半个周期的值均为 $1$。利用这一规律，可以比较容易计算 $\\textit{accumulatedBitPrice}(\\textit{num}, x)$。先计算周期长度，再计算其中完整的周期可以贡献多少个 $1$，再计算剩下不足一个周期可以贡献多少个 $1$。最后返回总和。\n\n现在我们可以正向求解 $\\textit{accumulatedPrice}(\\textit{num}, x)$。唯一的问题就是需要确定二分查找的上界。我们需要确定一个数字，这个数字的累加价值一定是大于 $k$ 的。仍然按照上一段中提到的规律，如果只考虑在 $x$ 位置处设置位，那么一个长度为 $2^x$ 的周期的设置位和为 $2^{(x-1)}$，不妨令上界为 $(k + 1)\\times2^x$，这样它的累加价值一定大于 $k$。上下界和二分查找的判断都确定后，就可以通过不停地正向计算并更新上下界来求出目标值，直到上下界收敛到一个值。\n\n**代码**\n\n```Python [sol1-Python3]\nclass Solution:\n    def findMaximumNumber(self, k: int, x: int) -> int:\n        l, r = 1, (k + 1) << x\n        while l < r:\n            m = (l + r + 1) // 2\n            if self.accumulatedPrice(x, m) > k:\n                r = m - 1\n            else:\n                l = m\n        return l\n\n    def accumulatedPrice(self, x: int, num: int) -> int:\n        res = 0\n        length = len(bin(num)) - 2\n        for i in range(x, length + 1, x):\n            res += self.accumulatedBitPrice(i, num)\n        return res\n\n    def accumulatedBitPrice(self, x: int, num: int) -> int:\n        period = 1 << x\n        res = (period // 2) * (num // period)\n        if num % period >= (period // 2):\n            res += num % period - ((period // 2) - 1)\n        return res\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public long findMaximumNumber(long k, int x) {\n        long l = 1, r = (k + 1) << x;\n        while (l < r) {\n            long m = (l + r + 1) / 2;\n            if (accumulatedPrice(x, m) > k) {\n                r = m - 1;\n            } else {\n                l = m;\n            }\n        }\n        return l;\n    }\n\n    public long accumulatedPrice(int x, long num) {\n        long res = 0;\n        int length = 64 - Long.numberOfLeadingZeros(num);\n        for (int i = x; i <= length; i += x) {\n            res += accumulatedBitPrice(i, num);\n        }\n        return res;\n    }\n\n    public long accumulatedBitPrice(int x, long num) {\n        long period = 1L << x;\n        long res = period / 2 * (num / period);\n        if (num % period >= period / 2) {\n            res += num % period - (period / 2 - 1);\n        }\n        return res;\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    long long findMaximumNumber(long long k, int x) {\n        long long l = 1, r = (k + 1) << x;\n        while (l < r) {\n            long long m = (l + r + 1) / 2;\n            if (accumulatedPrice(x, m) > k) {\n                r = m - 1;\n            } else {\n                l = m;\n            }\n        }\n        return l;\n    }\n\n    long long accumulatedBitPrice(int x, long long num) {\n        long long period = 1LL << x;\n        long long res = period / 2 * (num / period);\n        if (num % period >= period / 2) {\n            res += num % period - (period / 2 - 1);\n        }\n        return res;\n    }\n\n    long long accumulatedPrice(int x, long long num) {\n        long long res = 0;\n        int length = 64 - __builtin_clzll(num);\n        for (int i = x; i <= length; i += x) {\n            res += accumulatedBitPrice(i, num);\n        }\n        return res;\n    }\n};\n```\n\n```C [sol1-C]\nlong long accumulatedBitPrice(int x, long long num) {\n    long long period = 1LL << x;\n    long long res = period / 2 * (num / period);\n    if (num % period >= period / 2) {\n        res += num % period - (period / 2 - 1);\n    }\n    return res;\n}\n\nlong long accumulatedPrice(int x, long long num) {\n    long long res = 0;\n    int length = 64 - __builtin_clzll(num);\n    for (int i = x; i <= length; i += x) {\n        res += accumulatedBitPrice(i, num);\n    }\n    return res;\n}\n\nlong long findMaximumNumber(long long k, int x) {\n    long long l = 1, r = (k + 1) << x;\n    while (l < r) {\n        long long m = (l + r + 1) / 2;\n        if (accumulatedPrice(x, m) > k) {\n            r = m - 1;\n        } else {\n            l = m;\n        }\n    }\n    return l;\n}\n```\n\n```Go [sol1-Go]\nfunc findMaximumNumber(k int64, x int) int64 {\n    l, r := int64(1), (k + 1) << x\n    for l < r {\n        m := (l + r + 1) / 2\n        if accumulatedPrice(x, m) > k {\n            r = m - 1\n        } else {\n            l = m\n        }\n    }\n    return l\n}\n\nfunc accumulatedBitPrice(x int, num int64) int64 {\n    period := int64(1) << x\n    res := period / 2 * (num / period)\n    if num % period >= period / 2 {\n        res += num % period - (period / 2 - 1)\n    }\n    return res\n}\n\nfunc accumulatedPrice(x int, num int64) int64 {\n    res := int64(0)\n    length := 64 - bits.LeadingZeros64(uint64(num))\n    for i := x; i <= length; i += x {\n        res += accumulatedBitPrice(i, num)\n    }\n    return res\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar findMaximumNumber = function(k, x) {\n    let l = 1n, r = (BigInt(k) + 1n) << BigInt(x);\n    while (l < r) {\n        let m = (l + r + 1n) / 2n;\n        if (accumulatedPrice(x, m) > k) {\n            r = m - 1n;\n        } else {\n            l = m;\n        }\n    }\n    return Number(l);\n};\n\nfunction accumulatedBitPrice(x, num) {\n    const period = 1n << BigInt(x);\n    let res = period / 2n * (num / period);\n    if (num % period >= period / 2n) {\n        res += num % period - (period / 2n - 1n);\n    }\n    return res;\n}\n\nfunction accumulatedPrice(x, num) {\n    let res = 0n;\n    const length = 64 - Math.clz32(Number(num >> 32n));\n    for (let i = x; i <= length; i += x) {\n        res += accumulatedBitPrice(i, num);\n    }\n    return res;\n}\n```\n\n```TypeScript [sol1-TypeScript]\nfunction findMaximumNumber(k: number, x: number): number {\n    let l = 1n, r = (BigInt(k) + 1n) << BigInt(x);\n    while (l < r) {\n        let m = (l + r + 1n) / 2n;\n        if (accumulatedPrice(x, m) > k) {\n            r = m - 1n;\n        } else {\n            l = m;\n        }\n    }\n    return Number(l);\n};\n\nfunction accumulatedBitPrice(x: number, num: bigint): bigint {\n    const period = 1n << BigInt(x);\n    let res = period / 2n * (num / period);\n    if (num % period >= period / 2n) {\n        res += num % period - (period / 2n - 1n);\n    }\n    return res;\n}\n\nfunction accumulatedPrice(x: number, num: bigint): bigint {\n    let res = 0n;\n    const length = 64 - Math.clz32(Number(num >> 32n));\n    for (let i = x; i <= length; i += x) {\n        res += accumulatedBitPrice(i, num);\n    }\n    return res;\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn find_maximum_number(k: i64, x: i32) -> i64 {\n        let (mut l, mut r) = (1i64, (k + 1) << x);\n        while l < r {\n            let m = (l + r + 1) / 2;\n            if Self::accumulated_price(x, m) > k {\n                r = m - 1;\n            } else {\n                l = m;\n            }\n        }\n        return l;\n    }\n\n    fn accumulated_bit_price(x: i32, num: i64) -> i64 {\n        let period = 1i64 << x;\n        let mut res = period / 2 * (num / period);\n        if num % period >= period / 2 {\n            res += num % period - (period / 2 - 1);\n        }\n        return res;\n    }\n\n    fn accumulated_price(x: i32, num: i64) -> i64 {\n        let mut res = 0i64;\n        let length = 64 - num.leading_zeros();\n        for i in (x..=length as i32).step_by(x as usize) {\n            res += Self::accumulated_bit_price(i, num);\n        }\n        return res;\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(x\\times(\\log^2{k}))$。上界为 $(k + 1)\\times2^x$，二分查找的次数为 $O(x\\times\\log{k})$，每次计算累加价值消耗 $O(\\log{k})$。\n\n- 空间复杂度：$O(1)$。",
+            "slateValue": "",
+            "slug": "jie-zhi-he-xiao-yu-deng-yu-k-de-zui-da-s-70ed",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "XnpRWN",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 9,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2024-08-19T02:42:56.663192+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：二分查找 思路 记函数 [latex] 是 [latex] 的累加价值，那么这道题就要求解最大的 [latex]，并且满足 [latex]。[latex] 越大，它的累加价值就越大，因此这题可以用二分查找来求解。 接下来我们需要正向求解 [latex]。记函数 [latex] 来求解从 [latex] 到 [l",
+            "topic": {
+                "id": 2885442,
+                "subscribed": false,
+                "commentCount": 48,
+                "viewCount": 717,
+                "post": {
+                    "id": 5249568,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 39,
+            "isEditorsPick": false,
+            "hitCount": 11294,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "maximum-number-that-sum-of-the-prices-is-less-than-or-equal-to-k",
+                "questionFrontendId": "3007"
+            },
+            "next": {
+                "slug": "er-fen-da-an-shu-wei-dpwei-yun-suan-pyth-tkir",
+                "title": "三种方法：二分答案+数位 DP/数学公式/试填法（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

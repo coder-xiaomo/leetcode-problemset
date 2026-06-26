@@ -1,0 +1,154 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "DNkZd7",
+            "title": "有效可见点的最大数目",
+            "content": "#### 方法一：二分查找\n\n**思路**\n\n题目本身为几何问题，需要求出在视角范围内 $[d - \\textit{angle} / 2, d + \\textit{angle} / 2]$ 内最多的点的覆盖数。在本题中视角可转换为相对于 $\\textit{location}$ 的「[极角](https://baike.baidu.com/item/%E6%9E%81%E8%A7%92/12726003?fr=aladdin)」。首先将所有点 $p$ 的坐标转化为相对于 $\\textit{location}$ 的极角，设点 $p$ 相对于 $\\textit{location}$ 的极角为 $d_{p}$，找到坐标的极角处于区间 $[d_{p},d_{p} + \\textit{angle}]$ 的最大数量即可。\n\n- 极角转换时，已知两点的坐标可以通过反三角函数来进行转换，一般可以通过反余弦 $\\texttt{acos}$，反正弦 $\\texttt{asin}$，反正切 $\\texttt{atan}$ 等函数来确定，但以上函数的返回值范围最多只能覆盖 $\\pi$，可以利用函数 $\\texttt{atan2}$，不同的语言实现可以参考不同语言的标准库函数。以 $\\texttt{C++}$ 为例，「[$\\texttt{atan2}$](https://zh.cppreference.com/w/cpp/numeric/math/atan2)」的返回值范围为 $[-\\pi,\\pi]$，它的覆盖范围为 $2\\pi$。\n\n- 我们将所有坐标的相对于 $\\textit{location}$ 极角全部求出，并按照极角的大小进行排序，我们遍历每个坐标 $p_i = (x_i,y_i)$，我们设 $p_i$ 的相对于 $\\textit{location}$ 的极角为 $d_{p_i}$，此时需要求出所有满足坐标的极角大小处在 $[d_{p_i},d_{p_i} + \\textit{angle}]$ 范围内的最大数目，可以利用二分查找快速的统计出处在 $[d_{p_i},d_{p_i} + \\textit{angle}]$ 的元素数目。特别注意的是，由于存在 $d_{p_i} + \\textit{angle} > 180\\degree$ 的情况，可以在原数组中将每个元素 $d_{p_i} + 360\\degree$ 添加到原数组的后面，这样即可防止反转的问题。\n\n- 在求极角时，对于坐标刚好处于 $\\textit{location}$ 的元素需要单独进行统计，因为当 $\\texttt{atan2}$ 的两个参数都为 $0$ 时，$\\texttt{atan2}$ 的返回值可能是未定义的，因此我们要尽量避免这种情况发生，所以需要将位于 $\\textit{location}$ 的坐标进行单独统计。\n\n**代码**\n\n```Java [sol1-Java]\nclass Solution {\n    public int visiblePoints(List<List<Integer>> points, int angle, List<Integer> location) {\n        int sameCnt = 0;\n        List<Double> polarDegrees = new ArrayList<>();\n        int locationX = location.get(0);\n        int locationY = location.get(1);\n        for (int i = 0; i < points.size(); ++i) {\n            int x = points.get(i).get(0);\n            int y = points.get(i).get(1);\n            if (x == locationX && y == locationY) {\n                sameCnt++;\n                continue;\n            }\n            Double degree = Math.atan2(y - locationY, x - locationX);\n            polarDegrees.add(degree);\n        }\n        Collections.sort(polarDegrees);\n\n        int m = polarDegrees.size();\n        for (int i = 0; i < m; ++i) {\n            polarDegrees.add(polarDegrees.get(i) + 2 * Math.PI);\n        }\n\n        int maxCnt = 0;\n        Double toDegree = angle * Math.PI / 180;\n        for (int i = 0; i < m; ++i) {\n            int iteration = binarySearch(polarDegrees, polarDegrees.get(i) + toDegree, false);\n            maxCnt = Math.max(maxCnt, iteration - i);\n        }\n        return maxCnt + sameCnt;\n    }\n\n    public int binarySearch(List<Double> nums, Double target, boolean lower) {\n        int left = 0, right = nums.size() - 1;\n        int ans = nums.size();\n        while (left <= right) {\n            int mid = (left + right) / 2;\n            if (nums.get(mid) > target || (lower && nums.get(mid) >= target)) {\n                right = mid - 1;\n                ans = mid;\n            } else {\n                left = mid + 1;\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int visiblePoints(vector<vector<int>>& points, int angle, vector<int>& location) {\n        int sameCnt = 0;\n        vector<double> polarDegrees;\n        for (auto & point : points) {\n            if (point[0] == location[0] && point[1] == location[1]) {\n                sameCnt++;\n                continue;\n            }\n            double degree = atan2(point[1] - location[1], point[0] - location[0]);\n            polarDegrees.emplace_back(degree);\n        }\n        sort(polarDegrees.begin(), polarDegrees.end());\n\n        int m = polarDegrees.size();\n        for (int i = 0; i < m; ++i) {\n            polarDegrees.emplace_back(polarDegrees[i] + 2 * M_PI);\n        }\n\n        int maxCnt = 0; \n        double degree = angle * M_PI / 180;\n        for (int i = 0; i < m; ++i) {\n            auto it = upper_bound(polarDegrees.begin() + i, polarDegrees.end(), polarDegrees[i] + degree);\n            int curr = it - polarDegrees.begin() - i;\n            maxCnt = max(maxCnt, curr);\n        }\n        return maxCnt + sameCnt;\n    }\n};\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int VisiblePoints(IList<IList<int>> points, int angle, IList<int> location) {\n        int sameCnt = 0;\n        List<double> polarDegrees = new List<double>();\n        int locationX = location[0];\n        int locationY = location[1];\n        for (int i = 0; i < points.Count; ++i) {\n            int x = points[i][0];\n            int y = points[i][1];\n            if (x == locationX && y == locationY) {\n                sameCnt++;\n                continue;\n            }\n            double degree = Math.Atan2(y - locationY, x - locationX);\n            polarDegrees.Add(degree);\n        }\n        polarDegrees.Sort();\n\n        int m = polarDegrees.Count;\n        for (int i = 0; i < m; ++i) {\n            polarDegrees.Add(polarDegrees[i] + 2 * Math.PI);\n        }\n\n        int maxCnt = 0;\n        double toDegree = angle * Math.PI / 180.0;\n        for (int i = 0; i < m; ++i) {\n            int iteration = BinarySearch(polarDegrees, polarDegrees[i] + toDegree, false);\n            maxCnt = Math.Max(maxCnt, iteration - i);\n        }\n        return maxCnt + sameCnt;\n    }\n\n    public int BinarySearch(List<double> nums, double target, bool lower) {\n        int left = 0, right = nums.Count - 1;\n        int ans = nums.Count;\n        while (left <= right) {\n            int mid = (left + right) / 2;\n            if (nums[mid] > target || (lower && nums[mid] >= target)) {\n                right = mid - 1;\n                ans = mid;\n            } else {\n                left = mid + 1;\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```C [sol1-C]\n#define PI 3.1415926\n#define MAX(a, b) ((a) > (b) ? (a) : (b))\n\nint cmp(const void* a, const void* b) {\n    double* pa = (double*)a;\n    double* pb = (double*)b;\n    return *pa > *pb ? 1 : -1;\n}\n\nint binarySearch(double* nums, int numsSize, double target, bool lower) {\n    int left = 0, right = numsSize - 1;\n    int ans = 0;\n    while (left <= right) {\n        int mid = (left + right) / 2;\n        if (nums[mid] > target || (lower && nums[mid] >= target)) {\n            right = mid - 1;\n            ans = mid;\n        } else {\n            left = mid + 1;\n        }\n    }\n    return ans;\n}\n\nint visiblePoints(int** points, int pointsSize, int* pointsColSize, int angle, int* location, int locationSize){\n    int sameCnt = 0;\n    int polarSize = 0;\n    double* polarDegrees = (double*)malloc(sizeof(double) * pointsSize * 2);\n    for (int i = 0; i < pointsSize; ++i) {\n        if (points[i][0] == location[0] && points[i][1] == location[1]) {\n            sameCnt++;\n            continue;\n        }\n        double degree = atan2(points[i][1] - location[1], points[i][0] - location[0]);\n        polarDegrees[polarSize] = degree;\n        polarSize++;\n    }\n    qsort(polarDegrees, polarSize, sizeof(double), cmp);\n\n    int m = polarSize;\n    for (int i = 0; i < m; ++i) {\n        polarDegrees[polarSize] = polarDegrees[i] + 2 * PI;\n        polarSize++;\n    }\n\n    int maxCnt = 0; \n    double degree = angle * PI / 180.0;\n    for (int i = 0; i < m; ++i) {\n        int iteration = binarySearch(polarDegrees, polarSize, polarDegrees[i] + degree, false);\n        maxCnt = MAX(maxCnt, iteration - i);\n    }\n    return maxCnt + sameCnt;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar visiblePoints = function(points, angle, location) {\n    let sameCnt = 0;\n    const polarDegrees = [];\n    let locationX = location[0];\n    let locationY = location[1];\n    for (let i = 0; i < points.length; ++i) {\n        const x = points[i][0];\n        const y = points[i][1];\n        if (x === locationX && y === locationY) {\n            sameCnt++;\n            continue;\n        }\n        const degree = Math.atan2(y - locationY, x - locationX);\n        polarDegrees.push(degree);\n    }\n    polarDegrees.sort((a, b) => a - b);\n\n    const m = polarDegrees.length;\n    for (let i = 0; i < m; ++i) {\n        polarDegrees.push(polarDegrees[i] + Math.PI * 2);\n    }\n\n    let maxCnt = 0;\n    const toDegree = angle * Math.PI / 180; \n    for (let i = 0; i < m; ++i) {\n        const iteration = binarySearch(polarDegrees, polarDegrees[i] + toDegree, false);\n        maxCnt = Math.max(maxCnt, iteration - i);\n    }\n    return maxCnt + sameCnt;\n};\n\nconst binarySearch = (nums, target, lower) => {\n    let left = 0, right = nums.length - 1;\n    let ans = nums.length;\n    while (left <= right) {\n        const mid = Math.floor((left + right) / 2);\n        if (nums[mid] > target || (lower && nums[mid] >= target)) {\n            right = mid - 1;\n            ans = mid;\n        } else {\n            left = mid + 1;\n        }\n    }\n    return ans;\n}\n```\n\n```go [sol1-Golang]\nfunc visiblePoints(points [][]int, angle int, location []int) int {\n    sameCnt := 0\n    polarDegrees := []float64{}\n    for _, p := range points {\n        if p[0] == location[0] && p[1] == location[1] {\n            sameCnt++\n        } else {\n            polarDegrees = append(polarDegrees, math.Atan2(float64(p[1]-location[1]), float64(p[0]-location[0])))\n        }\n    }\n    sort.Float64s(polarDegrees)\n\n    n := len(polarDegrees)\n    for _, deg := range polarDegrees {\n        polarDegrees = append(polarDegrees, deg+2*math.Pi)\n    }\n\n    maxCnt := 0\n    degree := float64(angle) * math.Pi / 180\n    for i, deg := range polarDegrees[:n] {\n        j := sort.Search(n*2, func(j int) bool { return polarDegrees[j] > deg+degree })\n        if j-i > maxCnt {\n            maxCnt = j - i\n        }\n    }\n    return sameCnt + maxCnt\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def visiblePoints(self, points: List[List[int]], angle: int, location: List[int]) -> int:\n        sameCnt = 0\n        polarDegrees = []\n        for p in points:\n            if p == location:\n                sameCnt += 1\n            else:\n                polarDegrees.append(atan2(p[1] - location[1], p[0] - location[0]))\n        polarDegrees.sort()\n\n        n = len(polarDegrees)\n        polarDegrees += [deg + 2 * pi for deg in polarDegrees]\n\n        degree = angle * pi / 180\n        maxCnt = max((bisect_right(polarDegrees, polarDegrees[i] + degree) - i for i in range(n)), default=0)\n        return maxCnt + sameCnt\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log n)$，其中 $n$ 为坐标的个数，由于需要对所有的极角进行排序，再对每一个坐标的区间进行二分查找，因此总的时间复杂度应该为 $O(n \\log n + 2n \\log (2n)) = O(n \\log n)$。\n\n- 空间复杂度：$O(n)$，其中$n$ 为坐标的个数，我们总共最多需要两倍坐标个数的空间来存储坐标的极角。\n\n#### 方法二：滑动窗口\n\n**思路**\n\n整体解题思路跟方法一类似，在进行区间查找时，可以利用滑动窗口对每个坐标的极角区间 $[d_{p_i},d_{p_i} + \\textit{angle}]$ 查找的时间复杂度由 $O(2n \\log 2n)$ 优化为 $O(2n + 2n)$。\n\n**代码**\n\n```Java [sol2-Java]\nclass Solution {\n    public int visiblePoints(List<List<Integer>> points, int angle, List<Integer> location) {\n        int sameCnt = 0;\n        List<Double> polarDegrees = new ArrayList<>();\n        int locationX = location.get(0);\n        int locationY = location.get(1);\n        for (int i = 0; i < points.size(); ++i) {\n            int x = points.get(i).get(0);\n            int y = points.get(i).get(1);\n            if (x == locationX && y == locationY) {\n                sameCnt++;\n                continue;\n            }\n            Double degree = Math.atan2(y - locationY, x - locationX);\n            polarDegrees.add(degree);\n        }\n        Collections.sort(polarDegrees);\n\n        int m = polarDegrees.size();\n        for (int i = 0; i < m; ++i) {\n            polarDegrees.add(polarDegrees.get(i) + 2 * Math.PI);\n        }\n\n        int maxCnt = 0;\n        int right = 0;\n        double toDegree = angle * Math.PI / 180; \n        for (int i = 0; i < m; ++i) {\n            Double curr = polarDegrees.get(i) + toDegree;\n            while (right < polarDegrees.size() && polarDegrees.get(right) <= curr) {\n                right++;\n            }\n            maxCnt = Math.max(maxCnt, right - i);\n        }\n        return maxCnt + sameCnt;\n    }\n}\n```\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    int visiblePoints(vector<vector<int>>& points, int angle, vector<int>& location) {\n        int sameCnt = 0;\n        vector<double> polarDegrees;\n        for (auto & point : points) {\n            if (point[0] == location[0] && point[1] == location[1]) {\n                sameCnt++;\n                continue;\n            }\n            double degree = atan2(point[1] - location[1], point[0] - location[0]);\n            polarDegrees.emplace_back(degree);\n        }\n        sort(polarDegrees.begin(), polarDegrees.end());\n\n        int m = polarDegrees.size();\n        for (int i = 0; i < m; ++i) {\n            polarDegrees.emplace_back(polarDegrees[i] + 2 * M_PI);\n        }\n\n        int maxCnt = 0;\n        int right = 0;\n        double degree = angle * M_PI / 180;\n        for (int i = 0; i < m; ++i) {\n            while (right < polarDegrees.size() && polarDegrees[right] <= polarDegrees[i] + degree) {\n                right++;\n            }\n            maxCnt = max(maxCnt, right - i);\n        }\n        return maxCnt + sameCnt;\n    }\n};\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    public int VisiblePoints(IList<IList<int>> points, int angle, IList<int> location) {\n        int sameCnt = 0;\n        List<double> polarDegrees = new List<double>();\n        int locationX = location[0];\n        int locationY = location[1];\n        for (int i = 0; i < points.Count; ++i) {\n            int x = points[i][0];\n            int y = points[i][1];\n            if (x == locationX && y == locationY) {\n                sameCnt++;\n                continue;\n            }\n            double degree = Math.Atan2(y - locationY, x - locationX);\n            polarDegrees.Add(degree);\n        }\n        polarDegrees.Sort();\n \n        int m = polarDegrees.Count;\n        for (int i = 0; i < m; ++i) {\n            polarDegrees.Add(polarDegrees[i] + 2 * Math.PI);\n        }\n\n        int maxCnt = 0;\n        int right = 0;\n        double toDegree = angle * Math.PI / 180;\n        for (int i = 0; i < m; ++i) {\n            double curr = polarDegrees[i] + toDegree;\n            while (right < polarDegrees.Count && polarDegrees[right] <= curr) {\n                right++;\n            }\n            maxCnt = Math.Max(maxCnt, right - i);\n        }\n        return maxCnt + sameCnt;\n    }\n}\n```\n\n```C [sol2-C]\n#define PI 3.1415926\n#define MAX(a, b) ((a) > (b) ? (a) : (b))\n\nint cmp(const void* a, const void* b) {\n    double* pa = (double*)a;\n    double* pb = (double*)b;\n    return *pa > *pb ? 1 : -1;\n}\n\nint visiblePoints(int** points, int pointsSize, int* pointsColSize, int angle, int* location, int locationSize){\n    int sameCnt = 0;\n    int polarSize = 0;\n    double* polarDegrees = (double*)malloc(sizeof(double) * pointsSize * 2);\n    for (int i = 0; i < pointsSize; ++i) {\n        if (points[i][0] == location[0] && points[i][1] == location[1]) {\n            sameCnt++;\n            continue;\n        }\n        double degree = atan2(points[i][1] - location[1], points[i][0] - location[0]);\n        polarDegrees[polarSize] = degree;\n        polarSize++;\n    }\n    qsort(polarDegrees, polarSize, sizeof(double), cmp);\n\n    int m = polarSize;\n    for (int i = 0; i < m; ++i) {\n        polarDegrees[polarSize] = polarDegrees[i] + 2 * PI;\n        polarSize++;\n    }\n\n    int maxCnt = 0; \n    int right = 0;\n    double toDegree = angle * PI / 180;\n    for (int i = 0; i < m; ++i) {\n        while (right < polarSize && polarDegrees[right] <= polarDegrees[i] + toDegree) {\n            right++;\n        }\n        maxCnt = MAX(maxCnt, right - i);\n    }\n    return maxCnt + sameCnt;\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar visiblePoints = function(points, angle, location) {\n    let sameCnt = 0;\n    const polarDegrees = [];\n    let locationX = location[0];\n    let locationY = location[1];\n    for (let i = 0; i < points.length; ++i) {\n        const x = points[i][0];\n        const y = points[i][1];\n        if (x === locationX && y === locationY) {\n            sameCnt++;\n            continue;\n        }\n        const degree = Math.atan2(y - locationY, x - locationX);\n        polarDegrees.push(degree);\n    }\n    polarDegrees.sort((a, b) => a - b);\n\n    const m = polarDegrees.length;\n    for (let i = 0; i < m; ++i) {\n        polarDegrees.push(polarDegrees[i] + 2 * Math.PI);\n    }\n\n    let maxCnt = 0;\n    let right = 0;\n    const toDegree = angle * Math.PI / 180;\n    for (let i = 0; i < m; ++i) {\n        const curr = polarDegrees[i] + toDegree;\n        while (right < polarDegrees.length && polarDegrees[right] <= curr) {\n            right++;\n        }\n        maxCnt = Math.max(maxCnt, right - i);\n    }\n    return maxCnt + sameCnt;\n};\n```\n\n```go [sol2-Golang]\nfunc visiblePoints(points [][]int, angle int, location []int) int {\n    sameCnt := 0\n    polarDegrees := []float64{}\n    for _, p := range points {\n        if p[0] == location[0] && p[1] == location[1] {\n            sameCnt++\n        } else {\n            polarDegrees = append(polarDegrees, math.Atan2(float64(p[1]-location[1]), float64(p[0]-location[0])))\n        }\n    }\n    sort.Float64s(polarDegrees)\n\n    n := len(polarDegrees)\n    for _, deg := range polarDegrees {\n        polarDegrees = append(polarDegrees, deg+2*math.Pi)\n    }\n\n    maxCnt := 0\n    right := 0\n    degree := float64(angle) * math.Pi / 180\n    for i, deg := range polarDegrees[:n] {\n        for right < n*2 && polarDegrees[right] <= deg+degree {\n            right++\n        }\n        if right-i > maxCnt {\n            maxCnt = right - i\n        }\n    }\n    return sameCnt + maxCnt\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def visiblePoints(self, points: List[List[int]], angle: int, location: List[int]) -> int:\n        sameCnt = 0\n        polarDegrees = []\n        for p in points:\n            if p == location:\n                sameCnt += 1\n            else:\n                polarDegrees.append(atan2(p[1] - location[1], p[0] - location[0]))\n        polarDegrees.sort()\n\n        n = len(polarDegrees)\n        polarDegrees += [deg + 2 * pi for deg in polarDegrees]\n\n        maxCnt = 0\n        right = 0\n        degree = angle * pi / 180\n        for i in range(n):\n            while right < n * 2 and polarDegrees[right] <= polarDegrees[i] + degree:\n                right += 1\n            maxCnt = max(maxCnt, right - i)\n        return sameCnt + maxCnt\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log n)$，其中 $n$ 为坐标的个数，由于需要对所有的极角进行排序，利用移动指针区间查找的时间复杂度为 $O(2n + 2n)$，因此总的时间复杂度应该为 $O(n \\log n + 2n + 2n) = O(n \\log n)$。\n\n- 空间复杂度：$O(n)$，其中 $n$ 为坐标的个数，我们总共最多需要两倍坐标个数的空间来存储坐标的极角。",
+            "slateValue": "",
+            "slug": "you-xiao-ke-jian-dian-de-zui-da-shu-mu-b-r1qz",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "DNkZd7",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 40,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Geometry",
+                    "nameTranslated": "几何",
+                    "slug": "geometry",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Sorting",
+                    "nameTranslated": "排序",
+                    "slug": "sorting",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Sliding Window",
+                    "nameTranslated": "滑动窗口",
+                    "slug": "sliding-window",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-12-15T07:41:12.097341+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：二分查找 思路 题目本身为几何问题，需要求出在视角范围内 $[d - \\textit{angle} / 2, d + \\textit{angle} / 2]$ 内最多的点的覆盖数。在本题中视角可转换为相对于 $\\textit{location}$ 的「极角」。首先将所有点 $p$ 的坐标转化为相对于 $\\tex",
+            "topic": {
+                "id": 1159054,
+                "subscribed": false,
+                "commentCount": 92,
+                "viewCount": 14022,
+                "post": {
+                    "id": 2442983,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 47,
+            "isEditorsPick": false,
+            "hitCount": 26206,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "maximum-number-of-visible-points",
+                "questionFrontendId": "1610"
+            },
+            "next": {
+                "slug": "gong-shui-san-xie-qiu-ji-jiao-ji-he-ti-b-0bid",
+                "title": "【宫水三叶】求极角几何题"
+            },
+            "prev": null
+        }
+    }
+}

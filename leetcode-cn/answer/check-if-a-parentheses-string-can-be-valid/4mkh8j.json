@@ -1,0 +1,142 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "4mkh8j",
+            "title": "判断一个括号字符串是否有效",
+            "content": "#### 方法一：数学\n\n**思路与算法**\n\n我们可以如下定义并计算一个括号字符串的「分数」：\n\n> 考虑一个初值为 $0$ 的整数，遍历该字符串，如果遇到左括号，则将该整数加上 $1$，如果遇到右括号，则将该整数减去 $1$。最终得到的数值即为括号字符串的分数。\n\n那么，根据有效括号字符串的定义，我们可以利用「分数」的概念给出该定义的**等价条件**：\n\n> 该字符串的分数为 $0$，且该字符串**任意前缀**的分数均大于等于 $0$。\n\n读者可以自行尝试证明上述两个条件的等价性。\n\n我们同样可以用「分数」的概念判断一个部分可变的括号字符串 $s$ 能否变为有效字符串。\n\n为叙述方便，我们首先给出「有效前缀」的定义：\n\n> 如果括号字符串的某个前缀字符串满足它本身及它的所有前缀的分数均大于等于 $0$，则称该前缀为有效前缀。\n\n可以看出，一个有效括号字符串的任意前缀均为「有效前缀」。\n\n我们可以对字符串 $s$，定义对应的最大分数数组 $\\textit{mx}$ 和最小有效分数数组 $\\textit{mn}$。具体地：\n\n- $\\textit{mx}[i + 1]$ 代表前缀 $s[0..i]$ **可以达到的最大分数**；\n\n- $\\textit{mn}[i + 1]$ 为前缀 $s[0..i]$ **可以达到的最小分数**及**作为有效前缀所需的最小分数**两者的**较大值**。\n\n  其中「作为有效前缀所需的最小分数」的取值，由于字符串分数的奇偶性一定与字符串长度的**奇偶性相同**，因此取值会有以下两种情况：\n\n    - $i$ 为偶数，此时最小分数为 $0$;\n\n    - $i$ 为奇数，此时最小分数为 $1$。\n\n  用公式表达，即为 $(i + 1) \\bmod 2$。\n\n对于 $i = 0$ 的情况，有 $\\textit{mx}[0] = \\textit{mn}[0] = 0$。\n\n我们从左至右遍历字符串 $s$，并相应维护 $\\textit{mx}$ 和 $\\textit{mn}$ 数组。具体地，当遍历到下标 $i$ 时，根据 $\\textit{locked}[i]$ 的不同取值，会有以下两种情况：\n\n- $\\textit{locked}[i] = 1$，此时 $s[i]$ 的取值无法更改。因此 $\\textit{mx}[i + 1] = \\textit{mx}[i] + \\textit{diff}$，其中 $\\textit{diff}$ 为 $s[i]$ 的分数。同理，$\\textit{mn}[i + 1] = \\max(\\textit{mn}[i] + \\textit{diff}, (i + 1) \\bmod 2)$。\n\n- $\\textit{locked}[i] = 0$，此时 $s[i]$ 的取值可以更改。因此 $\\textit{mx}[i + 1] = \\textit{mx}[i] + 1$，且 $\\textit{mn}[i + 1] = \\max(\\textit{mn}[i] - 1, (i + 1) \\bmod 2)$。\n\n在遍历的过程中，如果对于某一下标 $i$，有 $\\textit{mx}[i] < \\textit{mn}[i]$，那么 $s[0..i]$ 无法通过变换成为有效前缀，也就是说 $s$ **无法通过变换成为有效字符串**，此时直接返回 $\\texttt{false}$。\n\n当遍历完成后，我们只需要确定 $s$ 是否可以通过变换使得分数为 $0$ 即可。假设 $s$ 的长度为 $n$，这等价于判断 $\\textit{mn}[n]$ 是否为 $0$。如果 $\\textit{mn}[n] = 0$，则 $s$ 可以通过变换成为有效括号字符串，我们应返回 $\\texttt{true}$；反之则不能，应返回 $\\texttt{false}$。\n\n\n**细节**\n\n由上述的推导过程，我们容易发现，在计算 $\\textit{mx}[i + 1]$ 与 $\\textit{mn}[i + 1]$ 时，我们**并不**需要用到整个 $\\textit{mx}$ 和 $\\textit{mn}$ 数组，只需要 $\\textit{mx}[i]$ 与 $\\textit{mn}[i]$ 的取值。因此，我们可以用**两个同名整数来替代** $\\textit{mx}$ 和 $\\textit{mn}$ 数组。具体转移如下：\n\n- $\\textit{mx}$ 和 $\\textit{mn}$ 的初值为 $0$；\n\n- $\\textit{locked}[i] = 1$ 时，有 $\\textit{mx} = \\textit{mx} + \\textit{diff}$，$\\textit{mn} = \\max(\\textit{mn} + \\textit{diff}, (i + 1) \\bmod 2)$；\n\n- $\\textit{locked}[i] = 0$ 时，有 $\\textit{mx} = \\textit{mx} + 1$，$\\textit{mn} = \\max(\\textit{mn} - 1, (i + 1) \\bmod 2)$；\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    bool canBeValid(string s, string locked) {\n        int n = s.size();\n        int mx = 0;   // 可以达到的最大分数\n        int mn = 0;   // 可以达到的最小分数 与 最小有效前缀对应分数 的较大值\n        for (int i = 0; i < n; ++i) {\n            if (locked[i] == '1') {\n                // 此时对应字符无法更改\n                int diff;\n                if (s[i] == '(') {\n                    diff = 1;\n                }\n                else {\n                    diff = -1;\n                }\n                mx += diff;\n                mn = max(mn + diff, (i + 1) % 2);\n            }\n            else {\n                // 此时对应字符可以更改\n                ++mx;\n                mn = max(mn - 1, (i + 1) % 2);\n            }\n            if (mx < mn) {\n                // 此时该前缀无法变为有效前缀\n                return false;\n            }\n        }\n        // 最终确定 s 能否通过变换使得分数为 0（成为有效字符串）\n        return mn == 0;\n    }\n};\n```\n\n\n```Python [sol1-Python3]\nclass Solution:\n    def canBeValid(self, s: str, locked: str) -> bool:\n        n = len(s)\n        mx = 0   # 可以达到的最大分数\n        mn = 0   # 可以达到的最小分数 与 最小有效前缀对应分数 的较大值\n        for i in range(n):\n            if locked[i] == '1':\n                # 此时对应字符无法更改\n                if s[i] == '(':\n                    diff = 1\n                else:\n                    diff = -1\n                mx += diff\n                mn = max(mn + diff, (i + 1) % 2)\n            else:\n                # 此时对应字符可以更改\n                mx += 1\n                mn = max(mn - 1, (i + 1) % 2)\n            if mx < mn:\n                # 此时该前缀无法变为有效前缀\n                return False\n        # 最终确定 s 能否通过变换使得分数为 0（成为有效字符串）\n        return mn == 0\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public boolean canBeValid(String s, String locked) {\n        int n = s.length();\n        int mx = 0;   // 可以达到的最大分数\n        int mn = 0;   // 可以达到的最小分数 与 最小有效前缀对应分数 的较大值\n        for (int i = 0; i < n; ++i) {\n            if (locked.charAt(i) == '1') {\n                // 此时对应字符无法更改\n                int diff;\n                if (s.charAt(i) == '(') {\n                    diff = 1;\n                } else {\n                    diff = -1;\n                }\n                mx += diff;\n                mn = Math.max(mn + diff, (i + 1) % 2);\n            } else {\n                // 此时对应字符可以更改\n                ++mx;\n                mn = Math.max(mn - 1, (i + 1) % 2);\n            }\n            if (mx < mn) {\n                // 此时该前缀无法变为有效前缀\n                return false;\n            }\n        }\n        // 最终确定 s 能否通过变换使得分数为 0（成为有效字符串）\n        return mn == 0;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public bool CanBeValid(string s, string locked) {\n         int n = s.Length;\n        int mx = 0;   // 可以达到的最大分数\n        int mn = 0;   // 可以达到的最小分数 与 最小有效前缀对应分数 的较大值\n        for (int i = 0; i < n; ++i) {\n            if (locked[i] == '1') {\n                // 此时对应字符无法更改\n                int diff;\n                if (s[i] == '(') {\n                    diff = 1;\n                } else {\n                    diff = -1;\n                }\n                mx += diff;\n                mn = Math.Max(mn + diff, (i + 1) % 2);\n            } else {\n                // 此时对应字符可以更改\n                ++mx;\n                mn = Math.Max(mn - 1, (i + 1) % 2);\n            }\n            if (mx < mn) {\n                // 此时该前缀无法变为有效前缀\n                return false;\n            }\n        }\n        // 最终确定 s 能否通过变换使得分数为 0（成为有效字符串）\n        return mn == 0;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc canBeValid(s string, locked string) bool {\n    n := len(s)\n    mx := 0   // 可以达到的最大分数\n    mn := 0   // 可以达到的最小分数 与 最小有效前缀对应分数 的较大值\n    for i := 0; i < n; i++ {\n        if locked[i] == '1' {\n            // 此时对应字符无法更改\n            var diff int\n            if s[i] == '(' {\n                diff = 1\n            } else {\n                diff = -1\n            }\n            mx += diff\n            mn = int(math.Max(float64(mn+diff), float64((i+1)%2)))\n        } else {\n            // 此时对应字符可以更改\n            mx++\n            mn = int(math.Max(float64(mn-1), float64((i+1)%2)))\n        }\n        if mx < mn {\n            // 此时该前缀无法变为有效前缀\n            return false\n        }\n    }\n    // 最终确定 s 能否通过变换使得分数为 0（成为有效字符串）\n    return mn == 0\n}\n```\n\n```C [sol1-C]\nbool canBeValid(char* s, char* locked) {\n    int n = strlen(s);\n    int mx = 0;   // 可以达到的最大分数\n    int mn = 0;   // 可以达到的最小分数 与 最小有效前缀对应分数 的较大值\n    for (int i = 0; i < n; ++i) {\n        if (locked[i] == '1') {\n            // 此时对应字符无法更改\n            int diff;\n            if (s[i] == '(') {\n                diff = 1;\n            } else {\n                diff = -1;\n            }\n            mx += diff;\n            mn = fmax(mn + diff, (i + 1) % 2);\n        } else {\n            // 此时对应字符可以更改\n            ++mx;\n            mn = fmax(mn - 1, (i + 1) % 2);\n        }\n        if (mx < mn) {\n            // 此时该前缀无法变为有效前缀\n            return false;\n        }\n    }\n    // 最终确定 s 能否通过变换使得分数为 0（成为有效字符串）\n    return mn == 0;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar canBeValid = function(s, locked) {\n    let n = s.length;\n    let mx = 0;   // 可以达到的最大分数\n    let mn = 0;   // 可以达到的最小分数 与 最小有效前缀对应分数 的较大值\n    for (let i = 0; i < n; ++i) {\n        if (locked[i] === '1') {\n            // 此时对应字符无法更改\n            let diff;\n            if (s[i] === '(') {\n                diff = 1;\n            } else {\n                diff = -1;\n            }\n            mx += diff;\n            mn = Math.max(mn + diff, (i + 1) % 2);\n        } else {\n            // 此时对应字符可以更改\n            ++mx;\n            mn = Math.max(mn - 1, (i + 1) % 2);\n        }\n        if (mx < mn) {\n            // 此时该前缀无法变为有效前缀\n            return false;\n        }\n    }\n    // 最终确定 s 能否通过变换使得分数为 0（成为有效字符串）\n    return mn === 0;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction canBeValid(s: string, locked: string): boolean {\n    const n = s.length;\n    let mx = 0;   // 可以达到的最大分数\n    let mn = 0;   // 可以达到的最小分数 与 最小有效前缀对应分数 的较大值\n    for (let i = 0; i < n; ++i) {\n        if (locked[i] === '1') {\n            // 此时对应字符无法更改\n            let diff: number;\n            if (s[i] === '(') {\n                diff = 1;\n            } else {\n                diff = -1;\n            }\n            mx += diff;\n            mn = Math.max(mn + diff, (i + 1) % 2);\n        } else {\n            // 此时对应字符可以更改\n            ++mx;\n            mn = Math.max(mn - 1, (i + 1) % 2);\n        }\n        if (mx < mn) {\n            // 此时该前缀无法变为有效前缀\n            return false;\n        }\n    }\n    // 最终确定 s 能否通过变换使得分数为 0（成为有效字符串）\n    return mn === 0;\n};\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn can_be_valid(s: String, locked: String) -> bool {\n        let n = s.len();\n        let mut mx = 0; // 可以达到的最大分数\n        let mut mn = 0; // 可以达到的最小分数 与 最小有效前缀对应分数 的较大值\n        for (i, (sc, lc)) in s.chars().zip(locked.chars()).enumerate() {\n            if lc == '1' {\n                // 此时对应字符无法更改\n                let diff = if sc == '(' { 1 } else { -1 };\n                mx += diff;\n                mn = std::cmp::max(mn + diff, (i as i32 + 1) % 2);\n            } else {\n                // 此时对应字符可以更改\n                mx += 1;\n                mn = std::cmp::max(mn - 1, (i as i32 + 1) % 2);\n            }\n            if mx < mn {\n                // 此时该前缀无法变为有效前缀\n                return false;\n            }\n        }\n        // 最终确定 s 能否通过变换使得分数为 0（成为有效字符串）\n        mn == 0\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 为 $s$ 的长度。即为遍历字符串维护 $\\textit{mx}$ 和 $\\textit{mn}$ 并判断 $s$ 能否变为有效字符串的时间复杂度。\n\n- 空间复杂度：$O(1)$。",
+            "slateValue": "",
+            "slug": "pan-duan-yi-ge-gua-hao-zi-fu-chuan-shi-f-0s47",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "4mkh8j",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 17,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-12-27T05:19:33.740475+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：数学 思路与算法 我们可以如下定义并计算一个括号字符串的「分数」： 考虑一个初值为 [latex] 的整数，遍历该字符串，如果遇到左括号，则将该整数加上 [latex]，如果遇到右括号，则将该整数减去 [latex]。最终得到的数值即为括号字符串的分数。 那么，根据有效括号字符串的定义，我们可以利用「分数」的概",
+            "topic": {
+                "id": 1179134,
+                "subscribed": false,
+                "commentCount": 44,
+                "viewCount": 2751,
+                "post": {
+                    "id": 2481766,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 56,
+            "isEditorsPick": false,
+            "hitCount": 16100,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "check-if-a-parentheses-string-can-be-valid",
+                "questionFrontendId": "2116"
+            },
+            "next": {
+                "slug": "zheng-fan-liang-ci-bian-li-by-endlessche-z8ac",
+                "title": "一次遍历（Python/Java/C++/C/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "X78VWR",
+            "title": "每一个查询的最大美丽值",
+            "content": "#### 方法一：排序 + 二分查找\n\n**思路与算法**\n\n我们假设物品总数为 $n$，对于单次查询，一种朴素的方法是遍历整个数组，寻找价格符合要求的物品并维护其最大美丽值，但这样的时间复杂度为 $O(n)$，假设查询总数为 $q$，则总时间复杂度为 $O(nq)$，这样的复杂度无法通过本题。因此我们需要优化单次查询的时间复杂度。\n\n我们可以将单次查询的过程分为两步：\n\n- 第一步，寻找到所有价格小于等于查询价格的物品；\n\n- 第二步，求出这些物品中的最大美丽值。\n\n对于第一步，我们可以将 $\\textit{items}$ 数组按照物品的价格升序排序，此时一定存在一个下标（可能不合法），下标大于它的物品（可能不存在）的价格高于查询价格，下标小于等于它的物品（可能不存在）的价格不高于查询价格。我们可以在 $O(n\\log n)$ 的时间内完成上述预处理，同时我们可以通过二分查找在 $O(\\log n)$ 的时间复杂度中查找到该下标。\n\n对于第二步，在第一步的基础上，我们将排序后数组中每个物品的美丽值（$\\textit{items}[i][1]$）修改为**下标小于等于 $i$ 的物品的最大美丽值**。这一过程可以在 $O(n)$ 的时间复杂度下，通过从左至右的一次遍历完成。这样，当我们找到第一步对应的下标时，如果下标合法，则该下标对应的**修改后的**美丽值即为价格小于等于查询价格中物品的最大美丽值，我们将该值作为查询值；如果下标不合法，那么说明所有物品的价格均高于查询价格，此时查询到结果应当为 $0$。\n\n根据上文的分析，我们首先对 $\\textit{items}$ 数组按照物品的价格升序排序，并遍历数组，将下标为 $i$ 物品的美丽值修改为下标小于等于 $i$ 的物品的最大美丽值。随后，对于每个查询，我们用函数 $\\textit{query}(q)$ 求出价格小于等于 $q$ 的物品的最大美丽值。\n\n在函数 $\\textit{query}(q)$ 中，我们首先通过二分查找求出价格不高于 $q$ 的物品的下标最大值，如果该值合法，则返回 $\\textit{items}$ 数组中该下标对应的修改后的美丽值作为查询结果；如果该值不合法，则返回 $0$ 作为查询结果。\n\n我们按顺序处理查询，记录查询结果，并将最终的结果返回作为答案。\n\n**细节**\n\n在排序时，我们只需要将价格设为排序的**唯一关键字**，因为二分查找得到的下标（如果合法）一定为相同价格中**最大的**，因此该下标对应的修改后的美丽值一定为价格小于等于查询价格中物品的最大美丽值。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<int> maximumBeauty(vector<vector<int>>& items, vector<int>& queries) {\n        // 将物品按价格升序排序\n        sort(items.begin(), items.end(), [](auto&& item1, auto&& item2) {\n            return item1[0] < item2[0]; \n        });\n        int n = items.size();\n        // 按定义修改美丽值\n        for (int i = 1; i < n; ++i){\n            items[i][1] = max(items[i][1], items[i-1][1]);\n        }\n        // 二分查找处理查询\n        auto query = [&](int q) -> int{\n            int l = 0, r = n;\n            while (l < r){\n                int mid = l + (r - l) / 2;\n                if (items[mid][0] > q){\n                    r = mid;\n                }\n                else{\n                    l = mid + 1;\n                }\n            }\n            if (l == 0){\n                // 此时所有物品价格均大于查询价格\n                return 0;\n            }\n            else{\n                // 返回小于等于查询价格的物品的最大美丽值\n                return items[l-1][1];\n            }\n        };\n        \n        vector<int> res;\n        for (int q: queries){\n            res.push_back(query(q));\n        }\n        return res;\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def maximumBeauty(self, items: List[List[int]], queries: List[int]) -> List[int]:\n        # 将物品按价格升序排序\n        items.sort(key=lambda x: x[0])\n        n = len(items)\n        # 按定义修改美丽值\n        for i in range(1, n):\n            items[i][1] = max(items[i][1], items[i-1][1])\n        # 二分查找处理查询\n        def query(q: int) -> int:\n            l, r = 0, n\n            while l < r:\n                mid = l + (r - l) // 2\n                if items[mid][0] > q:\n                    r = mid\n                else:\n                    l = mid + 1\n            if l == 0:\n                # 此时所有物品价格均大于查询价格\n                return 0\n            else:\n                # 返回小于等于查询价格的物品的最大美丽值\n                return items[l-1][1]\n        \n        res = [query(q) for q in queries]\n        return res\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int[] maximumBeauty(int[][] items, int[] queries) {\n        // 将物品按价格升序排序\n        Arrays.sort(items, (a, b) -> Integer.compare(a[0], b[0]));\n        int n = items.length;\n        // 按定义修改美丽值\n        for (int i = 1; i < n; ++i) {\n            items[i][1] = Math.max(items[i][1], items[i - 1][1]);\n        }\n        // 二分查找处理查询\n        int[] res = new int[queries.length];\n        for (int i = 0; i < queries.length; i++) {\n            res[i] = query(items, queries[i]);\n        }\n        return res;\n    }\n    \n    private int query(int[][] items, int q) {\n        int l = 0, r = items.length;\n        while (l < r) {\n            int mid = l + (r - l) / 2;\n            if (items[mid][0] > q) {\n                r = mid;\n            } else {\n                l = mid + 1;\n            }\n        }\n        if (l == 0) {\n            // 此时所有物品价格均大于查询价格\n            return 0;\n        } else {\n            // 返回小于等于查询价格的物品的最大美丽值\n            return items[l - 1][1];\n        }\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int[] MaximumBeauty(int[][] items, int[] queries) {\n        // 将物品按价格升序排序\n        Array.Sort(items, (a, b) => a[0].CompareTo(b[0]));\n        int n = items.Length;\n        // 按定义修改美丽值\n        for (int i = 1; i < n; ++i) {\n            items[i][1] = Math.Max(items[i][1], items[i - 1][1]);\n        }\n        // 二分查找处理查询\n        int[] res = new int[queries.Length];\n        for (int i = 0; i < queries.Length; i++) {\n            res[i] = Query(items, queries[i]);\n        }\n        return res;\n    }\n\n    private int Query(int[][] items, int q) {\n        int l = 0, r = items.Length;\n        while (l < r) {\n            int mid = l + (r - l) / 2;\n            if (items[mid][0] > q) {\n                r = mid;\n            } else {\n                l = mid + 1;\n            }\n        }\n        if (l == 0) {\n            // 此时所有物品价格均大于查询价格\n            return 0;\n        } else {\n            // 返回小于等于查询价格的物品的最大美丽值\n            return items[l - 1][1];\n        }\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc maximumBeauty(items [][]int, queries []int) []int {\n    // 将物品按价格升序排序\n    sort.Slice(items, func(i, j int) bool {\n        return items[i][0] < items[j][0]\n    })\n    n := len(items)\n    // 按定义修改美丽值\n    for i := 1; i < n; i++ {\n        if items[i][1] < items[i-1][1] {\n            items[i][1] = items[i-1][1]\n        }\n    }\n    // 二分查找处理查询\n    res := make([]int, len(queries))\n    for i, q := range queries {\n        res[i] = query(items, q)\n    }\n    return res\n}\n\nfunc query(items [][]int, q int) int {\n    l, r := 0, len(items)\n    for l < r {\n        mid := l + (r - l) / 2\n        if items[mid][0] > q {\n            r = mid\n        } else {\n            l = mid + 1\n        }\n    }\n    if l == 0 {\n        // 此时所有物品价格均大于查询价格\n        return 0\n    } else {\n        // 返回小于等于查询价格的物品的最大美丽值\n        return items[l - 1][1]\n    }\n}\n```\n\n```C [sol1-C]\nint compare(const void *a, const void *b) {\n    return (*(int**)a)[0] - (*(int**)b)[0];\n}\n\nint query(int **items, int itemsSize, int q) {\n    int l = 0, r = itemsSize;\n    while (l < r) {\n        int mid = l + (r - l) / 2;\n        if (items[mid][0] > q) {\n            r = mid;\n        } else {\n            l = mid + 1;\n        }\n    }\n    if (l == 0) {\n        // 此时所有物品价格均大于查询价格\n        return 0;\n    } else {\n        // 返回小于等于查询价格的物品的最大美丽值\n        return items[l - 1][1];\n    }\n}\n\nint* maximumBeauty(int** items, int itemsSize, int* itemsColSize, int* queries, int queriesSize, int* returnSize) {\n    // 将物品按价格升序排序\n    qsort(items, itemsSize, sizeof(items[0]), compare);\n    // 按定义修改美丽值\n    for (int i = 1; i < itemsSize; ++i) {\n        if (items[i][1] < items[i-1][1]) {\n            items[i][1] = items[i-1][1];\n        }\n    }\n    // 二分查找处理查询\n    int* res = (int*)malloc(queriesSize * sizeof(int));\n    for (int i = 0; i < queriesSize; i++) {\n        res[i] = query(items, itemsSize, queries[i]);\n    }\n    *returnSize = queriesSize;\n    return res;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar maximumBeauty = function(items, queries) {\n    // 将物品按价格升序排序\n    items.sort((a, b) => a[0] - b[0]);\n    const n = items.length;\n    // 按定义修改美丽值\n    for (let i = 1; i < n; ++i) {\n        items[i][1] = Math.max(items[i][1], items[i - 1][1]);\n    }\n    // 二分查找处理查询\n    const res = [];\n    for (let q of queries) {\n        res.push(query(items, q, n));\n    }\n    return res;\n};\n\nfunction query(items, q, n) {\n    let l = 0, r = n;\n    while (l < r) {\n        const mid = l + Math.floor((r - l) / 2);\n        if (items[mid][0] > q) {\n            r = mid;\n        } else {\n            l = mid + 1;\n        }\n    }\n    if (l === 0) {\n        // 此时所有物品价格均大于查询价格\n        return 0;\n    } else {\n        // 返回小于等于查询价格的物品的最大美丽值\n        return items[l - 1][1];\n    }\n}\n```\n\n```TypeScript [sol1-TypeScript]\nfunction maximumBeauty(items: number[][], queries: number[]): number[] {\n    // 将物品按价格升序排序\n    items.sort((a, b) => a[0] - b[0]);\n    const n = items.length;\n    // 按定义修改美丽值\n    for (let i = 1; i < n; ++i) {\n        items[i][1] = Math.max(items[i][1], items[i - 1][1]);\n    }\n    // 二分查找处理查询\n    const res: number[] = [];\n    for (let q of queries) {\n        res.push(query(items, q, n));\n    }\n    return res;\n};\n\nfunction query(items: number[][], q: number, n: number): number {\n    let l = 0, r = n;\n    while (l < r) {\n        const mid = l + Math.floor((r - l) / 2);\n        if (items[mid][0] > q) {\n            r = mid;\n        } else {\n            l = mid + 1;\n        }\n    }\n    if (l === 0) {\n        // 此时所有物品价格均大于查询价格\n        return 0;\n    } else {\n        // 返回小于等于查询价格的物品的最大美丽值\n        return items[l - 1][1];\n    }\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn maximum_beauty(items: Vec<Vec<i32>>, queries: Vec<i32>) -> Vec<i32> {\n        let mut items = items.clone();\n        // 将物品按价格升序排序\n        items.sort_by(|a, b| a[0].cmp(&b[0]));\n        let n = items.len();\n        // 按定义修改美丽值\n        for i in 1..n {\n            items[i][1] = items[i][1].max(items[i - 1][1]);\n        }\n        // 二分查找处理查询\n        queries.into_iter().map(|q| Self::query(&items, q, n)).collect()\n    }\n\n    fn query(items: &Vec<Vec<i32>>, q: i32, n: usize) -> i32 {\n        let mut l = 0;\n        let mut r = n;\n        while l < r {\n            let mid = l + (r - l) / 2;\n            if items[mid][0] > q {\n                r = mid;\n            } else {\n                l = mid + 1;\n            }\n        }\n        if l == 0 {\n            // 此时所有物品价格均大于查询价格\n            0\n        } else {\n            // 返回小于等于查询价格的物品的最大美丽值\n            items[l - 1][1]\n        }\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n\\log n + q\\log n)$，其中 $n$ 为 $\\textit{items}$ 的长度，$q$ 为 $\\textit{queries}$ 的长度。对 $\\textit{items}$ 数组按价格排序并更新美丽值的时间复杂度为 $O(n\\log n)$，单次二分查找查询最大美丽值的时间复杂度为 $O(\\log n)$，共需进行 $q$ 次查询。\n\n- 空间复杂度：$O(\\log n)$，即为排序的栈空间开销。",
+            "slateValue": "",
+            "slug": "mei-yi-ge-cha-xun-de-zui-da-mei-li-zhi-b-d8jw",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "X78VWR",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 13,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Sorting",
+                    "nameTranslated": "排序",
+                    "slug": "sorting",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-11-14T13:01:07.418427+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：排序 + 二分查找 思路与算法 我们假设物品总数为 [latex]，对于单次查询，一种朴素的方法是遍历整个数组，寻找价格符合要求的物品并维护其最大美丽值，但这样的时间复杂度为 [latex]，假设查询总数为 [latex]，则总时间复杂度为 [latex]，这样的复杂度无法通过本题。因此我们需要优化单次查询的时",
+            "topic": {
+                "id": 1101845,
+                "subscribed": false,
+                "commentCount": 38,
+                "viewCount": 1981,
+                "post": {
+                    "id": 2332384,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 28,
+            "isEditorsPick": false,
+            "hitCount": 13043,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "most-beautiful-item-for-each-query",
+                "questionFrontendId": "2070"
+            },
+            "next": {
+                "slug": "jiang-xun-wen-chi-xian-pai-xu-by-endless-o5j0",
+                "title": "两种方法：离线双指针/在线二分（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

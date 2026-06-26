@@ -1,0 +1,144 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "m7vsSd",
+            "title": "等值距离和",
+            "content": "#### 方法一：分组 + 前缀和\n\n对于每个下标 $i$，我们需要计算所有与 $\\textit{nums}[i]$ 相等的下标 $j$ 的 $|i - j|$ 之和。\n\n首先，将所有相同值的下标分到同一组中（使用哈希表）。对于某一组下标 $a_0 < a_1 < \\cdots < a_{m-1}$，考虑如何快速计算每个 $a_i$ 对应的答案。\n\n对 $a_i$ 而言：\n\n$$\n\\textit{res}[a_i] = \\sum_{j=0}^{m-1} |a_i - a_j|\n$$\n\n由于组内下标已排序，可以拆成两部分：\n\n$$\n\\textit{res}[a_i] = \\sum_{j=0}^{i-1}(a_i - a_j) + \\sum_{j=i+1}^{m-1}(a_j - a_i)\n$$\n\n设 $S$ 为组内所有下标之和，$P_i = \\sum_{j=0}^{i-1} a_j$ 为前缀和（即 $a_0 + \\cdots + a_{i-1}$）。下面把两个和式分别拆开再合并。\n\n**左边**（$j < i$，共 $i$ 项）：\n\n$$\n\\sum_{j=0}^{i-1}(a_i - a_j)\n= \\sum_{j=0}^{i-1} a_i - \\sum_{j=0}^{i-1} a_j\n= i \\times a_i - P_i\n$$\n\n**右边**（$j > i$，共 $m - i - 1$ 项）。$\\sum_{j=i+1}^{m-1} a_j$ 等于全体和 $S$ 去掉下标 $\\le i$ 的部分，即 $S - P_i - a_i$；每一项都减去 $a_i$，故再减去 $(m - i - 1) \\times a_i$：\n\n$$\n\\sum_{j=i+1}^{m-1}(a_j - a_i)\n= (S - P_i - a_i) - (m - i - 1) \\times a_i\n$$\n\n**合并**左右两边：\n\n$$\n\\begin{aligned}\n\\textit{res}[a_i]\n&= (i \\times a_i - P_i) + \\bigl((S - P_i - a_i) - (m - i - 1) \\times a_i\\bigr) \\\\\n&= S - 2P_i + a_i \\times (2i - m)\n\\end{aligned}\n$$\n\n遍历每组，维护前缀和 $P_i$ 即可在 $O(m)$ 时间内计算该组所有答案。所有组的大小之和为 $n$，因此总时间为 $O(n)$。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<long long> distance(vector<int>& nums) {\n        int n = nums.size();\n        unordered_map<int, vector<int>> groups;\n        for (int i = 0; i < n; i++) {\n            groups[nums[i]].push_back(i);\n        }\n        vector<long long> res(n);\n        for (const auto& p : groups) {\n            const auto& group = p.second;\n            long long total = accumulate(group.begin(), group.end(), 0LL);\n            long long prefixTotal = 0;\n            for (int i = 0; i < group.size(); i++) {\n                res[group[i]] = total - prefixTotal * 2 + group[i] * (2 * i - group.size());\n                prefixTotal += group[i];\n            }\n        }\n        return res;\n    }\n};\n```\n\n```Go [sol1-Go]\nfunc distance(nums []int) []int64 {\n    n := len(nums)\n    groups := make(map[int][]int)\n    for i := 0; i < n; i++ {\n        groups[nums[i]] = append(groups[nums[i]], i)\n    }\n    res := make([]int64, n)\n    for _, group := range groups {\n        var total int64\n        for _, idx := range group {\n            total += int64(idx)\n        }\n        var prefixTotal int64\n        for i, idx := range group {\n            res[idx] = total - prefixTotal * 2 + int64(idx) * int64(2 * i - len(group))\n            prefixTotal += int64(idx)\n        }\n    }\n    return res\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def distance(self, nums: list[int]) -> list[int]:\n        n = len(nums)\n        groups = defaultdict(list)\n        for i, v in enumerate(nums):\n            groups[v].append(i)\n        res = [0] * n\n        for group in groups.values():\n            total = sum(group)\n            prefix_total = 0\n            sz = len(group)\n            for i, idx in enumerate(group):\n                res[idx] = total - prefix_total * 2 + idx * (2 * i - sz)\n                prefix_total += idx\n        return res\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public long[] distance(int[] nums) {\n        int n = nums.length;\n        Map<Integer, List<Integer>> groups = new HashMap<>();\n        for (int i = 0; i < n; i++) {\n            groups.computeIfAbsent(nums[i], k -> new ArrayList<>()).add(i);\n        }\n        long[] res = new long[n];\n        for (List<Integer> group : groups.values()) {\n            long total = 0;\n            for (int idx : group) {\n                total += idx;\n            }\n            long prefixTotal = 0;\n            int sz = group.size();\n            for (int i = 0; i < sz; i++) {\n                int idx = group.get(i);\n                res[idx] = total - prefixTotal * 2 + (long) idx * (2 * i - sz);\n                prefixTotal += idx;\n            }\n        }\n        return res;\n    }\n}\n```\n\n```TypeScript [sol1-TypeScript]\nfunction distance(nums: number[]): number[] {\n    const n = nums.length;\n    const groups = new Map<number, number[]>();\n    for (let i = 0; i < n; i++) {\n        if (!groups.has(nums[i])) {\n            groups.set(nums[i], []);\n        }\n        groups.get(nums[i])!.push(i);\n    }\n    const res = new Array(n).fill(0);\n    for (const group of groups.values()) {\n        let total = 0;\n        for (const idx of group) {\n            total += idx;\n        }\n        let prefixTotal = 0;\n        const sz = group.length;\n        for (let i = 0; i < sz; i++) {\n            const idx = group[i];\n            res[idx] = total - prefixTotal * 2 + idx * (2 * i - sz);\n            prefixTotal += idx;\n        }\n    }\n    return res;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar distance = function(nums) {\n    const n = nums.length;\n    const groups = new Map();\n    for (let i = 0; i < n; i++) {\n        if (!groups.has(nums[i])) {\n            groups.set(nums[i], []);\n        }\n        groups.get(nums[i]).push(i);\n    }\n    const res = new Array(n).fill(0);\n    for (const group of groups.values()) {\n        let total = 0;\n        for (const idx of group) {\n            total += idx;\n        }\n        let prefixTotal = 0;\n        const sz = group.length;\n        for (let i = 0; i < sz; i++) {\n            const idx = group[i];\n            res[idx] = total - prefixTotal * 2 + idx * (2 * i - sz);\n            prefixTotal += idx;\n        }\n    }\n    return res;\n};\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public long[] Distance(int[] nums) {\n        int n = nums.Length;\n        var groups = new Dictionary<int, List<int>>();\n        for (int i = 0; i < n; i++) {\n            if (!groups.ContainsKey(nums[i])) {\n                groups[nums[i]] = new List<int>();\n            }\n            groups[nums[i]].Add(i);\n        }\n        long[] res = new long[n];\n        foreach (var group in groups.Values) {\n            long total = 0;\n            foreach (int idx in group) {\n                total += idx;\n            }\n            long prefixTotal = 0;\n            int sz = group.Count;\n            for (int i = 0; i < sz; i++) {\n                int idx = group[i];\n                res[idx] = total - prefixTotal * 2 + (long)idx * (2 * i - sz);\n                prefixTotal += idx;\n            }\n        }\n        return res;\n    }\n}\n```\n\n```C [sol1-C]\ntypedef struct {\n    int key;\n    int* indices;\n    int count;\n    int capacity;\n    UT_hash_handle hh;\n} Group;\n\nlong long* distance(int* nums, int numsSize, int* returnSize) {\n    *returnSize = numsSize;\n    long long* res = (long long*)calloc(numsSize, sizeof(long long));\n    Group* map = NULL;\n\n    for (int i = 0; i < numsSize; i++) {\n        Group* g = NULL;\n        HASH_FIND_INT(map, &nums[i], g);\n        if (!g) {\n            g = (Group*)malloc(sizeof(Group));\n            g->key = nums[i];\n            g->capacity = 16;\n            g->indices = (int*)malloc(g->capacity * sizeof(int));\n            g->count = 0;\n            HASH_ADD_INT(map, key, g);\n        }\n        if (g->count == g->capacity) {\n            g->capacity *= 2;\n            g->indices = (int*)realloc(g->indices, g->capacity * sizeof(int));\n        }\n        g->indices[g->count++] = i;\n    }\n\n    Group *g, *tmp;\n    HASH_ITER(hh, map, g, tmp) {\n        long long total = 0;\n        for (int j = 0; j < g->count; j++) {\n            total += g->indices[j];\n        }\n        long long prefixTotal = 0;\n        for (int j = 0; j < g->count; j++) {\n            int idx = g->indices[j];\n            res[idx] = total - prefixTotal * 2 + (long long)idx * (2 * j - g->count);\n            prefixTotal += idx;\n        }\n        HASH_DEL(map, g);\n        free(g->indices);\n        free(g);\n    }\n\n    return res;\n}\n```\n\n```Rust [sol1-Rust]\nuse std::collections::HashMap;\n\nimpl Solution {\n    pub fn distance(nums: Vec<i32>) -> Vec<i64> {\n        let n = nums.len();\n        let mut groups: HashMap<i32, Vec<usize>> = HashMap::new();\n        for (i, &v) in nums.iter().enumerate() {\n            groups.entry(v).or_default().push(i);\n        }\n        let mut res = vec![0i64; n];\n        for group in groups.values() {\n            let total: i64 = group.iter().map(|&x| x as i64).sum();\n            let mut prefix_total: i64 = 0;\n            let sz = group.len() as i64;\n            for (i, &idx) in group.iter().enumerate() {\n                res[idx] = total - prefix_total * 2 + idx as i64 * (2 * i as i64 - sz);\n                prefix_total += idx as i64;\n            }\n        }\n        res\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 为数组 $\\textit{nums}$ 的长度。分组遍历一次，计算答案遍历一次，总计 $O(n)$。\n\n- 空间复杂度：$O(n)$。哈希表存储所有下标需要 $O(n)$ 的空间。",
+            "slateValue": "",
+            "slug": "deng-zhi-ju-chi-he-by-leetcode-solution-8bun",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "m7vsSd",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 5,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Prefix Sum",
+                    "nameTranslated": "前缀和",
+                    "slug": "prefix-sum",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2026-04-13T01:48:04.370674+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：分组 + 前缀和 对于每个下标 [latex]，我们需要计算所有与 [latex] 相等的下标 [latex] 的 [latex] 之和。 首先，将所有相同值的下标分到同一组中（使用哈希表）。对于某一组下标 [latex]，考虑如何快速计算每个 [latex] 对应的答案。 对 [latex] 而言： [lat",
+            "topic": {
+                "id": 3950426,
+                "subscribed": false,
+                "commentCount": 12,
+                "viewCount": 11,
+                "post": {
+                    "id": 7200494,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 10,
+            "isEditorsPick": false,
+            "hitCount": 4724,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "sum-of-distances",
+                "questionFrontendId": "2615"
+            },
+            "next": {
+                "slug": "zhao-ban-2602-ti-by-endlesscheng-6pbi",
+                "title": "两种 O(n) 方法：照搬 2602 / 考虑距离之和的增量"
+            },
+            "prev": null
+        }
+    }
+}

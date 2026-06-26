@@ -1,0 +1,124 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "pod2n2",
+            "title": "模式匹配",
+            "content": "#### 前言\n\n本题的算法实现不难，但是细节较多。题目中给出的 $\\textit{pattern}$ 和 $\\textit{value}$ 的长度可以为 $0$，因此需要充分考虑边界情况。\n\n#### 方法一：枚举\n\n**思路与算法**\n\n我们设 $\\textit{pattern}$ 的长度为 $\\ell_p$，$\\textit{value}$ 的长度为 $\\ell_v$。根据题目描述，我们需要给字母 $a$ 和 $b$ 分配不同的字符串值（可以为空字符串），使得将 $\\textit{pattern}$ 中的字母替换成对应的字符串后，结果与 $\\textit{value}$ 相同。\n\n在分配字符串之前，我们不妨先分配 $a$ 和 $b$ 对应字符串的长度。如果确定了长度，那么我们只要将 $\\textit{value}$ 按照 $\\textit{pattern}$ 中出现字母的顺序，划分成 $\\ell_p$ 个子串，并判断其中 $a$ 对应的子串是否相同，以及 $b$ 对应的子串是否相同即可。具体地，假设 $\\textit{pattern}$ 中出现了 $c_a$ 个 $a$ 以及 $\\ell_p - c_a$ 个 $b$，并且 $a$ 和 $b$ 对应字符串的长度分别为 $\\ell_a$ 和 $\\ell_b$，那么必须要满足：\n\n$$\nc_a \\times \\ell_a + (\\ell_p - c_a) \\times \\ell_b = \\ell_v\n$$\n\n其中 $c_a$ 是已知的常量，$\\ell_a$ 和 $\\ell_b$ 是未知数。这是一个二元一次方程，可能无解、有唯一解或者无数解。然而我们需要的仅仅是**自然数解**，也就是 $\\ell_a$ 和 $\\ell_b$ 都大于等于 $0$ 的解，因此我们可以直接枚举 $\\ell_a$ 的值，它必须是 $[0, \\frac{\\ell_v}{c_a}]$ 之间的自然数，否则 $\\ell_b$ 就不会大于等于 $0$ 了。在枚举 $\\ell_a$ 之后，我们将其带入等式并解出 $\\ell_b$。如果 $\\ell_b$ 是整数，我们就枚举了一组 $a$ 和 $b$ 的可能长度。\n\n在枚举了长度之后，我们就可以根据 $\\textit{pattern}$ 来将 $\\textit{value}$ 划分成 $\\ell_p$ 个子串。具体地，我们遍历 $\\textit{pattern}$，并用一个指针 $\\textit{pos}$ 来帮助我们进行划分。当我们遍历到一个 $a$ 时，我们取出从 $\\textit{pos}$ 开始，长度为 $\\ell_a$ 的子串。如果这是我们第一次遇到字母 $a$，我们就得到了 $a$ 应该对应的子串；否则，我们将取出的子串与 $a$ 应该对应的子串进行比较，如果不相同，说明模式匹配失败。\n\n同理，当我们遍历到一个 $b$ 时，我们取出从 $\\textit{pos}$ 开始，长度为 $\\ell_b$ 的子串，根据是否第一次遇到字母 $b$ 来进行比较。在比较结束后，我们将 $\\textit{pos}$ 向后移动，进行下一个字母的匹配。\n\n在遍历完成之后，如果匹配没有失败，我们还需要判断一下 $a$ 和 $b$ 是否对应了不同的子串。只有它们对应的子串不同时，才是一种满足题目要求的模式匹配。\n\n**细节**\n\n上面的算法看上去不是很复杂：我们只需要用一重循环枚举 $\\ell_a$，计算出 $\\ell_b$，再用一重循环遍历 $\\textit{pattern}$ 以及移动 $\\textit{pos}$ 即可。但就像我们在「前言」部分所说的，本题有非常多的细节需要考虑。\n\n我们回到二元一次方程：\n\n$$\nc_a \\times \\ell_a + (\\ell_p - c_a) \\times \\ell_b = \\ell_v\n$$\n\n如果我们枚举 $\\ell_a$，那么必须要求 $c_a \\neq 0$，因为在 $c_a = 0$ 的情况下，原方程如果有解，那么一定有无数解（因为 $\\ell_a$ 可以取任意值）。因此如果 $c_a = 0$，我们就必须枚举 $\\ell_b$。这无疑增加了编码的复杂度，因为需要根据 $c_a$ 的值选择对 $\\ell_a$ 或 $\\ell_b$ 进行枚举，失去了统一性。并且，如果 $\\ell_p - c_a$ 也为 $0$，那么我们连 $\\ell_b$ 都无法枚举。\n\n因此，我们必须梳理一下判断的逻辑：\n\n1. 如果 $\\textit{pattern}$ 为空，那么只有在 $\\textit{value}$ 也为空时，它们才能匹配；\n\n2. 如果 $\\textit{value}$ 为空，那么如果 $\\textit{pattern}$ 也为空，就和第一条的情况相同；如果 $\\textit{pattern}$ 中只出现了一种字母，我们可以令该字母为空，另一没有出现的字母为任意非空串，就可以正确匹配；如果 $\\textit{pattern}$ 中出现了两种字母，那么就无法正确匹配，因为这两种字母都必须为空串，而题目描述中规定它们不能表示相同的字符串；\n\n3. 如果 $\\textit{pattern}$ 和 $\\textit{value}$ 均非空，那么我们需要枚举 $\\textit{pattern}$ 中出现的那个字母（如果两个字母均出现，可以枚举任意一个）对应的长度，使用上面提到的算法进行判断。\n\n对于上面的第三条，我们可以根据「对称性」减少代码的编写的复杂度：我们还是固定枚举 $\\ell_a$，但如果 $c_a < \\ell_p - c_a$，即 $a$ 出现的次数少于 $b$ 出现的次数，那么我们就将 $\\textit{pattern}$ 中所有的 $a$ 替换成 $b$，$b$ 替换成 $a$。这样做就保证了 **$a$ 出现了至少一次（$c_a > 0$），枚举 $\\ell_a$ 就不会有任何问题**，同时不会影响答案的正确性。\n\n这样一来，我们就可以优化判断的逻辑：\n\n1. 我们首先保证 $\\textit{pattern}$ 中 $a$ 出现的次数不少于 $b$ 出现的次数。如果不满足，我们就将 $a$ 和 $b$ 互相替换；\n\n2. 如果 $\\textit{value}$ 为空，那么要求 $\\textit{pattern}$ 也为空（$\\ell_p = 0$）或者只出现了字母 $a$（$\\ell_p - c_a = 0$），这两种情况均等同于 $\\ell_p - c_a = 0$。在其余情况下，都无法匹配成功；\n\n3. 如果 $\\textit{pattern}$ 为空且 $\\textit{value}$ 不为空，那么无法匹配成功；\n\n4. 如果 $\\textit{pattern}$ 和 $\\textit{value}$ 均非空，我们就可以枚举 $\\ell_a$ 并使用上面提到的算法进行判断。\n\n下面给出的代码遵循了这样的逻辑。读者也可以尝试自己归纳出一套逻辑并编写代码。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    bool patternMatching(string pattern, string value) {\n        int count_a = 0, count_b = 0;\n        for (char ch: pattern) {\n            if (ch == 'a') {\n                ++count_a;\n            } else {\n                ++count_b;\n            }\n        }\n        if (count_a < count_b) {\n            swap(count_a, count_b);\n            for (char& ch: pattern) {\n                ch = (ch == 'a' ? 'b' : 'a');\n            }\n        }\n        if (value.empty()) {\n            return count_b == 0;\n        }\n        if (pattern.empty()) {\n            return false;\n        }\n        for (int len_a = 0; count_a * len_a <= value.size(); ++len_a) {\n            int rest = value.size() - count_a * len_a;\n            if ((count_b == 0 && rest == 0) || (count_b != 0 && rest % count_b == 0)) {\n                int len_b = (count_b == 0 ? 0 : rest / count_b);\n                int pos = 0;\n                bool correct = true;\n                string value_a, value_b;\n                for (char ch: pattern) {\n                    if (ch == 'a') {\n                        string sub = value.substr(pos, len_a);\n                        if (!value_a.size()) {\n                            value_a = move(sub);\n                        } else if (value_a != sub) {\n                            correct = false;\n                            break;\n                        }\n                        pos += len_a;\n                    } else {\n                        string sub = value.substr(pos, len_b);\n                        if (!value_b.size()) {\n                            value_b = move(sub);\n                        } else if (value_b != sub) {\n                            correct = false;\n                            break;\n                        }\n                        pos += len_b;\n                    }\n                }\n                if (correct && value_a != value_b) {\n                    return true;\n                }\n            }\n        }\n        return false;\n    }\n};\n```\n\n```C++ [sol1-C++17]\nclass Solution {\npublic:\n    bool patternMatching(string pattern, string value) {\n        int count_a = 0, count_b = 0;\n        for (char ch: pattern) {\n            if (ch == 'a') {\n                ++count_a;\n            } else {\n                ++count_b;\n            }\n        }\n        if (count_a < count_b) {\n            swap(count_a, count_b);\n            for (char& ch: pattern) {\n                ch = (ch == 'a' ? 'b' : 'a');\n            }\n        }\n        if (value.empty()) {\n            return count_b == 0;\n        }\n        if (pattern.empty()) {\n            return false;\n        }\n        string_view v_value(value);\n        for (int len_a = 0; count_a * len_a <= value.size(); ++len_a) {\n            int rest = value.size() - count_a * len_a;\n            if ((count_b == 0 && rest == 0) || (count_b != 0 && rest % count_b == 0)) {\n                int len_b = (count_b == 0 ? 0 : rest / count_b);\n                int pos = 0;\n                bool correct = true;\n                string_view value_a, value_b;\n                for (char ch: pattern) {\n                    if (ch == 'a') {\n                        string_view sub = v_value.substr(pos, len_a);\n                        if (!value_a.size()) {\n                            value_a = sub;\n                        } else if (value_a != sub) {\n                            correct = false;\n                            break;\n                        }\n                        pos += len_a;\n                    } else {\n                        string_view sub = v_value.substr(pos, len_b);\n                        if (!value_b.size()) {\n                            value_b = sub;\n                        } else if (value_b != sub) {\n                            correct = false;\n                            break;\n                        }\n                        pos += len_b;\n                    }\n                }\n                if (correct && value_a != value_b) {\n                    return true;\n                }\n            }\n        }\n        return false;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public boolean patternMatching(String pattern, String value) {\n        int count_a = 0, count_b = 0;\n        for (char ch: pattern.toCharArray()) {\n            if (ch == 'a') {\n                ++count_a;\n            } else {\n                ++count_b;\n            }\n        }\n        if (count_a < count_b) {\n            int temp = count_a;\n            count_a = count_b;\n            count_b = temp;\n            char[] array = pattern.toCharArray();\n            for (int i = 0; i < array.length; i++) {\n                array[i] = array[i] == 'a' ? 'b' : 'a';\n            }\n            pattern = new String(array);\n        }\n        if (value.length() == 0) {\n            return count_b == 0;\n        }\n        if (pattern.length() == 0) {\n            return false;\n        }\n        for (int len_a = 0; count_a * len_a <= value.length(); ++len_a) {\n            int rest = value.length() - count_a * len_a;\n            if ((count_b == 0 && rest == 0) || (count_b != 0 && rest % count_b == 0)) {\n                int len_b = (count_b == 0 ? 0 : rest / count_b);\n                int pos = 0;\n                boolean correct = true;\n                String value_a = \"\", value_b = \"\";\n                for (char ch: pattern.toCharArray()) {\n                    if (ch == 'a') {\n                        String sub = value.substring(pos, pos + len_a);\n                        if (value_a.length() == 0) {\n                            value_a = sub;\n                        } else if (!value_a.equals(sub)) {\n                            correct = false;\n                            break;\n                        }\n                        pos += len_a;\n                    } else {\n                        String sub = value.substring(pos, pos + len_b);\n                        if (value_b.length() == 0) {\n                            value_b = sub;\n                        } else if (!value_b.equals(sub)) {\n                            correct = false;\n                            break;\n                        }\n                        pos += len_b;\n                    }\n                }\n                if (correct && !value_a.equals(value_b)) {\n                    return true;\n                }\n            }\n        }\n        return false;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def patternMatching(self, pattern: str, value: str) -> bool:\n        count_a = sum(1 for ch in pattern if ch == 'a')\n        count_b = len(pattern) - count_a\n        if count_a < count_b:\n            count_a, count_b = count_b, count_a\n            pattern = ''.join('a' if ch == 'b' else 'b' for ch in pattern)\n        \n        if not value:\n            return count_b == 0\n        if not pattern:\n            return False\n        \n        for len_a in range(len(value) // count_a + 1):\n            rest = len(value) - count_a * len_a\n            if (count_b == 0 and rest == 0) or (count_b != 0 and rest % count_b == 0):\n                len_b = 0 if count_b == 0 else rest // count_b\n                pos, correct = 0, True\n                value_a, value_b = None, None\n                for ch in pattern:\n                    if ch == 'a':\n                        sub = value[pos:pos+len_a]\n                        if not value_a:\n                            value_a = sub\n                        elif value_a != sub:\n                            correct = False\n                            break\n                        pos += len_a\n                    else:\n                        sub = value[pos:pos+len_b]\n                        if not value_b:\n                            value_b = sub\n                        elif value_b != sub:\n                            correct = False\n                            break\n                        pos += len_b\n                if correct and value_a != value_b:\n                    return True\n        \n        return False\n```\n\n```golang [sol1-Golang]\nfunc patternMatching(pattern string, value string) bool {\n    countA, countB := 0, 0\n    for i := 0; i < len(pattern); i++ {\n        if pattern[i] == 'a' {\n            countA++\n        } else {\n            countB++\n        }\n    }\n    if countA < countB {\n        countA, countB = countB, countA\n        tmp := \"\"\n        for i := 0; i < len(pattern); i++ {\n            if pattern[i] == 'a' {\n                tmp += \"b\"\n            } else {\n                tmp += \"a\"\n            }\n        }\n        pattern = tmp\n    }\n    if len(value) == 0 {\n        return countB == 0\n    }\n    if len(pattern) == 0 {\n        return false\n    }\n\n    for lenA := 0; countA * lenA <= len(value); lenA++ {\n        rest := len(value) - countA * lenA\n        if (countB == 0 && rest == 0) || (countB != 0 && rest % countB == 0) {\n            var lenB int\n            if countB == 0 {\n                lenB = 0\n            } else {\n                lenB = rest / countB\n            }\n            pos, correct := 0, true\n            var valueA, valueB string\n            for i := 0; i < len(pattern); i++ {\n                if pattern[i] == 'a' {\n                    sub := value[pos:pos+lenA]\n                    if len(valueA) == 0 {\n                        valueA = sub\n                    } else if valueA != sub {\n                        correct = false\n                        break\n                    }\n                    pos += lenA\n                } else {\n                    sub := value[pos:pos+lenB]\n                    if len(valueB) == 0 {\n                        valueB = sub\n                    } else if valueB != sub {\n                        correct = false\n                        break\n                    }\n                    pos += lenB\n                }\n            }\n            if correct && valueA != valueB {\n                return true\n            }\n        } \n    }\n    return false\n}\n```\n\n```C [sol1-C]\nbool patternMatching(char* pattern, char* value) {\n    int count_a = 0, count_b = 0;\n    int len_pat = strlen(pattern);\n    int len_val = strlen(value);\n    for (int i = 0; i < len_pat; i++) {\n        if (pattern[i] == 'a') {\n            ++count_a;\n        } else {\n            ++count_b;\n        }\n    }\n    if (count_a < count_b) {\n        int t = count_a;\n        count_a = count_b, count_b = t;\n        for (int i = 0; i < len_pat; i++) {\n            if (pattern[i] == 'a') {\n                pattern[i] = 'b';\n            } else {\n                pattern[i] = 'a';\n            }\n        }\n    }\n    if (len_val == 0) {\n        return count_b == 0;\n    }\n    if (len_pat == 0) {\n        return false;\n    }\n    for (int len_a = 0; count_a * len_a <= len_val; ++len_a) {\n        int rest = len_val - count_a * len_a;\n        if ((count_b == 0 && rest == 0) ||\n            (count_b != 0 && rest % count_b == 0)) {\n            int len_b = (count_b == 0 ? 0 : rest / count_b);\n            int pos = 0;\n            char value_a[1001], value_b[1001], sub[1001];\n            value_a[0] = value_b[0] = sub[0] = '\\0';\n            bool correct = true;\n            for (int i = 0; i < len_pat; i++) {\n                if (pattern[i] == 'a') {\n                    for (int j = 0; j < len_a; j++) sub[j] = value[j + pos];\n                    sub[len_a] = '\\0';\n                    if (!strlen(value_a)) {\n                        strcpy(value_a, sub);\n                    } else if (strcmp(value_a, sub)) {\n                        correct = false;\n                        break;\n                    }\n                    pos += len_a;\n                } else {\n                    for (int j = 0; j < len_b; j++) sub[j] = value[j + pos];\n                    sub[len_b] = '\\0';\n                    if (!strlen(value_b)) {\n                        strcpy(value_b, sub);\n                    } else if (strcmp(value_b, sub)) {\n                        correct = false;\n                        break;\n                    }\n                    pos += len_b;\n                }\n            }\n            if (correct && strcmp(value_a, value_b)) {\n                return true;\n            }\n        }\n    }\n    return false;\n}\n```\n\n**复杂度分析**\n\n本题的时空复杂度不易分析（因为涉及到二元一次方程解的个数），这里只近似地给出一个结果。\n\n- 时间复杂度：$O(l_v^2)$，其中 $\\ell_p$ 和 $\\ell_v$ 分别是 $\\textit{pattern}$ 和 $\\textit{value}$ 的长度。由于 $\\ell_a$ 必须是 $[0, \\frac{\\ell_v}{c_a}]$ 中的自然数，并且 $\\frac{1}{2}l_p \\leq c_a \\leq l_p$，因此方程解的个数为 $O(\\frac{l_v}{l_p})$。对于每一组解，我们需要 $O(l_p + l_v)$ 的时间来进行判断，因此总时间复杂度为 $O((l_p + l_v)\\frac{l_v}{l_p})$。根据大 $O$ 表示法的定义（渐进上界），可以看成 $O(l_v^2)$。\n\n- 空间复杂度：$O(l_v)$。我们需要存储 $a$ 和 $b$ 对应的子串，它们的长度之和不会超过 $l_v$。",
+            "slateValue": "",
+            "slug": "mo-shi-pi-pei-by-leetcode-solution",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "pod2n2",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 48,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Enumeration",
+                    "nameTranslated": "枚举",
+                    "slug": "enumeration",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-06-21T12:43:13.954644+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "前言 本题的算法实现不难，但是细节较多。题目中给出的 [latex] 和 [latex] 的长度可以为 [latex]，因此需要充分考虑边界情况。 方法一：枚举 思路与算法 我们设 [latex] 的长度为 [latex]，[latex] 的长度为 [latex]。根据题目描述，我们需要给字母 [latex] 和 [l",
+            "topic": {
+                "id": 298105,
+                "subscribed": false,
+                "commentCount": 139,
+                "viewCount": 24978,
+                "post": {
+                    "id": 752848,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 78,
+            "isEditorsPick": false,
+            "hitCount": 41372,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "pattern-matching-lcci",
+                "questionFrontendId": "面试题 16.18"
+            },
+            "next": {
+                "slug": "shuang-bai-suan-fa-guan-jian-zhao-dao-fen-lei-de-j",
+                "title": "双百算法，关键找到分类的角度"
+            },
+            "prev": null
+        }
+    }
+}

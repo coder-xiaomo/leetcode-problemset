@@ -1,0 +1,144 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "v6sv9R",
+            "title": "最长的平衡子串 II",
+            "content": "#### 方法一：枚举 + 前缀和 + 哈希表\n\n**思路与算法**\n\n由于题目给定的字符串仅包含 $a$, $b$ 和 $c$ 三种字符，因此我们可分为三种情况解题：\n\n1. 求解仅包含一种字符的最长平衡子串\n2. 求解包含两种字符的最长平衡子串\n3. 求解包含三种字符的最长平衡子串\n\n对于第一种情况，也是最简单的情况，我们在从左向右遍历 $s$ 的过程中，维护变量 $\\textit{last}$ 表示连续多少个字符与当前字符相同（包括当前字符）。假设当前遍历到位置 $i$：\n\n- 若 $i > 0$ 且 $s[i]$ 等于 $s[i-1]$，则 $\\textit{last}$ 增加 $1$\n- 否则，将 $\\textit{last}$ 置为 $1$。\n\n每次使用 $\\textit{last}$ 尝试更新答案。\n\n对于第二种情况，我们首先枚举出来这两种字符，可能是如下三种组合：$(a, b)$, $(b, c)$, $(a, c)$。以 $(a, b)$ 为例，字符串被字符 $c$ 分割成若干个子串，接下来我们将每个子串视作独立的字符串去处理。\n\n我们使用数组 $S_a$ 和 $S_b$ 分别统计前缀（分割后的子串前缀）中 $a$ 和 $b$ 的个数，例如 $S_a[i]$ 表示字符串前 $i$ 个字符有多少个 $a$。因此，若子串 $s[i..j]$ 中字符 $a$ 和 $b$ 的个数相等，应该有：\n\n$$S_a[j] - S_a[i - 1] = S_b[j] - S_b[i - 1]$$\n\n我们把与 $j$ 相关的移到左边，与 $i$ 相关的移到右边，于是有：\n\n$$S_a[j] - S_b[j] = S_a[i - 1] - S_b[i - 1]$$\n\n因此，我们在从小到大枚举 $j$ 时，找到令上式相等的最小的 $i$ 即可，若存在这样的 $i$，则使用 $j - i + 1$ 更新答案。我们可以使用哈希表记录每个 $S_a[i] - S_b[i]$ 最早出现的位置，加快查询。\n\n对于第三种情况，我们仍然使用 $S_a, S_b, S_c$ 来表示前缀中 $a, b, c$ 的个数，如果某个子串 $s[i..j]$ 是平衡子串，那么有：\n\n$$S_a[j] - S_a[i - 1] = S_b[j] - S_b[i - 1]$$\n\n$$S_b[j] - S_b[i - 1] = S_c[j] - S_c[i - 1]$$\n\n即 $a$ 的数量等于 $b$ 的数量，$b$ 的数量等于 $c$ 的数量，有这两个等式可推断出 $a$ 的数量等于 $c$ 的数量。\n\n将与 $j$ 相关的移到左边，与 $i$ 相关的移到右边，于是有：\n\n$$S_a[j] - S_b[j] = S_a[i - 1] - S_b[i - 1]$$\n\n$$S_b[j] - S_c[j] = S_b[i - 1] - S_c[i - 1]$$\n\n因此，和第二种情况的处理方法类似，现在我们需要对于每个 $j$ 找到使得上式成立的最小的 $i$，然后使用 $j - i + 1$ 更新答案。具体来说，使用哈希表记录每个二元组 $(S_a[i] - S_b[i], S_b[i] - S_c[i])$ 的最早出现位置即可。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\n    int case2Helper(string &s, char x, char y) {\n        int n = s.size();\n        int res = 0;\n        unordered_map<int, int> h;\n        for (int i = 0; i < n; i++) {\n            if (s[i] != x && s[i] != y) {\n                continue;\n            }\n            \n            h.clear();\n            // 分割后的子串开头，两种字符出现次数之差为 0，需要提前存放至哈希表中\n            h[0] = i - 1;\n            int diff = 0;\n            while (i < n && (s[i] == x || s[i] == y)) {\n                diff += (s[i] == x) ? 1 : -1;\n                if (h.contains(diff)) {\n                    res = max(res, i - h[diff]);\n                } else {\n                    h[diff] = i;\n                }\n                i++;\n            }\n        }\n        return res;\n    }\npublic:\n    int longestBalanced(string s) {\n        int n = s.size();\n        int res = 0;\n\n        // 情况一，仅包括一种字符\n        int last = 0;\n        for (int i = 0; i < s.size(); i++) {\n            if (i > 0 && s[i] == s[i - 1]) {\n                last++;\n            } else {\n                last = 1;\n            }\n            res = max(res, last);\n        }\n\n        // 情况二，包含两种字符\n        res = max(res, case2Helper(s, 'a', 'b'));\n        res = max(res, case2Helper(s, 'b', 'c'));\n        res = max(res, case2Helper(s, 'a', 'c'));\n        \n        // 情况三，包含三种字符\n\n        // 将二元组压缩成长整型，方便作为键值存放至哈希表\n        // 由于前缀和之差存在负数，所以统一增加 n\n        auto getId = [&](int x, int y) -> long long {\n            return 1ll * (x + n) << 32 | (y + n);\n        };\n\n        // 字符串开头，位置为 -1 的地方，键值为 getId(0, 0)\n        unordered_map<long long, int> h = {{getId(0, 0), -1}};\n        int pre[3] = {0, 0, 0};\n        for (int i = 0; i < n; i++) {\n            pre[s[i] - 'a']++;\n            long long id = getId(pre[1] - pre[0], pre[1] - pre[2]);\n            if (h.contains(id)) {\n                res = max(res, i - h[id]);\n            } else {\n                h[id] = i;\n            }\n        }\n        return res;\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def longestBalanced(self, s: str) -> int:\n        n = len(s)\n        res = 0\n        \n        # 情况一：仅包含一种字符\n        last = 0\n        for i in range(n):\n            last = last + 1 if i > 0 and s[i] == s[i-1] else 1\n            res = max(res, last)\n        \n        # 情况二：包含两种字符\n        def helper(x: str, y: str) -> int:\n            ans = 0\n            i = 0\n            while i < n:\n                if s[i] != x and s[i] != y:\n                    i += 1\n                    continue\n                h = {0: i-1}\n                diff = 0\n                while i < n and (s[i] == x or s[i] == y):\n                    diff += 1 if s[i] == x else -1\n                    if diff in h:\n                        ans = max(ans, i - h[diff])\n                    else:\n                        h[diff] = i\n                    i += 1\n                i += 1\n            return ans\n        \n        res = max(res, helper('a', 'b'), helper('b', 'c'), helper('a', 'c'))\n        \n        # 情况三：包含三种字符\n        pre = [0, 0, 0]\n        h = {(0, 0): -1}\n        for i, ch in enumerate(s):\n            pre[ord(ch) - 97] += 1\n            key = (pre[0] - pre[1], pre[1] - pre[2])\n            if key in h:\n                res = max(res, i - h[key])\n            else:\n                h[key] = i\n        return res\n```\n\n```Rust [sol1-Rust]\nuse std::collections::HashMap;\n\nimpl Solution {\n    pub fn longest_balanced(s: String) -> i32 {\n        let n = s.len();\n        let mut res = 0;\n        let bytes = s.as_bytes();\n        \n        // 情况一：仅包含一种字符\n        let mut last = 0;\n        for i in 0..n {\n            last = if i > 0 && bytes[i] == bytes[i-1] { last + 1 } else { 1 };\n            res = res.max(last as i32);\n        }\n        \n        // 情况二：包含两种字符\n        let helper = |x: u8, y: u8| -> i32 {\n            let mut ans = 0;\n            let mut i = 0;\n            while i < n {\n                if bytes[i] != x && bytes[i] != y {\n                    i += 1;\n                    continue;\n                }\n                \n                let mut h = HashMap::new();\n                h.insert(0, i as i32 - 1);\n                let mut diff = 0;\n                \n                while i < n && (bytes[i] == x || bytes[i] == y) {\n                    diff += if bytes[i] == x { 1 } else { -1 };\n                    match h.get(&diff) {\n                        Some(&pos) => ans = ans.max(i as i32 - pos),\n                        None => { h.insert(diff, i as i32); }\n                    }\n                    i += 1;\n                }\n                i += 1;\n            }\n            ans\n        };\n        \n        res = res.max(helper(b'a', b'b'));\n        res = res.max(helper(b'b', b'c'));\n        res = res.max(helper(b'a', b'c'));\n        \n        // 情况三：包含三种字符\n        \n        let mut pre = [0; 3];\n        let mut h = HashMap::new();\n        h.insert((0, 0), -1);\n        \n        for (i, &ch) in bytes.iter().enumerate() {\n            pre[(ch - b'a') as usize] += 1;\n            let key = (pre[1] - pre[0], pre[1] - pre[2]);\n            \n            match h.get(&key) {\n                Some(&pos) => res = res.max(i as i32 - pos),\n                None => { h.insert(key, i as i32); }\n            }\n        }\n        \n        res\n    }\n}\n```\n\n```Java [sol1-Java]\nclass Solution {\n    private int case2Helper(String s, char x, char y) {\n        int n = s.length();\n        int res = 0;\n        \n        for (int i = 0; i < n; i++) {\n            if (s.charAt(i) != x && s.charAt(i) != y) {\n                continue;\n            }\n            \n            Map<Integer, Integer> h = new HashMap<>(); \n            h.put(0, i - 1);\n            int diff = 0;\n            int j = i;\n            while (j < n && (s.charAt(j) == x || s.charAt(j) == y)) {\n                diff += (s.charAt(j) == x) ? 1 : -1;\n                Integer prev = h.get(diff);\n                if (prev != null) {\n                    res = Math.max(res, j - prev);\n                } else {\n                    h.put(diff, j);\n                }\n                j++;\n            }\n            i = j - 1; \n        }\n        return res;\n    }\n    \n    public int longestBalanced(String s) {\n        int n = s.length();\n        int res = 0;\n\n        // 情况一，仅包括一种字符\n        int last = 0;\n        for (int i = 0; i < n; i++) {\n            if (i > 0 && s.charAt(i) == s.charAt(i - 1)) {\n                last++;\n            } else {\n                last = 1;\n            }\n            res = Math.max(res, last);\n        }\n\n        // 情况二，包含两种字符\n        res = Math.max(res, case2Helper(s, 'a', 'b'));\n        res = Math.max(res, case2Helper(s, 'b', 'c'));\n        res = Math.max(res, case2Helper(s, 'a', 'c'));\n        \n        // 情况三，包含三种字符 - 优化：使用自定义键对象\n        class Key {\n            final int x, y;\n            Key(int x, int y) {\n                this.x = x;\n                this.y = y;\n            }\n            @Override\n            public boolean equals(Object o) {\n                if (this == o) return true;\n                if (o == null || getClass() != o.getClass()) return false;\n                Key key = (Key) o;\n                return x == key.x && y == key.y;\n            }\n            @Override\n            public int hashCode() {\n                return 31 * x + y;\n            }\n        }\n        \n        Map<Key, Integer> h = new HashMap<>();\n        h.put(new Key(n, n), -1);\n        \n        int diffAB = 0; \n        int diffBC = 0;\n        for (int i = 0; i < n; i++) {\n            char c = s.charAt(i);\n            if (c == 'a') {\n                diffAB--;\n            } else if (c == 'b') {\n                diffAB++;\n                diffBC++;\n            } else {\n                diffBC--;\n            }\n            \n            Key key = new Key(diffAB + n, diffBC + n);\n            Integer prev = h.get(key);\n            if (prev != null) {\n                res = Math.max(res, i - prev);\n            } else {\n                h.put(key, i);\n            }\n        }\n        return res;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    private int Case2Helper(string s, char x, char y) {\n        int n = s.Length;\n        int res = 0;\n        Dictionary<int, int> h = new Dictionary<int, int>();\n        \n        for (int i = 0; i < n; i++) {\n            if (s[i] != x && s[i] != y) {\n                continue;\n            }\n            \n            h.Clear();\n            // 分割后的子串开头，两种字符出现次数之差为 0，需要提前存放至哈希表中\n            h[0] = i - 1;\n            int diff = 0;\n            while (i < n && (s[i] == x || s[i] == y)) {\n                diff += (s[i] == x) ? 1 : -1;\n                if (h.ContainsKey(diff)) {\n                    res = Math.Max(res, i - h[diff]);\n                } else {\n                    h[diff] = i;\n                }\n                i++;\n            }\n        }\n        return res;\n    }\n    \n    public int LongestBalanced(string s) {\n        int n = s.Length;\n        int res = 0;\n\n        // 情况一，仅包括一种字符\n        int last = 0;\n        for (int i = 0; i < n; i++) {\n            if (i > 0 && s[i] == s[i - 1]) {\n                last++;\n            } else {\n                last = 1;\n            }\n            res = Math.Max(res, last);\n        }\n\n        // 情况二，包含两种字符\n        res = Math.Max(res, Case2Helper(s, 'a', 'b'));\n        res = Math.Max(res, Case2Helper(s, 'b', 'c'));\n        res = Math.Max(res, Case2Helper(s, 'a', 'c'));\n        \n        // 情况三，包含三种字符\n        Dictionary<string, int> h = new Dictionary<string, int>();\n        // 字符串开头，位置为 -1 的地方，键值为 getId(0, 0)\n        h[GetId(0, 0, n)] = -1;\n        \n        int[] pre = new int[3];\n        for (int i = 0; i < n; i++) {\n            pre[s[i] - 'a']++;\n            string id = GetId(pre[1] - pre[0], pre[1] - pre[2], n);\n            if (h.ContainsKey(id)) {\n                res = Math.Max(res, i - h[id]);\n            } else {\n                h[id] = i;\n            }\n        }\n        return res;\n    }\n    \n    private string GetId(int x, int y, int n) {\n        return (x + n) + \"_\" + (y + n);\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc case2Helper(s string, x, y byte) int {\n    n := len(s)\n    res := 0\n\n    for i := 0; i < n; i++ {\n        if s[i] != x && s[i] != y {\n            continue\n        }\n\n        h := make(map[int]int)\n        h[0] = i - 1\n        diff := 0\n        j := i\n        for j < n && (s[j] == x || s[j] == y) {\n            if s[j] == x {\n                diff++\n            } else {\n                diff--\n            }\n\n            if prev, exists := h[diff]; exists {\n                if j-prev > res {\n                    res = j - prev\n                }\n            } else {\n                h[diff] = j\n            }\n            j++\n        }\n        i = j - 1\n    }\n    return res\n}\n\nfunc longestBalanced(s string) int {\n    n := len(s)\n    res := 0\n\n    // 情况一，仅包括一种字符\n    last := 0\n    for i := 0; i < n; i++ {\n        if i > 0 && s[i] == s[i - 1] {\n            last++\n        } else {\n            last = 1\n        }\n        if last > res {\n            res = last\n        }\n    }\n\n    // 情况二，包含两种字符\n    res = max(res, case2Helper(s, 'a', 'b'))\n    res = max(res, case2Helper(s, 'b', 'c'))\n    res = max(res, case2Helper(s, 'a', 'c'))\n\n    // 情况三，包含三种字符\n    type Key struct {\n        x, y int\n    }\n    h := make(map[Key]int)\n    h[Key{n, n}] = -1\n\n    diffAB := 0\n    diffBC := 0\n    for i := 0; i < n; i++ {\n        c := s[i]\n        switch c {\n            case 'a':\n                diffAB--\n            case 'b':\n                diffAB++\n                diffBC++\n            case 'c':\n                diffBC--\n        }\n\n        key := Key{diffAB + n, diffBC + n}\n        if prev, exists := h[key]; exists {\n            res = max(res, i - prev)\n        } else {\n            h[key] = i\n        }\n    }\n    return res\n}\n```\n\n```C [sol1-C]\ntypedef struct {\n    long long key;\n    int val;\n    UT_hash_handle hh;\n} HashItem;\n\n\nHashItem* hashFindItem(HashItem** obj, long long key) {\n    HashItem* pEntry = NULL;\n    HASH_FIND(hh, *obj, &key, sizeof(long long), pEntry);\n    return pEntry;\n}\n\nbool hashAddItem(HashItem** obj, long long key, int val) {\n    if (hashFindItem(obj, key)) {\n        return false;\n    }\n    HashItem* pEntry = (HashItem*)malloc(sizeof(HashItem));\n    pEntry->key = key;\n    pEntry->val = val;\n    HASH_ADD_KEYPTR(hh, *obj, &pEntry->key, sizeof(long long), pEntry);\n    return true;\n}\n\nbool hashSetItem(HashItem** obj, long long key, int val) {\n    HashItem* pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        hashAddItem(obj, key, val);\n    } else {\n        pEntry->val = val;\n    }\n    return true;\n}\n\nint hashGetItem(HashItem** obj, long long key, int defaultVal) {\n    HashItem* pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        return defaultVal;\n    }\n    return pEntry->val;\n}\n\nvoid hashFree(HashItem** obj) {\n    HashItem* curr = NULL;\n    HashItem* tmp = NULL;\n    HASH_ITER(hh, *obj, curr, tmp) {\n        HASH_DEL(*obj, curr);\n        free(curr);\n    }\n}\n\n// 情况二的辅助函数\nint case2Helper(char* s, char x, char y) {\n    int n = strlen(s);\n    int res = 0;\n    \n    for (int i = 0; i < n; i++) {\n        if (s[i] != x && s[i] != y) {\n            continue;\n        }\n        \n        HashItem* h = NULL;\n        hashAddItem(&h, 0, i - 1);\n        int diff = 0;\n        int j = i;\n        \n        while (j < n && (s[j] == x || s[j] == y)) {\n            diff += (s[j] == x) ? 1 : -1;\n            HashItem* prevEntry = hashFindItem(&h, diff);\n            if (prevEntry != NULL) {\n                int length = j - prevEntry->val;\n                if (length > res) {\n                    res = length;\n                }\n            } else {\n                hashAddItem(&h, diff, j);\n            }\n            j++;\n        }\n        \n        hashFree(&h);\n        i = j - 1;\n    }\n    \n    return res;\n}\n\nint longestBalanced(char* s) {\n    int n = strlen(s);\n    int res = 0;\n    \n    // 情况一：仅包括一种字符\n    int last = 0;\n    for (int i = 0; i < n; i++) {\n        if (i > 0 && s[i] == s[i - 1]) {\n            last++;\n        } else {\n            last = 1;\n        }\n        if (last > res) {\n            res = last;\n        }\n    }\n    \n    // 情况二：包含两种字符\n    res = fmax(res, case2Helper(s, 'a', 'b'));\n    res = fmax(res, case2Helper(s, 'b', 'c'));\n    res = fmax(res, case2Helper(s, 'a', 'c'));\n    \n    // 情况三：包含三种字符\n    HashItem* h = NULL;\n    long long initKey = ((long long)n << 32) | n;\n    hashAddItem(&h, initKey, -1);\n    int diffAB = 0;\n    int diffBC = 0;\n    \n    for (int i = 0; i < n; i++) {\n        char c = s[i];\n        switch (c) {\n            case 'a':\n                diffAB--;\n                break;\n            case 'b':\n                diffAB++;\n                diffBC++;\n                break;\n            case 'c':\n                diffBC--;\n                break;\n        }\n        \n        long long key = ((long long)(diffAB + n) << 32) | (diffBC + n);\n        HashItem* prevEntry = hashFindItem(&h, key);\n        if (prevEntry != NULL) {\n            int length = i - prevEntry->val;\n            if (length > res) {\n                res = length;\n            }\n        } else {\n            hashAddItem(&h, key, i);\n        }\n    }\n    \n    hashFree(&h);\n    return res;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar longestBalanced = function(s) {\n    const case2Helper = (s, x, y) => {\n        const n = s.length;\n        let res = 0;\n        let h = new Map();\n        \n        for (let i = 0; i < n; i++) {\n            if (s[i] !== x && s[i] !== y) {\n                continue;\n            }\n            \n            h.clear();\n            // 分割后的子串开头，两种字符出现次数之差为 0，需要提前存放至哈希表中\n            h.set(0, i - 1);\n            let diff = 0;\n            while (i < n && (s[i] === x || s[i] === y)) {\n                diff += (s[i] === x) ? 1 : -1;\n                if (h.has(diff)) {\n                    res = Math.max(res, i - h.get(diff));\n                } else {\n                    h.set(diff, i);\n                }\n                i++;\n            }\n        }\n        return res;\n    };\n    \n    const n = s.length;\n    let res = 0;\n\n    // 情况一，仅包括一种字符\n    let last = 0;\n    for (let i = 0; i < n; i++) {\n        if (i > 0 && s[i] === s[i - 1]) {\n            last++;\n        } else {\n            last = 1;\n        }\n        res = Math.max(res, last);\n    }\n\n    // 情况二，包含两种字符\n    res = Math.max(res, case2Helper(s, 'a', 'b'));\n    res = Math.max(res, case2Helper(s, 'b', 'c'));\n    res = Math.max(res, case2Helper(s, 'a', 'c'));\n    \n    // 情况三，包含三种字符\n    const getId = (x, y) => {\n        return `${x + n}_${y + n}`;\n    };\n    \n    const h = new Map();\n    // 字符串开头，位置为 -1 的地方，键值为 getId(0, 0)\n    h.set(getId(0, 0), -1);\n    \n    const pre = [0, 0, 0];\n    for (let i = 0; i < n; i++) {\n        pre[s.charCodeAt(i) - 97]++; // 'a'.charCodeAt(0) = 97\n        const id = getId(pre[1] - pre[0], pre[1] - pre[2]);\n        if (h.has(id)) {\n            res = Math.max(res, i - h.get(id));\n        } else {\n            h.set(id, i);\n        }\n    }\n    return res;\n}\n```\n\n```TypeScript [sol1-TypeScript]\nfunction longestBalanced(s: string): number {\n    const case2Helper = (s: string, x: string, y: string): number => {\n        const n = s.length;\n        let res = 0;\n        let h = new Map<number, number>();\n        \n        for (let i = 0; i < n; i++) {\n            if (s[i] !== x && s[i] !== y) {\n                continue;\n            }\n            \n            h.clear();\n            // 分割后的子串开头，两种字符出现次数之差为 0，需要提前存放至哈希表中\n            h.set(0, i - 1);\n            let diff = 0;\n            while (i < n && (s[i] === x || s[i] === y)) {\n                diff += (s[i] === x) ? 1 : -1;\n                if (h.has(diff)) {\n                    res = Math.max(res, i - h.get(diff)!);\n                } else {\n                    h.set(diff, i);\n                }\n                i++;\n            }\n        }\n        return res;\n    };\n    \n    const n = s.length;\n    let res = 0;\n\n    // 情况一，仅包括一种字符\n    let last = 0;\n    for (let i = 0; i < n; i++) {\n        if (i > 0 && s[i] === s[i - 1]) {\n            last++;\n        } else {\n            last = 1;\n        }\n        res = Math.max(res, last);\n    }\n\n    // 情况二，包含两种字符\n    res = Math.max(res, case2Helper(s, 'a', 'b'));\n    res = Math.max(res, case2Helper(s, 'b', 'c'));\n    res = Math.max(res, case2Helper(s, 'a', 'c'));\n    \n    // 情况三，包含三种字符\n    const getId = (x: number, y: number): string => {\n        return `${x + n}_${y + n}`;\n    };\n    \n    const h = new Map<string, number>();\n    // 字符串开头，位置为 -1 的地方，键值为 getId(0, 0)\n    h.set(getId(0, 0), -1);\n    \n    const pre = [0, 0, 0];\n    for (let i = 0; i < n; i++) {\n        pre[s.charCodeAt(i) - 97]++; // 'a'.charCodeAt(0) = 97\n        const id = getId(pre[1] - pre[0], pre[1] - pre[2]);\n        if (h.has(id)) {\n            res = Math.max(res, i - h.get(id)!);\n        } else {\n            h.set(id, i);\n        }\n    }\n    return res;\n}\n```\n\n```Rust [sol1-Rust]\nuse std::collections::HashMap;\n\nimpl Solution {\n    pub fn longest_balanced(s: String) -> i32 {\n        fn case2_helper(s: &str, x: char, y: char) -> i32 {\n            let n = s.len();\n            let mut res = 0;\n            let mut h = HashMap::new();\n            let chars: Vec<char> = s.chars().collect();\n            \n            let mut i = 0;\n            while i < n {\n                if chars[i] != x && chars[i] != y {\n                    i += 1;\n                    continue;\n                }\n                \n                h.clear();\n                // 分割后的子串开头，两种字符出现次数之差为 0，需要提前存放至哈希表中\n                h.insert(0, i as i32 - 1);\n                let mut diff = 0;\n                while i < n && (chars[i] == x || chars[i] == y) {\n                    if chars[i] == x {\n                        diff += 1;\n                    } else {\n                        diff -= 1;\n                    }\n                    if let Some(&prev) = h.get(&diff) {\n                        res = res.max(i as i32 - prev);\n                    } else {\n                        h.insert(diff, i as i32);\n                    }\n                    i += 1;\n                }\n            }\n            res\n        }\n        \n        let n = s.len();\n        let mut res = 0;\n\n        // 情况一，仅包括一种字符\n        let mut last = 0;\n        let chars: Vec<char> = s.chars().collect();\n        for i in 0..n {\n            if i > 0 && chars[i] == chars[i - 1] {\n                last += 1;\n            } else {\n                last = 1;\n            }\n            res = res.max(last);\n        }\n\n        // 情况二，包含两种字符\n        res = res.max(case2_helper(&s, 'a', 'b'));\n        res = res.max(case2_helper(&s, 'b', 'c'));\n        res = res.max(case2_helper(&s, 'a', 'c'));\n        \n        // 情况三，包含三种字符\n        let get_id = |x: i32, y: i32| -> (i32, i32) {\n            (x + n as i32, y + n as i32)\n        };\n        \n        let mut h = HashMap::new();\n        // 字符串开头，位置为 -1 的地方\n        h.insert(get_id(0, 0), -1);\n        \n        let mut pre = [0; 3];\n        for i in 0..n {\n            pre[(chars[i] as u8 - b'a') as usize] += 1;\n            let id = get_id(pre[1] - pre[0], pre[1] - pre[2]);\n            if let Some(&prev) = h.get(&id) {\n                res = res.max(i as i32 - prev);\n            } else {\n                h.insert(id, i as i32);\n            }\n        }\n        res\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是字符串 $s$ 的长度。三种情况的处理过程我们都只使用了一次遍历，并且访问哈希表、将值存入哈希表的时间复杂度均为 $O(1)$，因此总体时间复杂度为 $O(n)$。\n\n- 空间复杂度：$O(n)$。使用哈希表的空间复杂度为 $O(n)$。",
+            "slateValue": "",
+            "slug": "zui-chang-de-ping-heng-zi-chuan-ii-by-le-0g8o",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "v6sv9R",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 6,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Enumeration",
+                    "nameTranslated": "枚举",
+                    "slug": "enumeration",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Prefix Sum",
+                    "nameTranslated": "前缀和",
+                    "slug": "prefix-sum",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python3",
+                    "nameTranslated": "",
+                    "slug": "python3",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2026-02-05T02:45:28.425930+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：枚举 + 前缀和 + 哈希表 思路与算法 由于题目给定的字符串仅包含 [latex], [latex] 和 [latex] 三种字符，因此我们可分为三种情况解题： 求解仅包含一种字符的最长平衡子串 求解包含两种字符的最长平衡子串 求解包含三种字符的最长平衡子串 对于第一种情况，也是最简单的情况，我们在从左向右遍",
+            "topic": {
+                "id": 3896558,
+                "subscribed": false,
+                "commentCount": 7,
+                "viewCount": 17,
+                "post": {
+                    "id": 7107418,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 22,
+            "isEditorsPick": false,
+            "hitCount": 5484,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "longest-balanced-substring-ii",
+                "questionFrontendId": "3714"
+            },
+            "next": {
+                "slug": "shi-zi-bian-xing-mei-ju-you-wei-hu-zuo-p-slnc",
+                "title": "式子变形 + 枚举右维护左（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

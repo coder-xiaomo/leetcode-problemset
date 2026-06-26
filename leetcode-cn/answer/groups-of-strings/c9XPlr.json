@@ -1,0 +1,126 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "c9XPlr",
+            "title": "字符串分组",
+            "content": "#### 方法一：状态压缩 + 广度优先搜索\n\n**思路与算法**\n\n由于 $\\textit{words}$ 中的每一个字符串都至多包含每个字母一次，并且字母的顺序无关紧要，因此我们可以使用一个 $26$ 位的二进制数 $\\textit{mask}$ 表示一个字符串，其中 $\\textit{mask}$ 的第 $i~(0 \\leq i < 26)$ 个二进制位为 $1$，当且仅当字符串中包含第 $i$ 个字母。\n\n根据题目描述，设 $s_1$ 和 $s_2$ 的二进制表示分别为 $\\textit{mask}_1$ 和 $\\textit{mask}_2$，那么 $s_1$ 和 $s_2$ 是关联的，当且仅当下面四条要求中的某一条满足：\n\n- $s_1 = s_2$；\n\n- $s_1$ 中有一个二进制位为 $0$，而 $s_2$ 中对应二进制位为 $1$，其余二进制位均完全相同；\n\n- $s_1$ 中有一个二进制位为 $1$，而 $s_2$ 中对应二进制位为 $0$，其余二进制位均完全相同；\n\n- $s_1$ 中有一个二进制位为 $1$，而 $s_2$ 中对应二进制位为 $0$；同时 $s_1$ 中有另一个二进制位为 $0$，而 $s_2$ 中对应二进制位为 $1$，其余二进制位均完全相同。\n\n因此，我们可以将 $\\textit{words}$ 中的每一个字符串看成图上的一个节点，如果两个字符串是关联的，那么它们对应的节点之间存在一条无向边。此时，题目需要求出的「总组数」就是图中连通分量的个数，「包含字符串最多的组」就是最大的连通分量。我们可以使用深度优先搜索、广度优先搜索、并查集中的任意一种方法求出所有的连通分量。\n\n然而需要注意的是，本题中最多有 $n = 2 \\times 10^4$ 个字符串，如果直接枚举任意两个字符串并判断是否关联，并以此得到图上所有的边，时间复杂度至少为 $O(n^2)$，会超出时间限制。因此我们需要找出一种更高效的方法得到所有的边。\n\n可以发现，对于每一个字符串而言，与它关联的字符串最多会有 $1 + \\textit{count}_0 + \\textit{count}_1 + \\textit{count}_0 \\times \\textit{count}_1$ 个，其中 $\\textit{count}_0$ 和 $\\textit{count}_1$ 分别是字符串的二进制表示中的 $0$ 和 $1$ 的数量。这个值不会超过 $1 + 26 + 26 + 26 \\times 26 = 729$（当然实际上它不会超过 $196$，但它们是同阶的），即为 $O(|\\Sigma|^2)$，其中 $\\Sigma$ 表示字符集。因此我们可以通过「枚举一个节点」+「枚举可能的相邻节点」+「使用哈希表判断相邻节点是否真正存在」的方法得到图上所有的边，时间复杂度为 $O(n \\times |\\Sigma|^2)$，是可以接受的。\n\n下面的代码给出的是基于广度优先搜索的方法。\n\n**细节**\n\n对于要求之一的 $s_1 = s_2$，我们可以使用哈希映射而不是普通的哈希集合来存储所有的二进制表示。在哈希映射中的每一个键值对中，键表示一个二进制表示，值表示该二进制表示出现的次数。这样一来，所有二进制表示相同的节点都会被合并成同一个节点。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<int> groupStrings(vector<string>& words) {\n        // 使用哈希映射统计每一个二进制表示出现的次数\n        unordered_map<int, int> wordmasks;\n        for (const string& word: words) {\n            int mask = 0;\n            for (char ch: word) {\n                mask |= (1 << (ch - 'a'));\n            }\n            ++wordmasks[mask];\n        }\n        \n        // 辅助函数，用来得到 mask 的所有可能的相邻节点\n        auto get_adjacent = [](int mask) -> vector<int> {\n            vector<int> adj;\n            // 将一个 0 变成 1，或将一个 1 变成 0\n            for (int i = 0; i < 26; ++i) {\n                adj.push_back(mask ^ (1 << i));\n            }\n            // 将一个 0 变成 1，且将一个 1 变成 0\n            for (int i = 0; i < 26; ++i) {\n                if (mask & (1 << i)) {\n                    for (int j = 0; j < 26; ++j) {\n                        if (!(mask & (1 << j))) {\n                            adj.push_back(mask ^ (1 << i) ^ (1 << j));\n                        }\n                    }\n                }\n            }\n            return adj;\n        };\n        \n        unordered_set<int> used;\n        int best = 0, cnt = 0;\n        for (const auto& [mask, occ]: wordmasks) {\n            if (used.count(mask)) {\n                continue;\n            }\n            // 从一个未搜索过的节点开始进行广度优先搜索，并求出对应连通分量的大小\n            queue<int> q;\n            q.push(mask);\n            used.insert(mask);\n            // total 记录联通分量的大小\n            int total = occ;\n            while (!q.empty()) {\n                int u = q.front();\n                q.pop();\n                for (int v: get_adjacent(u)) {\n                    if (wordmasks.count(v) && !used.count(v)) {\n                        q.push(v);\n                        used.insert(v);\n                        total += wordmasks[v];\n                    }\n                }\n            }\n            best = max(best, total);\n            ++cnt;\n        }\n            \n        return {cnt, best};\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def groupStrings(self, words: List[str]) -> List[int]:\n        # 使用哈希映射统计每一个二进制表示出现的次数\n        wordmasks = Counter()\n        for word in words:\n            mask = 0\n            for ch in word:\n                mask |= (1 << (ord(ch) - ord(\"a\")))\n            wordmasks[mask] += 1\n        \n        # 辅助函数，用来得到 mask 的所有可能的相邻节点\n        def get_adjacent(mask: int) -> List[int]:\n            adj = list()\n            # 将一个 0 变成 1，或将一个 1 变成 0\n            for i in range(26):\n                adj.append(mask ^ (1 << i))\n            # 将一个 0 变成 1，且将一个 1 变成 0\n            for i in range(26):\n                if mask & (1 << i):\n                    for j in range(26):\n                        if not (mask & (1 << j)):\n                            adj.append(mask ^ (1 << i) ^ (1 << j))\n            return adj\n        \n        used = set()\n        best = cnt = 0\n        for mask, occ in wordmasks.items():\n            if mask in used:\n                continue\n            \n            # 从一个未搜索过的节点开始进行广度优先搜索，并求出对应连通分量的大小\n            q = deque([mask])\n            used.add(mask)\n            # total 记录联通分量的大小\n            total = occ\n\n            while q:\n                u = q.popleft()\n                for v in get_adjacent(u):\n                    if v in wordmasks and v not in used:\n                        q.append(v)\n                        used.add(v)\n                        total += wordmasks[v]\n            \n            best = max(best, total)\n            cnt += 1\n            \n        return [cnt, best]\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n |\\Sigma|^2)$，其中 $n$ 是数组 $\\textit{words}$ 的长度，$\\Sigma$ 表示字符集，在本题中为所有小写字母，$|\\Sigma| = 26$。\n\n- 空间复杂度：$O(n)$，即为哈希映射需要使用的空间。",
+            "slateValue": "",
+            "slug": "zi-fu-chuan-fen-zu-by-leetcode-solution-a8dr",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "c9XPlr",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 8,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Depth-First Search",
+                    "nameTranslated": "深度优先搜索",
+                    "slug": "depth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Breadth-First Search",
+                    "nameTranslated": "广度优先搜索",
+                    "slug": "breadth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Union Find",
+                    "nameTranslated": "并查集",
+                    "slug": "union-find",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Graph",
+                    "nameTranslated": "图",
+                    "slug": "graph",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Bitmask",
+                    "nameTranslated": "位掩码",
+                    "slug": "bitmask",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-01-30T12:02:32.318384+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：状态压缩 + 广度优先搜索 思路与算法 由于 $\\textit{words}$ 中的每一个字符串都至多包含每个字母一次，并且字母的顺序无关紧要，因此我们可以使用一个 $26$ 位的二进制数 $\\textit{mask}$ 表示一个字符串，其中 $\\textit{mask}$ 的第 $i~(0 \\leq i < ",
+            "topic": {
+                "id": 1240169,
+                "subscribed": false,
+                "commentCount": 14,
+                "viewCount": 2569,
+                "post": {
+                    "id": 2598673,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 13,
+            "isEditorsPick": false,
+            "hitCount": 5220,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "groups-of-strings",
+                "questionFrontendId": "2157"
+            },
+            "next": {
+                "slug": "bing-cha-ji-wei-yun-suan-by-endlesscheng-uejd",
+                "title": "哈希并查集 + 位运算（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "dv0Nm6",
+            "title": "可以被 K 整除连通块的最大数目",
+            "content": "#### 方法一：深度优先搜索\n\n**思路与算法**\n\n题目要求我们将给定的树分割成若干个部分，每个部分中节点值之和都可以被 $k$ 整除，要求分割的部分数量最多。\n\n由于数据保证 $\\textit{values}$ 之和，即所有节点的权值和，能够被 $k$ 整除。因此，合法分割的方案一定存在。若一条边可以被删除，则它所连接的两个部分各自都能被 $k$ 整除。我们可以使用深度优先搜索计算以每个节点为根结点的子树的节点权值的总和。由于所有权值和是 $k$ 的倍数，只需要子树的权值和能够被 $k$ 整除，它就可以与父节点分割成两个部分。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int maxKDivisibleComponents(int n, vector<vector<int>>& edges, vector<int>& values, int k) {\n        vector<vector<int>> graph(n);\n        for (auto& edge : edges) {\n            int u = edge[0], v = edge[1];\n            graph[u].push_back(v);\n            graph[v].push_back(u);\n        }\n\n        int result = 0;\n        function<long long(int, int)> dfs = [&](int node, int parent) -> long long {\n            long long sum = values[node];\n            for (int neighbor : graph[node]) {\n                if (neighbor != parent) {\n                    sum += dfs(neighbor, node);\n                }\n            }\n            if (sum % k == 0) {\n                ++result;\n            }\n            return sum;\n        };\n        dfs(0, -1);\n        return result;\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def maxKDivisibleComponents(self, n: int, edges: List[List[int]], values: List[int], k: int) -> int:\n        graph = [[] for _ in range(n)]\n        for u, v in edges:\n            graph[u].append(v)\n            graph[v].append(u)\n        result = 0\n\n        def dfs(node, parent):\n            nonlocal result\n            total = values[node]\n            for neighbor in graph[node]:\n                if neighbor != parent:\n                    total += dfs(neighbor, node)\n            if total % k == 0:\n                result += 1\n            return total\n\n        dfs(0, -1)\n        return result\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int maxKDivisibleComponents(int n, int[][] edges, int[] values, int k) {\n        List<Integer>[] graph = new ArrayList[n];\n        for (int i = 0; i < n; ++i) {\n            graph[i] = new ArrayList<>();\n        }\n        for (int[] edge : edges) {\n            int u = edge[0], v = edge[1];\n            graph[u].add(v);\n            graph[v].add(u);\n        }\n        this.graph = graph;\n        this.values = values;\n        this.divisor = k;\n        this.answer = 0;\n        dfs(0, -1);\n        return answer;\n    }\n\n    private List<Integer>[] graph;\n    private int[] values;\n    private int divisor;\n    private int answer;\n\n    private long dfs(int node, int parent) {\n        long sum = values[node];\n        for (int neighbor : graph[node]) {\n            if (neighbor != parent) {\n                sum += dfs(neighbor, node);\n            }\n        }\n        if (sum % divisor == 0) {\n            answer++;\n        }\n        return sum;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc maxKDivisibleComponents(n int, edges [][]int, values []int, k int) int {\n\tgraph := make([][]int, n)\n\tfor _, edge := range edges {\n\t\tu, v := edge[0], edge[1]\n\t\tgraph[u] = append(graph[u], v)\n\t\tgraph[v] = append(graph[v], u)\n\t}\n\tresult := 0\n\tvar dfs func(int, int) int64\n\tdfs = func(node, parent int) int64 {\n\t\tsum := int64(values[node])\n\t\tfor _, neighbor := range graph[node] {\n\t\t\tif neighbor != parent {\n\t\t\t\tsum += dfs(neighbor, node)\n\t\t\t}\n\t\t}\n\t\tif sum%int64(k) == 0 {\n\t\t\tresult++\n\t\t}\n\t\treturn sum\n\t}\n\tdfs(0, -1)\n\treturn result\n}\n```\n\n```C [sol1-C]\ntypedef struct EdgeNode {\n    int to;\n    struct EdgeNode* next;\n} EdgeNode;\n\nstatic EdgeNode** graphC;\nstatic int divisorC;\nstatic int resultC;\nstatic int* valuesC;\n\nstatic void addEdge(int u, int v) {\n    EdgeNode* node = (EdgeNode*)malloc(sizeof(EdgeNode));\n    node->to = v;\n    node->next = graphC[u];\n    graphC[u] = node;\n}\n\nstatic long long dfs(int node, int parent) {\n    long long sum = valuesC[node];\n    for (EdgeNode* edge = graphC[node]; edge != NULL; edge = edge->next) {\n        int neighbor = edge->to;\n        if (neighbor != parent) {\n            sum += dfs(neighbor, node);\n        }\n    }\n    if (sum % divisorC == 0) {\n        resultC++;\n    }\n    return sum;\n}\n\nint maxKDivisibleComponents(int n, int** edges, int edgesSize, int* edgesColSize, int* values, int valuesSize, int k) {\n    (void)edgesColSize;\n    (void)valuesSize;\n    graphC = (EdgeNode**)calloc(n, sizeof(EdgeNode*));\n    for (int i = 0; i < edgesSize; ++i) {\n        int u = edges[i][0];\n        int v = edges[i][1];\n        addEdge(u, v);\n        addEdge(v, u);\n    }\n    valuesC = values;\n    divisorC = k;\n    resultC = 0;\n    dfs(0, -1);\n    for (int i = 0; i < n; ++i) {\n        EdgeNode* current = graphC[i];\n        while (current != NULL) {\n            EdgeNode* next = current->next;\n            free(current);\n            current = next;\n        }\n    }\n    free(graphC);\n    return resultC;\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MaxKDivisibleComponents(int n, int[][] edges, int[] values, int k) {\n        List<int>[] graph = new List<int>[n];\n        for (int i = 0; i < n; ++i) {\n            graph[i] = new List<int>();\n        }\n        foreach (var edge in edges) {\n            int u = edge[0], v = edge[1];\n            graph[u].Add(v);\n            graph[v].Add(u);\n        }\n\n        int result = 0;\n\n        long Dfs(int node, int parent) {\n            long sum = values[node];\n            foreach (int neighbor in graph[node]) {\n                if (neighbor != parent) {\n                    sum += Dfs(neighbor, node);\n                }\n            }\n            if (sum % k == 0) {\n                result++;\n            }\n            return sum;\n        }\n\n        Dfs(0, -1);\n        return result;\n    }\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar maxKDivisibleComponents = function(n, edges, values, k) {\n    const graph = Array.from({ length: n }, () => []);\n    for (const edge of edges) {\n        const u = edge[0], v = edge[1];\n        graph[u].push(v);\n        graph[v].push(u);\n    }\n    let result = 0;\n    function dfs(node, parent) {\n        let sum = values[node];\n        for (const neighbor of graph[node]) {\n            if (neighbor !== parent) {\n                sum += dfs(neighbor, node);\n            }\n        }\n        if (sum % k === 0) {\n            result++;\n        }\n        return sum;\n    }\n    dfs(0, -1);\n    return result;\n};\n```\n\n```TypeScript [so1-TypeScript]\nfunction maxKDivisibleComponents(n: number, edges: number[][], values: number[], k: number): number {\n    const graph: number[][] = Array.from({ length: n }, () => []);\n    for (const edge of edges) {\n        const u = edge[0], v = edge[1];\n        graph[u].push(v);\n        graph[v].push(u);\n    }\n    let result = 0;\n    function dfs(node: number, parent: number): number {\n        let sum = values[node];\n        for (const neighbor of graph[node]) {\n            if (neighbor !== parent) {\n                sum += dfs(neighbor, node);\n            }\n        }\n        if (sum % k === 0) {\n            result++;\n        }\n        return sum;\n    }\n    dfs(0, -1);\n    return result;\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn max_k_divisible_components(n: i32, edges: Vec<Vec<i32>>, values: Vec<i32>, k: i32) -> i32 {\n        let n = n as usize;\n        let mut graph = vec![Vec::new(); n];\n        for edge in edges {\n            let u = edge[0] as usize;\n            let v = edge[1] as usize;\n            graph[u].push(v);\n            graph[v].push(u);\n        }\n        let mut result = 0;\n        fn dfs(node: usize, parent: i32, graph: &Vec<Vec<usize>>, values: &Vec<i32>, k: i32, result: &mut i32) -> i64 {\n            let mut sum = values[node] as i64;\n            for &neighbor in &graph[node] {\n                if neighbor as i32 != parent {\n                    sum += dfs(neighbor, node as i32, graph, values, k, result);\n                }\n            }\n            if sum % (k as i64) == 0 {\n                *result += 1;\n            }\n            sum\n        }\n        dfs(0, -1, &graph, &values, k, &mut result);\n        result\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是树中的节点数。树中的每个节点都会被遍历一次。\n- 空间复杂度：$O(n)$。",
+            "slateValue": "",
+            "slug": "ke-yi-bei-k-zheng-chu-lian-tong-kuai-de-rq9y1",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "dv0Nm6",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 1,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Tree",
+                    "nameTranslated": "树",
+                    "slug": "tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Depth-First Search",
+                    "nameTranslated": "深度优先搜索",
+                    "slug": "depth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2025-11-18T12:26:06.531437+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：深度优先搜索 思路与算法 题目要求我们将给定的树分割成若干个部分，每个部分中节点值之和都可以被 [latex] 整除，要求分割的部分数量最多。 由于数据保证 [latex] 之和，即所有节点的权值和，能够被 [latex] 整除。因此，合法分割的方案一定存在。若一条边可以被删除，则它所连接的两个部分各自都能被 ",
+            "topic": {
+                "id": 3835599,
+                "subscribed": false,
+                "commentCount": 8,
+                "viewCount": 27,
+                "post": {
+                    "id": 7001399,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 6,
+            "isEditorsPick": false,
+            "hitCount": 4049,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "maximum-number-of-k-divisible-components",
+                "questionFrontendId": "2872"
+            },
+            "next": {
+                "slug": "pan-duan-zi-shu-dian-quan-he-shi-fou-wei-uvsg",
+                "title": "判断子树点权和是否为 k 的倍数（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

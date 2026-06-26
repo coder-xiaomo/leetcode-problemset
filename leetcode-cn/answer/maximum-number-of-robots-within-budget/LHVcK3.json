@@ -1,0 +1,162 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "LHVcK3",
+            "title": "预算内的最多机器人数目",
+            "content": "#### 方法一：双指针 + 单调队列\n\n根据题目的总开销计算公式，显然连续运行的机器人数目越多，总开销越大。假设连续运行的机器人下标区间为 $[j, i]$：\n\n- 当我们固定右下标 $i$ 时，总开销随左下标 $j$ 减小而单调递增。\n\n- 当右下标 $i$ 增大时，使总开销不超过 $\\textit{budget}$ 的区间最小左下标 $j$ 也会增大。\n\n因此我们可以使用双指针来求解本题，同时使用单调队列 $q$ 来维护区间内 $\\textit{chargeTimes}$ 的最大值。\n\n从小到大枚举右下标 $i$，令 $\\textit{runningCostSum}$ 为区间 $[j, i]$ 的 $\\textit{runningCosts}$ 之和，执行以下操作：\n\n- 当 $q$ 非空，且 $q$ 的队尾元素对应的 $\\textit{chargeTimes}$ 值小于等于 $\\textit{chargeTimes}[i]$ 时，我们不断地将 $q$ 的队尾元素出队，从而维护 $q$ 的队首元素对应的 $\\textit{chargeTimes}$ 值始终为区间 $[j, i]$ 的最大值。\n\n- 计算区间 $[j, i]$ 的总开销，如果总开销大于 $\\textit{budget}$，那么我们需要将 $j$ 右移，即 $j = j + 1$，同时如果 $q$ 的队首元素为 $j$，那么我们需要将 $j$ 从 $q$ 中移出。\n\n- 最后 $i - j + 1$ 就是以 $i$ 为最右机器人，能连续运行的机器人最大数目。\n\n取所有这些最大数目的最大值为结果。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int maximumRobots(vector<int>& chargeTimes, vector<int>& runningCosts, long long budget) {\n        int res = 0, n = chargeTimes.size();\n        long long runningCostSum = 0;\n        deque<int> q;\n        for (int i = 0, j = 0; i < n; i++) {\n            runningCostSum += runningCosts[i];\n            while (!q.empty() && chargeTimes[q.back()] <= chargeTimes[i]) {\n                q.pop_back();\n            }\n            q.push_back(i);\n            while (j <= i && (i - j + 1) * runningCostSum + chargeTimes[q.front()] > budget) {\n                if (!q.empty() && q.front() == j) {\n                    q.pop_front();\n                }\n                runningCostSum -= runningCosts[j];\n                j++;\n            }\n            res = max(res, i - j + 1);\n        }\n        return res;\n    }\n};\n```\n\n```Go [sol1-Go]\nfunc maximumRobots(chargeTimes []int, runningCosts []int, budget int64) int {\n    res, n := 0, len(chargeTimes)\n    runningCostSum := int64(0)\n    var q []int\n    for i, j := 0, 0; i < n; i++ {\n        runningCostSum += int64(runningCosts[i])\n        for len(q) > 0 && chargeTimes[q[len(q)-1]] <= chargeTimes[i] {\n            q = q[:len(q)-1]\n        }\n        q = append(q, i)\n        for j <= i && int64(i - j + 1) * runningCostSum + int64(chargeTimes[q[0]]) > budget {\n            if len(q) > 0 && q[0] == j {\n                q = q[1:]\n            }\n            runningCostSum -= int64(runningCosts[j])\n            j++\n        }\n        res = max(res, i - j + 1)\n    }\n    return res\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def maximumRobots(self, chargeTimes: List[int], runningCosts: List[int], budget: int) -> int:\n        res, n, runningCostSum = 0, len(chargeTimes), 0\n        q, j = deque(), 0\n        for i in range(n):\n            runningCostSum += runningCosts[i]\n            while q and chargeTimes[q[-1]] <= chargeTimes[i]:\n                q.pop()\n            q.append(i)\n            while j <= i and (i - j + 1) * runningCostSum + chargeTimes[q[0]] > budget:\n                if q and q[0] == j:\n                    q.popleft()\n                runningCostSum -= runningCosts[j]\n                j += 1\n            res = max(res, i - j + 1)\n        return res\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int maximumRobots(int[] chargeTimes, int[] runningCosts, long budget) {\n        int res = 0, n = chargeTimes.length;\n        long runningCostSum = 0;\n        Deque<Integer> q = new ArrayDeque<>();\n        for (int i = 0, j = 0; i < n; i++) {\n            runningCostSum += runningCosts[i];\n            while (!q.isEmpty() && chargeTimes[q.peekLast()] <= chargeTimes[i]) {\n                q.pollLast();\n            }\n            q.addLast(i);\n            while (j <= i && (i - j + 1) * runningCostSum + chargeTimes[q.peekFirst()] > budget) {\n                if (!q.isEmpty() && q.peekFirst() == j) {\n                    q.pollFirst();\n                }\n                runningCostSum -= runningCosts[j];\n                j++;\n            }\n            res = Math.max(res, i - j + 1);\n        }\n        return res;\n    }\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar maximumRobots = function(chargeTimes, runningCosts, budget) {\n    let res = 0;\n    let n = chargeTimes.length;\n    let runningCostSum = 0;\n    const q = [];\n    for (let i = 0, j = 0; i < n; i++) {\n        runningCostSum += runningCosts[i];\n        while (q.length && chargeTimes[q[q.length - 1]] <= chargeTimes[i]) {\n            q.pop();\n        }\n        q.push(i);\n        while (j <= i && (i - j + 1) * runningCostSum + chargeTimes[q[0]] > budget) {\n            if (q.length && q[0] === j) {\n                q.shift();\n            }\n            runningCostSum -= runningCosts[j];\n            j++;\n        }\n        res = Math.max(res, i - j + 1);\n    }\n    return res;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction maximumRobots(chargeTimes: number[], runningCosts: number[], budget: number): number {\n    let res = 0;\n    let n = chargeTimes.length;\n    let runningCostSum = 0;\n    const q = [];\n    for (let i = 0, j = 0; i < n; i++) {\n        runningCostSum += runningCosts[i];\n        while (q.length && chargeTimes[q[q.length - 1]] <= chargeTimes[i]) {\n            q.pop();\n        }\n        q.push(i);\n        while (j <= i && (i - j + 1) * runningCostSum + chargeTimes[q[0]] > budget) {\n            if (q.length && q[0] === j) {\n                q.shift();\n            }\n            runningCostSum -= runningCosts[j];\n            j++;\n        }\n        res = Math.max(res, i - j + 1);\n    }\n    return res;\n};\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MaximumRobots(int[] chargeTimes, int[] runningCosts, long budget) {\n        int res = 0;\n        int n = chargeTimes.Length;\n        long runningCostSum = 0;\n        LinkedList<int> q = new LinkedList<int>();\n        for (int i = 0, j = 0; i < n; i++) {\n            runningCostSum += runningCosts[i];\n            while (q.Count > 0 && chargeTimes[q.Last.Value] <= chargeTimes[i]) {\n                q.RemoveLast();\n            }\n            q.AddLast(i);\n            while (j <= i && (i - j + 1) * runningCostSum + chargeTimes[q.First.Value] > budget) {\n                if (q.Count > 0 && q.First.Value == j) {\n                    q.RemoveFirst();\n                }\n                runningCostSum -= runningCosts[j];\n                j++;\n            }\n            res = Math.Max(res, i - j + 1);\n        }\n        return res;\n    }\n}\n```\n\n```C [sol1-C]\nint maximumRobots(int* chargeTimes, int chargeTimesSize, int* runningCosts, int runningCostsSize, long long budget) {\n    int res = 0, n = chargeTimesSize;\n    long long runningCostSum = 0;\n    int* q = (int*)malloc(sizeof(int) * n), qf = 0, qb = 0;\n    for (int i = 0, j = 0; i < n; i++) {\n        runningCostSum += runningCosts[i];\n        while (qb > qf && chargeTimes[q[qb - 1]] <= chargeTimes[i]) {\n            qb--;\n        }\n        q[qb++] = i;\n        while (j <= i && (i - j + 1) * runningCostSum + chargeTimes[q[qf]] > budget) {\n            if (qb > qf && q[qf] == j) {\n                qf++;\n            }\n            runningCostSum -= runningCosts[j];\n            j++;\n        }\n        res = fmax(res, i - j + 1);\n    }\n    free(q);\n    return res;\n}\n```\n\n```Rust [sol1-Rust]\nuse std::collections::VecDeque;\n\nimpl Solution {\n    pub fn maximum_robots(charge_times: Vec<i32>, running_costs: Vec<i32>, budget: i64) -> i32 {\n        let mut res = 0;\n        let mut n = charge_times.len();\n        let mut running_cost_sum = 0i64;\n        let mut q: VecDeque<usize> = VecDeque::new();\n        let mut j = 0;\n        for i in 0..n {\n            running_cost_sum += running_costs[i] as i64;\n            while !q.is_empty() && charge_times[*q.back().unwrap()] <= charge_times[i] {\n                q.pop_back();\n            }\n            q.push_back(i);\n            while j <= i && (i - j + 1) as i64 * running_cost_sum + charge_times[*q.front().unwrap()] as i64 > budget {\n                if !q.is_empty() && *q.front().unwrap() == j {\n                    q.pop_front();\n                }\n                running_cost_sum -= running_costs[j] as i64;\n                j += 1;\n            }\n            res = res.max(i - j + 1);\n        }\n        res as i32\n    }\n}\n```\n\n```Cangjie [sol1-Cangjie]\nclass Solution {\n    func maximumRobots(chargeTimes: Array<Int64>, runningCosts: Array<Int64>, budget: Int64): Int64 {\n        var res = 0\n        var n = chargeTimes.size\n        var runningCostSum = 0\n        var j = 0\n        var q = ArrayList<Int64>()\n        for (i in 0..n) {\n            runningCostSum += runningCosts[i]\n            while (!q.isEmpty() && chargeTimes[q.get(q.size - 1).getOrThrow()] <= chargeTimes[i]) {\n                q.remove(q.size - 1)\n            }\n            q.append(i)\n            while (j <= i && (i - j + 1) * runningCostSum + chargeTimes[q.get(0).getOrThrow()] > budget) {\n                if (!q.isEmpty() && q.get(0).getOrThrow() == j) {\n                    q.remove(0)\n                }\n                runningCostSum -= runningCosts[j]\n                j++\n            }\n            res = max(res, i - j + 1)\n        }\n       \n        return res\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是机器人数目。双指针需要 $O(n)$ 的时间。\n\n- 空间复杂度：$O(n)$。单调队列需要 $O(n)$ 的空间。",
+            "slateValue": "",
+            "slug": "yu-suan-nei-de-zui-duo-ji-qi-ren-shu-mu-hd2yq",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "LHVcK3",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 10,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Queue",
+                    "nameTranslated": "队列",
+                    "slug": "queue",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Prefix Sum",
+                    "nameTranslated": "前缀和",
+                    "slug": "prefix-sum",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Sliding Window",
+                    "nameTranslated": "滑动窗口",
+                    "slug": "sliding-window",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Heap (Priority Queue)",
+                    "nameTranslated": "堆（优先队列）",
+                    "slug": "heap-priority-queue",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2024-09-08T06:12:54.803212+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：双指针 + 单调队列 根据题目的总开销计算公式，显然连续运行的机器人数目越多，总开销越大。假设连续运行的机器人下标区间为 [latex]： 当我们固定右下标 [latex] 时，总开销随左下标 [latex] 减小而单调递增。 当右下标 [latex] 增大时，使总开销不超过 [latex] 的区间最小左下标 ",
+            "topic": {
+                "id": 2909103,
+                "subscribed": false,
+                "commentCount": 47,
+                "viewCount": 676,
+                "post": {
+                    "id": 5287454,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 33,
+            "isEditorsPick": false,
+            "hitCount": 9804,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "maximum-number-of-robots-within-budget",
+                "questionFrontendId": "2398"
+            },
+            "next": {
+                "slug": "by-endlesscheng-7ukp",
+                "title": "O(n) 做法：单调队列（Python/Java/C++/C/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

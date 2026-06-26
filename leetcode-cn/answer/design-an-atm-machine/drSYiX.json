@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "drSYiX",
+            "title": "设计一个 ATM 机器",
+            "content": "#### 方法一：维护每种钞票的剩余数目\n\n**思路与算法**\n\n首先我们尝试分析各个方法对应的需求：\n\n- 对于 $\\texttt{deposit}()$ 方法，我们需要更新每张钞票的数目；\n\n- 对于 $\\texttt{withdraw}()$ 方法，我们需要模拟机器从高面额至低面额尝试取钱的过程，判断是否可行，并尝试更新每张钞票的数目，以及返回取出各种面额钞票的数目。\n\n我们可以用一个数组 $\\textit{cnt}$ 来维护每种钞票的剩余数目，同时用数组 $\\textit{value}$ 来维护 $\\textit{cnt}$ 数组对应下标钞票的面额。为了方便起见，我们需要让 $\\textit{value}$ 数组保持升序。\n\n那么，对于 $\\texttt{deposit}()$ 方法，我们只需要遍历输入数组，并将每个元素的值加在 $\\textit{cnt}$ 中的对应元素上即可。\n\n而对于 $\\texttt{withdraw}()$ 方法，我们需要倒序（即从高面额至低面额）遍历 $\\textit{cnt}$ 数组，并模拟取钱操作。\n\n具体而言，我们用数组 $\\textit{res}$ 表示（如果可行）取出各种钞票的数目，同时倒序遍历 $\\textit{cnt}$ 数组，并更新还需要取的金额数目 $\\textit{amount}$。当遍历到下标 $i$ 时，我们首先计算该面额钞票需要取出的数量 $\\textit{res}[i]$。对应钞票的数量不能多余取款机中该种钞票的数量，且总面额不能高于还需取出的金额数目。因此我们有 $\\textit{res}[i] = \\min(\\textit{cnt}[i], \\lfloor \\textit{amount} / \\min(\\textit{value}[i] \\rfloor)$（其中 $\\lfloor \\dots \\rfloor$ 代表向下取整）。同时，我们需要对应地将 $\\textit{amount}$ 减去 $\\textit{res}[i] \\times \\textit{value}[i]$。\n\n当遍历完成后，如果 $\\textit{amount} = 0$，即代表可以进行该取出操作，我们将 $\\textit{cnt}$ 数组地每个元素减去 $\\textit{res}$ 数组的对应元素，并返回 $\\textit{res}$ 作为答案；而如果 $\\textit{amount} > 0$，则说明无法进行取出操作，我们应当不进行任何操作，直接返回 $[-1]$。\n\n**细节**\n\n在操作过程中，$\\textit{cnt}$ 数组的元素数值有可能超过 $32$ 位有符号整数的上限，因此对于 $\\texttt{C++}$ 等语言，我们需要用 $64$ 位整数存储每种钞票的剩余数目。\n\n**代码**\n\n```C++ [sol1-C++]\nclass ATM {\nprivate:\n    vector<long long> cnt;   // 每张钞票剩余数量\n    vector<long long> value;   // 每张钞票面额\n    \npublic:\n    ATM() {\n        cnt = {0, 0, 0, 0, 0};\n        value = {20, 50, 100, 200, 500};\n    }\n    \n    void deposit(vector<int> banknotesCount) {\n        for (int i = 0; i < 5; ++i) {\n            cnt[i] += banknotesCount[i];\n        }\n    }\n    \n    vector<int> withdraw(int amount) {\n        vector<int> res(5);\n        // 模拟尝试取出钞票的过程\n        for (int i = 4; i >= 0; --i) {\n            res[i] = min(cnt[i], amount / value[i]);\n            amount -= res[i] * value[i];\n        }\n        if (amount) {\n            // 无法完成该操作\n            return {-1};\n        } else {\n            // 可以完成该操作\n            for (int i = 0; i < 5; ++i) {\n                cnt[i] -= res[i];\n            }\n            return res;\n        }\n    }\n};\n```\n\n\n```Python [sol1-Python3]\nclass ATM:\n\n    def __init__(self):\n        self.cnt = [0] * 5   # 每张钞票剩余数量\n        self.value = [20, 50, 100, 200, 500]   # 每张钞票面额\n\n\n    def deposit(self, banknotesCount: List[int]) -> None:\n        for i in range(5):\n            self.cnt[i] += banknotesCount[i]\n\n\n    def withdraw(self, amount: int) -> List[int]:\n        res = [0] * 5\n        # 模拟尝试取出钞票的过程\n        for i in range(4, -1, -1):\n            res[i] = min(self.cnt[i], amount // self.value[i])\n            amount -= res[i] * self.value[i]\n        if amount:\n            # 无法完成该操作\n            return [-1]\n        else:\n            # 可以完成该操作\n            for i in range(5):\n                self.cnt[i] -= res[i]\n            return res\n```\n\n\n```Go [sol1-Go]\ntype ATM struct {\n    cnt []int64   // 每张钞票剩余数量\n    value []int64 // 每张钞票面额\n}\n\nfunc Constructor() ATM {\n    return ATM {\n        cnt: make([]int64, 5),\n        value: []int64 {\n            20, 50, 100, 200, 500,\n        },\n    }\n}\n\nfunc (this *ATM) Deposit(banknotesCount []int)  {\n    for i := 0; i < 5; i++ {\n        this.cnt[i] += int64(banknotesCount[i])\n    }\n}\n\nfunc (this *ATM) Withdraw(amount int) []int {\n    res := make([]int, 5)\n    // 模拟尝试取出钞票的过程\n    for i := 4; i >= 0; i-- {\n        res[i] = int(min(this.cnt[i], int64(amount) / this.value[i]))\n        amount -= res[i] * int(this.value[i])\n    }\n    if amount > 0 {\n        // 无法完成该操作\n        return []int{-1}\n    }\n    // 可以完成该操作\n    for i := 0; i < 5; i++ {\n        this.cnt[i] -= int64(res[i])\n    }\n    return res\n}\n```\n\n\n```C [sol1-C]\ntypedef struct {\n    long long cnt[5];   // 每张钞票剩余数量\n    long long value[5]; // 每张钞票面额\n} ATM;\n\nATM* aTMCreate() {\n    ATM *atm = (ATM *)malloc(sizeof(ATM));\n    memset(atm, 0, sizeof(ATM));\n    atm->value[0] = 20;\n    atm->value[1] = 50;\n    atm->value[2] = 100;\n    atm->value[3] = 200;\n    atm->value[4] = 500;\n    return atm;\n}\n\nvoid aTMDeposit(ATM* obj, int* banknotesCount, int banknotesCountSize) {\n    for (int i = 0; i < 5; ++i) {\n        obj->cnt[i] += banknotesCount[i];\n    }\n}\n\nint* aTMWithdraw(ATM* obj, int amount, int* retSize) {\n    int *res = malloc(sizeof(int) * 5);\n    *retSize = 5;\n    // 模拟尝试取出钞票的过程\n    for (int i = 4; i >= 0; --i) {\n        res[i] = fmin(obj->cnt[i], amount / obj->value[i]);\n        amount -= res[i] * obj->value[i];\n    }\n    if (amount) {\n        // 无法完成该操作\n        res = malloc(sizeof(int));\n        *retSize = 1;\n        res[0] = -1;\n        return res;\n    } else {\n        // 可以完成该操作\n        for (int i = 0; i < 5; ++i) {\n            obj->cnt[i] -= res[i];\n        }\n        return res;\n    }\n}\n\nvoid aTMFree(ATM* obj) {\n    free(obj);\n}\n```\n\n\n```Java [sol1-Java]\nclass ATM {\n    private long[] cnt;   // 每张钞票剩余数量\n    private long[] value; // 每张钞票面额\n\n    public ATM() {\n        cnt = new long[]{0, 0, 0, 0, 0};\n        value = new long[]{20, 50, 100, 200, 500};\n    }\n\n    public void deposit(int[] banknotesCount) {\n        for (int i = 0; i < 5; ++i) {\n            cnt[i] += banknotesCount[i];\n        }\n    }\n\n    public int[] withdraw(int amount) {\n        int[] res = new int[5];\n        // 模拟尝试取出钞票的过程\n        for (int i = 4; i >= 0; --i) {\n            res[i] = (int) Math.min(cnt[i], amount / value[i]);\n            amount -= res[i] * value[i];\n        }\n        if (amount > 0) {\n            // 无法完成该操作\n            return new int[]{-1};\n        } else {\n            // 可以完成该操作\n            for (int i = 0; i < 5; ++i) {\n                cnt[i] -= res[i];\n            }\n            return res;\n        }\n    }\n}\n```\n\n\n```C# [sol1-C#]\npublic class ATM {\n    private long[] cnt;   // 每张钞票剩余数量\n    private long[] value;   // 每张钞票面额\n\n    public ATM() {\n        cnt = new long[]{0, 0, 0, 0, 0};\n        value = new long[]{20, 50, 100, 200, 500};\n    }\n\n    public void Deposit(int[] banknotesCount) {\n        for (int i = 0; i < 5; ++i) {\n            cnt[i] += banknotesCount[i];\n        }\n    }\n\n    public int[] Withdraw(int amount) {\n        int[] res = new int[5];\n        // 模拟尝试取出钞票的过程\n        for (int i = 4; i >= 0; --i) {\n            res[i] = (int)Math.Min(cnt[i], amount / value[i]);\n            amount -= res[i] * (int)value[i];\n        }\n        if (amount > 0) {\n            // 无法完成该操作\n            return new int[]{-1};\n        } else {\n            // 可以完成该操作\n            for (int i = 0; i < 5; ++i) {\n                cnt[i] -= res[i];\n            }\n            return res;\n        }\n    }\n}\n```\n\n\n```JavaScript [sol1-JavaScript]\nvar ATM = function() {\n    this.cnt = [0, 0, 0, 0, 0]; // 每张钞票剩余数量\n    this.value = [20, 50, 100, 200, 500]; // 每张钞票面额\n};\n\nATM.prototype.deposit = function(banknotesCount) {\n    for (let i = 0; i < 5; ++i) {\n        this.cnt[i] += banknotesCount[i];\n    }\n};\n\nATM.prototype.withdraw = function(amount) {\n    let res = new Array(5).fill(0);\n    // 模拟尝试取出钞票的过程\n    for (let i = 4; i >= 0; --i) {\n        res[i] = Math.min(this.cnt[i], Math.floor(amount / this.value[i]));\n        amount -= res[i] * this.value[i];\n    }\n    if (amount > 0) {\n        // 无法完成该操作\n        return [-1];\n    } else {\n        // 可以完成该操作\n        for (let i = 0; i < 5; ++i) {\n            this.cnt[i] -= res[i];\n        }\n        return res;\n    }\n};\n```\n\n\n```TypeScript [sol1-TypeScript]\nclass ATM {\n    private cnt: number[];   // 每张钞票剩余数量\n    private value: number[]; // 每张钞票面额\n\n    constructor() {\n        this.cnt = [0, 0, 0, 0, 0];\n        this.value = [20, 50, 100, 200, 500];\n    }\n\n    deposit(banknotesCount: number[]): void {\n        for (let i = 0; i < 5; ++i) {\n            this.cnt[i] += banknotesCount[i];\n        }\n    }\n\n    withdraw(amount: number): number[] {\n        let res: number[] = new Array(5).fill(0);\n        // 模拟尝试取出钞票的过程\n        for (let i = 4; i >= 0; --i) {\n            res[i] = Math.min(this.cnt[i], Math.floor(amount / this.value[i]));\n            amount -= res[i] * this.value[i];\n        }\n        if (amount > 0) {\n            // 无法完成该操作\n            return [-1];\n        } else {\n            // 可以完成该操作\n            for (let i = 0; i < 5; ++i) {\n                this.cnt[i] -= res[i];\n            }\n            return res;\n        }\n    }\n}\n```\n\n\n```Rust [sol1-Rust]\nstruct ATM {\n    cnt: Vec<i64>,   // 每张钞票剩余数量\n    value: Vec<i64>,   // 每张钞票面额\n}\n\nimpl ATM {\n    fn new() -> Self {\n        ATM {\n            cnt: vec![0, 0, 0, 0, 0],\n            value: vec![20, 50, 100, 200, 500],\n        }\n    }\n    \n    fn deposit(&mut self, banknotes_count: Vec<i32>) {\n        for i in 0..5 {\n            self.cnt[i] += banknotes_count[i] as i64;\n        }\n    }\n    \n    fn withdraw(&mut self, mut amount: i32) -> Vec<i32> {\n        let mut res = vec![0; 5];\n        // 模拟尝试取出钞票的过程\n        for i in (0..5).rev() {\n            res[i] = std::cmp::min(self.cnt[i], amount as i64 / self.value[i]) as i32;\n            amount -= res[i] * self.value[i] as i32;\n        }\n        if amount > 0 {\n            // 无法完成该操作\n            vec![-1]\n        } else {\n            // 可以完成该操作\n            for i in 0..5 {\n                self.cnt[i] -= res[i] as i64;\n            }\n            res\n        }\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(nk)$，其中 $n$ 为 $\\texttt{withdraw}()$ 和 $\\texttt{deposit}()$ 操作的次数，$k = 5$ 为不同面值钞票的数量。每一次 $\\texttt{withdraw}()$ 或 $\\texttt{deposit}()$ 操作的时间复杂度为 $O(k)$。\n\n- 空间复杂度：$O(k)$，即为存储每种钞票面额和剩余数量数组的空间开销。",
+            "slateValue": "",
+            "slug": "she-ji-yi-ge-atm-ji-qi-by-leetcode-solut-etxe",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "drSYiX",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 10,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Design",
+                    "nameTranslated": "设计",
+                    "slug": "design",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-05-11T03:18:50.134569+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：维护每种钞票的剩余数目 思路与算法 首先我们尝试分析各个方法对应的需求： 对于 [latex] 方法，我们需要更新每张钞票的数目； 对于 [latex] 方法，我们需要模拟机器从高面额至低面额尝试取钱的过程，判断是否可行，并尝试更新每张钞票的数目，以及返回取出各种面额钞票的数目。 我们可以用一个数组 [late",
+            "topic": {
+                "id": 1485677,
+                "subscribed": false,
+                "commentCount": 38,
+                "viewCount": 1533,
+                "post": {
+                    "id": 3042642,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 14,
+            "isEditorsPick": false,
+            "hitCount": 8912,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "design-an-atm-machine",
+                "questionFrontendId": "2241"
+            },
+            "next": {
+                "slug": "mo-ni-by-endlesscheng-lnia",
+                "title": "模拟（Python/Java/C++/C/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

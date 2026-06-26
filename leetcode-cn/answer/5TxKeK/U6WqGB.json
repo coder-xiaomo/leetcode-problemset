@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "U6WqGB",
+            "title": "数字游戏",
+            "content": "#### 方法一：双优先队列\n\n将 $[0, i]$ 范围内的计数器初始所示数字操作成满足所有条件 $\\textit{nums}[j] + 1 = \\textit{nums}[j + 1], j \\in [0, i)$，等价于，将 $\\textit{nums}[j] - j, j \\in [0, i)$ 操作成相同的数字。因此，先对数组 $\\textit{nums}$ 作预处理，即令 $\\textit{nums}[i] = \\textit{nums}[i] - i$。\n\n将区间 $[0, i]$ 范围内的数字操作成相同的数字的最小操作数，等于将区间 $[0, i]$ 范围内的数字操作成它们的中位数所需要的操作数。证明过程可以参考题目 [462. 最小操作次数使数组元素相等 II](https://leetcode.cn/problems/minimum-moves-to-equal-array-elements-ii/solutions/1501230/zui-shao-yi-dong-ci-shu-shi-shu-zu-yuan-xt3r2/)。\n\n我们分别使用两个优先队列 $\\textit{lower}$ 和 $\\textit{upper}$ 来保存 $[0, i]$ 内的数字，同时使用 $\\textit{lowerSum}$ 和 $\\textit{upperSum}$ 分别保存两个优先队列的元素和，这两个优先队列中的元素满足以下两个条件：\n\n1. 优先队列 $\\textit{lower}$ 保存的任一元素都小于等于优先队列 $\\textit{upper}$ 保存的任一元素；\n\n2. 优先队列 $\\textit{lower}$ 的元素数目 $n_\\textit{lower}$ 与优先队列 $\\textit{upper}$ 的元素数目 $n_\\textit{upper}$ 满足 $n_\\textit{upper} \\le n_\\textit{lower} \\le n_\\textit{upper} + 1$。\n\n遍历数组 $\\textit{nums}$，假设当前遍历到元素 $\\textit{nums}[i]$，考虑如何将元素 $\\textit{nums}[i]$ 加入优先队列，同时不违反以上条件。首先如果 $\\textit{lower}$ 为空或 $\\textit{nums}[i]$ 小于 $\\textit{lower}$ 的最大元素，那么我们将 $\\textit{nums}[i]$ 加入 $\\textit{lower}$，更新 $\\textit{lowerSum}$，否则将 $\\textit{nums}[i]$ 加入 $\\textit{upper}$ 中，更新 $\\textit{upperSum}$，此时条件 $1$ 依旧满足。然后我们需要调整优先队列的元素数目关系，以满足条件 $2$：\n\n- 如果 $n_\\textit{lower} \\gt n_\\textit{upper}$，那么将 $\\textit{lower}$ 的最大值移动到 $\\textit{upper}$，同时更新 $\\textit{lowerSum}$ 和 $\\textit{upperSum}$。\n\n- 如果 $n_\\textit{lower} \\lt n_\\textit{upper}$，那么将 $\\textit{upper}$ 的最小值移动到 $\\textit{lower}$，同时更新 $\\textit{lowerSum}$ 和 $\\textit{upperSum}$。\n\n那么：\n\n- 当 $i+1$ 为偶数时，令中位数为 $t$，那么有 $\\max(\\textit{lower}) \\le t \\le \\min(\\textit{upper})$，从而 $\\textit{res}_i = \\sum_{j=0}^{i}|\\textit{nums}[j] - t| = \\textit{upperSum} - \\textit{lowerSum}$。\n\n- 当 $i+1$ 为奇数时，中位数 $t = \\max(\\textit{lower})$，$\\textit{res}_i = \\sum_{j=0}^{i}|\\textit{nums}[j] - t| = \\textit{upperSum} - \\textit{lowerSum} + \\max(\\textit{lower})$。\n\n返回结果数组 $\\textit{res}$ 即可。\n\n> 类似的求解中位数的题目有 [295. 数据流的中位数](https://leetcode.cn/problems/find-median-from-data-stream/description/)\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<int> numsGame(vector<int>& nums) {\n        int n = nums.size();\n        vector<int> res(n);\n        priority_queue<int> lower;\n        priority_queue<int, vector<int>, greater<>> upper;\n        long long mod = 1e9 + 7;\n        long long lowerSum = 0, upperSum = 0;\n        for (int i = 0; i < n; i++) {\n            int x = nums[i] - i;\n            if (lower.empty() || lower.top() >= x) {\n                lowerSum += x;\n                lower.push(x);\n                if (lower.size() > upper.size() + 1) {\n                    upperSum += lower.top();\n                    upper.push(lower.top());\n                    lowerSum -= lower.top();\n                    lower.pop();\n                }\n            } else {\n                upperSum += x;\n                upper.push(x);\n                if (lower.size() < upper.size()) {\n                    lowerSum += upper.top();\n                    lower.push(upper.top());\n                    upperSum -= upper.top();\n                    upper.pop();\n                }\n            }\n            if ((i + 1) % 2 == 0) {\n                res[i] = (upperSum - lowerSum) % mod;\n            } else {\n                res[i] = (upperSum - lowerSum + lower.top()) % mod;\n            }\n        }\n        return res;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int[] numsGame(int[] nums) {\n        int n = nums.length;\n        int[] res = new int[n];\n        PriorityQueue<Integer> lower = new PriorityQueue<Integer>((a, b) -> b - a);\n        PriorityQueue<Integer> upper = new PriorityQueue<Integer>((a, b) -> a - b);\n        final int MOD = 1000000007;\n        long lowerSum = 0, upperSum = 0;\n        for (int i = 0; i < n; i++) {\n            int x = nums[i] - i;\n            if (lower.isEmpty() || lower.peek() >= x) {\n                lowerSum += x;\n                lower.offer(x);\n                if (lower.size() > upper.size() + 1) {\n                    upperSum += lower.peek();\n                    upper.offer(lower.peek());\n                    lowerSum -= lower.peek();\n                    lower.poll();\n                }\n            } else {\n                upperSum += x;\n                upper.offer(x);\n                if (lower.size() < upper.size()) {\n                    lowerSum += upper.peek();\n                    lower.offer(upper.peek());\n                    upperSum -= upper.peek();\n                    upper.poll();\n                }\n            }\n            if ((i + 1) % 2 == 0) {\n                res[i] = (int) ((upperSum - lowerSum) % MOD);\n            } else {\n                res[i] = (int) ((upperSum - lowerSum + lower.peek()) % MOD);\n            }\n        }\n        return res;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int[] NumsGame(int[] nums) {\n        int n = nums.Length;\n        int[] res = new int[n];\n        PriorityQueue<int, int> lower = new PriorityQueue<int, int>();\n        PriorityQueue<int, int> upper = new PriorityQueue<int, int>();\n        const int MOD = 1000000007;\n        long lowerSum = 0, upperSum = 0;\n        for (int i = 0; i < n; i++) {\n            int x = nums[i] - i;\n            if (lower.Count == 0 || lower.Peek() >= x) {\n                lowerSum += x;\n                lower.Enqueue(x, -x);\n                if (lower.Count > upper.Count + 1) {\n                    upperSum += lower.Peek();\n                    upper.Enqueue(lower.Peek(), lower.Peek());\n                    lowerSum -= lower.Peek();\n                    lower.Dequeue();\n                }\n            } else {\n                upperSum += x;\n                upper.Enqueue(x, x);\n                if (lower.Count < upper.Count) {\n                    lowerSum += upper.Peek();\n                    lower.Enqueue(upper.Peek(), -upper.Peek());\n                    upperSum -= upper.Peek();\n                    upper.Dequeue();\n                }\n            }\n            if ((i + 1) % 2 == 0) {\n                res[i] = (int) ((upperSum - lowerSum) % MOD);\n            } else {\n                res[i] = (int) ((upperSum - lowerSum + lower.Peek()) % MOD);\n            }\n        }\n        return res;\n    }\n}\n```\n\n```Go [sol1-Go]\ntype BasePQ struct {\n    sort.IntSlice\n}\n\nfunc (pq *BasePQ) Push(x any) {\n    pq.IntSlice = append(pq.IntSlice, x.(int))\n}\n\nfunc (pq *BasePQ) Pop() any {\n    n := len(pq.IntSlice)\n    x := pq.IntSlice[n - 1]\n    pq.IntSlice = pq.IntSlice[:n-1]\n    return x\n}\n\nfunc (pq *BasePQ) Top() int {\n    return pq.IntSlice[0]\n}\n\ntype MinPQ struct {\n    *BasePQ\n}\n\nfunc (pq *MinPQ) Less(i, j int) bool {\n    return pq.BasePQ.Less(i, j)\n}\n\ntype MaxPQ struct {\n    *BasePQ\n}\n\nfunc (pq *MaxPQ) Less(i, j int) bool {\n    return pq.BasePQ.Less(j, i)\n}\n\nfunc numsGame(nums []int) []int {\n    n := len(nums)\n    res := make([]int, n)\n    lower, upper := &MaxPQ{&BasePQ{}}, &MinPQ{&BasePQ{}}\n    lowerSum, upperSum := int64(0), int64(0)\n    mod := int64(1e9 + 7)\n    for i := 0; i < n; i++ {\n        x := nums[i] - i\n        if lower.Len() == 0 || lower.Top() >= x {\n            lowerSum += int64(x)\n            heap.Push(lower, x)\n            if lower.Len() > upper.Len() + 1 {\n                upperSum += int64(lower.Top())\n                heap.Push(upper, lower.Top())\n                lowerSum -= int64(heap.Pop(lower).(int))\n            }\n        } else {\n            upperSum += int64(x)\n            heap.Push(upper, x)\n            if lower.Len() < upper.Len() {\n                lowerSum += int64(upper.Top())\n                heap.Push(lower, upper.Top())\n                upperSum -= int64(heap.Pop(upper).(int))\n            }\n        }\n        if (i + 1) % 2 == 0 {\n            res[i] = int((upperSum - lowerSum) % mod)\n        } else {\n            res[i] = int((upperSum - lowerSum + int64(lower.Top())) % mod)\n        }\n    }\n    return res\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def numsGame(self, nums: List[int]) -> List[int]:\n        n = len(nums)\n        res = [0] * n\n        lower, upper = [], []\n        lowerSum, upperSum = 0, 0\n        mod = int(1e9 + 7)\n        for i in range(n):\n            x = nums[i] - i\n            if len(lower) == 0 or -lower[0] >= x:\n                lowerSum += x\n                heappush(lower, -x)\n                if len(lower) > len(upper) + 1:\n                    upperSum -= lower[0]\n                    heappush(upper, -lower[0])\n                    lowerSum += heappop(lower)\n            else:\n                upperSum += x\n                heappush(upper, x)\n                if len(lower) < len(upper):\n                    lowerSum += upper[0]\n                    heappush(lower, -upper[0])\n                    upperSum -= heappop(upper)\n            if (i + 1) % 2 == 0:\n                res[i] = (upperSum - lowerSum) % mod\n            else:\n                res[i] = (upperSum - lowerSum - lower[0]) % mod\n        return res\n```\n\n```C [sol1-C]\ntypedef bool (*LessFunc)(int, int);\n\ntypedef struct {\n    int *data;\n    int size;\n    LessFunc cmp;\n} Heap;\n\nvoid heapInit(Heap *this, int n, LessFunc cmp) {\n    this->data = (int *)malloc(sizeof(int) * n);\n    this->size = 0;\n    this->cmp = cmp;\n}\n\nvoid heapFree(Heap *this) {\n    free(this->data);\n}\n\nvoid swap(Heap *this, int i, int j) {\n    int x = this->data[i];\n    this->data[i] = this->data[j];\n    this->data[j] = x;\n}\n\nvoid down(Heap *this, int i) {\n    for (int k = 2 * i + 1; k < this->size; k = 2 * k + 1) {\n        // 父节点 (k - 1) / 2，左子节点 k，右子节点 k + 1\n        if (k + 1 < this->size && this->cmp(this->data[k], this->data[k + 1])) {\n            k++;\n        }\n        if (!this->cmp(this->data[(k - 1) / 2], this->data[k])) {\n            break;\n        }\n        swap(this, k, (k - 1) / 2);\n    }\n}\n\nvoid push(Heap *this, int x) {\n    this->data[this->size] = x;\n    this->size++;\n    for (int i = this->size - 1; i > 0 && this->cmp(this->data[(i - 1) / 2], this->data[i]); i = (i - 1) / 2) {\n        swap(this, i, (i - 1) / 2);\n    }\n}\n\nint pop(Heap *this) {\n    swap(this, 0, this->size - 1);\n    this->size--;\n    down(this, 0);\n    return this->data[this->size];\n}\n\nint size(Heap *this) {\n    return this->size;\n}\n\nint top(Heap *this) {\n    return this->data[0];\n}\n\nbool less(int x, int y) {\n    return x < y;\n}\n\nbool greater(int x, int y) {\n    return x > y;\n}\n\nint* numsGame(int *nums, int numsSize, int *returnSize) {\n    int n = numsSize;\n    int *res = (int *)malloc(sizeof(int) * n);\n    Heap lower, upper;\n    heapInit(&lower, n, less);\n    heapInit(&upper, n, greater);\n    long long mod = 1e9 + 7;\n    long long lowerSum = 0, upperSum = 0;\n    for (int i = 0; i < n; i++) {\n        int x = nums[i] - i;\n        if (size(&lower) == 0 || top(&lower) >= x) {\n            lowerSum += x;\n            push(&lower, x);\n            if (size(&lower) > size(&upper) + 1) {\n                upperSum += top(&lower);\n                push(&upper, top(&lower));\n                lowerSum -= pop(&lower);\n            }\n        } else {\n            upperSum += x;\n            push(&upper, x);\n            if (size(&lower) < size(&upper)) {\n                lowerSum += top(&upper);\n                push(&lower, top(&upper));\n                upperSum -= pop(&upper);\n            }\n        }\n        if ((i + 1) % 2 == 0) {\n            res[i] = (upperSum - lowerSum) % mod;\n        } else {\n            res[i] = (upperSum - lowerSum + top(&lower)) % mod;\n        }\n    }\n\n    heapFree(&lower);\n    heapFree(&upper);\n    *returnSize = n;\n    return res;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar numsGame = function(nums) {\n    const n = nums.length;\n    const res = new Array(n).fill(0);\n    const lower = new MaxPriorityQueue();\n    const upper = new MinPriorityQueue();\n    const mod = 1e9 + 7;\n    let lowerSum = 0, upperSum = 0;\n    for (let i = 0; i < n; i++) {\n        const x = nums[i] - i;\n        if (lower.size() == 0 || lower.front().element >= x) {\n            lowerSum += x;\n            lower.enqueue(x);\n            if (lower.size() > upper.size() + 1) {\n                upperSum += lower.front().element;\n                upper.enqueue(lower.front().element);\n                lowerSum -= lower.front().element;\n                lower.dequeue();\n            }\n        } else {\n            upperSum += x;\n            upper.enqueue(x);\n            if (lower.size() < upper.size()) {\n                lowerSum += upper.front().element;\n                lower.enqueue(upper.front().element);\n                upperSum -= upper.front().element;\n                upper.dequeue();\n            }\n        }\n        if ((i + 1) % 2 == 0) {\n            res[i] = (upperSum - lowerSum) % mod;\n        } else {\n            res[i] = (upperSum - lowerSum + lower.front().element) % mod;\n        }\n    }\n    return res;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction numsGame(nums: number[]): number[] {\n    const n: number = nums.length;\n    const res = new Array(n).fill(0);\n    const lower = new MaxPriorityQueue();\n    const upper = new MinPriorityQueue();\n    const mod: number = 1e9 + 7;\n    let lowerSum = 0, upperSum = 0;\n    for (let i = 0; i < n; i++) {\n        const x = nums[i] - i;\n        if (lower.size() == 0 || lower.front().element >= x) {\n            lowerSum += x;\n            lower.enqueue(x);\n            if (lower.size() > upper.size() + 1) {\n                upperSum += lower.front().element;\n                upper.enqueue(lower.front().element);\n                lowerSum -= lower.front().element;\n                lower.dequeue();\n            }\n        } else {\n            upperSum += x;\n            upper.enqueue(x);\n            if (lower.size() < upper.size()) {\n                lowerSum += upper.front().element;\n                lower.enqueue(upper.front().element);\n                upperSum -= upper.front().element;\n                upper.dequeue();\n            }\n        }\n        if ((i + 1) % 2 == 0) {\n            res[i] = (upperSum - lowerSum) % mod;\n        } else {\n            res[i] = (upperSum - lowerSum + lower.front().element) % mod;\n        }\n    }\n    return res;\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log n)$, 其中 $n$ 是数组 $nums$ 的长度。优先队列入队、出队都需要 $O(\\log n)$ 的时间，总共需要 $O(n \\log n)$ 的时间。\n\n- 空间复杂度：$O(n)$。",
+            "slateValue": "",
+            "slug": "shu-zi-you-xi-by-leetcode-solution-xvte",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "U6WqGB",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 23,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Heap (Priority Queue)",
+                    "nameTranslated": "堆（优先队列）",
+                    "slug": "heap-priority-queue",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2024-01-29T00:43:35.304533+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：双优先队列 将 $[0, i]$ 范围内的计数器初始所示数字操作成满足所有条件 $\\textit{nums}[j] + 1 = \\textit{nums}[j + 1], j \\in [0, i)$，等价于，将 $\\textit{nums}[j] - j, j \\in [0, i)$ 操作成相同的数字。因此，先",
+            "topic": {
+                "id": 2623535,
+                "subscribed": false,
+                "commentCount": 38,
+                "viewCount": 900,
+                "post": {
+                    "id": 4848258,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 70,
+            "isEditorsPick": false,
+            "hitCount": 12789,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "5TxKeK",
+                "questionFrontendId": "LCP 24"
+            },
+            "next": {
+                "slug": "zhuan-huan-zhong-wei-shu-tan-xin-dui-din-7r9b",
+                "title": "转换+中位数贪心+对顶堆（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

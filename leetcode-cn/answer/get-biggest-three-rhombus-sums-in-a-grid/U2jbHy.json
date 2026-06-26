@@ -1,0 +1,142 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "U2jbHy",
+            "title": "矩阵中最大的三个菱形和",
+            "content": "#### 方法一：枚举所有的菱形\n\n**提示 $1$**\n\n一个菱形的自由度是多少（即如果我们至少需要多少个变量，才能**唯一**表示一个菱形）？\n\n**提示 $1$ 解释**\n\n一个菱形的自由度是 $3$，例如：\n\n> $2$ 个变量表示菱形上顶点的坐标，$1$ 个变量表示菱形在水平或者竖直方向上的宽度。\n\n**提示 $2$**\n\n![fig1](https://assets.leetcode.cn/solution-static/5757/5757.png)\n\n**提示 $3$**\n\n要想快速计算提示 $2$ 中的每一部分，我们可以使用前缀和。\n\n- 记 $\\textit{sum}_1[x][y]$ 表示从位置 $(x-1, y-1)$ 开始往**左上方**走，走到边界为止的所有格子的元素和。\n\n- 记 $\\textit{sum}_2[x][y]$ 表示从位置 $(x-1, y-1)$ 开始往**右上方**走，走到边界为止的所有格子的元素和。\n\n**思路与算法**\n\n我们首先可以使用二重循环预处理出所有的 $\\textit{sum}_1[i][j]$ 以及 $\\textit{sum}_2[i][j]$。具体地，有递推式：\n\n$$\n\\textit{sum}_1[i][j] = \\textit{sum}_1[i-1][j-1] + \\textit{grid}[i-1][j-1]\n$$\n\n以及：\n\n$$\n\\textit{sum}_2[i][j] = \\textit{sum}_2[i-1][j+1] + \\textit{grid}[i-1][j-1]\n$$\n\n其中 $i$ 和 $j$ 的范围分别为 $[1, m]$ 以及 $[1, n]$。\n\n接下来，我们使用三重循环分别枚举菱形上顶点的位置以及其在水平方向上的宽度，就可以计算出菱形四个顶点的位置，上下左右顶点的位置依次记为 $(u_x, u_y)$，$(d_x, d_y)$，$(l_x, l_y)$ 以及 $(r_x, r_y)$。这样一来，我们就可以使用前缀和在 $O(1)$ 的时间计算该菱形的菱形和，即提示 $2$ 中的五个部分的和分别为：\n\n$$\n\\begin{cases}\n\\textit{sum}_2[l_x + 1][l_y + 1] - \\textit{sum}_2[u_x][u_y + 2] \\\\\n\\textit{sum}_1[r_x + 1][r_y + 1] - \\textit{sum}_1[u_x][u_y] \\\\\n\\textit{sum}_1[d_x + 1][d_y + 1] - \\textit{sum}_1[l_x][l_y] \\\\\n\\textit{sum}_2[d_x + 1][d_y + 1] - \\textit{sum}_2[r_x][r_y + 2] \\\\\n\\textit{grid}[u_x][u_y] + \\textit{grid}[d_x][d_y] + \\textit{grid}[l_x][l_y] + \\textit{grid}[r_x][r_y]\n\\end{cases}\n$$\n\n除此之外，我们可以设计一个简单的数据结构，它使得我们在得到了菱形和后，可以实时维护最大的 $3$ 个互不相同的菱形和，具体的实现可以参考下面的代码。\n\n**细节**\n\n需要注意单独的一个格子也是菱形。\n\n**代码**\n\n```C++ [sol1-C++]\nstruct Answer {\n    array<int, 3> ans{};\n    \n    void put(int x) {\n        if (x > ans[0]) {\n            tie(ans[0], ans[1], ans[2]) = tuple{x, ans[0], ans[1]};\n        }\n        else if (x != ans[0] && x > ans[1]) {\n            tie(ans[1], ans[2]) = tuple{x, ans[1]};\n        }\n        else if (x != ans[0] && x != ans[1] && x > ans[2]) {\n            ans[2] = x;\n        }\n    }\n    \n    vector<int> get() const {\n        vector<int> ret;\n        for (int num: ans) {\n            if (num) {\n                ret.push_back(num);\n            }\n        }\n        return ret;\n    }\n};\n\nclass Solution {\npublic:\n    vector<int> getBiggestThree(vector<vector<int>>& grid) {\n        int m = grid.size(), n = grid[0].size();\n        vector<vector<int>> sum1(m + 1, vector<int>(n + 2));\n        vector<vector<int>> sum2(m + 1, vector<int>(n + 2));\n        for (int i = 1; i <= m; ++i) {\n            for (int j = 1; j <= n; ++j) {\n                sum1[i][j] = sum1[i - 1][j - 1] + grid[i - 1][j - 1];\n                sum2[i][j] = sum2[i - 1][j + 1] + grid[i - 1][j - 1];\n            }\n        }\n        Answer ans;\n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j) {\n                // 单独的一个格子也是菱形\n                ans.put(grid[i][j]);\n                for (int k = i + 2; k < m; k += 2) {\n                    int ux = i, uy = j;\n                    int dx = k, dy = j;\n                    int lx = (i + k) / 2, ly = j - (k - i) / 2;\n                    int rx = (i + k) / 2, ry = j + (k - i) / 2;\n                    if (ly < 0 || ry >= n) {\n                        break;\n                    }\n                    ans.put(\n                        (sum2[lx + 1][ly + 1] - sum2[ux][uy + 2]) +\n                        (sum1[rx + 1][ry + 1] - sum1[ux][uy]) +\n                        (sum1[dx + 1][dy + 1] - sum1[lx][ly]) +\n                        (sum2[dx + 1][dy + 1] - sum2[rx][ry + 2]) -\n                        (grid[ux][uy] + grid[dx][dy] + grid[lx][ly] + grid[rx][ry])\n                    );\n                }\n            }\n        }\n        return ans.get();\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Answer:\n    def __init__(self):\n        self.ans = [0, 0, 0]\n    \n    def put(self, x: int):\n        _ans = self.ans\n\n        if x > _ans[0]:\n            _ans[0], _ans[1], _ans[2] = x, _ans[0], _ans[1]\n        elif x != _ans[0] and x > _ans[1]:\n            _ans[1], _ans[2] = x, _ans[1]\n        elif x != _ans[0] and x != _ans[1] and x > _ans[2]:\n            _ans[2] = x\n    \n    def get(self) -> List[int]:\n        _ans = self.ans\n\n        return [num for num in _ans if num != 0]\n\n\nclass Solution:\n    def getBiggestThree(self, grid: List[List[int]]) -> List[int]:\n        m, n = len(grid), len(grid[0])\n        sum1 = [[0] * (n + 2) for _ in range(m + 1)]\n        sum2 = [[0] * (n + 2) for _ in range(m + 1)]\n\n        for i in range(1, m + 1):\n            for j in range(1, n + 1):\n                sum1[i][j] = sum1[i - 1][j - 1] + grid[i - 1][j - 1]\n                sum2[i][j] = sum2[i - 1][j + 1] + grid[i - 1][j - 1]\n        \n        ans = Answer()\n        for i in range(m):\n            for j in range(n):\n                # 单独的一个格子也是菱形\n                ans.put(grid[i][j])\n                for k in range(i + 2, m, 2):\n                    ux, uy = i, j\n                    dx, dy = k, j\n                    lx, ly = (i + k) // 2, j - (k - i) // 2\n                    rx, ry = (i + k) // 2, j + (k - i) // 2\n                    \n                    if ly < 0 or ry >= n:\n                        break\n                    \n                    ans.put(\n                        (sum2[lx + 1][ly + 1] - sum2[ux][uy + 2]) +\n                        (sum1[rx + 1][ry + 1] - sum1[ux][uy]) +\n                        (sum1[dx + 1][dy + 1] - sum1[lx][ly]) +\n                        (sum2[dx + 1][dy + 1] - sum2[rx][ry + 2]) -\n                        (grid[ux][uy] + grid[dx][dy] + grid[lx][ly] + grid[rx][ry])\n                    )\n        \n        return ans.get()\n```\n\n```Java [sol1-Java]\nclass Answer {\n    int[] ans;\n    \n    public Answer() {\n        ans = new int[3];\n    }\n    \n    void put(int x) {\n        if (x > ans[0]) {\n            ans[2] = ans[1];\n            ans[1] = ans[0];\n            ans[0] = x;\n        }\n        else if (x != ans[0] && x > ans[1]) {\n            ans[2] = ans[1];\n            ans[1] = x;\n        }\n        else if (x != ans[0] && x != ans[1] && x > ans[2]) {\n            ans[2] = x;\n        }\n    }\n    \n    List<Integer> get() {\n        List<Integer> ret = new ArrayList<>();\n        for (int num : ans) {\n            if (num != 0) {\n                ret.add(num);\n            }\n        }\n        return ret;\n    }\n}\n\nclass Solution {\n    public int[] getBiggestThree(int[][] grid) {\n        int m = grid.length, n = grid[0].length;\n        int[][] sum1 = new int[m + 1][n + 2];\n        int[][] sum2 = new int[m + 1][n + 2];\n        \n        for (int i = 1; i <= m; ++i) {\n            for (int j = 1; j <= n; ++j) {\n                sum1[i][j] = sum1[i - 1][j - 1] + grid[i - 1][j - 1];\n                sum2[i][j] = sum2[i - 1][j + 1] + grid[i - 1][j - 1];\n            }\n        }\n        \n        Answer ans = new Answer();\n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j) {\n                // 单独的一个格子也是菱形\n                ans.put(grid[i][j]);\n                for (int k = i + 2; k < m; k += 2) {\n                    int ux = i, uy = j;\n                    int dx = k, dy = j;\n                    int lx = (i + k) / 2, ly = j - (k - i) / 2;\n                    int rx = (i + k) / 2, ry = j + (k - i) / 2;\n                    if (ly < 0 || ry >= n) {\n                        break;\n                    }\n                    int sum = (sum2[lx + 1][ly + 1] - sum2[ux][uy + 2]) +\n                              (sum1[rx + 1][ry + 1] - sum1[ux][uy]) +\n                              (sum1[dx + 1][dy + 1] - sum1[lx][ly]) +\n                              (sum2[dx + 1][dy + 1] - sum2[rx][ry + 2]) -\n                              (grid[ux][uy] + grid[dx][dy] + grid[lx][ly] + grid[rx][ry]);\n                    ans.put(sum);\n                }\n            }\n        }\n        \n        List<Integer> resultList = ans.get();\n        int[] result = new int[resultList.size()];\n        for (int i = 0; i < resultList.size(); i++) {\n            result[i] = resultList.get(i);\n        }\n        return result;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Answer {\n    private int[] ans;\n    \n    public Answer() {\n        ans = new int[3];\n    }\n    \n    public void Put(int x) {\n        if (x > ans[0]) {\n            ans[2] = ans[1];\n            ans[1] = ans[0];\n            ans[0] = x;\n        }\n        else if (x != ans[0] && x > ans[1]) {\n            ans[2] = ans[1];\n            ans[1] = x;\n        }\n        else if (x != ans[0] && x != ans[1] && x > ans[2]) {\n            ans[2] = x;\n        }\n    }\n    \n    public List<int> Get() {\n        List<int> ret = new List<int>();\n        foreach (int num in ans) {\n            if (num != 0) {\n                ret.Add(num);\n            }\n        }\n        return ret;\n    }\n}\n\npublic class Solution {\n    public int[] GetBiggestThree(int[][] grid) {\n        int m = grid.Length, n = grid[0].Length;\n        int[,] sum1 = new int[m + 1, n + 2];\n        int[,] sum2 = new int[m + 1, n + 2];\n        \n        for (int i = 1; i <= m; ++i) {\n            for (int j = 1; j <= n; ++j) {\n                sum1[i, j] = sum1[i - 1, j - 1] + grid[i - 1][j - 1];\n                sum2[i, j] = sum2[i - 1, j + 1] + grid[i - 1][j - 1];\n            }\n        }\n        \n        Answer ans = new Answer();\n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j) {\n                // 单独的一个格子也是菱形\n                ans.Put(grid[i][j]);\n                for (int k = i + 2; k < m; k += 2) {\n                    int ux = i, uy = j;\n                    int dx = k, dy = j;\n                    int lx = (i + k) / 2, ly = j - (k - i) / 2;\n                    int rx = (i + k) / 2, ry = j + (k - i) / 2;\n                    if (ly < 0 || ry >= n) {\n                        break;\n                    }\n                    int sum = (sum2[lx + 1, ly + 1] - sum2[ux, uy + 2]) +\n                              (sum1[rx + 1, ry + 1] - sum1[ux, uy]) +\n                              (sum1[dx + 1, dy + 1] - sum1[lx, ly]) +\n                              (sum2[dx + 1, dy + 1] - sum2[rx, ry + 2]) -\n                              (grid[ux][uy] + grid[dx][dy] + grid[lx][ly] + grid[rx][ry]);\n                    ans.Put(sum);\n                }\n            }\n        }\n        \n        List<int> resultList = ans.Get();\n        return resultList.ToArray();\n    }\n}\n```\n\n```Go [sol1-Go]\ntype Answer struct {\n    ans [3]int\n}\n\nfunc (this *Answer) put(x int) {\n    if x > this.ans[0] {\n        this.ans[2] = this.ans[1]\n        this.ans[1] = this.ans[0]\n        this.ans[0] = x\n    } else if x != this.ans[0] && x > this.ans[1] {\n        this.ans[2] = this.ans[1]\n        this.ans[1] = x\n    } else if x != this.ans[0] && x != this.ans[1] && x > this.ans[2] {\n        this.ans[2] = x\n    }\n}\n\nfunc (this *Answer) get() []int {\n    var ret []int\n    for _, num := range this.ans {\n        if num != 0 {\n            ret = append(ret, num)\n        }\n    }\n    return ret\n}\n\nfunc getBiggestThree(grid [][]int) []int {\n    m, n := len(grid), len(grid[0])\n    sum1 := make([][]int, m + 1)\n    sum2 := make([][]int, m + 1)\n    for i := 0; i <= m; i++ {\n        sum1[i] = make([]int, n + 2)\n        sum2[i] = make([]int, n + 2)\n    }\n    \n    for i := 1; i <= m; i++ {\n        for j := 1; j <= n; j++ {\n            sum1[i][j] = sum1[i-1][j-1] + grid[i-1][j-1]\n            sum2[i][j] = sum2[i-1][j+1] + grid[i-1][j-1]\n        }\n    }\n    \n    ans := Answer{}\n    for i := 0; i < m; i++ {\n        for j := 0; j < n; j++ {\n            // 单独的一个格子也是菱形\n            ans.put(grid[i][j])\n            for k := i + 2; k < m; k += 2 {\n                ux, uy := i, j\n                dx, dy := k, j\n                lx, ly := (i + k) / 2, j - (k - i) / 2\n                rx, ry := (i + k) / 2, j + (k - i) / 2\n                if ly < 0 || ry >= n {\n                    break\n                }\n                sum := (sum2[lx + 1][ly + 1] - sum2[ux][uy + 2]) +\n                       (sum1[rx + 1][ry + 1] - sum1[ux][uy]) +\n                       (sum1[dx + 1][dy + 1] - sum1[lx][ly]) +\n                       (sum2[dx + 1][dy + 1] - sum2[rx][ry + 2]) -\n                       (grid[ux][uy] + grid[dx][dy] + grid[lx][ly] + grid[rx][ry])\n\n                ans.put(sum)\n            }\n        }\n    }\n    \n    return ans.get()\n}\n```\n\n```C [sol1-C]\ntypedef struct {\n    int ans[3];\n} Answer;\n\nvoid answerPut(Answer* a, int x) {\n    if (x > a->ans[0]) {\n        a->ans[2] = a->ans[1];\n        a->ans[1] = a->ans[0];\n        a->ans[0] = x;\n    }\n    else if (x != a->ans[0] && x > a->ans[1]) {\n        a->ans[2] = a->ans[1];\n        a->ans[1] = x;\n    }\n    else if (x != a->ans[0] && x != a->ans[1] && x > a->ans[2]) {\n        a->ans[2] = x;\n    }\n}\n\nint* answerGet(Answer* a, int* returnSize) {\n    int count = 0;\n    for (int i = 0; i < 3; i++) {\n        if (a->ans[i] != 0) {\n            count++;\n        }\n    }\n    \n    int* ret = (int*)malloc(count * sizeof(int));\n    *returnSize = count;\n    int idx = 0;\n    for (int i = 0; i < 3; i++) {\n        if (a->ans[i] != 0) {\n            ret[idx++] = a->ans[i];\n        }\n    }\n\n    return ret;\n}\n\nint* getBiggestThree(int** grid, int gridSize, int* gridColSize, int* returnSize) {\n    int m = gridSize, n = gridColSize[0];\n    int** sum1 = (int**)malloc((m + 1) * sizeof(int*));\n    int** sum2 = (int**)malloc((m + 1) * sizeof(int*));\n    for (int i = 0; i <= m; i++) {\n        sum1[i] = (int*)calloc(n + 2, sizeof(int));\n        sum2[i] = (int*)calloc(n + 2, sizeof(int));\n    }\n    for (int i = 1; i <= m; i++) {\n        for (int j = 1; j <= n; j++) {\n            sum1[i][j] = sum1[i - 1][j - 1] + grid[i - 1][j - 1];\n            sum2[i][j] = sum2[i - 1][j + 1] + grid[i - 1][j - 1];\n        }\n    }\n    \n    Answer ans = {{0}};\n    for (int i = 0; i < m; i++) {\n        for (int j = 0; j < n; j++) {\n            // 单独的一个格子也是菱形\n            answerPut(&ans, grid[i][j]);\n            for (int k = i + 2; k < m; k += 2) {\n                int ux = i, uy = j;\n                int dx = k, dy = j;\n                int lx = (i + k) / 2, ly = j - (k - i) / 2;\n                int rx = (i + k) / 2, ry = j + (k - i) / 2;\n                if (ly < 0 || ry >= n) {\n                    break;\n                }\n                int sum = (sum2[lx + 1][ly + 1] - sum2[ux][uy + 2]) +\n                          (sum1[rx + 1][ry + 1] - sum1[ux][uy]) +\n                          (sum1[dx + 1][dy + 1] - sum1[lx][ly]) +\n                          (sum2[dx + 1][dy + 1] - sum2[rx][ry + 2]) -\n                          (grid[ux][uy] + grid[dx][dy] + grid[lx][ly] + grid[rx][ry]);\n                answerPut(&ans, sum);\n            }\n        }\n    }\n    \n    for (int i = 0; i <= m; i++) {\n        free(sum1[i]);\n        free(sum2[i]);\n    }\n    free(sum1);\n    free(sum2);\n    \n    return answerGet(&ans, returnSize);\n}\n```\n\n```JavaScript [sol1-JavaScript]\nclass Answer {\n    constructor() {\n        this.ans = [0, 0, 0];\n    }\n    \n    put(x) {\n        if (x > this.ans[0]) {\n            this.ans[2] = this.ans[1];\n            this.ans[1] = this.ans[0];\n            this.ans[0] = x;\n        }\n        else if (x !== this.ans[0] && x > this.ans[1]) {\n            this.ans[2] = this.ans[1];\n            this.ans[1] = x;\n        }\n        else if (x !== this.ans[0] && x !== this.ans[1] && x > this.ans[2]) {\n            this.ans[2] = x;\n        }\n    }\n    \n    get() {\n        const ret = [];\n        for (const num of this.ans) {\n            if (num !== 0) {\n                ret.push(num);\n            }\n        }\n        return ret;\n    }\n}\n\nvar getBiggestThree = function(grid) {\n    const m = grid.length, n = grid[0].length;\n    const sum1 = Array.from({length: m + 1}, () => new Array(n + 2).fill(0));\n    const sum2 = Array.from({length: m + 1}, () => new Array(n + 2).fill(0));\n    \n    for (let i = 1; i <= m; ++i) {\n        for (let j = 1; j <= n; ++j) {\n            sum1[i][j] = sum1[i - 1][j - 1] + grid[i - 1][j - 1];\n            sum2[i][j] = sum2[i - 1][j + 1] + grid[i - 1][j - 1];\n        }\n    }\n    \n    const ans = new Answer();\n    for (let i = 0; i < m; ++i) {\n        for (let j = 0; j < n; ++j) {\n            // 单独的一个格子也是菱形\n            ans.put(grid[i][j]);\n            for (let k = i + 2; k < m; k += 2) {\n                const ux = i, uy = j;\n                const dx = k, dy = j;\n                const lx = Math.floor((i + k) / 2), ly = j - Math.floor((k - i) / 2);\n                const rx = Math.floor((i + k) / 2), ry = j + Math.floor((k - i) / 2);\n                if (ly < 0 || ry >= n) {\n                    break;\n                }\n                const sum = (sum2[lx + 1][ly + 1] - sum2[ux][uy + 2]) +\n                          (sum1[rx + 1][ry + 1] - sum1[ux][uy]) +\n                          (sum1[dx + 1][dy + 1] - sum1[lx][ly]) +\n                          (sum2[dx + 1][dy + 1] - sum2[rx][ry + 2]) -\n                          (grid[ux][uy] + grid[dx][dy] + grid[lx][ly] + grid[rx][ry]);\n                ans.put(sum);\n            }\n        }\n    }\n    \n    return ans.get();\n};\n```\n\n```TypeScript [sol1-TypeScript]\nclass Answer {\n    private ans: number[];\n    \n    constructor() {\n        this.ans = [0, 0, 0];\n    }\n    \n    put(x: number): void {\n        if (x > this.ans[0]) {\n            this.ans[2] = this.ans[1];\n            this.ans[1] = this.ans[0];\n            this.ans[0] = x;\n        }\n        else if (x !== this.ans[0] && x > this.ans[1]) {\n            this.ans[2] = this.ans[1];\n            this.ans[1] = x;\n        }\n        else if (x !== this.ans[0] && x !== this.ans[1] && x > this.ans[2]) {\n            this.ans[2] = x;\n        }\n    }\n    \n    get(): number[] {\n        const ret: number[] = [];\n        for (const num of this.ans) {\n            if (num !== 0) {\n                ret.push(num);\n            }\n        }\n        return ret;\n    }\n}\n\nfunction getBiggestThree(grid: number[][]): number[] {\n    const m = grid.length, n = grid[0].length;\n    const sum1: number[][] = Array.from({length: m + 1}, () => new Array(n + 2).fill(0));\n    const sum2: number[][] = Array.from({length: m + 1}, () => new Array(n + 2).fill(0));\n    \n    for (let i = 1; i <= m; ++i) {\n        for (let j = 1; j <= n; ++j) {\n            sum1[i][j] = sum1[i - 1][j - 1] + grid[i - 1][j - 1];\n            sum2[i][j] = sum2[i - 1][j + 1] + grid[i - 1][j - 1];\n        }\n    }\n    \n    const ans = new Answer();\n    for (let i = 0; i < m; ++i) {\n        for (let j = 0; j < n; ++j) {\n            // 单独的一个格子也是菱形\n            ans.put(grid[i][j]);\n            for (let k = i + 2; k < m; k += 2) {\n                const ux = i, uy = j;\n                const dx = k, dy = j;\n                const lx = Math.floor((i + k) / 2), ly = j - Math.floor((k - i) / 2);\n                const rx = Math.floor((i + k) / 2), ry = j + Math.floor((k - i) / 2);\n                if (ly < 0 || ry >= n) {\n                    break;\n                }\n                const sum = (sum2[lx + 1][ly + 1] - sum2[ux][uy + 2]) +\n                          (sum1[rx + 1][ry + 1] - sum1[ux][uy]) +\n                          (sum1[dx + 1][dy + 1] - sum1[lx][ly]) +\n                          (sum2[dx + 1][dy + 1] - sum2[rx][ry + 2]) -\n                          (grid[ux][uy] + grid[dx][dy] + grid[lx][ly] + grid[rx][ry]);\n                          \n                ans.put(sum);\n            }\n        }\n    }\n    \n    return ans.get();\n}\n```\n\n```Rust [sol1-Rust]\nstruct Answer {\n    ans: [i32; 3],\n}\n\nimpl Answer {\n    fn new() -> Self {\n        Answer { ans: [0, 0, 0] }\n    }\n    \n    fn put(&mut self, x: i32) {\n        if x > self.ans[0] {\n            self.ans[2] = self.ans[1];\n            self.ans[1] = self.ans[0];\n            self.ans[0] = x;\n        } else if x != self.ans[0] && x > self.ans[1] {\n            self.ans[2] = self.ans[1];\n            self.ans[1] = x;\n        } else if x != self.ans[0] && x != self.ans[1] && x > self.ans[2] {\n            self.ans[2] = x;\n        }\n    }\n    \n    fn get(&self) -> Vec<i32> {\n        let mut ret = Vec::new();\n        for &num in &self.ans {\n            if num != 0 {\n                ret.push(num);\n            }\n        }\n        ret\n    }\n}\n\nimpl Solution {\n    pub fn get_biggest_three(grid: Vec<Vec<i32>>) -> Vec<i32> {\n        let m = grid.len();\n        let n = grid[0].len();\n        let mut sum1 = vec![vec![0; n + 2]; m + 1];\n        let mut sum2 = vec![vec![0; n + 2]; m + 1];\n        \n        for i in 1..=m {\n            for j in 1..=n {\n                sum1[i][j] = sum1[i - 1][j - 1] + grid[i - 1][j - 1];\n                sum2[i][j] = sum2[i - 1][j + 1] + grid[i - 1][j - 1];\n            }\n        }\n        \n        let mut ans = Answer::new();\n        for i in 0..m {\n            for j in 0..n {\n                // 单独的一个格子也是菱形\n                ans.put(grid[i][j]);\n                let mut k = i + 2;\n                while k < m {\n                    let ux = i;\n                    let uy = j;\n                    let dx = k;\n                    let dy = j;\n                    let lx = (i + k) / 2;\n                    let ly = j as i32 - ((k - i) / 2) as i32;\n                    let rx = (i + k) / 2;\n                    let ry = j + (k - i) / 2;\n                    \n                    if ly < 0 || ry >= n {\n                        break;\n                    }\n                    \n                    let sum = (sum2[lx + 1][(ly + 1) as usize] - sum2[ux][uy + 2]) +\n                              (sum1[rx + 1][ry + 1] - sum1[ux][uy]) +\n                              (sum1[dx + 1][dy + 1] - sum1[lx][ly as usize]) +\n                              (sum2[dx + 1][dy + 1] - sum2[rx][ry + 2]) -\n                              (grid[ux][uy] + grid[dx][dy] + grid[lx][ly as usize] + grid[rx][ry]);\n                    \n                    ans.put(sum);\n                    k += 2;\n                }\n            }\n        }\n        \n        ans.get()\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(mn \\min(m, n))$。预处理前缀和的时间复杂度为 $O(mn)$，枚举菱形并计算菱形和的时间复杂度为 $O(mn \\min(m, n))$，因此总时间复杂度为 $O(mn \\min(m, n))$。\n\n- 空间复杂度：$O(mn)$，记为前缀和数组需要使用的空间。",
+            "slateValue": "",
+            "slug": "ju-zhen-zhong-zui-da-de-san-ge-ling-xing-hpko",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "U2jbHy",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 14,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Prefix Sum",
+                    "nameTranslated": "前缀和",
+                    "slug": "prefix-sum",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-05-29T16:10:21.038319+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：枚举所有的菱形 提示 [latex] 一个菱形的自由度是多少（即如果我们至少需要多少个变量，才能唯一表示一个菱形）？ 提示 [latex] 解释 一个菱形的自由度是 [latex]，例如： [latex] 个变量表示菱形上顶点的坐标，[latex] 个变量表示菱形在水平或者竖直方向上的宽度。 提示 [latex",
+            "topic": {
+                "id": 802346,
+                "subscribed": false,
+                "commentCount": 39,
+                "viewCount": 3002,
+                "post": {
+                    "id": 1764747,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 29,
+            "isEditorsPick": false,
+            "hitCount": 11232,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "get-biggest-three-rhombus-sums-in-a-grid",
+                "questionFrontendId": "1878"
+            },
+            "next": {
+                "slug": "go-qian-zhui-he-by-endlesscheng-30l0",
+                "title": "斜向前缀和（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

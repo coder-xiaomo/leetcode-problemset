@@ -1,0 +1,144 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "OIysEE",
+            "title": "给边赋权值的方案数 I",
+            "content": "#### 方法一：深度优先搜索 + 数学\n\n**思路与算法**\n\n给定一颗以 $1$ 为根的树，需要找到深度最深的节点 $x$，然后计算将从 $1$ 到 $x$ 的路径权值之和为奇数的赋值方案数。每条边可以赋值 $1$ 或 $2$。由于权值 $2$ 不影响奇偶性，路径和的奇偶性仅取决于权值为 $1$ 的边的数量是否为奇数。\n\n因此，我们先使用深度优先搜索算法计算出节点 $1$ 到节点 $x$ 的距离 $\\textit{max\\_dep}$，然后计算从 $\\textit{max\\_dep}$ 条边中选择奇数条边的方案数。\n\n设 $d[i][0]$ 为从 $i$ 条边中选择偶数条边赋值为 $1$ 的方案数，$d[i][1]$ 为从 $i$ 条边中选择奇数条边赋值为 $1$ 的方案数。那么当 $i \\ge 1$ 时有递推方程：\n\n$$\n\\begin{align*}\nd[i][1] &= d[i - 1][0] + d[i - 1][1] \\\\\nd[i][0] &= d[i - 1][0] + d[i - 1][1]\n\\end{align*}\n$$\n\n以 $d[i][1]$ 为例，第 $i$ 条边赋值为 $1$ 和赋值为 $2$ 两种方案，对应于 $d[i - 1][0]$ 和 $d[i - 1][1]$。$d[i][0]$ 同理。初始条件为 $d[0][0] = 1$ 和 $d[0][1] = 0$。最终答案为 $d[\\textit{max\\_dep}][1]$。\n\n容易发现当 $i \\ge 1$ 时，$d[i][1]$ 是永远等于 $d[i][0]$ 的，而 $d[\\textit{max\\_dep}][0] + d[\\textit{max\\_dep}][1]$ 等于 $2^{\\textit{max\\_dep}}$，因此最终答案为 $2^{\\textit{max\\_dep} - 1}$。在本题中可以使用递推计算该值，也可以使用快速幂来计算该值。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\n    static constexpr int mod = 1e9 + 7;\n    int qpow(int x, int y) {\n        int res = 1; \n        for (; y; y >>= 1) {\n            if (y & 1) {\n                res = 1ll * res * x % mod;\n            }\n            x = 1ll * x * x % mod;\n        }\n        return res;\n    }\n    int dfs(vector<vector<int>> &g, int x, int f) {\n        int max_dep = 0;\n        for (auto &y : g[x]) {\n            if (y == f) {\n                continue;\n            }\n            max_dep = max(max_dep, dfs(g, y, x) + 1);\n        }\n        return max_dep;\n    }\npublic:\n    int assignEdgeWeights(vector<vector<int>>& edges) {\n        int n = edges.size() + 1;\n        vector<vector<int>> g(n + 1);\n        for (auto &e : edges) {\n            int u = e[0];\n            int v = e[1];\n            g[u].emplace_back(v);\n            g[v].emplace_back(u);\n        }\n        int max_dep = dfs(g, 1, 0);\n        return qpow(2, max_dep - 1);\n    }\n};\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    const MOD: i64 = 1_000_000_007;\n\n    fn qpow(mut x: i64, mut y: i64) -> i64 {\n        let mut res = 1;\n        while y > 0 {\n            if y & 1 == 1 {\n                res = (res * x) % Self::MOD;\n            }\n            x = (x * x) % Self::MOD;\n            y >>= 1;\n        }\n        res\n    }\n\n    fn dfs(g: &Vec<Vec<usize>>, x: usize, f: usize) -> i64 {\n        let mut max_dep = 0;\n        for &y in &g[x] {\n            if y == f {\n                continue;\n            }\n            max_dep = max_dep.max(Self::dfs(g, y, x) + 1);\n        }\n        max_dep\n    }\n\n    pub fn assign_edge_weights(edges: Vec<Vec<i32>>) -> i32 {\n        let n = edges.len() + 1;\n        let mut g = vec![vec![]; n + 1];\n        for e in edges {\n            let u = e[0] as usize;\n            let v = e[1] as usize;\n            g[u].push(v);\n            g[v].push(u);\n        }\n        let max_dep = Self::dfs(&g, 1, 0);\n        Self::qpow(2, max_dep - 1) as i32\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    MOD = 10**9 + 7\n\n    def dfs(self, g: list, x: int, f: int) -> int:\n        max_dep = 0\n        for y in g[x]:\n            if y == f:\n                continue\n            max_dep = max(max_dep, self.dfs(g, y, x) + 1)\n        return max_dep\n\n    def assignEdgeWeights(self, edges: List[List[int]]) -> int:\n        n = len(edges) + 1\n        g = [[] for _ in range(n + 1)]\n        for u, v in edges:\n            g[u].append(v)\n            g[v].append(u)\n        max_dep = self.dfs(g, 1, 0)\n        return pow(2, max_dep - 1, self.MOD)\n```\n\n```Java [sol1-Java]\nclass Solution {\n    private static final int MOD = 1_000_000_007;\n\n    private int qpow(int x, int y) {\n        long res = 1;\n        long base = x;\n        while (y > 0) {\n            if ((y & 1) == 1) {\n                res = (res * base) % MOD;\n            }\n            base = (base * base) % MOD;\n            y >>= 1;\n        }\n        return (int) res;\n    }\n\n    private int dfs(List<List<Integer>> g, int x, int f) {\n        int maxDep = 0;\n        for (int y : g.get(x)) {\n            if (y == f) continue;\n            maxDep = Math.max(maxDep, dfs(g, y, x) + 1);\n        }\n        return maxDep;\n    }\n\n    public int assignEdgeWeights(int[][] edges) {\n        int n = edges.length + 1;\n        List<List<Integer>> g = new ArrayList<>();\n        for (int i = 0; i <= n; i++) {\n            g.add(new ArrayList<>());\n        }\n        for (int[] e : edges) {\n            int u = e[0];\n            int v = e[1];\n            g.get(u).add(v);\n            g.get(v).add(u);\n        }\n        int maxDep = dfs(g, 1, 0);\n        return qpow(2, maxDep - 1);\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    private const int MOD = 1_000_000_007;\n\n    private int QPow(int x, int y) {\n        long res = 1;\n        long baseVal = x;\n        while (y > 0) {\n            if ((y & 1) == 1) {\n                res = (res * baseVal) % MOD;\n            }\n            baseVal = (baseVal * baseVal) % MOD;\n            y >>= 1;\n        }\n        return (int)res;\n    }\n\n    private int Dfs(List<List<int>> g, int x, int f) {\n        int maxDep = 0;\n        foreach (int y in g[x]) {\n            if (y == f) continue;\n            maxDep = System.Math.Max(maxDep, Dfs(g, y, x) + 1);\n        }\n        return maxDep;\n    }\n\n    public int AssignEdgeWeights(int[][] edges) {\n        int n = edges.Length + 1;\n        var g = new List<List<int>>();\n        for (int i = 0; i <= n; i++) {\n            g.Add(new List<int>());\n        }\n        foreach (var e in edges) {\n            int u = e[0];\n            int v = e[1];\n            g[u].Add(v);\n            g[v].Add(u);\n        }\n        int maxDep = Dfs(g, 1, 0);\n        return QPow(2, maxDep - 1);\n    }\n}\n```\n\n```Go [sol1-Go]\nconst MOD = 1_000_000_007\n\nfunc dfs(g [][]int, x, f int) int {\n\tmaxDep := 0\n\n\tfor _, y := range g[x] {\n\t\tif y == f {\n\t\t\tcontinue\n\t\t}\n\t\tmaxDep = max(maxDep, dfs(g, y, x)+1)\n\t}\n\n\treturn maxDep\n}\n\nfunc assignEdgeWeights(edges [][]int) int {\n\tn := len(edges) + 1\n\n\tg := make([][]int, n+1)\n\tfor _, e := range edges {\n\t\tu, v := e[0], e[1]\n\t\tg[u] = append(g[u], v)\n\t\tg[v] = append(g[v], u)\n\t}\n\n\tmaxDep := dfs(g, 1, 0)\n\treturn powMod(2, maxDep-1)\n}\n\nfunc powMod(a, b int) int {\n\tres := 1\n\ta %= MOD\n\n\tfor b > 0 {\n\t\tif b&1 == 1 {\n\t\t\tres = res * a % MOD\n\t\t}\n\t\ta = a * a % MOD\n\t\tb >>= 1\n\t}\n\n\treturn res\n}\n```\n\n```C [sol1-C]\n#define MOD 1000000007\n\ntypedef struct Node {\n    int val;\n    struct Node* next;\n} Node;\n\ntypedef struct {\n    Node** heads;\n    int size;\n} Graph;\n\nvoid addEdge(Graph* g, int u, int v) {\n    Node* node = (Node*)malloc(sizeof(Node));\n    node->val = v;\n    node->next = g->heads[u];\n    g->heads[u] = node;\n}\n\nint qpow(int x, int y) {\n    long long res = 1;\n    long long base = x;\n    while (y) {\n        if (y & 1) {\n            res = (res * base) % MOD;\n        }\n        base = (base * base) % MOD;\n        y >>= 1;\n    }\n    return (int)res;\n}\n\nint dfs(Graph* g, int x, int f) {\n    int maxDep = 0;\n    Node* cur = g->heads[x];\n    while (cur) {\n        int y = cur->val;\n        if (y != f) {\n            int dep = dfs(g, y, x) + 1;\n            if (dep > maxDep) maxDep = dep;\n        }\n        cur = cur->next;\n    }\n    return maxDep;\n}\n\nint assignEdgeWeights(int** edges, int edgesSize, int* edgesColSize) {\n    int n = edgesSize + 1;\n    Graph g;\n    g.heads = (Node**)calloc(n + 1, sizeof(Node*));\n    g.size = n + 1;\n    \n    for (int i = 0; i < edgesSize; i++) {\n        int u = edges[i][0];\n        int v = edges[i][1];\n        addEdge(&g, u, v);\n        addEdge(&g, v, u);\n    }\n    \n    int maxDep = dfs(&g, 1, 0);\n    int result = qpow(2, maxDep - 1);\n    \n    for (int i = 0; i <= n; i++) {\n        Node* cur = g.heads[i];\n        while (cur) {\n            Node* tmp = cur;\n            cur = cur->next;\n            free(tmp);\n        }\n    }\n    free(g.heads);\n    \n    return result;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar assignEdgeWeights = function(edges) {\n    const MOD = 1000000007n;\n    \n    const qpow = (x, y) => {\n        let res = 1n;\n        let base = BigInt(x);\n        let exp = y;\n        while (exp > 0) {\n            if (exp & 1) {\n                res = (res * base) % MOD;\n            }\n            base = (base * base) % MOD;\n            exp >>= 1;\n        }\n        return Number(res);\n    };\n    \n    const dfs = (g, x, f) => {\n        let maxDep = 0;\n        for (const y of g[x]) {\n            if (y === f) continue;\n            maxDep = Math.max(maxDep, dfs(g, y, x) + 1);\n        }\n        return maxDep;\n    };\n    \n    const n = edges.length + 1;\n    const g = Array.from({ length: n + 1 }, () => []);\n    \n    for (let i = 0; i < edges.length; i++) {\n        const u = edges[i][0];\n        const v = edges[i][1];\n        g[u].push(v);\n        g[v].push(u);\n    }\n    \n    const maxDep = dfs(g, 1, 0);\n    return qpow(2, maxDep - 1);\n};\n```\n\n```TypeScript [sol1-TypeScript]\nvar assignEdgeWeights = function(edges: number[][]): number {\n    const MOD: bigint = 1000000007n;\n    \n    const qpow = (x: number, y: number): number => {\n        let res: bigint = 1n;\n        let base: bigint = BigInt(x);\n        let exp: number = y;\n        \n        while (exp > 0) {\n            if (exp & 1) {\n                res = (res * base) % MOD;\n            }\n            base = (base * base) % MOD;\n            exp >>= 1;\n        }\n        return Number(res);\n    };\n    \n    const dfs = (g: number[][], x: number, f: number): number => {\n        let maxDep: number = 0;\n        for (const y of g[x]) {\n            if (y === f) continue;\n            maxDep = Math.max(maxDep, dfs(g, y, x) + 1);\n        }\n        return maxDep;\n    };\n    \n    const n: number = edges.length + 1;\n    const g: number[][] = Array.from({ length: n + 1 }, () => []);\n    \n    for (let i = 0; i < edges.length; i++) {\n        const u: number = edges[i][0];\n        const v: number = edges[i][1];\n        g[u].push(v);\n        g[v].push(u);\n    }\n    \n    const maxDep: number = dfs(g, 1, 0);\n    return qpow(2, maxDep - 1);\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是树的节点数。深度优先搜索的时间复杂度是 $O(n)$，快速幂的时间复杂度是 $O(\\log n)$。\n\n- 空间复杂度：$O(n)$。",
+            "slateValue": "",
+            "slug": "gei-bian-fu-quan-zhi-de-fang-an-shu-i-by-7coj",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "OIysEE",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 1,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Tree",
+                    "nameTranslated": "树",
+                    "slug": "tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Depth-First Search",
+                    "nameTranslated": "深度优先搜索",
+                    "slug": "depth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python3",
+                    "nameTranslated": "",
+                    "slug": "python3",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2026-06-10T10:44:38.096418+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：深度优先搜索 + 数学 思路与算法 给定一颗以 [latex] 为根的树，需要找到深度最深的节点 [latex]，然后计算将从 [latex] 到 [latex] 的路径权值之和为奇数的赋值方案数。每条边可以赋值 [latex] 或 [latex]。由于权值 [latex] 不影响奇偶性，路径和的奇偶性仅取决于",
+            "topic": {
+                "id": 3981974,
+                "subscribed": false,
+                "commentCount": 5,
+                "viewCount": 14,
+                "post": {
+                    "id": 7258302,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 8,
+            "isEditorsPick": false,
+            "hitCount": 3755,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "number-of-ways-to-assign-edge-weights-i",
+                "questionFrontendId": "3558"
+            },
+            "next": {
+                "slug": "cong-n-ge-shu-zhong-xuan-qi-shu-ge-shu-d-e3v4",
+                "title": "从 k 个数中选奇数个数的方案数（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

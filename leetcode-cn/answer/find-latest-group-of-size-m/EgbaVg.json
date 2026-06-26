@@ -1,0 +1,90 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "EgbaVg",
+            "title": "查找大小为 M 的最新分组",
+            "content": "#### 方法一：模拟\n\n**思路与算法**\n\n首先，我们考虑维护一个与原数组等大的数组 $\\textit{endpoints}$，其中 $\\textit{endpoints}[i]$ 表示数组中包含位置 $i$ 的连续 $1$ 的分组的起点和终点。如果 $\\textit{arr}[i]$ 为 $0$，则记起点和终点均为 $-1$。\n\n例如，如果数组当前的取值为 $[0, 1, 1, 1, 0, 1, 1]$，则数组 $\\textit{endpoints}$ 的取值为：\n\n$$\n[(-1, -1), (2, 4), (2, 4), (2, 4), (-1, -1), (6, 7), (6,7)]\n$$\n\n注意本题中数组下标是从 $1$ 开始的。\n\n起始时，数组 $\\textit{arr}$ 的值都为 $0$。随后当进行每一步操作时，如果该步骤为将 $\\textit{arr}[i]$ 的值设为 $1$，则有以下三种情况：\n- 如果 $\\textit{arr}[i]$ 的左右两个相邻元素（如果有）的值均为 $-1$，则此时生成了一个新的长度为 $1$ 的分组；\n- 如果左右两个相邻元素（如果有）的之一的取值为 $1$，则此时会生成一个新的分组，该分组取代了已有的某个分组，其长度为该已有分组的长度加 $1$；\n- 如果左右两个相邻元素的取值都为 $1$，则此时会将左右两个分组合并成一个新的分组，新分组的长度为两个分组的长度之和再加上 $1$。同时，原本的两个分组会随之消失。\n\n在每种情况下，我们都会修改数组 $\\textit{endpoints}$。不过对于一个新生成的分组，我们无需修改其中每个位置的取值：只需修改该分组左右端点处的取值即可。这是因为，在进行每一步操作时，都不会在一个已有的分组内部做修改，只会考虑已有分组的端点处的取值。\n\n与此同时，我们也需要统计长度为 $m$ 的分组数量。如果进行完第 $i$ 次操作后，长度为 $m$ 的分组数量大于 $0$，则更新返回值为 $i$。遍历结束后，就能得到答案。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int findLatestStep(vector<int>& arr, int m) {\n        int n = arr.size();\n        vector<pair<int, int>> endpoints(n + 1, make_pair(-1, -1));\n        int cnt = 0;\n        int ret = -1;\n\n        for (int i = 0; i < n; i++) {\n            int left = arr[i], right = arr[i];\n            if (arr[i] > 1 && endpoints[arr[i] - 1].first != -1) {\n                left = endpoints[arr[i] - 1].first;\n                int leftLength = endpoints[arr[i] - 1].second - endpoints[arr[i] - 1].first + 1;\n                if (leftLength == m) {\n                    cnt--;\n                }\n            }\n            if (arr[i] < n && endpoints[arr[i] + 1].second != -1) {\n                right = endpoints[arr[i] + 1].second;\n                int rightLength = endpoints[arr[i] + 1].second - endpoints[arr[i] + 1].first + 1;\n                if (rightLength == m) {\n                    cnt--;\n                }\n            }\n            int length = right - left + 1;\n            if (length == m) {\n                cnt++;\n            }\n            if (cnt > 0) {\n                ret = i + 1;\n            }\n            endpoints[left] = endpoints[right] = make_pair(left, right);\n        }\n        return ret;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int findLatestStep(int[] arr, int m) {\n        int n = arr.length;\n        int[][] endpoints = new int[n + 1][2];\n        for (int i = 0; i <= n; i++) {\n            Arrays.fill(endpoints[i], -1);\n        }\n        int cnt = 0;\n        int ret = -1;\n\n        for (int i = 0; i < n; i++) {\n            int left = arr[i], right = arr[i];\n            if (arr[i] > 1 && endpoints[arr[i] - 1][0] != -1) {\n                left = endpoints[arr[i] - 1][0];\n                int leftLength = endpoints[arr[i] - 1][1] - endpoints[arr[i] - 1][0] + 1;\n                if (leftLength == m) {\n                    cnt--;\n                }\n            }\n            if (arr[i] < n && endpoints[arr[i] + 1][1] != -1) {\n                right = endpoints[arr[i] + 1][1];\n                int rightLength = endpoints[arr[i] + 1][1] - endpoints[arr[i] + 1][0] + 1;\n                if (rightLength == m) {\n                    cnt--;\n                }\n            }\n            int length = right - left + 1;\n            if (length == m) {\n                cnt++;\n            }\n            if (cnt > 0) {\n                ret = i + 1;\n            }\n            endpoints[left][0] = endpoints[right][0] = left;\n            endpoints[left][1] = endpoints[right][1] = right;\n        }\n        return ret;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def findLatestStep(self, arr: List[int], m: int) -> int:\n        n = len(arr)\n        endpoints = [(-1, -1) for _ in range(n + 1)]\n        cnt = 0\n        ret = -1\n\n        for i in range(n):\n            left = right = arr[i]\n            if arr[i] > 1 and endpoints[arr[i] - 1][0] != -1:\n                left = endpoints[arr[i] - 1][0]\n                leftLength = endpoints[arr[i] - 1][1] - endpoints[arr[i] - 1][0] + 1;\n                if leftLength == m:\n                    cnt -= 1\n            if arr[i] < n and endpoints[arr[i] + 1][1] != -1:\n                right = endpoints[arr[i] + 1][1]\n                rightLength = endpoints[arr[i] + 1][1] - endpoints[arr[i] + 1][0] + 1;\n                if rightLength == m:\n                    cnt -= 1\n            \n            length = right - left + 1\n            if length == m:\n                cnt += 1\n            if cnt > 0:\n                ret = i + 1\n            endpoints[left] = endpoints[right] = (left, right)\n\n        return ret\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 为数组的长度。在处理每个步骤的时候，我们仅访问了左右两个相邻元素的取值，也仅修改了新分组左右端点处的取值，因此每个步骤的耗时都是 $O(1)$ 的。\n\n- 空间复杂度：$O(n)$。我们需要开辟一个与原数组长度相同的数组 $\\textit{endpoints}$。",
+            "slateValue": "",
+            "slug": "cha-zhao-da-xiao-wei-m-de-zui-xin-fen-zu-by-leetco",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "EgbaVg",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 17,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-09-10T14:45:45.798077+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：模拟 思路与算法 首先，我们考虑维护一个与原数组等大的数组 $\\textit{endpoints}$，其中 $\\textit{endpoints}[i]$ 表示数组中包含位置 $i$ 的连续 $1$ 的分组的起点和终点。如果 $\\textit{arr}[i]$ 为 $0$，则记起点和终点均为 $-1$。 例如，",
+            "topic": {
+                "id": 409114,
+                "subscribed": false,
+                "commentCount": 17,
+                "viewCount": 3126,
+                "post": {
+                    "id": 995284,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 15,
+            "isEditorsPick": false,
+            "hitCount": 7321,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "find-latest-group-of-size-m",
+                "questionFrontendId": "1562"
+            },
+            "next": {
+                "slug": "on-de-jie-jue-fang-fa-by-time-limit",
+                "title": "O(n) 的解决方法"
+            },
+            "prev": null
+        }
+    }
+}

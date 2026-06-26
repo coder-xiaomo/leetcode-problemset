@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "XgikbN",
+            "title": "锯齿形数组的总数 I",
+            "content": "#### 方法一：动态规划 + 前缀和优化\n\n**思路与算法**\n\n此类序列计数问题一般考虑使用动态规划求解。\n\n记锯齿数组为 $z$，设状态 $\\textit{dp}[i][\\textit{dir}][j]$ 代表 $z$ 的长度为 $i + 1$，其末尾的两个元素的排列方式为 $\\textit{dir}$，且 $z[i] = j$ 时的方案总数，其中 $l \\le j \\le r$。\n\n记 $z$ 末尾的两个元素分别为 $z[i-1]$ 和 $z[i]$，则 $\\textit{dir}$ 的定义如下：\n\n- 当 $z[i-1] > z[i]$，即这两个元素构成一个严格递减排列时，取 $\\textit{dir} = 0$；\n- 当 $z[i-1] < z[i]$，即这两个元素构成一个严格递增排列时，取 $\\textit{dir} = 1$。\n\n考虑状态转移。首先，由于锯齿数组只关心**相邻**两个元素构成的排列情况，因此状态转移显然与且仅与前一个状态相关。也就是对于 $\\textit{dp}[i]$，它的取值仅取决于 $\\textit{dp}[i-1]$ 的值。\n\n同时，根据题目对锯齿数组的定义，相邻的两组元素的排列形式必须是交错的，$\\textit{dir} = 0$ 的状态只能从 $\\textit{dir} = 1$ 的状态转移过来，反之亦然。\n\n最后，对于 $\\textit{dp}[i][0][j]$，因为相邻元素要形成严格递减序列，故前一个状态的末尾元素 $j'$ 应该严格大于当前状态的末尾元素 $j$；同理，对于 $\\textit{dp}[i][1][j]$，前一个状态的末尾元素 $j'$ 应该严格小于当前状态的末尾元素 $j$。将所有可以转移到当前状态的方案数求和，即可得到当前状态的方案数。\n\n最终可以得到如下状态转移方程，下面的式子将给定区间 $[l, r]$ 平移到了 $[0, m - 1]$，其中 $m = r - l + 1$。注意某些语言在实现时可能直接使用 $[l, r]$ 求解，但原理是一样的：\n\n$$\n\\begin{aligned}\n\\textit{dp}[i][0][j] &= \\sum_{k=j+1}^{m-1} \\textit{dp}[i-1][1][k] \\\\\n\\textit{dp}[i][1][j] &= \\sum_{k=0}^{j-1} \\textit{dp}[i-1][0][k]\n\\end{aligned}\n$$\n\n容易发现，上述两个求和式可以使用前缀和优化，设 $\\textit{sum}[i][\\textit{dir}]$ 代表锯齿数组长度为 $i$、且末尾元素排列方式为 $\\textit{dir}$ 时，方案数的前缀和数组。为了方便处理边界，我们使用长度为 $m + 1$ 的前缀和数组，其中：\n\n$$\n\\textit{sum}[i][\\textit{dir}][j]\n=\n\\sum_{k=0}^{j-1}\n\\textit{dp}[i][\\textit{dir}][k]\n$$\n\n特别地，\n\n$$\n\\textit{sum}[i][\\textit{dir}][0] = 0\n$$\n\n引入前缀和后，我们可以在 $O(1)$ 的时间复杂度内完成状态转移，优化后的转移方程如下：\n\n$$\n\\begin{aligned}\n\\textit{dp}[i][0][j] &= \\textit{sum}[i-1][1][m] - \\textit{sum}[i-1][1][j+1] \\\\\n\\textit{dp}[i][1][j] &= \\textit{sum}[i-1][0][j]\n\\end{aligned}\n$$\n\n最后初始化的时候，将 $\\textit{dp}[0]$ 的所有元素置为 $1$ 即可，因为长度为 $1$ 时的排列方案只有唯一一种。\n\n实现的时候，我们可以先将 $\\textit{dp}$ 的第二维拆成两个独立变量 $\\textit{dp}_0$ 和 $\\textit{dp}_1$ 进行独立寻址。同时由于引入了前缀和，因此自然地想到将数组 $\\textit{sum}$ 的第二维也拆成两个独立变量，此时 $\\textit{sum}$ 与 $\\textit{dp}$ 两个状态数组的转移相继轮换进行，且只依赖上一轮对方的值，已经达成类似滚动数组的效果，从而可以直接去掉第一维，直接将空间优化到 $O(m)$。\n\n注：观察到两个方向的状态转移计算具有高度对称性，实际上确实可以通过对称性优化计算过程，这部分交给读者自行思考实现。\n\n**代码**\n\n```C++ [sol1-C++]\nconstexpr int MOD = 1'000'000'007;\n\nclass Solution {\npublic:\n    int zigZagArrays(int n, int l, int r) {\n        int m = r - l + 1;\n        vector<int> dp0(m, 0);\n        vector<int> dp1(m, 0);\n        vector<int> sum0(m + 1, 0);\n        vector<int> sum1(m + 1, 0);\n\n        for (int i = 0; i < m; i++) {\n            dp0[i] = dp1[i] = 1;\n        }\n\n        for (int i = 1; i < n; i++) {\n            for (int j = 0; j < m; j++) {\n                sum0[j + 1] = (sum0[j] + dp0[j]) % MOD;\n                sum1[j + 1] = (sum1[j] + dp1[j]) % MOD;\n            }\n\n            for (int j = 0; j < m; j++) {\n                dp0[j] = (sum1[m] - sum1[j + 1] + MOD) % MOD;\n                dp1[j] = sum0[j];\n            }\n        }\n\n        auto op = [](int acc, int x) { return (acc + x) % MOD; };\n        auto ans0 = std::reduce(dp0.begin(), dp0.end(), 0, op);\n        auto ans1 = std::reduce(dp1.begin(), dp1.end(), 0, op);\n\n        return (ans0 + ans1) % MOD;\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def zigZagArrays(self, n: int, l: int, r: int) -> int:\n        MOD = 10**9 + 7\n        m = r - l + 1\n\n        dp0 = [1] * m\n        dp1 = [1] * m\n        for _ in range(n - 1):\n            sum0 = list(accumulate(dp0, initial=0))\n            sum1 = list(accumulate(dp1, initial=0))\n\n            dp0 = [x % MOD for x in sum1[:-1]]\n\n            s0_m = sum0[-1]\n            dp1 = [(s0_m - x) % MOD for x in sum0[1:]]\n\n        return (sum(dp0) + sum(dp1)) % MOD\n```\n\n```Java [sol1-Java]\npublic class Solution {\n    private static final int MOD = 1_000_000_007;\n\n    public int zigZagArrays(int n, int l, int r) {\n        int[] dp0 = new int[r + 1];\n        int[] dp1 = new int[r + 1];\n        int[] sum0 = new int[r + 2];\n        int[] sum1 = new int[r + 2];\n\n        for (int i = l; i <= r; i++) {\n            dp0[i] = 1;\n            dp1[i] = 1;\n            sum0[i] = i - l + 1;\n            sum1[i] = i - l + 1;\n        }\n\n        for (int i = 1; i < n; i++) {\n            for (int j = l; j <= r; j++) {\n                dp0[j] = (sum1[r] - sum1[j] + MOD) % MOD;\n                dp1[j] = sum0[j - 1];\n            }\n\n            sum0[l] = dp0[l];\n            sum1[l] = dp1[l];\n            for (int j = l + 1; j <= r; j++) {\n                sum0[j] = (sum0[j - 1] + dp0[j]) % MOD;\n                sum1[j] = (sum1[j - 1] + dp1[j]) % MOD;\n            }\n        }\n\n        return (sum0[r] + sum1[r]) % MOD;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    private const int MOD = 1_000_000_007;\n\n    public int ZigZagArrays(int n, int l, int r) {\n        int[] dp0 = new int[r + 1];\n        int[] dp1 = new int[r + 1];\n        int[] sum0 = new int[r + 2];\n        int[] sum1 = new int[r + 2];\n\n        for (int i = l; i <= r; i++)\n        {\n            dp0[i] = dp1[i] = 1;\n            sum0[i] = sum1[i] = i - l + 1;\n        }\n\n        for (int i = 1; i < n; i++)\n        {\n            for (int j = l; j <= r; j++)\n            {\n                dp0[j] = (sum1[r] - sum1[j] + MOD) % MOD;\n                dp1[j] = sum0[j - 1];\n            }\n\n            sum0[l] = dp0[l];\n            sum1[l] = dp1[l];\n            for (int j = l + 1; j <= r; j++)\n            {\n                sum0[j] = (sum0[j - 1] + dp0[j]) % MOD;\n                sum1[j] = (sum1[j - 1] + dp1[j]) % MOD;\n            }\n        }\n\n        return (sum0[r] + sum1[r]) % MOD;\n    }\n}\n```\n\n```C [sol1-C]\n#define MOD 1000000007\n\nint zigZagArrays(int n, int l, int r) {\n    int* dp0 = (int*)calloc(r + 1, sizeof(int));\n    int* dp1 = (int*)calloc(r + 1, sizeof(int));\n    int* sum0 = (int*)calloc(r + 2, sizeof(int));\n    int* sum1 = (int*)calloc(r + 2, sizeof(int));\n\n    for (int i = l; i <= r; i++) {\n        dp0[i] = 1;\n        dp1[i] = 1;\n        sum0[i] = sum1[i] = i - l + 1;\n    }\n\n    for (int i = 1; i < n; i++) {\n        for (int j = l; j <= r; j++) {\n            dp0[j] = (sum1[r] - sum1[j] + MOD) % MOD;\n            dp1[j] = sum0[j - 1];\n        }\n\n        sum0[l] = dp0[l];\n        sum1[l] = dp1[l];\n        for (int j = l + 1; j <= r; j++) {\n            sum0[j] = (sum0[j - 1] + dp0[j]) % MOD;\n            sum1[j] = (sum1[j - 1] + dp1[j]) % MOD;\n        }\n    }\n\n    int ans = (sum0[r] + sum1[r]) % MOD;\n\n    free(dp0);\n    free(dp1);\n    free(sum0);\n    free(sum1);\n\n    return ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nconst MOD = 10 ** 9 + 7;\n\nvar zigZagArrays = function (n, l, r) {\n    const dp0 = new Array(r + 1).fill(0);\n    const dp1 = new Array(r + 1).fill(0);\n    const sum0 = new Array(r + 2).fill(0);\n    const sum1 = new Array(r + 2).fill(0);\n\n    for (let i = l; i <= r; i++) {\n        dp0[i] = dp1[i] = 1;\n        sum0[i] = sum1[i] = i - l + 1;\n    }\n\n    for (let i = 1; i < n; i++) {\n        for (let j = l; j <= r; j++) {\n            dp0[j] = (sum1[r] - sum1[j] + MOD) % MOD;\n            dp1[j] = sum0[j - 1];\n        }\n\n        sum0[l] = dp0[l];\n        sum1[l] = dp1[l];\n        for (let j = l + 1; j <= r; j++) {\n            sum0[j] = (sum0[j - 1] + dp0[j]) % MOD;\n            sum1[j] = (sum1[j - 1] + dp1[j]) % MOD;\n        }\n    }\n\n    return (sum0[r] + sum1[r]) % MOD;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nconst MOD = 10 ** 9 + 7;\n\nfunction zigZagArrays(n: number, l: number, r: number): number {\n    const dp0 = new Array<number>(r + 1).fill(0);\n    const dp1 = new Array<number>(r + 1).fill(0);\n    const sum0 = new Array<number>(r + 2).fill(0);\n    const sum1 = new Array<number>(r + 2).fill(0);\n\n    for (let i = l; i <= r; i++) {\n        dp0[i] = dp1[i] = 1;\n        sum0[i] = sum1[i] = i - l + 1;\n    }\n\n    for (let i = 1; i < n; i++) {\n        for (let j = l; j <= r; j++) {\n            dp0[j] = (sum1[r] - sum1[j] + MOD) % MOD;\n            dp1[j] = sum0[j - 1];\n        }\n\n        sum0[l] = dp0[l];\n        sum1[l] = dp1[l];\n        for (let j = l + 1; j <= r; j++) {\n            sum0[j] = (sum0[j - 1] + dp0[j]) % MOD;\n            sum1[j] = (sum1[j - 1] + dp1[j]) % MOD;\n        }\n    }\n\n    return (sum0[r] + sum1[r]) % MOD;\n}\n```\n\n```Go [sol1-Go]\nfunc zigZagArrays(n int, l int, r int) int {\n\tconst MOD = 1_000_000_007\n\n\tdp0 := make([]int, r+1)\n\tdp1 := make([]int, r+1)\n\tsum0 := make([]int, r+2)\n\tsum1 := make([]int, r+2)\n\n\tfor i := l; i <= r; i++ {\n\t\tdp0[i] = 1\n\t\tdp1[i] = 1\n\t\tval := i - l + 1\n\t\tsum0[i] = val\n\t\tsum1[i] = val\n\t}\n\n\tfor i := 1; i < n; i++ {\n\t\tfor j := l; j <= r; j++ {\n\t\t\tdp0[j] = (sum1[r] - sum1[j] + MOD) % MOD\n\t\t\tdp1[j] = sum0[j-1]\n\t\t}\n\n\t\tsum0[l] = dp0[l]\n\t\tsum1[l] = dp1[l]\n\t\tfor j := l + 1; j <= r; j++ {\n\t\t\tsum0[j] = (sum0[j-1] + dp0[j]) % MOD\n\t\t\tsum1[j] = (sum1[j-1] + dp1[j]) % MOD\n\t\t}\n\t}\n\n\treturn (sum0[r] + sum1[r]) % MOD\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    const MOD: i32 = 1_000_000_007;\n\n    pub fn zig_zag_arrays(n: i32, l: i32, r: i32) -> i32 {\n        let m = (r - l + 1) as usize;\n\n        let mut dp0 = vec![1; m];\n        let mut dp1 = vec![1; m];\n        let mut sum0 = vec![0; m + 1];\n        let mut sum1 = vec![0; m + 1];\n\n        for _ in 1..n {\n            for j in 0..m {\n                sum0[j + 1] = (sum0[j] + dp0[j]) % Self::MOD;\n                sum1[j + 1] = (sum1[j] + dp1[j]) % Self::MOD;\n            }\n\n            for j in 0..m {\n                dp0[j] = sum1[j];\n                dp1[j] = (sum0[m] - sum0[j + 1] + Self::MOD) % Self::MOD;\n            }\n        }\n\n        let ans0 = dp0.iter().fold(0, |acc, &x| (acc + x) % Self::MOD);\n        let ans1 = dp1.iter().fold(0, |acc, &x| (acc + x) % Self::MOD);\n\n        (ans0 + ans1) % Self::MOD\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(nm)$，其中 $m$ 为给定区间的长度，即 $r - l + 1$。外循环遍历数组下标需要 $O(n)$，内循环进行动态规划求解与前缀和计算需要 $O(m)$。\n\n- 空间复杂度：$O(m)$。用到的辅助数组长度均为 $m$。",
+            "slateValue": "",
+            "slug": "ju-chi-xing-shu-zu-de-zong-shu-i-by-leet-nioi",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "XgikbN",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 3,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Prefix Sum",
+                    "nameTranslated": "前缀和",
+                    "slug": "prefix-sum",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2026-06-16T01:34:39.301177+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 + 前缀和优化 思路与算法 此类序列计数问题一般考虑使用动态规划求解。 记锯齿数组为 [latex]，设状态 [latex] 代表 [latex] 的长度为 [latex]，其末尾的两个元素的排列方式为 [latex]，且 [latex] 时的方案总数，其中 [latex]。 记 [latex] 末尾",
+            "topic": {
+                "id": 3984255,
+                "subscribed": false,
+                "commentCount": 6,
+                "viewCount": 11,
+                "post": {
+                    "id": 7262500,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 17,
+            "isEditorsPick": false,
+            "hitCount": 3504,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "number-of-zigzag-arrays-i",
+                "questionFrontendId": "3699"
+            },
+            "next": {
+                "slug": "qian-zhui-he-you-hua-dppythonjavacgo-by-k4ps3",
+                "title": "前缀和优化 DP + 利用对称性优化（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

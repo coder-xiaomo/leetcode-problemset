@@ -1,0 +1,126 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "ExJHye",
+            "title": "避免洪水泛滥",
+            "content": "#### 方法一：贪心 + 二分查找\n\n**思路与算法**\n\n我们要思考如何在洪水即将发生时，有选择地对湖泊进行抽干操作。为了做到这一点，我们使用有序集合 $\\textit{st}$ 来存储了那些在某些日期没有下雨的日子。这些晴天日子可以被用来在湖泊即将发生洪水时，有选择地抽干湖泊，从而阻止洪水的发生。有序集合 $\\textit{st}$ 的排序方式是按照晴天日子的顺序排列的，**这就确保了我们总是在最早的晴天日子中进行抽干操作，以最大程度地避免洪水的发生**。对于最后剩余的晴天，我们可以将它们用于抽干任意一个湖泊，为了方便，我们令其为 $1$。现在我们初始化一个大小和 $\\textit{rains}$ 一样的答案数组 $\\textit{ans}$，并初始化为 $1$，然后从左到右来遍历数组 $\\textit{rains}$：\n\n- 若 $\\textit{rains}[i] = 0$，则将 $i$ 加入有序集合 $\\textit{st}$。\n- 若 $\\textit{rains}[i] > 0$，表示第 $\\textit{rains}[i]$ 湖泊将下雨，令 $\\textit{ans}[i] = -1$ 表示这一天的湖泊不可抽干：\n  - 若第 $\\textit{rains}[i]$ 是第一次下雨，则此时不会发生洪水。\n  - 否则我们需要在有序集合 $\\textit{st}$ 中找到大于等于该湖泊上一次下雨天数的最小索引 $\\textit{idx}$（可以用**二分查找**实现），如果 $\\textit{idx}$ 不存在（即没有晴天可以用于抽干），此时不能避免洪水的发生，按照题目要求返回一个空数组。否则我们令 $\\textit{ans}[\\textit{idx}] = \\textit{rains}[i]$，并在 $\\textit{st}$ 中删除 $\\textit{idx}$，表示我们会在第 $\\textit{idx}$ 天抽干 $\\textit{rains}[i]$ 湖泊的水来避免第 $i$ 天洪水的发生。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<int> avoidFlood(vector<int>& rains) {\n        vector<int> ans(rains.size(), 1);\n        set<int> st;\n        unordered_map<int, int> mp;\n        for (int i = 0; i < rains.size(); ++i) {\n            if (rains[i] == 0) {\n                st.insert(i);\n            } else {\n                ans[i] = -1;\n                if (mp.count(rains[i])) {\n                    auto it = st.lower_bound(mp[rains[i]]);\n                    if (it == st.end()) {\n                        return {};\n                    }\n                    ans[*it] = rains[i];\n                    st.erase(it);\n                }\n                mp[rains[i]] = i;\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int[] avoidFlood(int[] rains) {\n        int[] ans = new int[rains.length];\n        Arrays.fill(ans, 1);\n        TreeSet<Integer> st = new TreeSet<Integer>();\n        Map<Integer, Integer> mp = new HashMap<Integer, Integer>();\n        for (int i = 0; i < rains.length; ++i) {\n            if (rains[i] == 0) {\n                st.add(i);\n            } else {\n                ans[i] = -1;\n                if (mp.containsKey(rains[i])) {\n                    Integer it = st.ceiling(mp.get(rains[i]));\n                    if (it == null) {\n                        return new int[0];\n                    }\n                    ans[it] = rains[i];\n                    st.remove(it);\n                    mp.remove(rains[i]);\n                }\n                mp.put(rains[i], i);\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```Python [sol1-Python3]\nfrom sortedcontainers import SortedList\n\nclass Solution:\n    def avoidFlood(self, rains: List[int]) -> List[int]:\n        ans = [1] * len(rains)\n        st = SortedList()\n        mp = {}\n        for i, rain in enumerate(rains):\n            if rain == 0:\n                st.add(i)\n            else:\n                ans[i] = -1\n                if rain in mp:\n                    it = st.bisect(mp[rain])\n                    if it == len(st):\n                        return []\n                    ans[st[it]] = rain\n                    st.discard(st[it])\n                mp[rain] = i\n        return ans\n```\n\n```Go [sol1-Go]\nfunc avoidFlood(rains []int) []int {\n    n := len(rains)\n    ans := make([]int, n)\n    st := []int{} \n    mp := make(map[int]int)\n    for i := 0; i < n; i++ {\n        ans[i] = 1\n    }\n    for i, rain := range rains {\n        if rain == 0 {\n            st = append(st, i)\n        } else {\n            ans[i] = -1\n            if day, ok := mp[rain]; ok {\n                it := sort.SearchInts(st, day)\n                if it == len(st) {\n                    return []int {}\n                }\n                ans[st[it]] = rain\n                copy(st[it : len(st) - 1], st[it + 1 : len(st)])\n                st = st[: len(st) - 1]\n            }\n            mp[rain] = i\n        }\n    }\n    return ans\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\times \\log n)$，其中 $n$ 为数组 $\\textit{rains}$ 的长度。每次有序集合的插入和查询的时间复杂度为 $O(\\log n)$，最坏情况下会进行 $n$ 次有序集合的插入操作，所以总的时间复杂度为 $O(n \\times \\log n)$。\n- 空间复杂度：$O(n)$，其中 $n$ 为数组 $\\textit{rains}$ 的长度。主要为哈希表和有序集合的空间开销。",
+            "slateValue": "",
+            "slug": "bi-mian-hong-shui-fan-lan-by-leetcode-so-n5c9",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "ExJHye",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 44,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Greedy",
+                    "nameTranslated": "贪心",
+                    "slug": "greedy",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Ordered Set",
+                    "nameTranslated": "有序集合",
+                    "slug": "ordered-set",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-10-08T03:19:43.023994+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：贪心 + 二分查找 思路与算法 我们要思考如何在洪水即将发生时，有选择地对湖泊进行抽干操作。为了做到这一点，我们使用有序集合 [latex] 来存储了那些在某些日期没有下雨的日子。这些晴天日子可以被用来在湖泊即将发生洪水时，有选择地抽干湖泊，从而阻止洪水的发生。有序集合 [latex] 的排序方式是按照晴天日子",
+            "topic": {
+                "id": 2472026,
+                "subscribed": false,
+                "commentCount": 126,
+                "viewCount": 1133,
+                "post": {
+                    "id": 4615161,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 83,
+            "isEditorsPick": false,
+            "hitCount": 11395,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "avoid-flood-in-the-city",
+                "questionFrontendId": "1488"
+            },
+            "next": {
+                "slug": "avoid-flood-in-the-city-by-ikaruga",
+                "title": "【避免洪水泛滥】贪心 + 二分"
+            },
+            "prev": null
+        }
+    }
+}

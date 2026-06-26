@@ -1,0 +1,150 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "jPX22G",
+            "title": "字符串转换后的长度 II",
+            "content": "#### 方法一：矩阵乘法 + 快速幂\n\n**思路与算法**\n\n我们用 $f(i, c)$ 表示在进行了 $i$ 次转换后，字符串中包含字符 $c$ 的数量。为了叙述方便，这里 $c$ 的取值范围是 $[0, 26)$，依次对应从 $a$ 到 $z$ 的 $26$ 个字符。\n\n初始时，所有的 $f(0, c)$ 即为 $c$ 在给定的字符串 $s$ 中出现的次数。当我们从 $f(i-1, \\cdots)$ 递推到 $f(i, \\cdots)$ 时，有如下的递推式：\n\n$$\nf(i, c) = \\sum_{c'=0}^{25} [ f(i-1, c') \\times T(c, c') ]\n$$\n\n其中 $T(c, c')$ 的取值是 $0$ 或者 $1$。如果 $c'$ 在一次转换中的替换包括 $c$，那么取值为 $1$，否则取值为 $0$。$T(c, c')$ 可以通过给定的数组 $\\textit{nums}$ 得来。\n\n上述递推的时间复杂度较高，需要进行优化。注意到 $T(c, c')$ 的取值与 $i$ 无关，也就是说在每一轮递推中都是确定的。因此，如果我们把 $f(i, c)$ 和 $f(i-1, c')$ 都写成 $n \\times 1$ 的列向量的形式，$T(c, c')$ 写成 $n \\times n$ 的方阵的形式，上述递推式就变成了如下的矩阵乘法：\n\n$$\n\\begin{pmatrix}\nf(i, 0) \\\\\nf(i, 1) \\\\\n\\vdots \\\\\nf(i, 25)\n\\end{pmatrix}\n=\\begin{pmatrix}\nT(0, 0) & T(0, 1) & \\cdots & T(0, 25) \\\\\nT(1, 0) & T(1, 1) & \\cdots & T(1, 25) \\\\\n\\vdots & \\vdots & \\ddots & \\vdots \\\\\nT(25, 0) & T(25, 1) & \\cdots & T(25, 25)\n\\end{pmatrix}\n\\begin{pmatrix}\nf(i-1, 0) \\\\\nf(i-1, 1) \\\\\n\\vdots \\\\\nf(i-1, 25)\n\\end{pmatrix}\n$$\n\n因此有：\n\n$$\n\\begin{pmatrix}\nf(t, 0) \\\\\nf(t, 1) \\\\\n\\vdots \\\\\nf(t, 25)\n\\end{pmatrix}\n=\\begin{pmatrix}\nT(0, 0) & T(0, 1) & \\cdots & T(0, 25) \\\\\nT(1, 0) & T(1, 1) & \\cdots & T(1, 25) \\\\\n\\vdots & \\vdots & \\ddots & \\vdots \\\\\nT(25, 0) & T(25, 1) & \\cdots & T(25, 25)\n\\end{pmatrix}^t\n\\begin{pmatrix}\nf(0, 0) \\\\\nf(0, 1) \\\\\n\\vdots \\\\\nf(0, 25)\n\\end{pmatrix}\n$$\n\n那么可以先计算出 $T(c', c)$ 对应的方阵的 $t$ 次方，再与 $f(0, \\cdots)$ 对应的列向量相乘，即可得到所有的 $f(t, \\cdots)$ 对应的列向量。这些 $f(t, \\cdots)$ 的和即为最终的答案。\n\n计算出 $T(c', c)$ 对应的方阵的 $t$ 次方可以使用[矩阵快速幂](https://oi-wiki.org/math/linear-algebra/matrix/#%E7%9F%A9%E9%98%B5%E5%8A%A0%E9%80%9F%E9%80%92%E6%8E%A8)，这里不再赘述。\n\n**代码**\n\n```C++ [sol1-C++]\nstatic constexpr int L = 26;\nstatic constexpr int mod = 1000000007;\n\nstruct Mat {\n    Mat() {\n        memset(a, 0, sizeof(a));\n    }\n    Mat(const Mat& that) {\n        for (int i = 0; i < L; ++i) {\n            for (int j = 0; j < L; ++j) {\n                a[i][j] = that.a[i][j];\n            }\n        }\n    }\n    Mat& operator=(const Mat& that) {\n        if (this != &that) {\n            for (int i = 0; i < L; ++i) {\n                for (int j = 0; j < L; ++j) {\n                    a[i][j] = that.a[i][j];\n                }\n            }\n        }\n        return *this;\n    }\n\n    int a[L][L];\n};\n\nMat operator*(const Mat& u, const Mat& v) {\n    Mat w;\n    for (int i = 0; i < L; ++i) {\n        for (int j = 0; j < L; ++j) {\n            for (int k = 0; k < L; ++k) {\n                w.a[i][j] = (w.a[i][j] + (long long)u.a[i][k] * v.a[k][j]) % mod;\n            }\n        }\n    }\n    return w;\n}\n\n// 单位矩阵\nMat I() {\n    Mat w;\n    for (int i = 0; i < L; ++i) {\n        w.a[i][i] = 1;\n    }\n    return w;\n}\n\n// 矩阵快速幂\nMat quickmul(const Mat& x, int y) {\n    Mat ans = I(), cur = x;\n    while (y) {\n        if (y & 1) {\n            ans = ans * cur;\n        }\n        cur = cur * cur;\n        y >>= 1;\n    }\n    return ans;\n}\n\nclass Solution {\npublic:\n    int lengthAfterTransformations(string s, int t, vector<int>& nums) {\n        Mat T;\n        for (int i = 0; i < 26; ++i) {\n            for (int j = 1; j <= nums[i]; ++j) {\n                T.a[(i + j) % 26][i] = 1;\n            }\n        }\n        Mat res = quickmul(T, t);\n        int ans = 0;\n        vector<int> f(26);\n        for (char ch: s) {\n            ++f[ch - 'a'];\n        }\n        for (int i = 0; i < 26; ++i) {\n            for (int j = 0; j < 26; ++j) {\n                ans = (ans + (long long)res.a[i][j] * f[j]) % mod;\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```Python [sol1-Python3]\nMOD = 10**9 + 7\nL = 26\n\nclass Mat:\n    def __init__(self, copy_from: \"Mat\"=None) -> None:\n        self.a: List[List[int]] = [[0] * L for _ in range(L)]\n        if copy_from:\n            for i in range(L):\n                for j in range(L):\n                    self.a[i][j] = copy_from.a[i][j]\n\n    def __mul__(self, other: \"Mat\") -> \"Mat\":\n        result = Mat()\n        for i in range(L):\n            for j in range(L):\n                for k in range(L):\n                    result.a[i][j] = (result.a[i][j] + self.a[i][k] * other.a[k][j]) % MOD\n        return result\n\n# 单位矩阵\ndef I() -> Mat:\n    m = Mat()\n    for i in range(L):\n        m.a[i][i] = 1\n    return m\n\n# 矩阵快速幂\ndef quickmul(x: Mat, y: int) -> Mat:\n    ans = I()\n    cur = x\n    while y:\n        if y & 1:\n            ans = ans * cur\n        cur = cur * cur\n        y >>= 1\n    return ans\n\n\nclass Solution:\n    def lengthAfterTransformations(self, s: str, t: int, nums: List[int]) -> int:\n        T = Mat()\n        for i in range(26):\n            for j in range(1, nums[i] + 1):\n                T.a[(i + j) % 26][i] = 1\n\n        res = quickmul(T, t)\n\n        f = [0] * 26\n        for ch in s:\n            f[ord(ch) - ord(\"a\")] += 1\n\n        ans = 0\n        for i in range(26):\n            for j in range(26):\n                ans = (ans + res.a[i][j] * f[j]) % MOD\n\n        return ans\n```\n\n```Java [sol1-Java]\nclass Solution {\n    private static final int MOD = (int)1e9 + 7;\n    private static final int L = 26;\n\n    private static class Mat {\n        int[][] a = new int[L][L];\n\n        Mat() {}\n\n        Mat(Mat copyFrom) {\n            for (int i = 0; i < L; i++) {\n                System.arraycopy(copyFrom.a[i], 0, this.a[i], 0, L);\n            }\n        }\n\n        Mat mul(Mat other) {\n            Mat result = new Mat();\n            for (int i = 0; i < L; i++) {\n                for (int j = 0; j < L; j++) {\n                    for (int k = 0; k < L; k++) {\n                        result.a[i][j] = (int)((result.a[i][j] + (long)this.a[i][k] * other.a[k][j]) % MOD);\n                    }\n                }\n            }\n            return result;\n        }\n    }\n    /* 单位矩阵 */\n    private Mat I() {\n        Mat m = new Mat();\n        for (int i = 0; i < L; i++) {\n            m.a[i][i] = 1;\n        }\n        return m;\n    }\n    /* 矩阵快速幂 */\n    private Mat quickmul(Mat x, int y) {\n        Mat ans = I();\n        Mat cur = new Mat(x);\n        while (y > 0) {\n            if ((y & 1) == 1) {\n                ans = ans.mul(cur);\n            }\n            cur = cur.mul(cur);\n            y >>= 1;\n        }\n        return ans;\n    }\n\n    public int lengthAfterTransformations(String s, int t, List<Integer> nums) {\n        Mat T = new Mat();\n        for (int i = 0; i < L; i++) {\n            for (int j = 1; j <= nums.get(i); j++) {\n                T.a[(i + j) % L][i] = 1;\n            }\n        }\n\n        Mat res = quickmul(T, t);\n        int[] f = new int[L];\n        for (char ch : s.toCharArray()) {\n            f[ch - 'a']++;\n        }\n        int ans = 0;\n        for (int i = 0; i < L; i++) {\n            for (int j = 0; j < L; j++) {\n                ans = (int)((ans + (long)res.a[i][j] * f[j]) % MOD);\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    private const int MOD = (int)1e9 + 7;\n    private const int L = 26;\n\n    private class Mat {\n        public int[,] a = new int[L, L];\n\n        public Mat() {}\n\n        public Mat(Mat copyFrom) {\n            for (int i = 0; i < L; i++) {\n                for (int j = 0; j < L; j++) {\n                    this.a[i, j] = copyFrom.a[i, j];\n                }\n            }\n        }\n\n        public Mat Mul(Mat other) {\n            Mat result = new Mat();\n            for (int i = 0; i < L; i++) {\n                for (int j = 0; j < L; j++) {\n                    for (int k = 0; k < L; k++) {\n                        result.a[i, j] = (int)((result.a[i, j] + (long)this.a[i, k] * other.a[k, j]) % MOD);\n                    }\n                }\n            }\n            return result;\n        }\n    }\n    /* 单位矩阵 */\n    private Mat I() {\n        Mat m = new Mat();\n        for (int i = 0; i < L; i++) {\n            m.a[i, i] = 1;\n        }\n        return m;\n    }\n    /* 矩阵快速幂 */\n    private Mat QuickMul(Mat x, int y) {\n        Mat ans = I();\n        Mat cur = new Mat(x);\n        while (y > 0) {\n            if ((y & 1) == 1) {\n                ans = ans.Mul(cur);\n            }\n            cur = cur.Mul(cur);\n            y >>= 1;\n        }\n        return ans;\n    }\n\n    public int LengthAfterTransformations(string s, int t, IList<int> nums) {\n        Mat T = new Mat();\n        for (int i = 0; i < L; i++) {\n            for (int j = 1; j <= nums[i]; j++) {\n                T.a[(i + j) % L, i] = 1;\n            }\n        }\n\n        Mat res = QuickMul(T, t);\n        int[] f = new int[L];\n        foreach (char ch in s) {\n            f[ch - 'a']++;\n        }\n\n        int ans = 0;\n        for (int i = 0; i < L; i++) {\n            for (int j = 0; j < L; j++) {\n                ans = (int)((ans + (long)res.a[i, j] * f[j]) % MOD);\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```Go [sol1-Go]\nconst MOD = 1e9 + 7\nconst L = 26\n\nfunc lengthAfterTransformations(s string, t int, nums []int) int {\n    T := NewMat()\n    for i := 0; i < L; i++ {\n        for j := 1; j <= nums[i]; j++ {\n            T.a[(i + j) % L][i] = 1\n        }\n    }\n\n    res := quickMul(T, t)\n    f := make([]int, L)\n    for _, ch := range s {\n        f[ch - 'a']++\n    }\n\n    ans := 0\n    for i := 0; i < L; i++ {\n        for j := 0; j < L; j++ {\n            ans = (ans + res.a[i][j] * f[j]) % MOD\n        }\n    }\n    return ans\n}\n\ntype Mat struct {\n    a [L][L]int\n}\n\nfunc NewMat() *Mat {\n    return &Mat{}\n}\n\nfunc NewMatCopy(from *Mat) *Mat {\n    m := &Mat{}\n    for i := 0; i < L; i++ {\n        for j := 0; j < L; j++ {\n            m.a[i][j] = from.a[i][j]\n        }\n    }\n    return m\n}\n\nfunc (m *Mat) Mul(other *Mat) *Mat {\n    result := NewMat()\n    for i := 0; i < L; i++ {\n        for j := 0; j < L; j++ {\n            for k := 0; k < L; k++ {\n                result.a[i][j] = (result.a[i][j] + m.a[i][k] * other.a[k][j]) % MOD\n            }\n        }\n    }\n    return result\n}\n\n/* 单位矩阵 */\nfunc I() *Mat {\n    m := NewMat()\n    for i := 0; i < L; i++ {\n        m.a[i][i] = 1\n    }\n    return m\n}\n\n/* 矩阵快速幂 */\nfunc quickMul(x *Mat, y int) *Mat {\n    ans := I()\n    cur := NewMatCopy(x)\n    for y > 0 {\n        if y&1 == 1 {\n            ans = ans.Mul(cur)\n        }\n        cur = cur.Mul(cur)\n        y >>= 1\n    }\n    return ans\n}\n```\n\n```C [sol1-C]\n#define MOD 1000000007\n#define L 26\n\ntypedef struct {\n    int a[L][L];\n} Mat;\n\n/* 单位矩阵 */\nMat I() {\n    Mat m;\n    memset(&m, 0, sizeof(m));\n    for (int i = 0; i < L; i++) {\n        m.a[i][i] = 1;\n    }\n    return m;\n}\n\nMat mul(Mat x, Mat y) {\n    Mat res;\n    memset(&res, 0, sizeof(res));\n    for (int i = 0; i < L; i++) {\n        for (int j = 0; j < L; j++) {\n            for (int k = 0; k < L; k++) {\n                res.a[i][j] = (res.a[i][j] + (long long)x.a[i][k] * y.a[k][j]) % MOD;\n            }\n        }\n    }\n    return res;\n}\n\n/* 矩阵快速幂 */\nMat quickmul(Mat x, int y) {\n    Mat ans = I();\n    Mat cur = x;\n    while (y > 0) {\n        if (y & 1) {\n            ans = mul(ans, cur);\n        }\n        cur = mul(cur, cur);\n        y >>= 1;\n    }\n    return ans;\n}\n\nint lengthAfterTransformations(char* s, int t, int* nums, int numsSize) {\n    Mat T;\n    memset(&T, 0, sizeof(T));\n    for (int i = 0; i < L; i++) {\n        for (int j = 1; j <= nums[i]; j++) {\n            T.a[(i + j) % L][i] = 1;\n        }\n    }\n\n    Mat res = quickmul(T, t);\n\n    int f[L] = {0};\n    for (char* p = s; *p; p++) {\n        f[*p - 'a']++;\n    }\n\n    int ans = 0;\n    for (int i = 0; i < L; i++) {\n        for (int j = 0; j < L; j++) {\n            ans = (ans + (long long)res.a[i][j] * f[j]) % MOD;\n        }\n    }\n    return ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nclass Mat {\n    constructor(copyFrom = null) {\n        this.a = Array.from({length: 26}, () => new Array(26).fill(0n));\n        if (copyFrom) {\n            for (let i = 0; i < 26; i++) {\n                for (let j = 0; j < 26; j++) {\n                    this.a[i][j] = copyFrom.a[i][j];\n                }\n            }\n        }\n    }\n\n    mul(other) {\n        const MOD = BigInt(1e9 + 7);\n        const result = new Mat();\n        for (let i = 0; i < 26; i++) {\n            for (let j = 0; j < 26; j++) {\n                for (let k = 0; k < 26; k++) {\n                    result.a[i][j] = (result.a[i][j] + this.a[i][k] * other.a[k][j]) % MOD;\n                }\n            }\n        }\n        return result;\n    }\n}\n\n/* 单位矩阵 */\nfunction I() {\n    const m = new Mat();\n    for (let i = 0; i < 26; i++) {\n        m.a[i][i] = 1n;\n    }\n    return m;\n}\n\n/* 矩阵快速幂 */\nfunction quickmul(x, y) {\n    let ans = I();\n    let cur = new Mat(x);\n    while (y > 0n) {\n        if (y & 1n != 0n) {\n            ans = ans.mul(cur);\n        }\n        cur = cur.mul(cur);\n        y >>= 1;\n    }\n    return ans;\n}\n\nvar lengthAfterTransformations = function(s, t, nums) {\n    const MOD = BigInt(1e9 + 7);\n    const T = new Mat();\n    for (let i = 0; i < 26; i++) {\n        for (let j = 1; j <= nums[i]; j++) {\n            T.a[(i + j) % 26][i] = 1n;\n        }\n    }\n\n    const res = quickmul(T, t);\n    const f = new Array(26).fill(0n);\n    for (const ch of s) {\n        f[ch.charCodeAt(0) - 'a'.charCodeAt(0)]++;\n    }\n\n    let ans = 0n;\n    for (let i = 0; i < 26; i++) {\n        for (let j = 0; j < 26; j++) {\n            ans = (ans + res.a[i][j] * f[j]) % MOD;\n        }\n    }\n    return Number(ans);\n};\n```\n\n```TypeScript [sol1-TypeScript]\nconst MOD = BigInt(1e9 + 7);\nconst L = 26;\n\nclass Mat {\n    a: bigint[][];\n\n    constructor(copyFrom: Mat | null = null) {\n        this.a = Array.from({length: L}, () => new Array(L).fill(0n));\n        if (copyFrom) {\n            for (let i = 0; i < L; i++) {\n                for (let j = 0; j < L; j++) {\n                    this.a[i][j] = copyFrom.a[i][j];\n                }\n            }\n        }\n    }\n\n    mul(other: Mat): Mat {\n        const result = new Mat();\n        for (let i = 0; i < L; i++) {\n            for (let j = 0; j < L; j++) {\n                for (let k = 0; k < L; k++) {\n                    result.a[i][j] = (result.a[i][j] + this.a[i][k] * other.a[k][j]) % MOD;\n                }\n            }\n        }\n        return result;\n    }\n}\n\n/* 单位矩阵 */\nfunction I(): Mat {\n    const m = new Mat();\n    for (let i = 0; i < L; i++) {\n        m.a[i][i] = 1n;\n    }\n    return m;\n}\n\n/* 矩阵快速幂 */\nfunction quickMul(x: Mat, y: number): Mat {\n    let ans = I();\n    let cur = new Mat(x);\n    while (y > 0) {\n        if (y & 1) {\n            ans = ans.mul(cur);\n        }\n        cur = cur.mul(cur);\n        y >>= 1;\n    }\n    return ans;\n}\n\nfunction lengthAfterTransformations(s: string, t: number, nums: number[]): number {\n    const T = new Mat();\n    for (let i = 0; i < L; i++) {\n        for (let j = 1; j <= nums[i]; j++) {\n            T.a[(i + j) % L][i] = 1n;\n        }\n    }\n\n    const res = quickMul(T, t);\n    const f = new Array(L).fill(0n);\n    for (const ch of s) {\n        f[ch.charCodeAt(0) - 'a'.charCodeAt(0)] += 1n;\n    }\n\n    let ans = 0n;\n    for (let i = 0; i < L; i++) {\n        for (let j = 0; j < L; j++) {\n            ans = (ans + res.a[i][j] * f[j]) % MOD;\n        }\n    }\n    return Number(ans);\n};\n```\n\n```Rust [sol1-Rust]\nconst MOD: i64 = 1_000_000_007;\nconst L: usize = 26;\n\nstruct Mat {\n    a: [[i64; L]; L],\n}\n\nimpl Mat {\n    fn new() -> Self {\n        Mat { a: [[0; L]; L] }\n    }\n\n    fn copy_from(&mut self, other: &Mat) {\n        for i in 0..L {\n            for j in 0..L {\n                self.a[i][j] = other.a[i][j];\n            }\n        }\n    }\n\n    fn mul(&self, other: &Mat) -> Mat {\n        let mut result = Mat::new();\n        for i in 0..L {\n            for j in 0..L {\n                for k in 0..L {\n                    result.a[i][j] = (result.a[i][j] + self.a[i][k] * other.a[k][j]) % MOD;\n                }\n            }\n        }\n        result\n    }\n}\n\n/* 单位矩阵 */\nfn I() -> Mat {\n    let mut m = Mat::new();\n    for i in 0..L {\n        m.a[i][i] = 1;\n    }\n    m\n}\n\n/* 矩阵快速幂 */\nfn quickmul(x: &Mat, mut y: i32) -> Mat {\n    let mut ans = I();\n    let mut cur = Mat::new();\n    cur.copy_from(x);\n    while y > 0 {\n        if y & 1 == 1 {\n            ans = ans.mul(&cur);\n        }\n        cur = cur.mul(&cur);\n        y >>= 1;\n    }\n    ans\n}\n\nimpl Solution {\n    pub fn length_after_transformations(s: String, t: i32, nums: Vec<i32>) -> i32 {\n        let mut T = Mat::new();\n        for i in 0..L {\n            for j in 1..=nums[i] as usize {\n                T.a[(i + j) % L][i] = 1;\n            }\n        }\n\n        let res = quickmul(&T, t);\n        let mut f = [0; L];\n        for ch in s.chars() {\n            f[(ch as u8 - b'a') as usize] += 1;\n        }\n        let mut ans: i64 = 0;\n        for i in 0..L {\n            for j in 0..L {\n                ans = (ans + res.a[i][j] * f[j]) % MOD;\n            }\n        }\n        ans as i32\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n + \\log t \\times|\\Sigma|^3)$，其中 $n$ 是字符串 $s$ 的长度，$|\\Sigma|$ 是字符集大小，在本题中 $|\\Sigma| = 26$。\n\n- 空间复杂度：$O(|\\Sigma|^2)$。",
+            "slateValue": "",
+            "slug": "zi-fu-chuan-zhuan-huan-hou-de-chang-du-i-ytl5",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "jPX22G",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 11,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Matrix",
+                    "nameTranslated": "矩阵",
+                    "slug": "matrix",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2025-05-12T02:34:42.289389+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：矩阵乘法 + 快速幂 思路与算法 我们用 [latex] 表示在进行了 [latex] 次转换后，字符串中包含字符 [latex] 的数量。为了叙述方便，这里 [latex] 的取值范围是 [latex]，依次对应从 [latex] 到 [latex] 的 [latex] 个字符。 初始时，所有的 [latex",
+            "topic": {
+                "id": 3674707,
+                "subscribed": false,
+                "commentCount": 17,
+                "viewCount": 83,
+                "post": {
+                    "id": 6709022,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 35,
+            "isEditorsPick": false,
+            "hitCount": 7873,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "total-characters-in-string-after-transformations-ii",
+                "questionFrontendId": "3337"
+            },
+            "next": {
+                "slug": "ju-zhen-kuai-su-mi-you-hua-dppythonjavac-cd2j",
+                "title": "两种方法：矩阵快速幂优化 DP / BM+Kitamasa（Python/NumPy/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

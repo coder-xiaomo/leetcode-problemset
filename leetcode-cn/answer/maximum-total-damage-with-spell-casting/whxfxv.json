@@ -1,0 +1,168 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "whxfxv",
+            "title": "施咒的最大总伤害",
+            "content": "#### 方法一：动态规划\n\n**思路与算法**\n\n在选择一种咒语后，就不能使用伤害绝对值相差 1 或 2 的咒语。由于答案只与所选的咒语集合相关，而与顺序无关，我们可以按从小到大的顺序进行选择，并将相同伤害的法术看成同一种。\n\n设伤害值为 $\\textit{power}_i$ 的咒语数量为 $\\textit{count}_i$。令 $f(i)$ 表示从第 $0$ 到 $i$ 种咒语中选择，并且最后选择第 $i$ 种咒语的最大总伤害，则有：\n\n$$\nf(i)=\\max \\limits _{\\textit{power}_j<\\textit{power}_i-2}f(j)+\\textit{power}_i \\times \\textit{count}_i\n$$\n\n由于我们按伤害递增顺序遍历咒语，可以在遍历的过程中使用一个单调指针维护 $\\max \\limits _{\\textit{power}_j<\\textit{power}_i-2}f(j)$，即用于转移的最大值。最后答案为 $f(i)$ 中的最大值。\n\n**实现**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    long long maximumTotalDamage(vector<int>& power) {\n        map<int, int> count;\n        for (int p : power){\n            count[p]++;\n        }\n        vector<pair<int, int>> vec={{-1e9,0}};\n        for (auto& p : count){\n            vec.push_back(p);\n        }\n        int n = vec.size();\n        vector<long long> f(n, 0);\n        long long mx = 0;\n        for (int i = 1, j = 1; i < n; i++) {\n            while (j < i && vec[j].first < vec[i].first - 2) {\n                mx = max(mx, f[j]);\n                j++;\n            }\n            f[i] = mx + 1LL * vec[i].first * vec[i].second;\n        }\n        long long ans = 0;\n        for (int i = 1; i < n; i++){\n            ans = max(ans, f[i]);\n        }\n        return ans;\n    }\n};\n```\n\n```Python3 [sol1-Python3]\nclass Solution:\n    def maximumTotalDamage(self, power):\n        count = Counter(power)\n        vec = [(-10**9, 0)]\n        for k in sorted(count.keys()):\n            vec.append((k, count[k]))\n        n = len(vec)\n        f = [0] * n\n        mx = 0\n        j = 1\n        for i in range(1, n):\n            while j < i and vec[j][0] < vec[i][0] - 2:\n                mx = max(mx, f[j])\n                j += 1\n            f[i] = mx + vec[i][0] * vec[i][1]\n        return max(f)\n\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public long maximumTotalDamage(int[] power) {\n        TreeMap<Integer,Integer> count = new TreeMap<>();\n        for (int p : power) {\n            count.put(p, count.getOrDefault(p, 0) + 1);\n        }\n        List<int[]> vec = new ArrayList<>();\n        vec.add(new int[]{-1000000000,0});\n        for (Map.Entry<Integer,Integer> e : count.entrySet()) {\n            vec.add(new int[]{e.getKey(), e.getValue()});\n        }\n        int n = vec.size();\n        long[] f = new long[n];\n        long mx = 0, ans = 0;\n        int j = 1;\n        for (int i = 1; i < n; i++) {\n            while (j < i && vec.get(j)[0] < vec.get(i)[0] - 2) {\n                mx = Math.max(mx, f[j]);\n                j++;\n            }\n            f[i] = mx + 1L * vec.get(i)[0] * vec.get(i)[1];\n            ans = Math.max(ans, f[i]);\n        }\n        return ans;\n    }\n}\n```\n\n```C [sol1-C]\nint cmp(const void* a, const void* b) {\n    int x = *(const int*)a;\n    int y = *(const int*)b;\n    return (x > y) - (x < y);\n}\n\nlong long maximumTotalDamage(int* power, int powerSize) {\n    int* keys = (int*)malloc(sizeof(int) * powerSize);\n    int* vals = (int*)malloc(sizeof(int) * powerSize);\n    int m = 0;\n\n    qsort(power, powerSize, sizeof(int), cmp);\n\n    for (int i = 0; i < powerSize; i++) {\n        if (m == 0 || power[i] != keys[m - 1]) {\n            keys[m] = power[i];\n            vals[m] = 1;\n            m++;\n        } else {\n            vals[m - 1]++;\n        }\n    }\n\n    int* vk = (int*)malloc(sizeof(int) * (m + 1));\n    int* vv = (int*)malloc(sizeof(int) * (m + 1));\n    vk[0] = -1000000000;\n    vv[0] = 0;\n    for (int i = 0; i < m; i++) {\n        vk[i + 1] = keys[i];\n        vv[i + 1] = vals[i];\n    }\n    int n = m + 1;\n\n    long long* f = (long long*)calloc(n, sizeof(long long));\n    long long mx = 0, ans = 0;\n    int j = 1;\n    for (int i = 1; i < n; i++) {\n        while (j < i && vk[j] < vk[i] - 2) {\n            if (f[j] > mx){\n                mx = f[j];\n            }\n            j++;\n        }\n        f[i] = mx + 1LL * vk[i] * vv[i];\n        if (f[i] > ans){\n            ans = f[i];\n        }\n    }\n\n    free(keys);\n    free(vals);\n    free(vk);\n    free(vv);\n    free(f);\n    return ans;\n}\n```\n\n```Go [sol1-Go]\nfunc maximumTotalDamage(power []int) int64 {\n    count := map[int]int{}\n\tfor _, p := range power {\n\t\tcount[p]++\n\t}\n\tkeys := make([]int, 0, len(count))\n\tfor k := range count {\n\t\tkeys = append(keys, k)\n\t}\n\tsort.Ints(keys)\n\tvec := [][2]int{{-1000000000, 0}}\n\tfor _, k := range keys {\n\t\tvec = append(vec, [2]int{k, count[k]})\n\t}\n\tn := len(vec)\n\tf := make([]int64, n)\n\tvar mx int64\n\tvar ans int64\n\tj := 1\n\tfor i := 1; i < n; i++ {\n\t\tfor j < i && vec[j][0] < vec[i][0]-2 {\n\t\t\tif f[j] > mx {\n\t\t\t\tmx = f[j]\n\t\t\t}\n\t\t\tj++\n\t\t}\n\t\tf[i] = mx + int64(vec[i][0])*int64(vec[i][1])\n\t\tif f[i] > ans {\n\t\t\tans = f[i]\n\t\t}\n\t}\n\treturn ans\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public long MaximumTotalDamage(int[] power) {\n        var count = new SortedDictionary<int,int>();\n        foreach (var p in power) {\n            if (!count.ContainsKey(p)) {\n                count[p]=0;\n            }\n            count[p]++;\n        }\n        var vec = new List<(int,int)>();\n        vec.Add((-1000000000,0));\n        foreach (var kv in count) {\n            vec.Add((kv.Key, kv.Value));\n        }\n        int n = vec.Count;\n        long[] f = new long[n];\n        long mx=0, ans=0;\n        int j=1;\n        for (int i=1;i<n;i++) {\n            while (j<i && vec[j].Item1<vec[i].Item1-2) {\n                mx=Math.Max(mx,f[j]);\n                j++;\n            }\n            f[i]=mx+(long)vec[i].Item1*vec[i].Item2;\n            ans=Math.Max(ans,f[i]);\n        }\n        return ans;\n    }\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar maximumTotalDamage = function (power) {\n    let count = new Map();\n    for (let p of power) {\n        count.set(p, (count.get(p) || 0) + 1);\n    }\n    let vec = [[-1000000000, 0]];\n    let keys = Array.from(count.keys()).sort((a, b) => a - b);\n    for (let k of keys) {\n        vec.push([k, count.get(k)]);\n    }\n    let n = vec.length;\n    let f = Array(n).fill(0);\n    let mx = 0, ans = 0, j = 1;\n    for (let i = 1; i < n; i++) {\n        while (j < i && vec[j][0] < vec[i][0] - 2) {\n            mx = Math.max(mx, f[j]);\n            j++;\n        }\n        f[i] = mx + vec[i][0] * vec[i][1];\n        ans = Math.max(ans, f[i]);\n    }\n    return ans;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction maximumTotalDamage(power: number[]): number {\n    let count = new Map<number, number>();\n    for (let p of power) {\n        count.set(p, (count.get(p) || 0) + 1);\n    }\n    let vec: [number, number][] = [[-1000000000, 0]];\n    let keys = Array.from(count.keys()).sort((a, b) => a - b);\n    for (let k of keys) {\n        vec.push([k, count.get(k)!]);\n    }\n    let n = vec.length;\n    let f = new Array<number>(n).fill(0);\n    let mx = 0, ans = 0, j = 1;\n    for (let i = 1; i < n; i++) {\n        while (j < i && vec[j][0] < vec[i][0] - 2) {\n            mx = Math.max(mx, f[j]);\n            j++;\n        }\n        f[i] = mx + vec[i][0] * vec[i][1];\n        ans = Math.max(ans, f[i]);\n    }\n    return ans;\n};\n```\n\n```Rust [sol1-Rust]\nuse std::collections::BTreeMap;\nimpl Solution {\n    pub fn maximum_total_damage(power: Vec<i32>) -> i64 {\n        let mut count = BTreeMap::new();\n        for p in power {\n            *count.entry(p).or_insert(0)+=1;\n        }\n        let mut vec = vec![(-1_000_000_000i32,0i32)];\n        for (k,v) in count {\n            vec.push((k,v));\n        }\n        let n=vec.len();\n        let mut f=vec![0i64;n];\n        let mut mx=0i64;\n        let mut ans=0i64;\n        let mut j=1usize;\n        for i in 1..n {\n            while j<i && vec[j].0<vec[i].0-2 {\n                if f[j]>mx {\n                    mx=f[j];\n                }\n                j+=1;\n            }\n            f[i]=mx+vec[i].0 as i64 * vec[i].1 as i64;\n            if f[i]>ans {\n                ans=f[i];\n            }\n        }\n        ans\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log n)$，其中 $n$ 是数组 $\\textit{power}$ 的长度。排序需要 $O(n \\log n)$，动态规划需要 $O(n)$。\n- 空间复杂度：$O(n)$。哈希表和动态规划所需的数组都需要 $O(n)$。\n\n---",
+            "slateValue": "",
+            "slug": "shi-zhou-de-zui-da-zong-shang-hai-by-lee-e2kq",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "whxfxv",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 6,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Two Pointers",
+                    "nameTranslated": "双指针",
+                    "slug": "two-pointers",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Counting",
+                    "nameTranslated": "计数",
+                    "slug": "counting",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Sorting",
+                    "nameTranslated": "排序",
+                    "slug": "sorting",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2025-10-09T03:35:22.115820+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 思路与算法 在选择一种咒语后，就不能使用伤害绝对值相差 1 或 2 的咒语。由于答案只与所选的咒语集合相关，而与顺序无关，我们可以按从小到大的顺序进行选择，并将相同伤害的法术看成同一种。 设伤害值为 [latex] 的咒语数量为 [latex]。令 [latex] 表示从第 [latex] 到 [la",
+            "topic": {
+                "id": 3801010,
+                "subscribed": false,
+                "commentCount": 21,
+                "viewCount": 50,
+                "post": {
+                    "id": 6939884,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 26,
+            "isEditorsPick": false,
+            "hitCount": 10010,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "maximum-total-damage-with-spell-casting",
+                "questionFrontendId": "3186"
+            },
+            "next": {
+                "slug": "tao-lu-da-jia-jie-she-pythonjavacgo-by-e-p9b5",
+                "title": "【套路】值域打家劫舍（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

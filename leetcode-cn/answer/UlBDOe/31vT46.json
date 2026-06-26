@@ -1,0 +1,122 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "31vT46",
+            "title": "秋叶收藏集",
+            "content": "#### 方法一：动态规划\n\n**思路与算法**\n\n由于我们想要将收藏集中树叶的排列调整成「红、黄、红」三部分，因此我们可以用 $3$ 个状态分别表示其中的每一部分，即状态 $0$ 和状态 $2$ 分别表示前面和后面的红色部分，状态 $1$ 表示黄色部分。\n\n此时，我们就可以尝试使用动态规划解决本题了。我们用 $f[i][j]$ 表示对于第 $0$ 片到第 $i$ 片叶子（记为 $\\textit{leaves}[0..i]$）进行调整操作，并且**第 $i$ 片叶子处于状态 $j$** 时的最小操作次数。在推导状态转移方程时，我们可以分别对于每一种状态进行分析。\n\n- 当 $j=0$ 时，我们需要将第 $i$ 片叶子变成红色，并且第 $i-1$ 片叶子也只能处于 $j=0$ 的状态（因为没有编号更小的状态了），因此有状态转移方程：\n\n    $$\n    f[i][0] = f[i-1][0] + \\text{isYellow}(i)\n    $$\n\n    其中 $\\text{isYellow}(i)$ 为示性函数，当第 $i$ 片叶子为黄色时为 $1$，红色时为 $0$。\n\n- 当 $j=1$ 时，我们需要将第 $i$ 片叶子变成黄色，而第 $i-1$ 片叶子既可以处于 $j=1$ 的状态，也可以处于 $j=0$ 的状态，我们选择其中的较小值，因此有状态转移方程：\n\n    $$\n    f[i][1] = \\min \\{ f[i-1][0], f[i-1][1] \\} + \\text{isRed}(i)\n    $$\n\n    其中 $\\text{isRed}(i)$ 为示性函数，当第 $i$ 片叶子为红色时为 $1$，黄色时为 $0$。\n\n- 当 $j=2$ 时，我们需要将第 $i$ 片叶子变成红色，而第 $i-1$ 片叶子即可以处于 $j=2$ 的状态，也可以处于 $j=1$ 的状态（**注意这里不能处于 $j=0$ 的状态，因为每一种状态包含的叶子数量必须至少为 $1$**），我们选择其中的较小值，因此有状态转移方程：\n\n    $$\n    f[i][2] = \\min \\{ f[i-1][1], f[i-1][2] \\} + \\text{isYellow}(i)\n    $$\n\n最终的答案即为 $f[n-1][2]$，其中 $n$ 是字符串 $\\textit{leaves}$ 的长度，也就是树叶的总数。\n\n**细节**\n\n由于 **因为每一种状态包含的叶子数量必须至少为 $1$**，因此不仅需要特别注意 $j=2$ 时的状态转移方程，还需要考虑每个状态本身是否是符合要求的。对于状态 $f[i][j]$ 而言，它包含了 $\\textit{leaves}[0..i]$ 共 $i+1$ 片叶子以及 $j+1$ 个状态，因此 **叶子的数量必须大于等于状态的数量**，即满足 $i \\geq j$。这样一来，所有 $i < j$ 的状态 $f[i][j]$ 都是不符合要求的。观察上面的状态转移方程，我们在每一步转移时都是取最小值，因此我们可以将所有不符合要求的状态置为一个极大值（例如 $n+1$ 或整数类型的上限等）。\n\n同时需要注意的是，当 $i=0$ 时，$f[i][..]$ 会从 $f[i-1][..]$ 转移而来，但后者是没有意义的，因此我们需要对 $f[i][..]$ 进行特殊处理。由于当 $i=0$ 时，$j$ 也只能为 $0$，因此我们有：\n\n$$\nf[0][0] = \\text{isYellow}(0)\n$$\n\n作为唯一的边界条件。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int minimumOperations(string leaves) {\n        int n = leaves.size();\n        vector<vector<int>> f(n, vector<int>(3));\n        f[0][0] = (leaves[0] == 'y');\n        f[0][1] = f[0][2] = f[1][2] = INT_MAX;\n        for (int i = 1; i < n; ++i) {\n            int isRed = (leaves[i] == 'r');\n            int isYellow = (leaves[i] == 'y');\n            f[i][0] = f[i - 1][0] + isYellow;\n            f[i][1] = min(f[i - 1][0], f[i - 1][1]) + isRed;\n            if (i >= 2) {\n                f[i][2] = min(f[i - 1][1], f[i - 1][2]) + isYellow;\n            }\n        }\n        return f[n - 1][2];\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int minimumOperations(String leaves) {\n        int n = leaves.length();\n        int[][] f = new int[n][3];\n        f[0][0] = leaves.charAt(0) == 'y' ? 1 : 0;\n        f[0][1] = f[0][2] = f[1][2] = Integer.MAX_VALUE;\n        for (int i = 1; i < n; ++i) {\n            int isRed = leaves.charAt(i) == 'r' ? 1 : 0;\n            int isYellow = leaves.charAt(i) == 'y' ? 1 : 0;\n            f[i][0] = f[i - 1][0] + isYellow;\n            f[i][1] = Math.min(f[i - 1][0], f[i - 1][1]) + isRed;\n            if (i >= 2) {\n                f[i][2] = Math.min(f[i - 1][1], f[i - 1][2]) + isYellow;\n            }\n        }\n        return f[n - 1][2];\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def minimumOperations(self, leaves: str) -> int:\n        n = len(leaves)\n        f = [[0, 0, 0] for _ in range(n)]\n        f[0][0] = int(leaves[0] == \"y\")\n        f[0][1] = f[0][2] = f[1][2] = float(\"inf\")\n\n        for i in range(1, n):\n            isRed = int(leaves[i] == \"r\")\n            isYellow = int(leaves[i] == \"y\")\n            f[i][0] = f[i - 1][0] + isYellow\n            f[i][1] = min(f[i - 1][0], f[i - 1][1]) + isRed\n            if i >= 2:\n                f[i][2] = min(f[i - 1][1], f[i - 1][2]) + isYellow\n        \n        return f[n - 1][2]\n```\n\n```Golang [sol1-Golang]\nconst inf = math.MaxInt32 // 或 math.MaxInt64\n\nfunc minimumOperations(leaves string) int {\n    n := len(leaves)\n    f := make([][3]int, n)\n    f[0][0] = boolToInt(leaves[0] == 'y')\n    f[0][1] = inf\n    f[0][2] = inf\n    f[1][2] = inf\n    for i := 1; i < n; i++ {\n        isRed := boolToInt(leaves[i] == 'r')\n        isYellow := boolToInt(leaves[i] == 'y')\n        f[i][0] = f[i-1][0] + isYellow\n        f[i][1] = min(f[i-1][0], f[i-1][1]) + isRed\n        if i >= 2 {\n            f[i][2] = min(f[i-1][1], f[i-1][2]) + isYellow\n        }\n    }\n    return f[n-1][2]\n}\n\nfunc boolToInt(b bool) int {\n    if b {\n        return 1\n    }\n    return 0\n}\n\nfunc min(a, b int) int {\n    if a < b {\n        return a\n    }\n    return b\n}\n```\n\n```C [sol1-C]\nint minimumOperations(char* leaves) {\n    int n = strlen(leaves);\n    int f[n][3];\n    f[0][0] = (leaves[0] == 'y');\n    f[0][1] = f[0][2] = f[1][2] = INT_MAX;\n    for (int i = 1; i < n; ++i) {\n        int isRed = (leaves[i] == 'r');\n        int isYellow = (leaves[i] == 'y');\n        f[i][0] = f[i - 1][0] + isYellow;\n        f[i][1] = fmin(f[i - 1][0], f[i - 1][1]) + isRed;\n        if (i >= 2) {\n            f[i][2] = fmin(f[i - 1][1], f[i - 1][2]) + isYellow;\n        }\n    }\n    return f[n - 1][2];\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是字符串 $\\textit{leaves}$ 的长度。\n\n- 空间复杂度：$O(n)$。\n  \n  - 可以使用「降维」优化，用三个变量代替状态数组，即可将空间复杂度降低到 $O(1)$。具体操作留给读者自行实现。\n\n#### 方法二：前缀和 + 动态规划\n\n**思路与算法**\n\n我们也可以尝试从整体的角度考虑这个问题。\n\n假设我们希望将 $\\textit{leaves}[0..x]$，$\\textit{leaves}[x+1..y]$ 以及 $\\textit{leaves}[y+1..n-1]$ 分别作为每一部分，那么需要的操作次数为：\n\n$$\n\\sum_{i=0}^x \\text{isYellow}(i) + \\sum_{i=x+1}^y \\text{isRed}(i) + \\sum_{i=y+1}^{n-1} \\text{isYellow}(i) \n$$\n\n如果我们枚举 $x$ 和 $y$，并且使用前缀和的思路快速计算出上面的三项累加和，那么时间复杂度为 $O(n^2)$，无法通过本题。因此我们可以考虑枚举一个位置（例如 $y$）并找出可以使得上述累加和达到最小值的 $x$。\n\n我们用 $\\textit{pre}_R$ 表示 $\\text{isRed}$ 的前缀和，$\\textit{pre}_Y$ 表示 $\\text{isYellow}$ 的前缀和。当我们枚举 $y$ 时，分别考虑这三项累加和：\n\n- 第一项即为 $\\textit{pre}_Y(x)$；\n\n- 第二项可以进行拆分，即为 $\\textit{pre}_R(y) - \\textit{pre}_R(x)$；\n\n- 第三项也可以进行拆分，即为 $\\textit{pre}_Y(n-1) - \\textit{pre}_Y(y)$。\n\n那么上述的累加和可以写成：\n\n$$\n\\textit{pre}_Y(n-1) + \\big( \\textit{pre}_Y(x) - \\textit{pre}_R(x) \\big) - \\big( \\textit{pre}_Y(y) - \\textit{pre}_R(y) \\big)\n$$\n\n其中 $\\textit{pre}_Y(n-1)$ 是定值，$\\textit{pre}_Y(x) - \\textit{pre}_R(x)$ 与 $y$ 无关，$\\textit{pre}_Y(y) - \\textit{pre}_R(y)$ 与 $y$ 相关。\n\n因此，当我们枚举 $y$ 时，我们只要选择最小的 $\\textit{pre}_Y(x) - \\textit{pre}_R(x)$ 即可。这个最小值可以在枚举 $y$ 的同时进行记录。\n\n**细节**\n\n上述方法只需要预处理出 $\\textit{pre}_R$ 和 $\\textit{pre}_Y$ 即可，但还有更加方便的方法。我们可以注意到：\n\n$$\n\\textit{pre}_Y(i) + \\textit{pre}_R(i) \\equiv i+1\n$$\n\n恒成立，因此有：\n\n$$\n\\begin{aligned}\n\\textit{pre}_Y(x) - \\textit{pre}_R(x) &= \\textit{pre}_Y(x) - (x+1 - \\textit{pre}_Y(x)) \\\\\n&= 2 \\cdot \\textit{pre}_Y(x) - (x+1)\n\\end{aligned}\n$$\n\n令 $g(x) = 2 \\cdot \\textit{pre}_Y(x) - (x+1)$，累加和可以继续改写成：\n\n$$\n\\textit{pre}_Y(n-1) + g(x) - g(y)\n$$\n\n并且 $g$ 有递推式：\n\n$$\n\\begin{aligned}\ng(x+1)-g(x) &= \\big( 2 \\cdot \\textit{pre}_Y(x+1) - (x+2) \\big) - \\big( 2 \\cdot \\textit{pre}_Y(x) - (x+1) \\big) \\\\\n&= 2 \\cdot \\big( \\textit{pre}_Y(x+1) - \\textit{pre}_Y(x) \\big) -1 \\\\\n&= 2 \\cdot \\text{isYellow}(x+1) - 1\n\\end{aligned}\n$$\n\n因此我们只需要在枚举 $y$ 的同时计算 $g$ 值即可，并且 $\\textit{pre}_Y(n-1)$ 这一常数项可以留在最后再累加，它就等于：\n\n$$\n\\textit{pre}_Y(n-1) = \\frac{g(n-1) + n}{2}\n$$\n\n**代码**\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    int minimumOperations(string leaves) {\n        int n = leaves.size();\n        int g = (leaves[0] == 'y' ? 1 : -1);\n        int gmin = g;\n        int ans = INT_MAX;\n        for (int i = 1; i < n; ++i) {\n            int isYellow = (leaves[i] == 'y');\n            g += 2 * isYellow - 1;\n            if (i != n - 1) {\n                ans = min(ans, gmin - g);\n            }\n            gmin = min(gmin, g);\n        }\n        return ans + (g + n) / 2;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public int minimumOperations(String leaves) {\n        int n = leaves.length();\n        int g = leaves.charAt(0) == 'y' ? 1 : -1;\n        int gmin = g;\n        int ans = Integer.MAX_VALUE;\n        for (int i = 1; i < n; ++i) {\n            int isYellow = leaves.charAt(i) == 'y' ? 1 : 0;\n            g += 2 * isYellow - 1;\n            if (i != n - 1) {\n                ans = Math.min(ans, gmin - g);\n            }\n            gmin = Math.min(gmin, g);\n        }\n        return ans + (g + n) / 2;\n    }\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def minimumOperations(self, leaves: str) -> int:\n        n = len(leaves)\n        g = (1 if leaves[0] == \"y\" else -1)\n        gmin = g\n        ans = float(\"inf\")\n\n        for i in range(1, n):\n            isYellow = int(leaves[i] == \"y\")\n            g += 2 * isYellow - 1\n            if i != n - 1:\n                ans = min(ans, gmin - g)\n            gmin = min(gmin, g)\n        \n        return ans + (g + n) // 2\n```\n\n```Golang [sol2-Golang]\nconst inf = math.MaxInt32 // 或 math.MaxInt64\n\nfunc minimumOperations(leaves string) int {\n    n := len(leaves)\n    g := -1\n    if leaves[0] == 'y' {\n        g = 1\n    }\n    gmin := g\n    ans := inf\n    for i := 1; i < n; i++ {\n        isYellow := boolToInt(leaves[i] == 'y')\n        g += 2*isYellow - 1\n        if i != n-1 {\n            ans = min(ans, gmin-g)\n        }\n        gmin = min(gmin, g)\n    }\n    return ans + (g+n)/2\n}\n\nfunc boolToInt(b bool) int {\n    if b {\n        return 1\n    }\n    return 0\n}\n\nfunc min(a, b int) int {\n    if a < b {\n        return a\n    }\n    return b\n}\n```\n\n```C [sol2-C]\nint minimumOperations(char* leaves) {\n    int n = strlen(leaves);\n    int g = (leaves[0] == 'y' ? 1 : -1);\n    int gmin = g;\n    int ans = INT_MAX;\n    for (int i = 1; i < n; ++i) {\n        int isYellow = (leaves[i] == 'y');\n        g += 2 * isYellow - 1;\n        if (i != n - 1) {\n            ans = fmin(ans, gmin - g);\n        }\n        gmin = fmin(gmin, g);\n    }\n    return ans + (g + n) / 2;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是字符串 $\\textit{leaves}$ 的长度。\n\n- 空间复杂度：$O(1)$。",
+            "slateValue": "",
+            "slug": "qiu-xie-shou-cang-ji-by-leetcode-solution",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "31vT46",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 67,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 8,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-09-30T14:58:49.990456+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 思路与算法 由于我们想要将收藏集中树叶的排列调整成「红、黄、红」三部分，因此我们可以用 $3$ 个状态分别表示其中的每一部分，即状态 $0$ 和状态 $2$ 分别表示前面和后面的红色部分，状态 $1$ 表示黄色部分。 此时，我们就可以尝试使用动态规划解决本题了。我们用 $f[i][j]$ 表示对于第 ",
+            "topic": {
+                "id": 433231,
+                "subscribed": false,
+                "commentCount": 134,
+                "viewCount": 23305,
+                "post": {
+                    "id": 1045640,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 150,
+            "isEditorsPick": false,
+            "hitCount": 40007,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "UlBDOe",
+                "questionFrontendId": "LCP 19"
+            },
+            "next": {
+                "slug": "ulbdoe-by-ikaruga",
+                "title": "【秋叶收藏集】动态规划，代码清晰"
+            },
+            "prev": null
+        }
+    }
+}

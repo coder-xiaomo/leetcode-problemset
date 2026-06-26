@@ -1,0 +1,96 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "pi5gwF",
+            "title": "按分类统计薪水",
+            "content": "[TOC]\n\n## 解决方案\n\n---\n\n### 方法：过滤行\n\n#### Pandas\n\n让我们依次统计每一类的数量，要过滤工资较低的行，可以使用 `accounts['income'] < 20000`，它会检查 DataFrame `accounts` 的 `income` 列中的每个值，以确定它是否小于 20000。\n\n```Python\naccounts['income'] < 20000\n```\n\n它通过将 `income` 列中的每个值与 20000 进行比较来创建一个 Boolean Series ，工资小于 20000 的为 `True`，其它的为 `False`。\n\n```\n0    False\n1     True\n2    False\n3    False\nName: income, dtype: bool\n```\n<br>\n\n接下来，我们可以使用 `sum()` 方法统计 `True` 值的个数，`sum()` 将 `True` 视为 1，将 `False` 视为 0。因此，count 表示该系列中 `True` 的数量，它对应于低工资的账号数量。\n\n```Python\nlow_count = (accounts['income'] < 20000).sum()\n```\n\n或者，我们可以使用这个 Boolean Series 作为索引来过滤 DataFrame `accounts`，它返回一个新的 DataFrame，它只包含 `income` 值小于 20000 的行。然后，我们可以使用 `len()` 函数来获取匹配条件的行数。\n\n```Python\nlow_count = len(accounts[accounts['income'] < 20000])\n```\n\n这两种方法都会产生相同的答案。\n\n<br>\n\n我们使用此方法确定三个类别中的每一个类别中的行数。\n\n```Python\nlow_count = (accounts['income'] < 20000).sum()\naverage_count = ((accounts['income'] >= 20000) & (accounts['income'] <= 50000)).sum()\nhigh_count = (accounts['income'] > 50000).sum()\n```\n\n<br>\n\n最后，让我们创建一个新的 DataFrame `ans` 来存储结果。预期的输出 DataFrame 有两列：`category` 和 `accounts_count`。对于 `category` 列，我们分配三个类别的名称。在 `accounts_count` 列中，我们用前面计算的相应计数填充它。\n\n```Python\nans = pd.DataFrame({\n    'category': ['Low Salary', 'Average Salary', 'High Salary'],\n    'accounts_count': [low_count, average_count, high_count]\n})\n```\n\n我们将会得到下面的 DataFrame `ans`：\n\n| category       | accounts_count |\n| -------------- | -------------- |\n| Low Salary     | 1              |\n| Average Salary | 0              |\n| High Salary    | 3              |\n\n<br>\n\n下面是完整的代码：\n\n```Python\nimport pandas as pd\n\ndef count_salary_categories(accounts: pd.DataFrame) -> pd.DataFrame:\n    low_count = (accounts['income'] < 20000).sum()\n    average_count = ((accounts['income'] >= 20000) & (accounts['income'] <= 50000)).sum()\n    high_count = (accounts['income'] > 50000).sum()\n\n    ans = pd.DataFrame({\n        'category': ['Low Salary', 'Average Salary', 'High Salary'],\n        'accounts_count': [low_count, average_count, high_count]\n    })\n\n    return ans\n```\n\n<br>\n\n#### MySQL\n\n首先，我们对 `Low Salary` 类别执行以下步骤：\n\n- 选择 `Low Salary` 作为该类别的 `category` 标签。\n- 使用 `SUM` 函数和 `CASE` 表达式来统计 `Low Salary` 类别的账号数量。\n\nSQL 中 `CASE WHEN` 语句的语法如下\n\n```sql\nCASE\n    WHEN condition1 THEN result1\n    WHEN condition2 THEN result2\n    ...\n    ELSE resultN\nEND\n```\n<br>\n\n我们将执行上面的表达式来计算 `Accounts` 表中的每一行。如果 `income` 值小于 20000，则返回 1（表示属于 `Low Salary` 类别）；否则，返回 0。然后，`SUM` 函数计算落入 `Low Salary` 类别的帐户总数。\n\n```sql\nSELECT \n    'Low Salary' AS category,\n    SUM(CASE WHEN income < 20000 THEN 1 ELSE 0 END) AS accounts_count\nFROM \n    Accounts\n```\n\n| category   | accounts_count |\n| ---------- | -------------- |\n| Low Salary | 1              |\n\n<br>\n\n接下来，我们对 `Average Salary` 和 `High Salary` 分类执行类似的步骤。\n\n```sql\nSELECT  \n    'Average Salary' category,\n    SUM(CASE WHEN income >= 20000 AND income <= 50000 THEN 1 ELSE 0 END) \n    AS accounts_count\nFROM \n    Accounts\n```\n\n| category       | accounts_count |\n| -------------- | -------------- |\n| Average Salary | 0              |\n\n<br>\n\n```sql\nSELECT \n    'High Salary' category,\n    SUM(CASE WHEN income > 50000 THEN 1 ELSE 0 END) AS accounts_count\nFROM \n    Accounts\n```\n\n| category    | accounts_count |\n| ----------- | -------------- |\n| High Salary | 3              |\n\n<br>\n\n最后，我们使用 `UNION` 运算符将这三个单独查询的结果组合在一起。这使我们能够获得一个合并的摘要，其中包括每个薪资类别的帐户计数。结果将是一个包含两个必需列的表： `category`（工资类别标签）和 `account_count`（每个类别的帐户计数）。完整的代码如下：\n\n```sql\nSELECT \n    'Low Salary' AS category,\n    SUM(CASE WHEN income < 20000 THEN 1 ELSE 0 END) AS accounts_count\nFROM \n    Accounts\n    \nUNION\nSELECT  \n    'Average Salary' category,\n    SUM(CASE WHEN income >= 20000 AND income <= 50000 THEN 1 ELSE 0 END) \n    AS accounts_count\nFROM \n    Accounts\n\nUNION\nSELECT \n    'High Salary' category,\n    SUM(CASE WHEN income > 50000 THEN 1 ELSE 0 END) AS accounts_count\nFROM \n    Accounts\n```\n\n> 在 SQL 中使用 `UNION` 运算符时，有几点需要注意，比如确保 `UNION` 的每个部分都具有相同的数据类型，顺序相同，列数必须相同。幸运的是，我们希望联合的所有三个表都满足这些条件。",
+            "slateValue": "",
+            "slug": "an-fen-lei-tong-ji-xin-shui-by-leetcode-wr0c5",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "pi5gwF",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 34,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Pandas",
+                    "nameTranslated": "",
+                    "slug": "pandas",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "MySQL",
+                    "nameTranslated": "",
+                    "slug": "mysql",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "SQL",
+                    "nameTranslated": "",
+                    "slug": "sql",
+                    "tagType": "ADDITIONAL_TOPIC"
+                }
+            ],
+            "createdAt": "2023-07-31T07:37:23.442830+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "解决方案 方法：过滤行 Pandas MySQL\n 解决方案\n 方法：过滤行\n Pandas\n让我们依次统计每一类的数量，要过滤工资较低的行，可以使用 accounts['income'] < 20000，它会检查 DataFrame accounts 的 income 列中的每个值，以确定它是否小于 20000。",
+            "topic": {
+                "id": 2366263,
+                "subscribed": false,
+                "commentCount": 89,
+                "viewCount": 262,
+                "post": {
+                    "id": 4446382,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 228,
+            "isEditorsPick": false,
+            "hitCount": 34161,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "count-salary-categories",
+                "questionFrontendId": "1907"
+            },
+            "next": {
+                "slug": "1907-an-fen-lei-tong-ji-xin-shui-by-yyz9-iwrf",
+                "title": "1907. 按分类统计薪水"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,156 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "kY0MW5",
+            "title": "统计重新排列后包含另一个字符串的子字符串数目 I",
+            "content": "#### 方法一：哈希表 + 二分\n\n**思路与算法**\n\n我们的目标是求解 $\\textit{word1}$ 中有多少子串经过重新排列后存在一个前缀是 $\\textit{word2}$，也就是说要求解有多少子串包含 $\\textit{word2}$ 中的全部字符。\n\n对于每个 $l(1 \\le l \\le n)$，找到最小的 $r(l \\le r \\le n)$，使得 $\\textit{word1}$ 区间 $[l, r]$ 内包含 $\\textit{word2}$ 的全部字符，可以发现子串 $[l, r+1], [l, r+2], \\cdots, [l, n]$ 都是满足要求的，计数 $n - r + 1$ 。将所有的计数都加起来就是答案。\n\n而找到每个 $l$ 对应的最小的 $r$ 可以使用二分算法，我们提前预处理出 $\\textit{word2}$ 中所有字符的出现次数，再预处理 $\\textit{word1}$ 每个前缀中每种字符的出现次数。因此在二分查找 $r$ 的过程中，可以 $O(C)$ 时间判断是否满足要求（$C$ 是字符数量，此处等于 $\\textit{26}$），而那个最小的那个满足要求的下标就是我们要找的 $r$。\n\n由于本方法时间复杂度较高，有些语言可能会超时，建议学习方法二。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    long long validSubstringCount(string word1, string word2) {\n        vector<int> count(26, 0);\n        for (auto c : word2) {\n            count[c - 'a']++;\n        }\n\n        int n = word1.size();\n        vector<vector<int>> pre_count(n + 1, vector<int>(26, 0));\n        for (int i = 1; i <= n; i++) {\n            pre_count[i].assign(pre_count[i - 1].begin(), pre_count[i - 1].end());\n            pre_count[i][word1[i - 1] - 'a']++;\n        }\n\n        auto get = [&](int l, int r) {\n            int border = l;\n            while (l < r) {\n                int m = l + r >> 1;\n                bool f = true;\n                for (int i = 0; i < 26; i++) {\n                    if (pre_count[m][i] - pre_count[border - 1][i] < count[i]) {\n                        f = false;\n                        break;\n                    }\n                }\n                if (f) {\n                    r = m;\n                } else {\n                    l = m + 1;\n                }\n            }\n            return l;\n        };\n\n        long long res = 0;\n        for (int l = 1; l <= n; l++) {\n            int r = get(l, n + 1);\n            res += n - r + 1;\n        }\n        return res;\n    }\n};\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn valid_substring_count(word1: String, word2: String) -> i64 {\n        let mut count = vec![0; 26];\n        for c in word2.chars() {\n            count[(c as u8 - b'a') as usize] += 1;\n        }\n\n        let n = word1.len();\n        let word1_bytes = word1.as_bytes();\n\n        let mut pre_count = vec![vec![0; 26]; n + 1];\n        for i in 1..=n {\n            pre_count[i] = pre_count[i - 1].clone();\n            pre_count[i][(word1_bytes[i - 1] - b'a') as usize] += 1;\n        }\n\n        let get = |mut l: usize, mut r: usize| {\n            let border = l - 1;\n            while l < r {\n                let m = (l + r) / 2;\n                let mut valid = true;\n                for i in 0..26 {\n                    if pre_count[m][i] - pre_count[border][i] < count[i] {\n                        valid = false;\n                        break;\n                    }\n                }\n                if valid {\n                    r = m;\n                } else {\n                    l = m + 1;\n                }\n            }\n            l\n        };\n\n        let mut res = 0;\n        for l in 1..=n {\n            let r = get(l, n + 1);\n            res += (n + 1 - r) as i64;\n        }\n        res\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def validSubstringCount(self, word1: str, word2: str) -> int:\n        count = [0] * 26\n        for c in word2:\n            count[ord(c) - ord('a')] += 1\n        n = len(word1)\n        pre_count = [[0] * 26 for _ in range(n + 1)]\n        for i in range(1, n + 1):\n            pre_count[i] = pre_count[i - 1][:]\n            pre_count[i][ord(word1[i - 1]) - ord('a')] += 1\n\n        def get(l, r):\n            border = l\n            while l < r:\n                m = (l + r) // 2\n                if all(pre_count[m][i] - pre_count[border - 1][i] >= count[i] for i in range(26)):\n                    r = m\n                else:\n                    l = m + 1\n            return l\n\n        res = 0\n        for l in range(1, n + 1):\n            r = get(l, n + 1)\n            res += n - r + 1\n        return res\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public long validSubstringCount(String word1, String word2) {\n        int[] count = new int[26];\n        for (char c : word2.toCharArray()) {\n            count[c - 'a']++;\n        }\n        int n = word1.length();\n        int[][] preCount = new int[n + 1][26];\n        for (int i = 1; i <= n; i++) {\n            for (int j = 0; j < 26; j++) {\n                preCount[i][j] = preCount[i - 1][j];\n            }\n            preCount[i][word1.charAt(i - 1) - 'a']++;\n        }\n        long res = 0;\n        for (int l = 1; l <= n; l++) {\n            int r = get(l, n + 1, preCount, count);\n            res += n - r + 1;\n        }\n        return res;\n    }\n\n    private int get(int l, int r, int[][] preCount, int[] count) {\n        int border = l;\n        while (l < r) {\n            int m = (l + r) >> 1;\n            boolean f = true;\n            for (int i = 0; i < 26; i++) {\n                if (preCount[m][i] - preCount[border - 1][i] < count[i]) {\n                    f = false;\n                    break;\n                }\n            }\n            if (f) {\n                r = m;\n            } else {\n                l = m + 1;\n            }\n        }\n        return l;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public long ValidSubstringCount(string word1, string word2) {\n        int[] count = new int[26];\n        foreach (char c in word2) {\n            count[c - 'a']++;\n        }\n\n        int n = word1.Length;\n        int[,] preCount = new int[n + 1, 26];\n        for (int i = 1; i <= n; i++) {\n            for (int j = 0; j < 26; j++) {\n                preCount[i, j] = preCount[i - 1, j];\n            }\n            preCount[i, word1[i - 1] - 'a']++;\n        }\n        long res = 0;\n        for (int l = 1; l <= n; l++) {\n            int r = Get(l, n + 1, preCount, count);\n            res += n - r + 1;\n        }\n        return res;\n    }\n\n    private int Get(int l, int r, int[,] preCount, int[] count) {\n        int border = l;\n        while (l < r) {\n            int m = (l + r) >> 1;\n            bool f = true;\n            for (int i = 0; i < 26; i++) {\n                if (preCount[m, i] - preCount[border - 1, i] < count[i]) {\n                    f = false;\n                    break;\n                }\n            }\n            if (f) {\n                r = m;\n            } else {\n                l = m + 1;\n            }\n        }\n        return l;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc validSubstringCount(word1 string, word2 string) int64 {\n    count := make([]int, 26)\n\tfor _, c := range word2 {\n\t\tcount[c - 'a']++\n\t}\n\tn := len(word1)\n\tpreCount := make([][]int, n + 1)\n\tfor i := range preCount {\n\t\tpreCount[i] = make([]int, 26)\n\t}\n\tfor i := 1; i <= n; i++ {\n\t\tcopy(preCount[i], preCount[i - 1])\n\t\tpreCount[i][word1[i - 1] - 'a']++\n\t}\n\n\tvar res int64\n\tfor l := 1; l <= n; l++ {\n\t\tr := get(l, n + 1, preCount, count)\n\t\tres += int64(n - r + 1)\n\t}\n\treturn res\n}\n\nfunc get(l, r int, preCount [][]int, count []int) int {\n\tborder := l\n\tfor l < r {\n\t\tm := (l + r) >> 1\n\t\tf := true\n\t\tfor i := 0; i < 26; i++ {\n\t\t\tif preCount[m][i]-preCount[border - 1][i] < count[i] {\n\t\t\t\tf = false\n\t\t\t\tbreak\n\t\t\t}\n\t\t}\n\t\tif f {\n\t\t\tr = m\n\t\t} else {\n\t\t\tl = m + 1\n\t\t}\n\t}\n\treturn l\n}\n```\n\n```C [sol1-C]\nint get(int l, int r, int preCount[][26], int* count) {\n    int border = l;\n    while (l < r) {\n        int m = (l + r) >> 1;\n        int f = 1;\n        for (int i = 0; i < 26; i++) {\n            if (preCount[m][i] - preCount[border - 1][i] < count[i]) {\n                f = 0;\n                break;\n            }\n        }\n        if (f) {\n            r = m;\n        } else {\n            l = m + 1;\n        }\n    }\n    return l;\n}\n\nlong long validSubstringCount(char* word1, char* word2) {\n    int count[26] = {0};\n    for (int i = 0; word2[i]; i++) {\n        count[word2[i] - 'a']++;\n    }\n\n    int n = strlen(word1);\n    int preCount[n + 1][26];\n    memset(preCount, 0, sizeof(preCount));\n    for (int i = 1; i <= n; i++) {\n        memcpy(preCount[i], preCount[i - 1], sizeof(preCount[i]));\n        preCount[i][word1[i - 1] - 'a']++;\n    }\n\n    long long res = 0;\n    for (int l = 1; l <= n; l++) {\n        int r = get(l, n + 1, preCount, count);\n        res += n - r + 1;\n    }\n    return res;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar validSubstringCount = function(word1, word2) {\n    const count = Array(26).fill(0);\n    for (let c of word2) {\n        count[c.charCodeAt(0) - 'a'.charCodeAt(0)]++;\n    }\n    const n = word1.length;\n    const preCount = Array.from({ length: n + 1 }, () => Array(26).fill(0));\n    for (let i = 1; i <= n; i++) {\n        for (let j = 0; j < 26; j++) {\n            preCount[i][j] = preCount[i - 1][j];\n        }\n        preCount[i][word1.charCodeAt(i - 1) - 'a'.charCodeAt(0)]++;\n    }\n    let res = 0;\n    for (let l = 1; l <= n; l++) {\n        const r = get(l, n + 1, preCount, count);\n        res += n - r + 1;\n    }\n    return res;\n};\n\nconst get = (l, r, preCount, count) => {\n    let border = l;\n    while (l < r) {\n        const m = Math.floor((l + r) / 2);\n        let f = true;\n        for (let i = 0; i < 26; i++) {\n            if (preCount[m][i] - preCount[border - 1][i] < count[i]) {\n                f = false;\n                break;\n            }\n        }\n        if (f) {\n            r = m;\n        } else {\n            l = m + 1;\n        }\n    }\n    return l;\n}\n```\n\n```TypeScript [sol1-TypeScript]\nfunction validSubstringCount(word1: string, word2: string): number {\n    const count = Array(26).fill(0);\n    for (let c of word2) {\n        count[c.charCodeAt(0) - 'a'.charCodeAt(0)]++;\n    }\n    const n = word1.length;\n    const preCount: number[][] = Array.from({ length: n + 1 }, () => Array(26).fill(0));\n    for (let i = 1; i <= n; i++) {\n        for (let j = 0; j < 26; j++) {\n            preCount[i][j] = preCount[i - 1][j];\n        }\n        preCount[i][word1.charCodeAt(i - 1) - 'a'.charCodeAt(0)]++;\n    }\n    let res = 0;\n    for (let l = 1; l <= n; l++) {\n        const r = get(l, n + 1, preCount, count);\n        res += n - r + 1;\n    }\n    return res;\n};\n\nfunction get(l: number, r: number, preCount: number[][], count: number[]): number {\n    let border = l;\n    while (l < r) {\n        const m = Math.floor((l + r) / 2);\n        let f = true;\n        for (let i = 0; i < 26; i++) {\n            if (preCount[m][i] - preCount[border - 1][i] < count[i]) {\n                f = false;\n                break;\n            }\n        }\n        if (f) {\n            r = m;\n        } else {\n            l = m + 1;\n        }\n    }\n    return l;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(nC\\log n + m)$，其中 $n$ 是 $\\textit{word1}$ 的长度，$m$ 是 $\\textit{word2}$ 的长度，$C$ 是字符种类数，此题中等于 $\\textit{26}$。初始化的时间复杂度分别为 $O(m)$ 和 $O(nC)$，每次二分的时间复杂度为 $O(C\\log n)$，因此总的时间复杂度为 $O(nC\\log n + m)$。\n\n- 空间复杂度：$O(nC)$。\n\n#### 方法二：滑动窗口\n\n**思路与算法**\n\n每次消耗 $O(C\\log n)$ 的时间去找 $r$ 太过奢侈，我们需要发现一些性质来加速。注意到每次找到 $l$ 匹配的 $r$ 后，将 $l$ 增加 $1$，区间内的字符减少，相应的 $r$ 势必会增加。因此得到结论：随着 $l$ 的增加，$r$ 也会增加，我们可以使用滑动窗口来避免二分过程中的重复查找。\n\n具体来说，我们用哈希表维护当前窗口内每种字符的出现次数，初始时窗口长度为 $0$，每次我们向右移动 $r$，并将字符加入哈希表，直到每种字符的出现次数都大于 $\\textit{word2}$ 中的出现次数，此时将答案累加 $n - r + 1$。接着我们要计算 $l + 1$ 作为左边界的情况，将 $l$ 处的字符移除哈希表，并继续向右移动 $r$，重复前面的过程即可。\n\n我们在上面采用了 $O(C)$ 的时间复杂度判断滑动窗口内每种字符的出现次数是否都大于 $\\textit{word2}$ 中的出现次数，其实还可以进一步优化。我们将维护的对象更改为滑动窗口内每种字符出现次数与 $\\textit{word2}$ 中每种字符出现次数的差值，当所有差值都大于等于 $0$ 则表示合法。但到这一步还没有与之前的方法拉开差距，需要再维护一个变量 $\\textit{cnt}$ 表示差值小于 $0$ 的字符种类数，当 $\\textit{cnt}$ 等于 $0$ 则表示合法。在滑动窗口移动时，可以仅消耗 $O(1)$ 的时间来维护 $\\textit{cnt}$，这样一来就降低了时间复杂度。\n\n**代码**\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    long long validSubstringCount(string word1, string word2) {\n        vector<int> diff(26, 0);\n        for (auto c : word2) {\n            diff[c - 'a']--;\n        }\n\n        long long res = 0;\n        int cnt = count_if(diff.begin(), diff.end(), [](int c) { return c < 0; });\n        auto update = [&](int c, int add) {\n            diff[c] += add;\n            if (add == 1 && diff[c] == 0) {\n                // 表明 diff[c] 由 -1 变为 0\n                cnt--;\n            } else if (add == -1 && diff[c] == -1) {\n                // 表明 diff[c] 由 0 变为 -1\n                cnt++;\n            }\n        };\n\n        for (int l = 0, r = 0; l < word1.size(); l++) {\n            while (r < word1.size() && cnt > 0) {\n                update(word1[r] - 'a', 1);\n                r++;\n            }\n            if (cnt == 0) {\n                res += word1.size() - r + 1;\n            }\n            update(word1[l] - 'a', -1);\n        }\n        return res;\n    }\n};\n```\n\n```Python [sol2-Python]\nclass Solution:\n    def validSubstringCount(self, word1: str, word2: str) -> int:\n        diff = [0] * 26\n        for c in word2:\n            diff[ord(c) - ord('a')] -= 1\n\n        res = 0\n        cnt = sum(1 for c in diff if c < 0)\n\n        def update(c: int, add: int):\n            nonlocal cnt\n            diff[c] += add\n            if add == 1 and diff[c] == 0:\n                # 表明 diff[c] 由 -1 变为 0\n                cnt -= 1\n            elif add == -1 and diff[c] == -1:\n                # 表明 diff[c] 由 0 变为 -1\n                cnt += 1\n\n        l, r = 0, 0\n        while l < len(word1):\n            while r < len(word1) and cnt > 0:\n                update(ord(word1[r]) - ord('a'), 1)\n                r += 1\n            if cnt == 0:\n                res += len(word1) - r + 1\n            update(ord(word1[l]) - ord('a'), -1)\n            l += 1\n\n        return res\n```\n\n```Rust [sol2-Rust]\nimpl Solution {\n    pub fn valid_substring_count(word1: String, word2: String) -> i64 {\n        let mut diff = vec![0; 26];\n        for c in word2.chars() {\n            diff[(c as u8 - b'a') as usize] -= 1;\n        }\n\n        let mut res = 0;\n        let mut cnt = diff.iter().filter(|&&c| c < 0).count();\n\n        let mut update = |c: usize, add: i32, cnt: &mut usize| {\n            diff[c] += add;\n            if add == 1 && diff[c] == 0 {\n                // 表明 diff[c] 由 -1 变为 0\n                *cnt -= 1;\n            } else if add == -1 && diff[c] == -1 {\n                // 表明 diff[c] 由 0 变为 -1\n                *cnt += 1;\n            }\n        };\n\n        let (mut l, mut r) = (0, 0);\n        let n = word1.len();\n        let bytes = word1.as_bytes();\n\n        while l < n {\n            while r < n && cnt > 0 {\n                update((bytes[r] - b'a') as usize, 1, &mut cnt);\n                r += 1;\n            }\n            if cnt == 0 {\n                res += (n - r) as i64 + 1;\n            }\n            update((bytes[l] - b'a') as usize, -1, &mut cnt);\n            l += 1;\n        }\n\n        res\n    }\n}\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public long validSubstringCount(String word1, String word2) {\n        int[] diff = new int[26];\n        for (char c : word2.toCharArray()) {\n            diff[c - 'a']--;\n        }\n\n        long res = 0;\n        int[] cnt = { (int) Arrays.stream(diff).filter(c -> c < 0).count() };\n        int l = 0, r = 0;\n        while (l < word1.length()) {\n            while (r < word1.length() && cnt[0] > 0) {\n                update(diff, word1.charAt(r) - 'a', 1, cnt);\n                r++;\n            }\n            if (cnt[0] == 0) {\n                res += word1.length() - r + 1;\n            }\n            update(diff, word1.charAt(l) - 'a', -1, cnt);\n            l++;\n        }\n        return res;\n    }\n\n    private void update(int[] diff, int c, int add, int[] cnt) {\n        diff[c] += add;\n        if (add == 1 && diff[c] == 0) {\n            // 表明 diff[c] 由 -1 变为 0\n            cnt[0]--;\n        } else if (add == -1 && diff[c] == -1) {\n            // 表明 diff[c] 由 0 变为 -1\n            cnt[0]++;\n        }\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    public long ValidSubstringCount(string word1, string word2) {\n        int[] diff = new int[26];\n        foreach (char c in word2) {\n            diff[c - 'a']--;\n        }\n        long res = 0;\n        int cnt = diff.Count(c => c < 0);\n        int l = 0, r = 0;\n        while (l < word1.Length) {\n            while (r < word1.Length && cnt > 0) {\n                Update(diff, word1[r] - 'a', 1, ref cnt);\n                r++;\n            }\n            if (cnt == 0) {\n                res += word1.Length - r + 1;\n            }\n            Update(diff, word1[l] - 'a', -1, ref cnt);\n            l++;\n        }\n        return res;\n    }\n\n    private void Update(int[] diff, int c, int add, ref int cnt) {\n        diff[c] += add;\n        if (add == 1 && diff[c] == 0) {\n            // 表明 diff[c] 由 -1 变为 0\n            cnt--;\n        } else if (add == -1 && diff[c] == -1) {\n            // 表明 diff[c] 由 0 变为 -1\n            cnt++;\n        }\n    }\n}\n```\n\n```Go [sol2-Go]\nfunc validSubstringCount(word1 string, word2 string) int64 {\n    diff := make([]int, 26)\n    for _, c := range word2 {\n        diff[c - 'a']--\n    }\n    cnt := 0\n    for _, c := range diff {\n        if c < 0 {\n            cnt++\n        }\n    }\n    var res int64\n    l, r := 0, 0\n    for l < len(word1) {\n        for r < len(word1) && cnt > 0 {\n            update(diff, int(word1[r] - 'a'), 1, &cnt)\n            r++\n        }\n        if cnt == 0 {\n            res += int64(len(word1) - r + 1)\n        }\n        update(diff, int(word1[l]-'a'), -1, &cnt)\n        l++\n    }\n\n    return res\n}\n\nfunc update(diff []int, c, add int, cnt *int) {\n    diff[c] += add\n    if add == 1 && diff[c] == 0 {\n        // 表明 diff[c] 由 -1 变为 0\n        *cnt--\n    } else if add == -1 && diff[c] == -1 {\n        // 表明 diff[c] 由 0 变为 -1\n        *cnt++\n    }\n}\n```\n\n```C [sol2-C]\nvoid update(int *diff, int c, int add, int *cnt) {\n    diff[c] += add;\n    if (add == 1 && diff[c] == 0) {\n        // 表明 diff[c] 由 -1 变为 0\n        (*cnt)--;\n    } else if (add == -1 && diff[c] == -1) {\n        // 表明 diff[c] 由 0 变为 -1\n        (*cnt)++;\n    }\n}\n\nlong long validSubstringCount(char* word1, char* word2) {\n    int diff[26] = {0};\n    for (const char *c = word2; *c; c++) {\n        diff[*c - 'a']--;\n    }\n\n    int cnt = 0;\n    for (int i = 0; i < 26; i++) {\n        if (diff[i] < 0) {\n            cnt++;\n        }\n    }\n    long long res = 0;\n    int l = 0, r = 0;\n    int len1 = strlen(word1);\n    while (l < len1) {\n        while (r < len1 && cnt > 0) {\n            update(diff, word1[r] - 'a', 1, &cnt);\n            r++;\n        }\n        if (cnt == 0) {\n            res += len1 - r + 1;\n        }\n        update(diff, word1[l] - 'a', -1, &cnt);\n        l++;\n    }\n\n    return res;\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar validSubstringCount = function(word1, word2) {\n    const diff = new Array(26).fill(0);\n    for (const c of word2) {\n        diff[c.charCodeAt(0) - 'a'.charCodeAt(0)]--;\n    }\n\n    let res = 0;\n    let cnt = diff.filter(c => c < 0).length;\n    const update = (c, add) => {\n        diff[c] += add;\n        if (add === 1 && diff[c] === 0) {\n            // 表明 diff[c] 由 -1 变为 0\n            cnt--;\n        } else if (add === -1 && diff[c] === -1) {\n            // 表明 diff[c] 由 0 变为 -1\n            cnt++;\n        }\n    };\n\n    let l = 0, r = 0;\n    while (l < word1.length) {\n        while (r < word1.length && cnt > 0) {\n            update(word1.charCodeAt(r) - 'a'.charCodeAt(0), 1);\n            r++;\n        }\n        if (cnt === 0) {\n            res += word1.length - r + 1;\n        }\n        update(word1.charCodeAt(l) - 'a'.charCodeAt(0), -1);\n        l++;\n    }\n\n    return res;\n};\n```\n\n```TypeScript [sol2-TypeScript]\nfunction validSubstringCount(word1: string, word2: string): number {\n    const diff: number[] = new Array(26).fill(0);\n    for (const c of word2) {\n        diff[c.charCodeAt(0) - 'a'.charCodeAt(0)]--;\n    }\n\n    let res = 0;\n    let cnt = diff.filter(c => c < 0).length;\n    const update = (c: number, add: number): void => {\n        diff[c] += add;\n        if (add === 1 && diff[c] === 0) {\n            // 表明 diff[c] 由 -1 变为 0\n            cnt--;\n        } else if (add === -1 && diff[c] === -1) {\n            // 表明 diff[c] 由 0 变为 -1\n            cnt++;\n        }\n    };\n\n    let l = 0, r = 0;\n    while (l < word1.length) {\n        while (r < word1.length && cnt > 0) {\n            update(word1.charCodeAt(r) - 'a'.charCodeAt(0), 1);\n            r++;\n        }\n        if (cnt === 0) {\n            res += word1.length - r + 1;\n        }\n        update(word1.charCodeAt(l) - 'a'.charCodeAt(0), -1);\n        l++;\n    }\n\n    return res;\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n + m)$，其中 $n$ 是 $\\textit{word1}$ 的长度，$m$ 是 $\\textit{word2}$ 的长度。\n\n- 空间复杂度：$O(C)$，其中 $C$ 是字符种类数，本题中等于 $\\textit{26}$。",
+            "slateValue": "",
+            "slug": "tong-ji-zhong-xin-pai-lie-hou-bao-han-li-2kiv",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "kY0MW5",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 13,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Prefix Sum",
+                    "nameTranslated": "前缀和",
+                    "slug": "prefix-sum",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Sliding Window",
+                    "nameTranslated": "滑动窗口",
+                    "slug": "sliding-window",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python3",
+                    "nameTranslated": "",
+                    "slug": "python3",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2025-01-03T01:18:38.412022+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：哈希表 + 二分 思路与算法 我们的目标是求解 [latex] 中有多少子串经过重新排列后存在一个前缀是 [latex]，也就是说要求解有多少子串包含 [latex] 中的全部字符。 对于每个 [latex]，找到最小的 [latex]，使得 [latex] 区间 [latex] 内包含 [latex] 的全部",
+            "topic": {
+                "id": 3037271,
+                "subscribed": false,
+                "commentCount": 39,
+                "viewCount": 696,
+                "post": {
+                    "id": 5492120,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 34,
+            "isEditorsPick": false,
+            "hitCount": 11792,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "count-substrings-that-can-be-rearranged-to-contain-a-string-i",
+                "questionFrontendId": "3297"
+            },
+            "next": {
+                "slug": "on-xian-xing-zuo-fa-pythonjavacgo-by-end-o4ft",
+                "title": "O(n) 线性做法（Python/Java/C++/C/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

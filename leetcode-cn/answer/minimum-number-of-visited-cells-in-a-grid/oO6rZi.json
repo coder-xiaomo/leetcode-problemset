@@ -1,0 +1,144 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "oO6rZi",
+            "title": "网格图中最少访问的格子数",
+            "content": "#### 方法一：维护每一行及每一列的优先队列\n\n**思路与算法**\n\n根据题目描述，我们只能向下或者向右走，因此可以直接用二重循环来计算到达每一个位置的最少步数：当遍历到位置 $(i, j)$ 时，所有其左侧和上方位置的最少步数都已经计算完成。\n\n当我们在位置 $(i, j)$ 时，如何计算到达该位置的最少步数呢？我们可以考虑上一步是向下还是向右走的。如果是「向下走」的，那么上一个位置应该是 $(i', j)$，其中 $i' < i$。除此之外，$i'$ 还需要满足下面两个要求：\n\n- $(i', j)$ 要能走到 $(i, j)$；\n- 到达 $(i', j)$ 的步数要最少。\n\n对于第二个要求，我们可以想到使用优先队列（小根堆）来维护所有的 $i'$，堆顶对应着步数最少的位置。同时对于第一个要求，我们可以在获取堆顶的 $i_\\textit{opt}'$ 时进行判断，如果 $(i_\\textit{opt}', j)$ 不满足一步到达 $(i, j)$ 的要求，就可以将它从优先队列中直接移除，因为之后遍历到的同一列的位置，$i$ 的值只会更大，也就更不可能一步走到。如果优先队列中的所有元素均被移除，说明无法走到 $(i, j)$，否则就可以得到最少的步数，并将 $i$ 放入优先队列。\n\n这样一来，我们需要对每一列都维护一个优先队列。第 $j$ 个优先队列存储的是所有位于第 $j$ 列的位置，其中的元素是一个二元组，第一个值是到达 $(i', j)$ 的最少步数，作为比较的关键字；第二个值是 $i'$，用来判断是否可以一步到达。\n\n同理，我们对于每一行也维护一个优先队列，这样就可以处理「向右走」的情况了。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int minimumVisitedCells(vector<vector<int>>& grid) {\n        int m = grid.size(), n = grid[0].size();\n        vector<vector<int>> dist(m, vector<int>(n, -1));\n        dist[0][0] = 1;\n        vector<priority_queue<pair<int, int>, vector<pair<int, int>>, greater<>>> row(m), col(n);\n\n        auto update = [](int& x, int y) {\n            if (x == -1 || y < x) {\n                x = y;\n            }\n        };\n        \n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j) {\n                while (!row[i].empty() && row[i].top().second + grid[i][row[i].top().second] < j) {\n                    row[i].pop();\n                }\n                if (!row[i].empty()) {\n                    update(dist[i][j], dist[i][row[i].top().second] + 1);\n                }\n\n                while (!col[j].empty() && col[j].top().second + grid[col[j].top().second][j] < i) {\n                    col[j].pop();\n                }\n                if (!col[j].empty()) {\n                    update(dist[i][j], dist[col[j].top().second][j] + 1);\n                }\n                if (dist[i][j] != -1) {\n                    row[i].emplace(dist[i][j], j);\n                    col[j].emplace(dist[i][j], i);\n                }\n            }\n        }\n        return dist[m - 1][n - 1];\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int minimumVisitedCells(int[][] grid) {\n        int m = grid.length, n = grid[0].length;\n        int[][] dist = new int[m][n];\n        for (int i = 0; i < m; ++i) {\n            Arrays.fill(dist[i], -1);\n        }\n        dist[0][0] = 1;\n        PriorityQueue<int[]>[] row = new PriorityQueue[m];\n        PriorityQueue<int[]>[] col = new PriorityQueue[n];\n        for (int i = 0; i < m; ++i) {\n            row[i] = new PriorityQueue<int[]>((a, b) -> a[0] - b[0]);\n        }\n        for (int i = 0; i < n; ++i) {\n            col[i] = new PriorityQueue<int[]>((a, b) -> a[0] - b[0]);\n        }\n\n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j) {\n                while (!row[i].isEmpty() && row[i].peek()[1] + grid[i][row[i].peek()[1]] < j) {\n                    row[i].poll();\n                }\n                if (!row[i].isEmpty()) {\n                    dist[i][j] = update(dist[i][j], dist[i][row[i].peek()[1]] + 1);\n                }\n\n                while (!col[j].isEmpty() && col[j].peek()[1] + grid[col[j].peek()[1]][j] < i) {\n                    col[j].poll();\n                }\n                if (!col[j].isEmpty()) {\n                    dist[i][j] = update(dist[i][j], dist[col[j].peek()[1]][j] + 1);\n                }\n\n                if (dist[i][j] != -1) {\n                    row[i].offer(new int[]{dist[i][j], j});\n                    col[j].offer(new int[]{dist[i][j], i});\n                }\n            }\n        }\n\n        return dist[m - 1][n - 1];\n    }\n\n    public int update(int x, int y) {\n        return x == -1 || y < x ? y : x;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MinimumVisitedCells(int[][] grid) {\n        int m = grid.Length, n = grid[0].Length;\n        int[][] dist = new int[m][];\n        for (int i = 0; i < m; ++i) {\n            dist[i] = new int[n];\n            Array.Fill(dist[i], -1);\n        }\n        dist[0][0] = 1;\n        PriorityQueue<int, int>[] row = new PriorityQueue<int, int>[m];\n        PriorityQueue<int, int>[] col = new PriorityQueue<int, int>[n];\n        for (int i = 0; i < m; ++i) {\n            row[i] = new PriorityQueue<int, int>();\n        }\n        for (int i = 0; i < n; ++i) {\n            col[i] = new PriorityQueue<int, int>();\n        }\n\n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j) {\n                while (row[i].Count > 0 && row[i].Peek() + grid[i][row[i].Peek()] < j) {\n                    row[i].Dequeue();\n                }\n                if (row[i].Count > 0) {\n                    dist[i][j] = Update(dist[i][j], dist[i][row[i].Peek()] + 1);\n                }\n\n                while (col[j].Count > 0 && col[j].Peek() + grid[col[j].Peek()][j] < i) {\n                    col[j].Dequeue();\n                }\n                if (col[j].Count > 0) {\n                    dist[i][j] = Update(dist[i][j], dist[col[j].Peek()][j] + 1);\n                }\n\n                if (dist[i][j] != -1) {\n                    row[i].Enqueue(j, dist[i][j]);\n                    col[j].Enqueue(i, dist[i][j]);\n                }\n            }\n        }\n\n        return dist[m - 1][n - 1];\n    }\n\n    public int Update(int x, int y) {\n        return x == -1 || y < x ? y : x;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def minimumVisitedCells(self, grid: List[List[int]]) -> int:\n        m, n = len(grid), len(grid[0])\n        dist = [[-1] * n for _ in range(m)]\n        dist[0][0] = 1\n        row, col = [[] for _ in range(m)], [[] for _ in range(n)]\n\n        def update(x: int, y: int) -> int:\n            return y if x == -1 or y < x else x\n        \n        for i in range(m):\n            for j in range(n):\n                while row[i] and row[i][0][1] + grid[i][row[i][0][1]] < j:\n                    heapq.heappop(row[i])\n                if row[i]:\n                    dist[i][j] = update(dist[i][j], dist[i][row[i][0][1]] + 1)\n\n                while col[j] and col[j][0][1] + grid[col[j][0][1]][j] < i:\n                    heapq.heappop(col[j])\n                if col[j]:\n                    dist[i][j] = update(dist[i][j], dist[col[j][0][1]][j] + 1)\n\n                if dist[i][j] != -1:\n                    heapq.heappush(row[i], (dist[i][j], j))\n                    heapq.heappush(col[j], (dist[i][j], i))\n\n        return dist[m - 1][n - 1]\n```\n\n```C [sol1-C]\ntypedef struct {\n    int first;\n    int second;\n} Node;\n\ntypedef bool (*cmp)(const void *, const void *);\n\ntypedef struct {\n    Node *arr;\n    int capacity;\n    int queueSize;\n    cmp compare;\n} PriorityQueue;\n\nNode *createNode(int x, int y) {\n    Node *obj = (Node *)malloc(sizeof(Node));\n    obj->first = x;\n    obj->second = y;\n    return obj;\n}\n\nPriorityQueue *createPriorityQueue(int size, cmp compare) {\n    PriorityQueue *obj = (PriorityQueue *)malloc(sizeof(PriorityQueue));\n    obj->arr = (Node *)malloc(sizeof(Node) * size);\n    obj->queueSize = 0;\n    obj->capacity = size;\n    obj->compare = compare;\n    return obj;\n}\n\nstatic void swap(Node *arr, int i, int j) {\n    Node tmp;\n    memcpy(&tmp, &arr[i], sizeof(Node));\n    memcpy(&arr[i], &arr[j], sizeof(Node));\n    memcpy(&arr[j], &tmp, sizeof(Node));\n}\n\nstatic void down(Node *arr, int size, int i, cmp compare) {\n    for (int k = 2 * i + 1; k < size; k = 2 * k + 1) {\n        // 父节点 (k - 1) / 2，左子节点 k，右子节点 k + 1\n        if (k + 1 < size && compare(&arr[k], &arr[k + 1])) {\n            k++;\n        }\n        if (compare(&arr[k], &arr[(k - 1) / 2])) {\n            break;\n        }\n        swap(arr, k, (k - 1) / 2);\n    }\n}\n\nvoid Heapfiy(PriorityQueue *obj) {\n    for (int i = obj->queueSize / 2 - 1; i >= 0; i--) {\n        down(obj->arr, obj->queueSize, i, obj->compare);\n    }\n}\n\nvoid Push(PriorityQueue *obj, Node *node) {\n    memcpy(&obj->arr[obj->queueSize], node, sizeof(Node));\n    for (int i = obj->queueSize; i > 0 && obj->compare(&obj->arr[(i - 1) / 2], &obj->arr[i]); i = (i - 1) / 2) {\n        swap(obj->arr, i, (i - 1) / 2);\n    }\n    obj->queueSize++;\n}\n\nNode* Pop(PriorityQueue *obj) {\n    swap(obj->arr, 0, obj->queueSize - 1);\n    down(obj->arr, obj->queueSize - 1, 0, obj->compare);\n    Node *ret =  &obj->arr[obj->queueSize - 1];\n    obj->queueSize--;\n    return ret;\n}\n\nbool isEmpty(PriorityQueue *obj) {\n    return obj->queueSize == 0;\n}\n\nNode* Top(PriorityQueue *obj) {\n    if (obj->queueSize == 0) {\n        return NULL;\n    } else {\n        return &obj->arr[0];\n    }\n}\n\nvoid FreePriorityQueue(PriorityQueue *obj) {\n    free(obj->arr);\n    free(obj);\n}\n\nbool greater(const void *a, const void *b) {\n    return ((Node *)a)->first > ((Node *)b)->first;\n}\n\nint update(int x, int y) {\n    if (x == -1 || y < x) {\n        return y;\n    } else {\n        return x;\n    }\n}\n\nint minimumVisitedCells(int** grid, int gridSize, int* gridColSize){\n    int m = gridSize, n = gridColSize[0];\n    int dist[m][n];\n    for (int i = 0; i < m; i++) {\n        for (int j = 0; j < n; j++) {\n            dist[i][j] = -1;\n        }\n    }\n    dist[0][0] = 1;\n    PriorityQueue *row[m], *col[n];\n    for (int i = 0; i < m; i++) {\n        row[i] = createPriorityQueue(n, greater);\n    }\n    for (int i = 0; i < n; i++) {\n        col[i] = createPriorityQueue(m, greater);\n    }\n    for (int i = 0; i < m; ++i) {\n        for (int j = 0; j < n; ++j) {\n            while (!isEmpty(row[i]) && Top(row[i])->second + grid[i][Top(row[i])->second] < j) {\n                Pop(row[i]);\n            }\n            if (!isEmpty(row[i])) {\n                dist[i][j] = update(dist[i][j], dist[i][Top(row[i])->second] + 1);\n            }\n            while (!isEmpty(col[j]) && Top(col[j])->second + grid[Top(col[j])->second][j] < i) {\n                Pop(col[j]);\n            }\n            if (!isEmpty(col[j])) {\n                dist[i][j] = update(dist[i][j], dist[Top(col[j])->second][j] + 1);\n            }\n            if (dist[i][j] != -1) {\n                Node node;\n                node.first = dist[i][j];\n                node.second = j;\n                Push(row[i], &node);\n                node.second = i;\n                Push(col[j], &node);\n            }\n        }\n    }\n    return dist[m - 1][n - 1];\n}\n```\n\n```Go [sol1-Go]\nfunc minimumVisitedCells(grid [][]int) int {\n    m, n := len(grid), len(grid[0])\n\tdist := make([][]int, m)\n\tfor i := range dist {\n\t\tdist[i] = make([]int, n)\n\t\tfor j := range dist[i] {\n\t\t\tdist[i][j] = -1\n\t\t}\n\t}\n\tdist[0][0] = 1\n\trow := make([]PriorityQueue, m)\n    col := make([]PriorityQueue, n)\n\n\tupdate := func(x *int, y int) {\n\t\tif *x == -1 || y < *x {\n\t\t\t*x = y\n\t\t}\n\t}\n\n\tfor i := 0; i < m; i++ {\n\t\tfor j := 0; j < n; j++ {\n\t\t\tfor len(row[i]) > 0 && row[i][0].second + grid[i][row[i][0].second] < j {\n\t\t\t\theap.Pop(&row[i])\n\t\t\t}\n\t\t\tif len(row[i]) > 0 {\n\t\t\t\tupdate(&dist[i][j], dist[i][row[i][0].second] + 1)\n\t\t\t}\n\n\t\t\tfor len(col[j]) > 0 && col[j][0].second + grid[col[j][0].second][j] < i {\n\t\t\t\theap.Pop(&col[j])\n\t\t\t}\n\t\t\tif len(col[j]) > 0 {\n\t\t\t\tupdate(&dist[i][j], dist[col[j][0].second][j] + 1)\n\t\t\t}\n\t\t\tif dist[i][j] != -1 {\n\t\t\t\theap.Push(&row[i], Pair{dist[i][j], j})\n\t\t\t\theap.Push(&col[j], Pair{dist[i][j], i})\n\t\t\t}\n\t\t}\n\t}\n\treturn dist[m - 1][n - 1]\n}\n\ntype Pair struct {\n    first int\n    second int\n}\n\ntype PriorityQueue []Pair\n\nfunc (pq PriorityQueue) Swap(i, j int) {\n    pq[i], pq[j] = pq[j], pq[i]\n}\n\nfunc (pq PriorityQueue) Len() int {\n    return len(pq)\n}\n\nfunc (pq PriorityQueue) Less(i, j int) bool {\n    return pq[i].first < pq[j].first\n}\n\nfunc (pq *PriorityQueue) Push(x any) {\n    *pq = append(*pq, x.(Pair))\n}\n\nfunc (pq *PriorityQueue) Pop() any {\n    n := len(*pq)\n    x := (*pq)[n - 1]\n    *pq = (*pq)[:n - 1]\n    return x\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar minimumVisitedCells = function(grid) {\n    const m = grid.length, n = grid[0].length;\n    const dist = new Array(m).fill(0).map(() => new Array(n).fill(-1));\n    dist[0][0] = 1;\n    const row = new Array(m).fill(0).map(() => new MinPriorityQueue());\n    const col = new Array(n).fill(0).map(() => new MinPriorityQueue());\n\n    const update = (x, y) => {\n        if (x === -1 || y < x) {\n            return y;\n        }\n        return x;\n    };\n\n    for (let i = 0; i < m; ++i) {\n        for (let j = 0; j < n; ++j) {\n            while (!row[i].isEmpty() && row[i].front().element[1] + grid[i][row[i].front().element[1]] < j) {\n                row[i].dequeue();\n            }\n            if (!row[i].isEmpty()) {\n                dist[i][j] = update(dist[i][j], dist[i][row[i].front().element[1]] + 1);\n            }\n\n            while (!col[j].isEmpty() && col[j].front().element[1] + grid[col[j].front().element[1]][j] < i) {\n                col[j].dequeue();\n            }\n            if (!col[j].isEmpty()) {\n                dist[i][j] = update(dist[i][j], dist[col[j].front().element[1]][j] + 1);\n            }\n            if (dist[i][j] !== -1) {\n                row[i].enqueue([dist[i][j], j], dist[i][j]);\n                col[j].enqueue([dist[i][j], i], dist[i][j]);\n            }\n        }\n    }\n    return dist[m - 1][n - 1];\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction minimumVisitedCells(grid: number[][]): number {\n    const m = grid.length, n = grid[0].length;\n    const dist = new Array(m).fill(0).map(() => new Array(n).fill(-1));\n    dist[0][0] = 1;\n    const row = new Array(m).fill(0).map(() => new MinPriorityQueue());\n    const col = new Array(n).fill(0).map(() => new MinPriorityQueue());\n\n    const update = (x, y) => {\n        if (x === -1 || y < x) {\n            return y;\n        }\n        return x;\n    };\n\n    for (let i = 0; i < m; ++i) {\n        for (let j = 0; j < n; ++j) {\n            while (!row[i].isEmpty() && row[i].front().element[1] + grid[i][row[i].front().element[1]] < j) {\n                row[i].dequeue();\n            }\n            if (!row[i].isEmpty()) {\n                dist[i][j] = update(dist[i][j], dist[i][row[i].front().element[1]] + 1);\n            }\n\n            while (!col[j].isEmpty() && col[j].front().element[1] + grid[col[j].front().element[1]][j] < i) {\n                col[j].dequeue();\n            }\n            if (!col[j].isEmpty()) {\n                dist[i][j] = update(dist[i][j], dist[col[j].front().element[1]][j] + 1);\n            }\n            \n            if (dist[i][j] !== -1) {\n                row[i].enqueue([dist[i][j], j], dist[i][j]);\n                col[j].enqueue([dist[i][j], i], dist[i][j]);\n            }\n        }\n    }\n    return dist[m - 1][n - 1];\n};\n```\n\n```Rust [sol1-Rust]\nuse std::collections::BinaryHeap;\nuse std::cmp::Reverse;\n\nimpl Solution {\n    pub fn minimum_visited_cells(grid: Vec<Vec<i32>>) -> i32 {\n        let m = grid.len();\n        let n = grid[0].len();\n        let mut dist = vec![vec![-1; n]; m];\n        dist[0][0] = 1;\n        let mut row: Vec<BinaryHeap<(Reverse<i32>, usize)>> = vec![BinaryHeap::new(); m];\n        let mut col: Vec<BinaryHeap<(Reverse<i32>, usize)>> = vec![BinaryHeap::new(); n];\n\n        let update = |x: i32, y: i32| {\n            if x == -1 || y < x {\n                return y;\n            } else {\n                return x;\n            }\n        };\n\n        for i in 0..m {\n            for j in 0..n {\n                while let Some((_, x)) = row[i].peek() {\n                    if *x as i32 + grid[i][*x] < j as i32 {\n                        row[i].pop();\n                    } else {\n                        break;\n                    }\n                }\n                if let Some((_, x)) = row[i].peek() {\n                    dist[i][j] = update(dist[i][j], dist[i][*x] + 1);\n                }\n\n                while let Some((_, x)) = col[j].peek() {\n                    if *x as i32 + grid[*x][j] < i as i32 {\n                        col[j].pop();\n                    } else {\n                        break;\n                    }\n                }\n                if let Some((_, x)) = col[j].peek() {\n                    dist[i][j] = update(dist[i][j], dist[*x][j] + 1);\n                }\n                if dist[i][j] != -1 {\n                    row[i].push((Reverse(dist[i][j]), j));\n                    col[j].push((Reverse(dist[i][j]), i));\n                }\n            }\n        }\n        dist[m - 1][n - 1]\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(mn \\cdot (\\log m + \\log n))$。每一个位置会被加入行的优先队列和列的优先队列各一次，时间复杂度为 $O(\\log m + \\log n)$，所以总时间复杂度为 $O(mn \\cdot (\\log m + \\log n))$。\n\n- 空间复杂度：$O(mn)$，即为 $m+n$ 个优先队列需要使用的空间。",
+            "slateValue": "",
+            "slug": "wang-ge-tu-zhong-zui-shao-fang-wen-de-ge-944f",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "oO6rZi",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 20,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Matrix",
+                    "nameTranslated": "矩阵",
+                    "slug": "matrix",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Heap (Priority Queue)",
+                    "nameTranslated": "堆（优先队列）",
+                    "slug": "heap-priority-queue",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2024-03-18T03:15:54.647667+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：维护每一行及每一列的优先队列 思路与算法 根据题目描述，我们只能向下或者向右走，因此可以直接用二重循环来计算到达每一个位置的最少步数：当遍历到位置 $(i, j)$ 时，所有其左侧和上方位置的最少步数都已经计算完成。 当我们在位置 $(i, j)$ 时，如何计算到达该位置的最少步数呢？我们可以考虑上一步是向下还",
+            "topic": {
+                "id": 2693762,
+                "subscribed": false,
+                "commentCount": 40,
+                "viewCount": 966,
+                "post": {
+                    "id": 4950963,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 69,
+            "isEditorsPick": false,
+            "hitCount": 16902,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "minimum-number-of-visited-cells-in-a-grid",
+                "questionFrontendId": "2617"
+            },
+            "next": {
+                "slug": "dan-diao-zhan-you-hua-dp-by-endlesscheng-mc50",
+                "title": "两种方法：单调栈优化 DP / 贪心+最小堆（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,132 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "ill8zo",
+            "title": "矩阵的最大非负积",
+            "content": "#### 方法一：动态规划\n\n**思路与算法**\n\n由于矩阵中的元素有正有负，要想得到最大积，我们只存储移动过程中的最大积是不够的，例如当前的最大积为正数时，乘上一个负数后，反而不如一个负数乘上相同的负数得到的积大。\n\n因此，我们需要存储的是移动过程中的积的**范围**，也就是积的**最小值**以及**最大值**。由于只能向下或者向右走，我们可以考虑使用动态规划的方法解决本题。\n\n设 $\\textit{maxgt}[i][j], \\textit{minlt}[i][j]$ 分别为从坐标 $(0, 0)$ 出发，到达位置 $(i, j)$ 时乘积的最大值与最小值。由于我们只能向下或者向右走，因此乘积的取值必然只与 $(i, j-1)$ 和 $(i-1, j)$ 两个位置有关。\n\n对于乘积的最大值而言：若 $\\textit{grid}[i][j] \\ge 0$，则 $\\textit{maxgt}[i][j]$ 的取值取决于这两个位置的最大值，此时\n\n$$\n\\textit{maxgt}[i][j] = \\max(\\textit{maxgt}[i][j-1], \\textit{maxgt}[i-1][j]) \\times \\textit{grid}[i][j]\n$$\n\n相反地，若 $\\textit{grid}[i][j] \\le 0$，则 $\\textit{maxgt}[i][j]$ 的取值取决于这两个位置的最小值，此时\n\n$$\n\\textit{maxgt}[i][j] = \\min(\\textit{minlt}[i][j-1], \\textit{minlt}[i-1][j]) \\times \\textit{grid}[i][j]\n$$\n\n计算乘积的最小值也是类似的思路。若 $\\textit{grid}[i][j] \\ge 0$，此时\n\n$$\n\\textit{mingt}[i][j] = \\min(\\textit{mingt}[i][j-1], \\textit{mingt}[i-1][j]) \\times \\textit{grid}[i][j]\n$$\n\n若 $\\textit{grid}[i][j] \\le 0$，此时\n\n$$\n\\textit{mingt}[i][j] = \\max(\\textit{maxgt}[i][j-1], \\textit{maxgt}[i-1][j]) \\times \\textit{grid}[i][j]\n$$\n\n特别地，当 $i=0$ 时，只需要从 $(i, j-1)$ 进行转移；$j=0$ 时，只需要从 $(i-1, j)$ 进行转移；$i=0$ 且 $j=0$ 时，$\\textit{maxgt}[i][j]$ 与 $\\textit{mingt}[i][j]$ 的值均为左上角的元素值 $\\textit{grid}[i][j]$。\n\n最终的答案即为 $\\textit{maxgt}[m-1][n-1]$，其中 $m$ 和 $n$ 分别是矩阵的行数与列数。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int maxProductPath(vector<vector<int>>& grid) {\n        const int mod = 1000000000 + 7;\n        int m = grid.size(), n = grid[0].size();\n        vector<vector<long long>> maxgt(m, vector<long long>(n));\n        vector<vector<long long>> minlt(m, vector<long long>(n));\n\n        maxgt[0][0] = minlt[0][0] = grid[0][0];\n        for (int i = 1; i < n; i++) {\n            maxgt[0][i] = minlt[0][i] = maxgt[0][i - 1] * grid[0][i];\n        }\n        for (int i = 1; i < m; i++) {\n            maxgt[i][0] = minlt[i][0] = maxgt[i - 1][0] * grid[i][0];\n        }\n\n        for (int i = 1; i < m; i++) {\n            for (int j = 1; j < n; j++) {\n                if (grid[i][j] >= 0) {\n                    maxgt[i][j] = max(maxgt[i][j - 1], maxgt[i - 1][j]) * grid[i][j];\n                    minlt[i][j] = min(minlt[i][j - 1], minlt[i - 1][j]) * grid[i][j];\n                } else {\n                    maxgt[i][j] = min(minlt[i][j - 1], minlt[i - 1][j]) * grid[i][j];\n                    minlt[i][j] = max(maxgt[i][j - 1], maxgt[i - 1][j]) * grid[i][j];\n                }\n            }\n        }\n        if (maxgt[m - 1][n - 1] < 0) {\n            return -1;\n        } else {\n            return maxgt[m - 1][n - 1] % mod;\n        }\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int maxProductPath(int[][] grid) {\n        final int MOD = 1000000000 + 7;\n        int m = grid.length, n = grid[0].length;\n        long[][] maxgt = new long[m][n];\n        long[][] minlt = new long[m][n];\n\n        maxgt[0][0] = minlt[0][0] = grid[0][0];\n        for (int i = 1; i < n; i++) {\n            maxgt[0][i] = minlt[0][i] = maxgt[0][i - 1] * grid[0][i];\n        }\n        for (int i = 1; i < m; i++) {\n            maxgt[i][0] = minlt[i][0] = maxgt[i - 1][0] * grid[i][0];\n        }\n\n        for (int i = 1; i < m; i++) {\n            for (int j = 1; j < n; j++) {\n                if (grid[i][j] >= 0) {\n                    maxgt[i][j] = Math.max(maxgt[i][j - 1], maxgt[i - 1][j]) * grid[i][j];\n                    minlt[i][j] = Math.min(minlt[i][j - 1], minlt[i - 1][j]) * grid[i][j];\n                } else {\n                    maxgt[i][j] = Math.min(minlt[i][j - 1], minlt[i - 1][j]) * grid[i][j];\n                    minlt[i][j] = Math.max(maxgt[i][j - 1], maxgt[i - 1][j]) * grid[i][j];\n                }\n            }\n        }\n        if (maxgt[m - 1][n - 1] < 0) {\n            return -1;\n        } else {\n            return (int) (maxgt[m - 1][n - 1] % MOD);\n        }\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def maxProductPath(self, grid: List[List[int]]) -> int:\n        mod = 10**9 + 7\n        m, n = len(grid), len(grid[0])\n        maxgt = [[0] * n for _ in range(m)]\n        minlt = [[0] * n for _ in range(m)]\n\n        maxgt[0][0] = minlt[0][0] = grid[0][0]\n        for i in range(1, n):\n            maxgt[0][i] = minlt[0][i] = maxgt[0][i - 1] * grid[0][i]\n        for i in range(1, m):\n            maxgt[i][0] = minlt[i][0] = maxgt[i - 1][0] * grid[i][0]\n        \n        for i in range(1, m):\n            for j in range(1, n):\n                if grid[i][j] >= 0:\n                    maxgt[i][j] = max(maxgt[i][j - 1], maxgt[i - 1][j]) * grid[i][j]\n                    minlt[i][j] = min(minlt[i][j - 1], minlt[i - 1][j]) * grid[i][j]\n                else:\n                    maxgt[i][j] = min(minlt[i][j - 1], minlt[i - 1][j]) * grid[i][j]\n                    minlt[i][j] = max(maxgt[i][j - 1], maxgt[i - 1][j]) * grid[i][j]\n        \n        if maxgt[m - 1][n - 1] < 0:\n            return -1\n        return maxgt[m - 1][n - 1] % mod\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MaxProductPath(int[][] grid) {\n        const int MOD = 1000000007;\n        int m = grid.Length, n = grid[0].Length;\n        long[,] maxgt = new long[m, n];\n        long[,] minlt = new long[m, n];\n\n        maxgt[0, 0] = minlt[0, 0] = grid[0][0];\n        for (int i = 1; i < n; i++) {\n            maxgt[0, i] = minlt[0, i] = maxgt[0, i - 1] * grid[0][i];\n        }\n        for (int i = 1; i < m; i++) {\n            maxgt[i, 0] = minlt[i, 0] = maxgt[i - 1, 0] * grid[i][0];\n        }\n        for (int i = 1; i < m; i++) {\n            for (int j = 1; j < n; j++) {\n                if (grid[i][j] >= 0) {\n                    long maxPrev = Math.Max(maxgt[i, j - 1], maxgt[i - 1, j]);\n                    long minPrev = Math.Min(minlt[i, j - 1], minlt[i - 1, j]);\n                    maxgt[i, j] = maxPrev * grid[i][j];\n                    minlt[i, j] = minPrev * grid[i][j];\n                } else {\n                    long maxPrev = Math.Max(maxgt[i, j - 1], maxgt[i - 1, j]);\n                    long minPrev = Math.Min(minlt[i, j - 1], minlt[i - 1, j]);\n                    maxgt[i, j] = minPrev * grid[i][j];\n                    minlt[i, j] = maxPrev * grid[i][j];\n                }\n            }\n        }\n        \n        if (maxgt[m - 1, n - 1] < 0) {\n            return -1;\n        } else {\n            return (int)(maxgt[m - 1, n - 1] % MOD);\n        }\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc maxProductPath(grid [][]int) int {\n    const MOD = 1000000007\n    m, n := len(grid), len(grid[0])\n    \n    maxgt := make([][]int64, m)\n    minlt := make([][]int64, m)\n    for i := range maxgt {\n        maxgt[i] = make([]int64, n)\n        minlt[i] = make([]int64, n)\n    }\n    \n    maxgt[0][0] = int64(grid[0][0])\n    minlt[0][0] = int64(grid[0][0])\n    for i := 1; i < n; i++ {\n        maxgt[0][i] = maxgt[0][i-1] * int64(grid[0][i])\n        minlt[0][i] = maxgt[0][i]\n    }\n    for i := 1; i < m; i++ {\n        maxgt[i][0] = maxgt[i-1][0] * int64(grid[i][0])\n        minlt[i][0] = maxgt[i][0]\n    }\n    for i := 1; i < m; i++ {\n        for j := 1; j < n; j++ {\n            if grid[i][j] >= 0 {\n                maxPrev := max(maxgt[i][j-1], maxgt[i-1][j])\n                minPrev := min(minlt[i][j-1], minlt[i-1][j])\n                maxgt[i][j] = maxPrev * int64(grid[i][j])\n                minlt[i][j] = minPrev * int64(grid[i][j])\n            } else {\n                maxPrev := max(maxgt[i][j-1], maxgt[i-1][j])\n                minPrev := min(minlt[i][j-1], minlt[i-1][j])\n                maxgt[i][j] = minPrev * int64(grid[i][j])\n                minlt[i][j] = maxPrev * int64(grid[i][j])\n            }\n        }\n    }\n    \n    if maxgt[m-1][n-1] < 0 {\n        return -1\n    }\n    return int(maxgt[m-1][n-1] % MOD)\n}\n```\n\n```C [sol1-C]\n#define MOD 1000000007\n\nint maxProductPath(int** grid, int gridSize, int* gridColSize) {\n    int m = gridSize, n = gridColSize[0];\n    long long** maxgt = (long long**)malloc(m * sizeof(long long*));\n    long long** minlt = (long long**)malloc(m * sizeof(long long*));\n    for (int i = 0; i < m; i++) {\n        maxgt[i] = (long long*)malloc(n * sizeof(long long));\n        minlt[i] = (long long*)malloc(n * sizeof(long long));\n    }\n    \n    maxgt[0][0] = minlt[0][0] = grid[0][0];\n    for (int i = 1; i < n; i++) {\n        maxgt[0][i] = minlt[0][i] = maxgt[0][i - 1] * grid[0][i];\n    }\n    for (int i = 1; i < m; i++) {\n        maxgt[i][0] = minlt[i][0] = maxgt[i - 1][0] * grid[i][0];\n    }\n    for (int i = 1; i < m; i++) {\n        for (int j = 1; j < n; j++) {\n            if (grid[i][j] >= 0) {\n                maxgt[i][j] = fmax(maxgt[i][j - 1], maxgt[i - 1][j]) * grid[i][j];\n                minlt[i][j] = fmin(minlt[i][j - 1], minlt[i - 1][j]) * grid[i][j];\n            } else {\n                maxgt[i][j] = fmin(minlt[i][j - 1], minlt[i - 1][j]) * grid[i][j];\n                minlt[i][j] = fmax(maxgt[i][j - 1], maxgt[i - 1][j]) * grid[i][j];\n            }\n        }\n    }\n    \n    long long result = maxgt[m - 1][n - 1];\n    for (int i = 0; i < m; i++) {\n        free(maxgt[i]);\n        free(minlt[i]);\n    }\n    free(maxgt);\n    free(minlt);\n    \n    if (result < 0) {\n        return -1;\n    } else {\n        return result % MOD;\n    }\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar maxProductPath = function(grid) {\n    const MOD = 1000000007;\n    const m = grid.length, n = grid[0].length;\n    const maxgt = new Array(m).fill(0).map(() => new Array(n).fill(0));\n    const minlt = new Array(m).fill(0).map(() => new Array(n).fill(0));\n    \n    maxgt[0][0] = minlt[0][0] = grid[0][0];\n    for (let i = 1; i < n; i++) {\n        maxgt[0][i] = minlt[0][i] = maxgt[0][i - 1] * grid[0][i];\n    }\n    for (let i = 1; i < m; i++) {\n        maxgt[i][0] = minlt[i][0] = maxgt[i - 1][0] * grid[i][0];\n    }\n    for (let i = 1; i < m; i++) {\n        for (let j = 1; j < n; j++) {\n            if (grid[i][j] >= 0) {\n                maxgt[i][j] = Math.max(maxgt[i][j - 1], maxgt[i - 1][j]) * grid[i][j];\n                minlt[i][j] = Math.min(minlt[i][j - 1], minlt[i - 1][j]) * grid[i][j];\n            } else {\n                maxgt[i][j] = Math.min(minlt[i][j - 1], minlt[i - 1][j]) * grid[i][j];\n                minlt[i][j] = Math.max(maxgt[i][j - 1], maxgt[i - 1][j]) * grid[i][j];\n            }\n        }\n    }\n    \n    if (maxgt[m - 1][n - 1] < 0) {\n        return -1;\n    } else {\n        return maxgt[m - 1][n - 1] % MOD;\n    }\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction maxProductPath(grid: number[][]): number {\n    const MOD = 1000000007;\n    const m = grid.length, n = grid[0].length;\n    \n    const maxgt: number[][] = new Array(m).fill(0).map(() => new Array(n).fill(0));\n    const minlt: number[][] = new Array(m).fill(0).map(() => new Array(n).fill(0));\n    \n    maxgt[0][0] = minlt[0][0] = grid[0][0];\n    for (let i = 1; i < n; i++) {\n        maxgt[0][i] = minlt[0][i] = maxgt[0][i - 1] * grid[0][i];\n    }\n    for (let i = 1; i < m; i++) {\n        maxgt[i][0] = minlt[i][0] = maxgt[i - 1][0] * grid[i][0];\n    }\n    for (let i = 1; i < m; i++) {\n        for (let j = 1; j < n; j++) {\n            if (grid[i][j] >= 0) {\n                maxgt[i][j] = Math.max(maxgt[i][j - 1], maxgt[i - 1][j]) * grid[i][j];\n                minlt[i][j] = Math.min(minlt[i][j - 1], minlt[i - 1][j]) * grid[i][j];\n            } else {\n                maxgt[i][j] = Math.min(minlt[i][j - 1], minlt[i - 1][j]) * grid[i][j];\n                minlt[i][j] = Math.max(maxgt[i][j - 1], maxgt[i - 1][j]) * grid[i][j];\n            }\n        }\n    }\n    \n    if (maxgt[m - 1][n - 1] < 0) {\n        return -1;\n    } else {\n        return maxgt[m - 1][n - 1] % MOD;\n    }\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn max_product_path(grid: Vec<Vec<i32>>) -> i32 {\n        const MOD: i64 = 1_000_000_007;\n        let m = grid.len();\n        let n = grid[0].len();\n        let mut maxgt = vec![vec![0i64; n]; m];\n        let mut minlt = vec![vec![0i64; n]; m];\n        maxgt[0][0] = grid[0][0] as i64;\n        minlt[0][0] = grid[0][0] as i64;\n        \n        for i in 1..n {\n            maxgt[0][i] = maxgt[0][i-1] * grid[0][i] as i64;\n            minlt[0][i] = maxgt[0][i];\n        }\n        for i in 1..m {\n            maxgt[i][0] = maxgt[i-1][0] * grid[i][0] as i64;\n            minlt[i][0] = maxgt[i][0];\n        }\n        for i in 1..m {\n            for j in 1..n {\n                let grid_val = grid[i][j] as i64;\n                if grid_val >= 0 {\n                    let max_prev = maxgt[i][j-1].max(maxgt[i-1][j]);\n                    let min_prev = minlt[i][j-1].min(minlt[i-1][j]);\n                    maxgt[i][j] = max_prev * grid_val;\n                    minlt[i][j] = min_prev * grid_val;\n                } else {\n                    let max_prev = maxgt[i][j-1].max(maxgt[i-1][j]);\n                    let min_prev = minlt[i][j-1].min(minlt[i-1][j]);\n                    maxgt[i][j] = min_prev * grid_val;\n                    minlt[i][j] = max_prev * grid_val;\n                }\n            }\n        }\n        \n        let result = maxgt[m-1][n-1];\n        if result < 0 {\n            -1\n        } else {\n            (result % MOD) as i32\n        }\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(mn)$，其中 $m$ 和 $n$ 为矩阵的行数与列数。我们需要遍历矩阵的每一个元素，而处理每个元素时只需要常数时间。\n\n- 空间复杂度：$O(mn)$。我们开辟了两个与原矩阵等大的数组。",
+            "slateValue": "",
+            "slug": "ju-zhen-de-zui-da-fei-fu-ji-by-leetcode-solution",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "ill8zo",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 18,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-10-09T03:42:49.100855+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 思路与算法 由于矩阵中的元素有正有负，要想得到最大积，我们只存储移动过程中的最大积是不够的，例如当前的最大积为正数时，乘上一个负数后，反而不如一个负数乘上相同的负数得到的积大。 因此，我们需要存储的是移动过程中的积的范围，也就是积的最小值以及最大值。由于只能向下或者向右走，我们可以考虑使用动态规划的方",
+            "topic": {
+                "id": 440336,
+                "subscribed": false,
+                "commentCount": 55,
+                "viewCount": 3235,
+                "post": {
+                    "id": 1060601,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 44,
+            "isEditorsPick": false,
+            "hitCount": 18940,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "maximum-non-negative-product-in-a-matrix",
+                "questionFrontendId": "1594"
+            },
+            "next": {
+                "slug": "ji-yi-hua-sou-suo-di-tui-kong-jian-you-h-hz2m",
+                "title": "记忆化搜索 -> 递推 -> 空间优化（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

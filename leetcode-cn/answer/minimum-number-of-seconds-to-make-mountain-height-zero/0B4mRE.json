@@ -1,0 +1,144 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "0B4mRE",
+            "title": "移山所需的最少秒数",
+            "content": "#### 方法一：二分答案\n\n**思路与算法**\n\n根据题目描述，如果 $t$ 秒可以使山的高度降低到 $0$，那么任何大于 $t$ 的秒数也可以。因此答案具有单调性，我们可以使用二分查找来解决本题。\n\n对于二分查找的每一步，假设当前猜测的秒数为 $\\textit{mid}$，我们需要判断所有工人在 $\\textit{mid}$ 秒内能否将山的高度降低 $H = \\textit{mountainHeight}$。对于第 $i$ 个工人，他将山的高度降低 $k$ 所需的时间为：\n\n$$\n\\textit{workerTimes}[i] \\cdot (1 + 2 + \\cdots + k) = \\textit{workerTimes}[i] \\cdot \\frac{k(k+1)}{2}\n$$\n\n因此在 $\\textit{mid}$ 秒内，第 $i$ 个工人 $i$ 最多能将山降低的高度，是满足\n\n$$\\textit{workerTimes}[i] \\cdot \\frac{k(k+1)}{2} \\leq \\textit{mid}$$\n\n的最大正整数 $k$。\n\n令 $\\textit{work} = \\lfloor \\dfrac{\\textit{mid}}{\\textit{workerTimes}[i]} \\rfloor$，其中 $\\lfloor \\cdot \\rfloor$ 表示下取整，则需要满足 $\\dfrac{k(k+1)}{2} \\leq \\textit{work}$，利用求一元二次方程求根公式可得：\n\n$$\nk = \\left\\lfloor \\frac{-1 + \\sqrt{1 + 8 \\cdot \\textit{work}}}{2} \\right\\rfloor\n$$\n\n我们将所有工人计算得到的 $k$ 值相加，如果总和大于等于 $H$，则说明 $\\textit{mid}$ 秒可以完成任务，应当尝试更少的时间，否则尝试更多的时间。\n\n二分查找的下界为 $1$，上界为 $\\max(\\textit{workerTimes}) \\cdot \\dfrac{H(H + 1)}{2}$，即最慢的工人独自完成所有工作所需的时间。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    long long minNumberOfSeconds(int mountainHeight, vector<int>& workerTimes) {\n        int maxWorkerTimes = *max_element(workerTimes.begin(), workerTimes.end());\n        long long l = 1, r = static_cast<long long>(maxWorkerTimes) * mountainHeight * (mountainHeight + 1) / 2;\n        long long ans = 0;\n\n        while (l <= r) {\n            long long mid = (l + r) / 2;\n            long long cnt = 0;\n            for (int t: workerTimes) {\n                long long work = mid / t;\n                // 求最大的 k 满足 1+2+...+k <= work\n                long long k = (-1.0 + sqrt(1 + work * 8)) / 2 + eps;\n                cnt += k;\n            }\n            if (cnt >= mountainHeight) {\n                ans = mid;\n                r = mid - 1;\n            }\n            else {\n                l = mid + 1;\n            }\n        }\n\n        return ans;\n    }\n\nprivate:\n    static constexpr double eps = 1e-7;\n};\n```\n\n```Python [sol1-Python]\nclass Solution:\n    def minNumberOfSeconds(self, mountainHeight: int, workerTimes: List[int]) -> int:\n        maxWorkerTimes = max(workerTimes)\n        l, r, ans = 1, maxWorkerTimes * mountainHeight * (mountainHeight + 1) // 2, 0\n        eps = 1e-7\n        \n        while l <= r:\n            mid = (l + r) // 2\n            cnt = 0\n            for t in workerTimes:\n                work = mid // t\n                # 求最大的 k 满足 1+2+...+k <= work\n                k = int((-1 + ((1 + work * 8) ** 0.5)) / 2 + eps)\n                cnt += k\n            if cnt >= mountainHeight:\n                ans = mid\n                r = mid - 1\n            else:\n                l = mid + 1\n\n        return ans\n```\n\n```Java [sol1-Java]\nclass Solution {\n    private static final double EPS = 1e-7;\n    \n    public long minNumberOfSeconds(int mountainHeight, int[] workerTimes) {\n        int maxWorkerTimes = 0;\n        for (int t : workerTimes) {\n            maxWorkerTimes = Math.max(maxWorkerTimes, t);\n        }\n        \n        long l = 1;\n        long r = (long) maxWorkerTimes * mountainHeight * (mountainHeight + 1) / 2;\n        long ans = 0;\n        \n        while (l <= r) {\n            long mid = (l + r) / 2;\n            long cnt = 0;\n            for (int t : workerTimes) {\n                long work = mid / t;\n                // 求最大的 k 满足 1+2+...+k <= work\n                long k = (long)((-1.0 + Math.sqrt(1 + work * 8)) / 2 + EPS);\n                cnt += k;\n            }\n            \n            if (cnt >= mountainHeight) {\n                ans = mid;\n                r = mid - 1;\n            } else {\n                l = mid + 1;\n            }\n        }\n        \n        return ans;\n    }\n}\n```\n\n```C# [sol1-C#]\nclass Solution {\n    private const double EPS = 1e-7;\n    \n    public long MinNumberOfSeconds(int mountainHeight, int[] workerTimes) {\n        int maxWorkerTimes = 0;\n        foreach (int t in workerTimes) {\n            maxWorkerTimes = Math.Max(maxWorkerTimes, t);\n        }\n        \n        long l = 1;\n        long r = (long)maxWorkerTimes * mountainHeight * (mountainHeight + 1) / 2;\n        long ans = 0;\n        \n        while (l <= r) {\n            long mid = (l + r) / 2;\n            long cnt = 0;\n            \n            foreach (int t in workerTimes) {\n                long work = mid / t;\n                // 求最大的 k 满足 1+2+...+k <= work\n                long k = (long)((-1.0 + Math.Sqrt(1 + work * 8)) / 2 + EPS);\n                cnt += k;\n            }\n            \n            if (cnt >= mountainHeight) {\n                ans = mid;\n                r = mid - 1;\n            } else {\n                l = mid + 1;\n            }\n        }\n        \n        return ans;\n    }\n}\n```\n\n```Go [sol1-Go]\nconst eps = 1e-7\n\nfunc minNumberOfSeconds(mountainHeight int, workerTimes []int) int64 {\n    maxWorkerTimes := 0\n    for _, t := range workerTimes {\n        if t > maxWorkerTimes {\n            maxWorkerTimes = t\n        }\n    }\n    \n    l := int64(1)\n    r := int64(maxWorkerTimes) * int64(mountainHeight) * int64(mountainHeight + 1) / 2\n    var ans int64 = 0\n    \n    for l <= r {\n        mid := (l + r) / 2\n        var cnt int64 = 0\n        \n        for _, t := range workerTimes {\n            work := mid / int64(t)\n            // 求最大的 k 满足 1+2+...+k <= work\n            k := int64((-1.0 + math.Sqrt(1 + float64(work) * 8)) / 2 + eps)\n            cnt += k\n        }\n        if cnt >= int64(mountainHeight) {\n            ans = mid\n            r = mid - 1\n        } else {\n            l = mid + 1\n        }\n    }\n    \n    return ans\n}\n```\n\n```C [sol1-C]\n#define EPS 1e-7\n\nlong long minNumberOfSeconds(int mountainHeight, int* workerTimes, int workerTimesSize) {\n    int maxWorkerTimes = 0;\n    for (int i = 0; i < workerTimesSize; i++) {\n        if (workerTimes[i] > maxWorkerTimes) {\n            maxWorkerTimes = workerTimes[i];\n        }\n    }\n    \n    long long l = 1;\n    long long r = (long long)maxWorkerTimes * mountainHeight * (mountainHeight + 1) / 2;\n    long long ans = 0;\n    \n    while (l <= r) {\n        long long mid = (l + r) / 2;\n        long long cnt = 0;\n        for (int i = 0; i < workerTimesSize; i++) {\n            long long work = mid / workerTimes[i];\n            // 求最大的 k 满足 1+2+...+k <= work\n            long long k = (long long)((-1.0 + sqrt(1 + work * 8)) / 2 + EPS);\n            cnt += k;\n        }\n        \n        if (cnt >= mountainHeight) {\n            ans = mid;\n            r = mid - 1;\n        } else {\n            l = mid + 1;\n        }\n    }\n    \n    return ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nconst EPS = 1e-7;\n\nvar minNumberOfSeconds = function(mountainHeight, workerTimes) {\n    const maxWorkerTimes = Math.max(...workerTimes);\n    let l = 1;\n    let r = maxWorkerTimes * mountainHeight * (mountainHeight + 1) / 2;\n    let ans = 0;\n    \n    while (l <= r) {\n        const mid = Math.floor((l + r) / 2);\n        let cnt = 0;\n        for (const t of workerTimes) {\n            const work = Math.floor(mid / t);\n            // 求最大的 k 满足 1+2+...+k <= work\n            const k = Math.floor((-1.0 + Math.sqrt(1 + work * 8)) / 2 + EPS);\n            cnt += k;\n        }\n        \n        if (cnt >= mountainHeight) {\n            ans = mid;\n            r = mid - 1;\n        } else {\n            l = mid + 1;\n        }\n    }\n    \n    return ans;\n}\n```\n\n```TypeScript [sol1-TypeScript]\nconst EPS: number = 1e-7;\n\nfunction minNumberOfSeconds(mountainHeight: number, workerTimes: number[]): number {\n    const maxWorkerTimes: number = Math.max(...workerTimes);\n    let l: number = 1;\n    let r: number = maxWorkerTimes * mountainHeight * (mountainHeight + 1) / 2;\n    let ans: number = 0;\n    \n    while (l <= r) {\n        const mid: number = Math.floor((l + r) / 2);\n        let cnt: number = 0;\n        for (const t of workerTimes) {\n            const work: number = Math.floor(mid / t);\n            // 求最大的 k 满足 1+2+...+k <= work\n            const k: number = Math.floor((-1.0 + Math.sqrt(1 + work * 8)) / 2 + EPS);\n            cnt += k;\n        }\n        \n        if (cnt >= mountainHeight) {\n            ans = mid;\n            r = mid - 1;\n        } else {\n            l = mid + 1;\n        }\n    }\n    \n    return ans;\n}\n```\n\n```Rust [sol1-Rust]\nconst EPS: f64 = 1e-7;\n\nimpl Solution {\n    pub fn min_number_of_seconds(mountain_height: i32, worker_times: Vec<i32>) -> i64 {\n        let mountain_height = mountain_height as i64;\n        let max_worker_times = *worker_times.iter().max().unwrap_or(&0) as i64;\n        \n        let mut l: i64 = 1;\n        let mut r: i64 = max_worker_times * mountain_height * (mountain_height + 1) / 2;\n        let mut ans: i64 = 0;\n        \n        while l <= r {\n            let mid = (l + r) / 2;\n            let mut cnt: i64 = 0;\n            \n            for &t in &worker_times {\n                let work = mid / t as i64;\n                // 求最大的 k 满足 1+2+...+k <= work\n                let k = ((-1.0 + (1.0 + (work as f64) * 8.0).sqrt()) / 2.0 + EPS) as i64;\n                cnt += k;\n            }\n            \n            if cnt >= mountain_height {\n                ans = mid;\n                r = mid - 1;\n            } else {\n                l = mid + 1;\n            }\n        }\n        \n        ans\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log(MH^2))$，其中 $n$ 是数组 $\\textit{workerTimes}$ 的长度，$M$ 是数组 $\\textit{workerTimes}$ 中的最大值，$H$ 是 $\\textit{mountainHeight}$。二分查找需要 $O(\\log(MH^2))$ 次迭代，每次迭代遍历所有工人，需要 $O(n)$ 的时间。\n\n- 空间复杂度：$O(1)$。",
+            "slateValue": "",
+            "slug": "yi-shan-suo-xu-de-zui-shao-miao-shu-by-l-ikvv",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "0B4mRE",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 9,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2026-03-02T02:24:59.960060+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：二分答案 思路与算法 根据题目描述，如果 [latex] 秒可以使山的高度降低到 [latex]，那么任何大于 [latex] 的秒数也可以。因此答案具有单调性，我们可以使用二分查找来解决本题。 对于二分查找的每一步，假设当前猜测的秒数为 [latex]，我们需要判断所有工人在 [latex] 秒内能否将山的高",
+            "topic": {
+                "id": 3911462,
+                "subscribed": false,
+                "commentCount": 24,
+                "viewCount": 23,
+                "post": {
+                    "id": 7134365,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 27,
+            "isEditorsPick": false,
+            "hitCount": 6358,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "minimum-number-of-seconds-to-make-mountain-height-zero",
+                "questionFrontendId": "3296"
+            },
+            "next": {
+                "slug": "er-fen-da-an-pythonjavacgo-by-endlessche-myg4",
+                "title": "两种方法：最小堆模拟/二分答案（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

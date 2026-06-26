@@ -1,0 +1,146 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "mfb6OZ",
+            "title": "最大的异或",
+            "content": "#### 前言\n\n假设我们在数组中选择了元素 $a_i$ 和 $a_j$（$i \\neq j$），使得它们达到最大的按位异或运算结果 $x$：\n\n$$\nx = a_i \\oplus a_j\n$$\n\n其中 $\\oplus$ 表示按位异或运算。要想求出 $x$，一种简单的方法是使用二重循环枚举 $i$ 和 $j$，但这样做的时间复杂度为 $O(n^2)$，会超出时间限制。因此，我们需要寻求时间复杂度更低的做法。\n\n根据按位异或运算的性质，$x = a_i \\oplus a_j$ 等价于 $a_j = x \\oplus a_i$。我们可以根据这一变换，设计一种「从高位到低位依次确定 $x$ 二进制表示的每一位」的方法，以此得到 $x$ 的值。该方法的精髓在于：\n\n- 由于数组中的元素都在 $[0, 2^{31})$ 的范围内，那么我们可以将每一个数表示为一个长度为 $31$ 位的二进制数（如果不满 $31$ 位，在最高位之前补上若干个前导 $0$ 即可）；\n\n- 这 $31$ 个二进制位从低位到高位依次编号为 $0, 1, \\cdots, 30$。我们从最高位第 $30$ 个二进制位开始，依次确定 $x$ 的每一位是 $0$ 还是 $1$；\n\n- 由于我们需要找出最大的 $x$，因此在枚举每一位时，我们先判断 $x$ 的这一位是否能取到 $1$。如果能，我们取这一位为 $1$，否则我们取这一位为 $0$。\n\n「判断 $x$ 的某一位是否能取到 $1$」这一步骤并不容易。下面介绍两种判断的方法。\n\n#### 方法一：哈希表\n\n**思路与算法**\n\n假设我们已经确定了 $x$ 最高的若干个二进制位，当前正在确定第 $k$ 个二进制位。根据「前言」部分的分析，我们希望第 $k$ 个二进制位能够取到 $1$。\n\n我们用 $\\textit{pre}^k(x)$ 表示 $x$ 从最高位第 $30$ 个二进制位开始，到第 $k$ 个二进制位为止的数，那么 $a_j = x \\oplus a_i$ 蕴含着：\n\n$$\n\\textit{pre}^k (a_j) = \\textit{pre}^k (x) \\oplus \\textit{pre}^k (a_i)\n$$\n\n由于 $\\textit{pre}^k(x)$ 对于我们来说是已知的，因此我们将所有的 $\\textit{pre}^k (a_j)$ 放入哈希表中，随后枚举 $i$ 并计算 $\\textit{pre}^k (x) \\oplus \\textit{pre}^k (a_i)$。如果其出现在哈希表中，那么说明第 $k$ 个二进制位能够取到 $1$，否则第 $k$ 个二进制位只能为 $0$。\n\n本方法若仅阅读文字，理解起来可能较为困难，读者可以参考下面的代码以及注释。\n\n**细节**\n\n计算 $\\textit{pre}^k(x)$ 可以使用右移运算 $\\texttt{>>}$。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\nprivate:\n    // 最高位的二进制位编号为 30\n    static constexpr int HIGH_BIT = 30;\n\npublic:\n    int findMaximumXOR(vector<int>& nums) {\n        int x = 0;\n        for (int k = HIGH_BIT; k >= 0; --k) {\n            unordered_set<int> seen;\n            // 将所有的 pre^k(a_j) 放入哈希表中\n            for (int num: nums) {\n                // 如果只想保留从最高位开始到第 k 个二进制位为止的部分\n                // 只需将其右移 k 位\n                seen.insert(num >> k);\n            }\n\n            // 目前 x 包含从最高位开始到第 k+1 个二进制位为止的部分\n            // 我们将 x 的第 k 个二进制位置为 1，即为 x = x*2+1\n            int x_next = x * 2 + 1;\n            bool found = false;\n            \n            // 枚举 i\n            for (int num: nums) {\n                if (seen.count(x_next ^ (num >> k))) {\n                    found = true;\n                    break;\n                }\n            }\n\n            if (found) {\n                x = x_next;\n            }\n            else {\n                // 如果没有找到满足等式的 a_i 和 a_j，那么 x 的第 k 个二进制位只能为 0\n                // 即为 x = x*2\n                x = x_next - 1;\n            }\n        }\n        return x;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    // 最高位的二进制位编号为 30\n    static final int HIGH_BIT = 30;\n\n    public int findMaximumXOR(int[] nums) {\n        int x = 0;\n        for (int k = HIGH_BIT; k >= 0; --k) {\n            Set<Integer> seen = new HashSet<Integer>();\n            // 将所有的 pre^k(a_j) 放入哈希表中\n            for (int num : nums) {\n                // 如果只想保留从最高位开始到第 k 个二进制位为止的部分\n                // 只需将其右移 k 位\n                seen.add(num >> k);\n            }\n\n            // 目前 x 包含从最高位开始到第 k+1 个二进制位为止的部分\n            // 我们将 x 的第 k 个二进制位置为 1，即为 x = x*2+1\n            int xNext = x * 2 + 1;\n            boolean found = false;\n            \n            // 枚举 i\n            for (int num : nums) {\n                if (seen.contains(xNext ^ (num >> k))) {\n                    found = true;\n                    break;\n                }\n            }\n\n            if (found) {\n                x = xNext;\n            } else {\n                // 如果没有找到满足等式的 a_i 和 a_j，那么 x 的第 k 个二进制位只能为 0\n                // 即为 x = x*2\n                x = xNext - 1;\n            }\n        }\n        return x;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    // 最高位的二进制位编号为 30\n    const int HIGH_BIT = 30;\n\n    public int FindMaximumXOR(int[] nums) {\n        int x = 0;\n        for (int k = HIGH_BIT; k >= 0; --k) {\n            ISet<int> seen = new HashSet<int>();\n            // 将所有的 pre^k(a_j) 放入哈希表中\n            foreach (int num in nums) {\n                // 如果只想保留从最高位开始到第 k 个二进制位为止的部分\n                // 只需将其右移 k 位\n                seen.Add(num >> k);\n            }\n\n            // 目前 x 包含从最高位开始到第 k+1 个二进制位为止的部分\n            // 我们将 x 的第 k 个二进制位置为 1，即为 x = x*2+1\n            int xNext = x * 2 + 1;\n            bool found = false;\n            \n            // 枚举 i\n            foreach (int num in nums) {\n                if (seen.Contains(xNext ^ (num >> k))) {\n                    found = true;\n                    break;\n                }\n            }\n\n            if (found) {\n                x = xNext;\n            } else {\n                // 如果没有找到满足等式的 a_i 和 a_j，那么 x 的第 k 个二进制位只能为 0\n                // 即为 x = x*2\n                x = xNext - 1;\n            }\n        }\n        return x;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def findMaximumXOR(self, nums: List[int]) -> int:\n        # 最高位的二进制位编号为 30\n        HIGH_BIT = 30\n\n        x = 0\n        for k in range(HIGH_BIT, -1, -1):\n            seen = set()\n            # 将所有的 pre^k(a_j) 放入哈希表中\n            for num in nums:\n                # 如果只想保留从最高位开始到第 k 个二进制位为止的部分\n                # 只需将其右移 k 位\n                seen.add(num >> k)\n\n            # 目前 x 包含从最高位开始到第 k+1 个二进制位为止的部分\n            # 我们将 x 的第 k 个二进制位置为 1，即为 x = x*2+1\n            x_next = x * 2 + 1\n            found = False\n            \n            # 枚举 i\n            for num in nums:\n                if x_next ^ (num >> k) in seen:\n                    found = True\n                    break\n\n            if found:\n                x = x_next\n            else:\n                # 如果没有找到满足等式的 a_i 和 a_j，那么 x 的第 k 个二进制位只能为 0\n                # 即为 x = x*2\n                x = x_next - 1\n        \n        return x\n```\n\n```JavaScript [sol1-JavaScript]\nvar findMaximumXOR = function(nums) {\n    const HIGH_BIT = 30;\n    let x = 0;\n    for (let k = HIGH_BIT; k >= 0; --k) {\n        const seen = new Set();\n        // 将所有的 pre^k(a_j) 放入哈希表中\n        for (const num of nums) {\n            // 如果只想保留从最高位开始到第 k 个二进制位为止的部分\n            // 只需将其右移 k 位\n            seen.add(num >> k);\n        }\n\n        // 目前 x 包含从最高位开始到第 k+1 个二进制位为止的部分\n        // 我们将 x 的第 k 个二进制位置为 1，即为 x = x*2+1\n        const xNext = x * 2 + 1;\n        let found = false;\n        \n        // 枚举 i\n        for (const num of nums) {\n            if (seen.has(xNext ^ (num >> k))) {\n                found = true;\n                break;\n            }\n        }\n\n        if (found) {\n            x = xNext;\n        } else {\n            // 如果没有找到满足等式的 a_i 和 a_j，那么 x 的第 k 个二进制位只能为 0\n            // 即为 x = x*2\n            x = xNext - 1;\n        }\n    }\n    return x; \n};\n```\n\n```go [sol1-Golang]\nfunc findMaximumXOR(nums []int) (x int) {\n    const highBit = 30 // 最高位的二进制位编号为 30\n    for k := highBit; k >= 0; k-- {\n        // 将所有的 pre^k(a_j) 放入哈希表中\n        seen := map[int]bool{}\n        for _, num := range nums {\n            // 如果只想保留从最高位开始到第 k 个二进制位为止的部分\n            // 只需将其右移 k 位\n            seen[num>>k] = true\n        }\n\n        // 目前 x 包含从最高位开始到第 k+1 个二进制位为止的部分\n        // 我们将 x 的第 k 个二进制位置为 1，即为 x = x*2+1\n        xNext := x*2 + 1\n        found := false\n\n        // 枚举 i\n        for _, num := range nums {\n            if seen[num>>k^xNext] {\n                found = true\n                break\n            }\n        }\n\n        if found {\n            x = xNext\n        } else {\n            // 如果没有找到满足等式的 a_i 和 a_j，那么 x 的第 k 个二进制位只能为 0\n            // 即为 x = x*2\n            x = xNext - 1\n        }\n    }\n    return\n}\n```\n\n```C [sol1-C]\nconst int HIGH_BIT = 30;\n\nstruct HashTable {\n    int key;\n    UT_hash_handle hh;\n};\n\nint findMaximumXOR(int* nums, int numsSize) {\n    int x = 0;\n    for (int k = HIGH_BIT; k >= 0; --k) {\n        struct HashTable* hashTable = NULL;\n        // 将所有的 pre^k(a_j) 放入哈希表中\n        for (int i = 0; i < numsSize; i++) {\n            // 如果只想保留从最高位开始到第 k 个二进制位为止的部分\n            // 只需将其右移 k 位\n            int x = nums[i] >> k;\n            struct HashTable* tmp;\n            HASH_FIND_INT(hashTable, &x, tmp);\n            if (tmp == NULL) {\n                tmp = malloc(sizeof(struct HashTable));\n                tmp->key = x;\n                HASH_ADD_INT(hashTable, key, tmp);\n            }\n        }\n\n        // 目前 x 包含从最高位开始到第 k+1 个二进制位为止的部分\n        // 我们将 x 的第 k 个二进制位置为 1，即为 x = x*2+1\n        int x_next = x * 2 + 1;\n        bool found = false;\n\n        // 枚举 i\n        for (int i = 0; i < numsSize; i++) {\n            int x = x_next ^ (nums[i] >> k);\n            struct HashTable* tmp;\n            HASH_FIND_INT(hashTable, &x, tmp);\n            if (tmp != NULL) {\n                found = true;\n                break;\n            }\n        }\n\n        if (found) {\n            x = x_next;\n        } else {\n            // 如果没有找到满足等式的 a_i 和 a_j，那么 x 的第 k 个二进制位只能为 0\n            // 即为 x = x*2\n            x = x_next - 1;\n        }\n    }\n    return x;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log C)$，其中 $n$ 是数组 $\\textit{nums}$ 的长度，$C$ 是数组中的元素范围，在本题中 $C < 2^{31}$。枚举答案 $x$ 的每一个二进制位的时间复杂度为 $O(\\log C)$，在每一次枚举的过程中，我们需要 $O(n)$ 的时间进行判断，因此总时间复杂度为 $O(n \\log C)$。\n\n- 空间复杂度：$O(n)$，即为哈希表需要使用的空间。\n\n#### 方法二：字典树\n\n**思路与算法**\n\n我们也可以将数组中的元素看成长度为 $31$ 的字符串，字符串中只包含 $0$ 和 $1$。如果我们将字符串放入字典树中，那么在字典树中查询一个字符串的过程，恰好就是从高位开始确定每一个二进制位的过程。字典树的具体逻辑以及实现可以参考「[208. 实现 Trie（前缀树）的官方题解](https://leetcode.cn/problems/implement-trie-prefix-tree/solution/shi-xian-trie-qian-zhui-shu-by-leetcode-ti500/)」，这里我们只说明如何使用字典树解决本题。\n\n根据 $x = a_i \\oplus a_j$，我们枚举 $a_i$，并将 $a_0, a_1, \\cdots, a_{i-1}$ 作为 $a_j$ 放入字典树中，希望找出使得 $x$ 达到最大值的 $a_j$。\n\n如何求出 $x$ 呢？我们可以从字典树的根节点开始进行遍历，遍历的「参照对象」为 $a_i$。在遍历的过程中，我们根据 $a_i$ 的第 $x$ 个二进制位是 $0$ 还是 $1$，确定我们应当走向哪个子节点以继续遍历。假设我们当前遍历到了第 $k$ 个二进制位：\n\n- 如果 $a_i$ 的第 $k$ 个二进制位为 $0$，那么我们应当往表示 $1$ 的子节点走，这样 $0 \\oplus 1 = 1$，可以使得 $x$ 的第 $k$ 个二进制位为 $1$。如果不存在表示 $1$ 的子节点，那么我们只能往表示 $0$ 的子节点走，$x$ 的第 $k$ 个二进制位为 $0$；\n\n- 如果 $a_i$ 的第 $k$ 个二进制位为 $1$，那么我们应当往表示 $0$ 的子节点走，这样 $1 \\oplus 0 = 1$，可以使得 $x$ 的第 $k$ 个二进制位为 $1$。如果不存在表示 $0$ 的子节点，那么我们只能往表示 $1$ 的子节点走，$x$ 的第 $k$ 个二进制位为 $0$。\n\n当遍历完所有的 $31$ 个二进制位后，我们也就得到了 $a_i$ 可以通过异或运算得到的最大 $x$。这样一来，如果我们枚举了所有的 $a_i$，也就得到了最终的答案。\n\n**细节**\n\n由于字典树中的每个节点最多只有两个子节点，分别表示 $0$ 和 $1$，因此本题中的字典树是一棵二叉树。在设计字典树的数据结构时，我们可以令左子节点 $\\textit{left}$ 表示 $0$，右子节点 $\\textit{right}$ 表示 $1$。\n\n**代码**\n\n下面的 $\\texttt{C++}$ 代码没有析构字典树的空间。如果在面试中遇到了本题，可以和面试官进行沟通，询问是否需要析构对应的空间。\n\n```C++ [sol2-C++]\nstruct Trie {\n    // 左子树指向表示 0 的子节点\n    Trie* left = nullptr;\n    // 右子树指向表示 1 的子节点\n    Trie* right = nullptr;\n\n    Trie() {}\n};\n\nclass Solution {\nprivate:\n    // 字典树的根节点\n    Trie* root = new Trie();\n    // 最高位的二进制位编号为 30\n    static constexpr int HIGH_BIT = 30;\n\npublic:\n    void add(int num) {\n        Trie* cur = root;\n        for (int k = HIGH_BIT; k >= 0; --k) {\n            int bit = (num >> k) & 1;\n            if (bit == 0) {\n                if (!cur->left) {\n                    cur->left = new Trie();\n                }\n                cur = cur->left;\n            }\n            else {\n                if (!cur->right) {\n                    cur->right = new Trie();\n                }\n                cur = cur->right;\n            }\n        }\n    }\n\n    int check(int num) {\n        Trie* cur = root;\n        int x = 0;\n        for (int k = HIGH_BIT; k >= 0; --k) {\n            int bit = (num >> k) & 1;\n            if (bit == 0) {\n                // a_i 的第 k 个二进制位为 0，应当往表示 1 的子节点 right 走\n                if (cur->right) {\n                    cur = cur->right;\n                    x = x * 2 + 1;\n                }\n                else {\n                    cur = cur->left;\n                    x = x * 2;\n                }\n            }\n            else {\n                // a_i 的第 k 个二进制位为 1，应当往表示 0 的子节点 left 走\n                if (cur->left) {\n                    cur = cur->left;\n                    x = x * 2 + 1;\n                }\n                else {\n                    cur = cur->right;\n                    x = x * 2;\n                }\n            }\n        }\n        return x;\n    }\n\n    int findMaximumXOR(vector<int>& nums) {\n        int n = nums.size();\n        int x = 0;\n        for (int i = 1; i < n; ++i) {\n            // 将 nums[i-1] 放入字典树，此时 nums[0 .. i-1] 都在字典树中\n            add(nums[i - 1]);\n            // 将 nums[i] 看作 ai，找出最大的 x 更新答案\n            x = max(x, check(nums[i]));\n        }\n        return x;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    // 字典树的根节点\n    Trie root = new Trie();\n    // 最高位的二进制位编号为 30\n    static final int HIGH_BIT = 30;\n\n    public int findMaximumXOR(int[] nums) {\n        int n = nums.length;\n        int x = 0;\n        for (int i = 1; i < n; ++i) {\n            // 将 nums[i-1] 放入字典树，此时 nums[0 .. i-1] 都在字典树中\n            add(nums[i - 1]);\n            // 将 nums[i] 看作 ai，找出最大的 x 更新答案\n            x = Math.max(x, check(nums[i]));\n        }\n        return x;\n    }\n\n    public void add(int num) {\n        Trie cur = root;\n        for (int k = HIGH_BIT; k >= 0; --k) {\n            int bit = (num >> k) & 1;\n            if (bit == 0) {\n                if (cur.left == null) {\n                    cur.left = new Trie();\n                }\n                cur = cur.left;\n            }\n            else {\n                if (cur.right == null) {\n                    cur.right = new Trie();\n                }\n                cur = cur.right;\n            }\n        }\n    }\n\n    public int check(int num) {\n        Trie cur = root;\n        int x = 0;\n        for (int k = HIGH_BIT; k >= 0; --k) {\n            int bit = (num >> k) & 1;\n            if (bit == 0) {\n                // a_i 的第 k 个二进制位为 0，应当往表示 1 的子节点 right 走\n                if (cur.right != null) {\n                    cur = cur.right;\n                    x = x * 2 + 1;\n                } else {\n                    cur = cur.left;\n                    x = x * 2;\n                }\n            } else {\n                // a_i 的第 k 个二进制位为 1，应当往表示 0 的子节点 left 走\n                if (cur.left != null) {\n                    cur = cur.left;\n                    x = x * 2 + 1;\n                } else {\n                    cur = cur.right;\n                    x = x * 2;\n                }\n            }\n        }\n        return x;\n    }\n}\n\nclass Trie {\n    // 左子树指向表示 0 的子节点\n    Trie left = null;\n    // 右子树指向表示 1 的子节点\n    Trie right = null;\n}\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    // 字典树的根节点\n    Trie root = new Trie();\n    // 最高位的二进制位编号为 30\n    const int HIGH_BIT = 30;\n\n    public int FindMaximumXOR(int[] nums) {\n        int n = nums.Length;\n        int x = 0;\n        for (int i = 1; i < n; ++i) {\n            // 将 nums[i-1] 放入字典树，此时 nums[0 .. i-1] 都在字典树中\n            Add(nums[i - 1]);\n            // 将 nums[i] 看作 ai，找出最大的 x 更新答案\n            x = Math.Max(x, Check(nums[i]));\n        }\n        return x;\n    }\n\n    public void Add(int num) {\n        Trie cur = root;\n        for (int k = HIGH_BIT; k >= 0; --k) {\n            int bit = (num >> k) & 1;\n            if (bit == 0) {\n                if (cur.left == null) {\n                    cur.left = new Trie();\n                }\n                cur = cur.left;\n            }\n            else {\n                if (cur.right == null) {\n                    cur.right = new Trie();\n                }\n                cur = cur.right;\n            }\n        }\n    }\n\n    public int Check(int num) {\n        Trie cur = root;\n        int x = 0;\n        for (int k = HIGH_BIT; k >= 0; --k) {\n            int bit = (num >> k) & 1;\n            if (bit == 0) {\n                // a_i 的第 k 个二进制位为 0，应当往表示 1 的子节点 right 走\n                if (cur.right != null) {\n                    cur = cur.right;\n                    x = x * 2 + 1;\n                } else {\n                    cur = cur.left;\n                    x = x * 2;\n                }\n            } else {\n                // a_i 的第 k 个二进制位为 1，应当往表示 0 的子节点 left 走\n                if (cur.left != null) {\n                    cur = cur.left;\n                    x = x * 2 + 1;\n                } else {\n                    cur = cur.right;\n                    x = x * 2;\n                }\n            }\n        }\n        return x;\n    }\n}\n\nclass Trie {\n    // 左子树指向表示 0 的子节点\n    public Trie left = null;\n    // 右子树指向表示 1 的子节点\n    public Trie right = null;\n}\n```\n\n```Python [sol2-Python3]\nclass Trie:\n    def __init__(self):\n        # 左子树指向表示 0 的子节点\n        self.left = None\n        # 右子树指向表示 1 的子节点\n        self.right = None\n\nclass Solution:\n    def findMaximumXOR(self, nums: List[int]) -> int:\n        # 字典树的根节点\n        root = Trie()\n        # 最高位的二进制位编号为 30\n        HIGH_BIT = 30\n\n        def add(num: int):\n            cur = root\n            for k in range(HIGH_BIT, -1, -1):\n                bit = (num >> k) & 1\n                if bit == 0:\n                    if not cur.left:\n                        cur.left = Trie()\n                    cur = cur.left\n                else:\n                    if not cur.right:\n                        cur.right = Trie()\n                    cur = cur.right\n\n        def check(num: int) -> int:\n            cur = root\n            x = 0\n            for k in range(HIGH_BIT, -1, -1):\n                bit = (num >> k) & 1\n                if bit == 0:\n                    # a_i 的第 k 个二进制位为 0，应当往表示 1 的子节点 right 走\n                    if cur.right:\n                        cur = cur.right\n                        x = x * 2 + 1\n                    else:\n                        cur = cur.left\n                        x = x * 2\n                else:\n                    # a_i 的第 k 个二进制位为 1，应当往表示 0 的子节点 left 走\n                    if cur.left:\n                        cur = cur.left\n                        x = x * 2 + 1\n                    else:\n                        cur = cur.right\n                        x = x * 2\n            return x\n\n        n = len(nums)\n        x = 0\n        for i in range(1, n):\n            # 将 nums[i-1] 放入字典树，此时 nums[0 .. i-1] 都在字典树中\n            add(nums[i - 1])\n            # 将 nums[i] 看作 ai，找出最大的 x 更新答案\n            x = max(x, check(nums[i]))\n\n        return x\n```\n\n```go [sol2-Golang]\nconst highBit = 30\n\ntype trie struct {\n    left, right *trie\n}\n\nfunc (t *trie) add(num int) {\n    cur := t\n    for i := highBit; i >= 0; i-- {\n        bit := num >> i & 1\n        if bit == 0 {\n            if cur.left == nil {\n                cur.left = &trie{}\n            }\n            cur = cur.left\n        } else {\n            if cur.right == nil {\n                cur.right = &trie{}\n            }\n            cur = cur.right\n        }\n    }\n}\n\nfunc (t *trie) check(num int) (x int) {\n    cur := t\n    for i := highBit; i >= 0; i-- {\n        bit := num >> i & 1\n        if bit == 0 {\n            // a_i 的第 k 个二进制位为 0，应当往表示 1 的子节点 right 走\n            if cur.right != nil {\n                cur = cur.right\n                x = x*2 + 1\n            } else {\n                cur = cur.left\n                x = x * 2\n            }\n        } else {\n            // a_i 的第 k 个二进制位为 1，应当往表示 0 的子节点 left 走\n            if cur.left != nil {\n                cur = cur.left\n                x = x*2 + 1\n            } else {\n                cur = cur.right\n                x = x * 2\n            }\n        }\n    }\n    return\n}\n\nfunc findMaximumXOR(nums []int) (x int) {\n    root := &trie{}\n    for i := 1; i < len(nums); i++ {\n        // 将 nums[i-1] 放入字典树，此时 nums[0 .. i-1] 都在字典树中\n        root.add(nums[i-1])\n        // 将 nums[i] 看作 ai，找出最大的 x 更新答案\n        x = max(x, root.check(nums[i]))\n    }\n    return\n}\n\nfunc max(a, b int) int {\n    if a > b {\n        return a\n    }\n    return b\n}\n```\n\n```C [sol2-C]\nconst int HIGH_BIT = 30;\n\nstruct Trie {\n    // 左子树指向表示 0 的子节点\n    struct Trie* left;\n    // 右子树指向表示 1 的子节点\n    struct Trie* right;\n};\n\nstruct Trie* createTrie() {\n    struct Trie* ret = malloc(sizeof(struct Trie));\n    ret->left = ret->right = NULL;\n    return ret;\n}\n\nvoid add(struct Trie* root, int num) {\n    struct Trie* cur = root;\n    for (int k = HIGH_BIT; k >= 0; --k) {\n        int bit = (num >> k) & 1;\n        if (bit == 0) {\n            if (!cur->left) {\n                cur->left = createTrie();\n            }\n            cur = cur->left;\n        } else {\n            if (!cur->right) {\n                cur->right = createTrie();\n            }\n            cur = cur->right;\n        }\n    }\n}\n\nint check(struct Trie* root, int num) {\n    struct Trie* cur = root;\n    int x = 0;\n    for (int k = HIGH_BIT; k >= 0; --k) {\n        int bit = (num >> k) & 1;\n        if (bit == 0) {\n            // a_i 的第 k 个二进制位为 0，应当往表示 1 的子节点 right 走\n            if (cur->right) {\n                cur = cur->right;\n                x = x * 2 + 1;\n            } else {\n                cur = cur->left;\n                x = x * 2;\n            }\n        } else {\n            // a_i 的第 k 个二进制位为 1，应当往表示 0 的子节点 left 走\n            if (cur->left) {\n                cur = cur->left;\n                x = x * 2 + 1;\n            } else {\n                cur = cur->right;\n                x = x * 2;\n            }\n        }\n    }\n    return x;\n}\n\nint findMaximumXOR(int* nums, int numsSize) {\n    struct Trie* root = createTrie();\n    int x = 0;\n    for (int i = 1; i < numsSize; ++i) {\n        // 将 nums[i-1] 放入字典树，此时 nums[0 .. i-1] 都在字典树中\n        add(root, nums[i - 1]);\n        // 将 nums[i] 看作 ai，找出最大的 x 更新答案\n        x = fmax(x, check(root, nums[i]));\n    }\n    return x;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log C)$，其中 $n$ 是数组 $\\textit{nums}$ 的长度，$C$ 是数组中的元素范围，在本题中 $C < 2^{31}$。我们需要将 $a_0$ 到 $a_{n-2}$ 加入字典树中，并且需要以 $a_1$ 到 $a_{n-1}$ 作为「参照对象」在字典树上进行遍历，每一项操作的单次时间复杂度为 $O(\\log C)$，因此总时间复杂度为 $O(n \\log C)$。\n\n- 空间复杂度：$O(n \\log C)$。每一个元素在字典树中需要使用 $O(\\log C)$ 的空间，因此总空间复杂度为 $O(n \\log C)$。",
+            "slateValue": "",
+            "slug": "zui-da-de-yi-huo-by-leetcode-solution-hr7m",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "mfb6OZ",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 33,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 4,
+                    "reactionType": "CONFUSED"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Bit Manipulation",
+                    "nameTranslated": "位运算",
+                    "slug": "bit-manipulation",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Trie",
+                    "nameTranslated": "字典树",
+                    "slug": "trie",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-11-08T03:46:11.198000+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "前言 假设我们在数组中选择了元素 $a_i$ 和 $a_j$（$i \\neq j$），使得它们达到最大的按位异或运算结果 $x$： x = a_i \\oplus a_j 其中 $\\oplus$ 表示按位异或运算。要想求出 $x$，一种简单的方法是使用二重循环枚举 $i$ 和 $j$，但这样做的时间复杂度为 $O(n^2",
+            "topic": {
+                "id": 1090301,
+                "subscribed": false,
+                "commentCount": 37,
+                "viewCount": 10107,
+                "post": {
+                    "id": 2309525,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 68,
+            "isEditorsPick": false,
+            "hitCount": 24621,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "ms70jA",
+                "questionFrontendId": "LCR 067"
+            },
+            "next": {
+                "slug": "tu-jie-jian-ji-gao-xiao-yi-tu-miao-dong-q6y1a",
+                "title": "【图解】简洁高效，一图秒懂！（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

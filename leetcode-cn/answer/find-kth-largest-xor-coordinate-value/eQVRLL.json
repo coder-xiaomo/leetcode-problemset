@@ -1,0 +1,152 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "eQVRLL",
+            "title": "找出第 K 大的异或坐标值",
+            "content": "#### 前言\n\n**思路与算法**\n\n我们用 $\\oplus$ 表示按位异或运算。\n\n由于「按位异或运算」与「加法运算」有着十分相似的性质，它们都满足交换律：\n\n$$\na \\oplus b = b \\oplus a\n$$\n\n以及结合律：\n\n$$\n(a \\oplus b) \\oplus c = a \\oplus (b \\oplus c)\n$$\n\n因此我们可以使用「前缀和」这一技巧对按位异或运算的结果进行维护。由于本题中给定的矩阵 $\\textit{matrix}$ 是二维的，因此我们需要使用二维前缀和。\n\n设二维前缀和 $\\textit{pre}(i, j)$ 表示矩阵 $\\textit{matrix}$ 中所有满足 $0 \\leq x < i$ 且 $0 \\leq y < j$ 的元素执行按位异或运算的结果。与一维前缀和类似，要想快速得到 $\\textit{pre}(i, j)$，我们需要已经知道 $\\textit{pre}(i-1, j)$，$\\textit{pre}(i, j-1)$ 以及 $\\textit{pre}(i-1,j-1)$ 的结果，即：\n\n$$\n\\textit{pre}(i, j) = \\textit{pre}(i-1, j) \\oplus \\textit{pre}(i, j-1) \\oplus \\textit{pre}(i-1, j-1) \\oplus \\textit{matrix}(i, j)\n$$\n\n下图给出了该二维前缀和递推式的可视化展示。\n\n![fig1](https://assets.leetcode.cn/solution-static/1738/1.png)\n\n当我们将 $\\textit{pre}(i-1, j)$ 和 $\\textit{pre}(i, j-1)$ 进行按位异或运算后，由于对一个数 $x$ 异或两次 $y$，结果仍然为 $x$ 本身，即：\n\n$$\nx \\oplus y \\oplus y = x\n$$\n\n因此 $\\textit{pre}(i-1, j-1)$ 对应区域的按位异或结果被抵消，我们需要将其补上，并对位置 $(i, j)$ 的元素进行按位异或运算，这样就得到了 $\\textit{pre}(i, j)$。\n\n在得到了所有的二维前缀和之后，我们只需要找出其中第 $k$ 大的元素即为答案。这一步我们可以直接将 $mn$ 个二维前缀和进行排序后返第 $k$ 大的元素，也可以参考「[215. 数组中的第 K 个最大元素的官方题解](https://leetcode.cn/problems/kth-largest-element-in-an-array/solution/shu-zu-zhong-de-di-kge-zui-da-yuan-su-by-leetcode-/)」中时间复杂度更低的做法。\n\n下面的方法一给出的是基于排序的解法，方法二给出的是基于快速排序思路的、时间复杂度更低的快速选择算法的解法。\n\n**细节**\n\n在二维前缀和的计算过程中，如果我们正在计算首行或者首列，即 $i=0$ 或 $j=0$，此时例如 $\\textit{pre}(i-1,j-1)$ 是一个超出下标范围的结果。因此我们可以使用一个 $(m+1) \\times (n+1)$ 的二维矩阵，将首行和首列空出来赋予默认值 $0$，并使用接下来的 $m$ 行和 $n$ 列存储二维前缀和，这样就不必进行下标范围的判断了。\n\n#### 方法一：二维前缀和 + 排序\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int kthLargestValue(vector<vector<int>>& matrix, int k) {\n        int m = matrix.size(), n = matrix[0].size();\n        vector<vector<int>> pre(m + 1, vector<int>(n + 1));\n        vector<int> results;\n        for (int i = 1; i <= m; ++i) {\n            for (int j = 1; j <= n; ++j) {\n                pre[i][j] = pre[i - 1][j] ^ pre[i][j - 1] ^ pre[i - 1][j - 1] ^ matrix[i - 1][j - 1];\n                results.push_back(pre[i][j]);\n            }\n        }\n\n        sort(results.begin(), results.end(), greater<int>());\n        return results[k - 1];\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int kthLargestValue(int[][] matrix, int k) {\n        int m = matrix.length, n = matrix[0].length;\n        int[][] pre = new int[m + 1][n + 1];\n        List<Integer> results = new ArrayList<Integer>();\n        for (int i = 1; i <= m; ++i) {\n            for (int j = 1; j <= n; ++j) {\n                pre[i][j] = pre[i - 1][j] ^ pre[i][j - 1] ^ pre[i - 1][j - 1] ^ matrix[i - 1][j - 1];\n                results.add(pre[i][j]);\n            }\n        }\n\n        Collections.sort(results, new Comparator<Integer>() {\n            public int compare(Integer num1, Integer num2) {\n                return num2 - num1;\n            }\n        });\n        return results.get(k - 1);\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int KthLargestValue(int[][] matrix, int k) {\n        int m = matrix.Length, n = matrix[0].Length;\n        int[,] pre = new int[m + 1, n + 1];\n        List<int> results = new List<int>();\n        for (int i = 1; i <= m; ++i) {\n            for (int j = 1; j <= n; ++j) {\n                pre[i, j] = pre[i - 1, j] ^ pre[i, j - 1] ^ pre[i - 1, j - 1] ^ matrix[i - 1][j - 1];\n                results.Add(pre[i, j]);\n            }\n        }\n\n        results.Sort(\n            delegate(int num1, int num2) {\n                return num2 - num1;\n            }\n        );\n        return results[k - 1];\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def kthLargestValue(self, matrix: List[List[int]], k: int) -> int:\n        m, n = len(matrix), len(matrix[0])\n        pre = [[0] * (n + 1) for _ in range(m + 1)]\n        results = list()\n        for i in range(1, m + 1):\n            for j in range(1, n + 1):\n                pre[i][j] = pre[i - 1][j] ^ pre[i][j - 1] ^ pre[i - 1][j - 1] ^ matrix[i - 1][j - 1]\n                results.append(pre[i][j])\n\n        results.sort(reverse=True)\n        return results[k - 1]\n```\n\n```go [sol1-Golang]\nfunc kthLargestValue(matrix [][]int, k int) int {\n    m, n := len(matrix), len(matrix[0])\n    results := make([]int, 0, m*n)\n    pre := make([][]int, m+1)\n    pre[0] = make([]int, n+1)\n    for i, row := range matrix {\n        pre[i+1] = make([]int, n+1)\n        for j, val := range row {\n            pre[i+1][j+1] = pre[i+1][j] ^ pre[i][j+1] ^ pre[i][j] ^ val\n            results = append(results, pre[i+1][j+1])\n        }\n    }\n    sort.Sort(sort.Reverse(sort.IntSlice(results)))\n    return results[k-1]\n}\n```\n\n```C [sol1-C]\nint cmp(int* a, int* b) {\n    return *b - *a;\n}\n\nint kthLargestValue(int** matrix, int matrixSize, int* matrixColSize, int k) {\n    int m = matrixSize, n = matrixColSize[0];\n    int pre[m + 1][n + 1];\n    memset(pre, 0, sizeof(pre));\n    int results[m * n], resultsSize = 0;\n    for (int i = 1; i <= m; ++i) {\n        for (int j = 1; j <= n; ++j) {\n            pre[i][j] = pre[i - 1][j] ^ pre[i][j - 1] ^ pre[i - 1][j - 1] ^ matrix[i - 1][j - 1];\n            results[resultsSize++] = pre[i][j];\n        }\n    }\n\n    qsort(results, resultsSize, sizeof(int), cmp);\n    return results[k - 1];\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar kthLargestValue = function(matrix, k) {\n    const m = matrix.length, n = matrix[0].length;\n    const pre = new Array(m + 1).fill(0).map(() => new Array(n + 1).fill(0));\n    const results = [];\n    for (let i = 1; i < m + 1; i++) {\n        for (let j = 1; j < n + 1; j++) {\n            pre[i][j] = pre[i - 1][j] ^ pre[i][j - 1] ^ pre[i - 1][j - 1] ^ matrix[i - 1][j - 1];\n            results.push(pre[i][j]);\n        }\n    }\n    results.sort((a, b) => b - a);\n    return results[k - 1];\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(mn \\log (mn))$。计算二维前缀和的时间复杂度为 $O(mn)$，排序的时间复杂度为 $O(mn \\log (mn))$，因此总时间复杂度为 $O(mn \\log (mn))$。\n\n- 空间复杂度：$O(mn)$，即为存储二维前缀和需要的空间。\n\n#### 方法二：二维前缀和 + 快速选择算法\n\n**代码**\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    int kthLargestValue(vector<vector<int>>& matrix, int k) {\n        int m = matrix.size(), n = matrix[0].size();\n        vector<vector<int>> pre(m + 1, vector<int>(n + 1));\n        vector<int> results;\n        for (int i = 1; i <= m; ++i) {\n            for (int j = 1; j <= n; ++j) {\n                pre[i][j] = pre[i - 1][j] ^ pre[i][j - 1] ^ pre[i - 1][j - 1] ^ matrix[i - 1][j - 1];\n                results.push_back(pre[i][j]);\n            }\n        }\n\n        nth_element(results.begin(), results.begin() + k - 1, results.end(), greater<int>());\n        return results[k - 1];\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public int kthLargestValue(int[][] matrix, int k) {\n        int m = matrix.length, n = matrix[0].length;\n        int[][] pre = new int[m + 1][n + 1];\n        List<Integer> results = new ArrayList<Integer>();\n        for (int i = 1; i <= m; ++i) {\n            for (int j = 1; j <= n; ++j) {\n                pre[i][j] = pre[i - 1][j] ^ pre[i][j - 1] ^ pre[i - 1][j - 1] ^ matrix[i - 1][j - 1];\n                results.add(pre[i][j]);\n            }\n        }\n\n        nthElement(results, 0, k - 1, results.size() - 1);\n        return results.get(k - 1);\n    }\n\n    public void nthElement(List<Integer> results, int left, int kth, int right) {\n        if (left == right) {\n            return;\n        }\n        int pivot = (int) (left + Math.random() * (right - left + 1));\n        swap(results, pivot, right);\n        // 三路划分（three-way partition）\n        int sepl = left - 1, sepr = left - 1;\n        for (int i = left; i <= right; i++) {\n            if (results.get(i) > results.get(right)) {\n                swap(results, ++sepr, i);\n                swap(results, ++sepl, sepr);\n            } else if (results.get(i) == results.get(right)) {\n                swap(results, ++sepr, i);\n            }\n        }\n        if (sepl < left + kth && left + kth <= sepr) {\n            return;\n        } else if (left + kth <= sepl) {\n            nthElement(results, left, kth, sepl);\n        } else {\n            nthElement(results, sepr + 1, kth - (sepr - left + 1), right);\n        }\n    }\n\n    public void swap(List<Integer> results, int index1, int index2) {\n        int temp = results.get(index1);\n        results.set(index1, results.get(index2));\n        results.set(index2, temp);\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    Random random = new Random();\n\n    public int KthLargestValue(int[][] matrix, int k) {\n        int m = matrix.Length, n = matrix[0].Length;\n        int[,] pre = new int[m + 1, n + 1];\n        List<int> results = new List<int>();\n        for (int i = 1; i <= m; ++i) {\n            for (int j = 1; j <= n; ++j) {\n                pre[i, j] = pre[i - 1, j] ^ pre[i, j - 1] ^ pre[i - 1, j - 1] ^ matrix[i - 1][j - 1];\n                results.Add(pre[i, j]);\n            }\n        }\n\n        NthElement(results, 0, k - 1, results.Count - 1);\n        return results[k - 1];\n    }\n\n    public void NthElement(List<int> results, int left, int kth, int right) {\n        if (left == right) {\n            return;\n        }\n        int pivot = random.Next(left, right + 1);\n        Swap(results, pivot, right);\n        // 三路划分（three-way partition）\n        int sepl = left - 1, sepr = left - 1;\n        for (int i = left; i <= right; i++) {\n            if (results[i] > results[right]) {\n                Swap(results, ++sepr, i);\n                Swap(results, ++sepl, sepr);\n            } else if (results[i] == results[right]) {\n                Swap(results, ++sepr, i);\n            }\n        }\n        if (sepl < left + kth && left + kth <= sepr) {\n            return;\n        } else if (left + kth <= sepl) {\n            NthElement(results, left, kth, sepl);\n        } else {\n            NthElement(results, sepr + 1, kth - (sepr - left + 1), right);\n        }\n    }\n\n    public void Swap(List<int> results, int index1, int index2) {\n        int temp = results[index1];\n        results[index1] = results[index2];\n        results[index2] = temp;\n    }\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def kthLargestValue(self, matrix: List[List[int]], k: int) -> int:\n        m, n = len(matrix), len(matrix[0])\n        pre = [[0] * (n + 1) for _ in range(m + 1)]\n        results = list()\n        for i in range(1, m + 1):\n            for j in range(1, n + 1):\n                pre[i][j] = pre[i - 1][j] ^ pre[i][j - 1] ^ pre[i - 1][j - 1] ^ matrix[i - 1][j - 1]\n                results.append(pre[i][j])\n        \n        def nth_element(left: int, kth: int, right: int, op: Callable[[int, int], bool]):\n            if left == right:\n                return\n            \n            pivot = random.randint(left, right)\n            results[pivot], results[right] = results[right], results[pivot]\n\n            # 三路划分（three-way partition）\n            sepl = sepr = left - 1\n            for i in range(left, right + 1):\n                if op(results[i], results[right]):\n                    sepr += 1\n                    if sepr != i:\n                        results[sepr], results[i] = results[i], results[sepr]\n                    sepl += 1\n                    if sepl != sepr:\n                        results[sepl], results[sepr] = results[sepr], results[sepl]\n                elif results[i] == results[right]:\n                    sepr += 1\n                    if sepr != i:\n                        results[sepr], results[i] = results[i], results[sepr]\n            \n            if sepl < left + kth <= sepr:\n                return\n            elif left + kth <= sepl:\n                nth_element(left, kth, sepl, op)\n            else:\n                nth_element(sepr + 1, kth - (sepr - left + 1), right, op)\n\n        nth_element(0, k - 1, len(results) - 1, operator.gt)\n        return results[k - 1]\n```\n\n```go [sol2-Golang]\nfunc quickSelect(a []int, k int) int {\n    rand.Shuffle(len(a), func(i, j int) { a[i], a[j] = a[j], a[i] })\n    for l, r := 0, len(a)-1; l < r; {\n        v := a[l]\n        i, j := l, r+1\n        for {\n            for i++; i < r && a[i] < v; i++ {\n            }\n            for j--; j > l && a[j] > v; j-- {\n            }\n            if i >= j {\n                break\n            }\n            a[i], a[j] = a[j], a[i]\n        }\n        a[l], a[j] = a[j], v\n        if j == k {\n            break\n        } else if j < k {\n            l = j + 1\n        } else {\n            r = j - 1\n        }\n    }\n    return a[k]\n}\n\nfunc kthLargestValue(matrix [][]int, k int) int {\n    m, n := len(matrix), len(matrix[0])\n    results := make([]int, 0, m*n)\n    pre := make([][]int, m+1)\n    pre[0] = make([]int, n+1)\n    for i, row := range matrix {\n        pre[i+1] = make([]int, n+1)\n        for j, val := range row {\n            pre[i+1][j+1] = pre[i+1][j] ^ pre[i][j+1] ^ pre[i][j] ^ val\n            results = append(results, pre[i+1][j+1])\n        }\n    }\n    return quickSelect(results, m*n-k)\n}\n```\n\n```C [sol2-C]\nvoid swap(int* a, int* b) {\n    int t = *a;\n    *a = *b, *b = t;\n}\n\nint cmp(int a, int b) {\n    return a > b;\n}\n\nvoid nth_element(int* arr, int left, int kth, int right) {\n    if (left == right) {\n        return;\n    }\n    int pivot = left + rand() % (right - left);\n    swap(&arr[pivot], &arr[right]);\n    // 三路划分（three-way partition）\n    int sepl = left - 1, sepr = left - 1;\n    for (int i = left; i <= right; i++) {\n        if (arr[i] > arr[right]) {\n            swap(&arr[++sepr], &arr[i]);\n            swap(&arr[++sepl], &arr[sepr]);\n        } else if (arr[i] == arr[right]) {\n            swap(&arr[++sepr], &arr[i]);\n        }\n    }\n    if (sepl < left + kth && left + kth <= sepr) {\n        return;\n    } else if (left + kth <= sepl) {\n        nth_element(arr, left, kth, sepl);\n    } else {\n        nth_element(arr, sepr + 1, kth - (sepr - left + 1), right);\n    }\n}\n\nint kthLargestValue(int** matrix, int matrixSize, int* matrixColSize, int k) {\n    int m = matrixSize, n = matrixColSize[0];\n    int pre[m + 1][n + 1];\n    memset(pre, 0, sizeof(pre));\n    int results[m * n], resultsSize = 0;\n    for (int i = 1; i <= m; ++i) {\n        for (int j = 1; j <= n; ++j) {\n            pre[i][j] = pre[i - 1][j] ^ pre[i][j - 1] ^ pre[i - 1][j - 1] ^ matrix[i - 1][j - 1];\n            results[resultsSize++] = pre[i][j];\n        }\n    }\n    nth_element(results, 0, k - 1, resultsSize - 1);\n    return results[k - 1];\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar kthLargestValue = function(matrix, k) {\n    const m = matrix.length, n = matrix[0].length;\n    const pre = new Array(m + 1).fill(0).map(() => new Array(n + 1).fill(0));\n    const results = [];\n    for (let i = 1; i <= m; ++i) {\n        for (let j = 1; j <= n; ++j) {\n            pre[i][j] = pre[i - 1][j] ^ pre[i][j - 1] ^ pre[i - 1][j - 1] ^ matrix[i - 1][j - 1];\n            results.push(pre[i][j]);\n        }\n    }\n    nthElement(results, 0, k - 1, results.length - 1);\n    return results[k - 1];\n}\n\nconst nthElement = (results, left, kth, right) => {\n    if (left === right) {\n        return;\n    }\n    const pivot = parseInt(Math.random() * (right - left) + left);\n    swap(results, pivot, right);\n    // 三路划分（three-way partition）\n    let sepl = left - 1, sepr = left - 1;\n    for (let i = left; i <= right; i++) {\n        if (results[i] > results[right]) {\n            swap(results, ++sepr, i);\n            swap(results, ++sepl, sepr);\n        } else if (results[i] === results[right]) {\n            swap(results, ++sepr, i);\n        }\n    }\n    if (sepl < left + kth && left + kth <= sepr) {\n        return;\n    } else if (left + kth <= sepl) {\n        nthElement(results, left, kth, sepl);\n    } else {\n        nthElement(results, sepr + 1, kth - (sepr - left + 1), right);\n    }\n}\n\nconst swap = (results, index1, index2) => {\n    const temp = results[index1];\n    results[index1] = results[index2];\n    results[index2] = temp;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(mn)$。计算二维前缀和的时间复杂度为 $O(mn)$，快速选择找出第 $k$ 大的元素的期望时间复杂度为 $O(mn)$，最坏情况下时间复杂度为 $O((mn)^2)$，因此总时间复杂度为 $O(mn)$。\n\n- 空间复杂度：$O(mn)$，即为存储二维前缀和需要的空间。\n",
+            "slateValue": "",
+            "slug": "zhao-chu-di-k-da-de-yi-huo-zuo-biao-zhi-mgick",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "eQVRLL",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 52,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 7,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 6,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Divide and Conquer",
+                    "nameTranslated": "分治",
+                    "slug": "divide-and-conquer",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Matrix",
+                    "nameTranslated": "矩阵",
+                    "slug": "matrix",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Prefix Sum",
+                    "nameTranslated": "前缀和",
+                    "slug": "prefix-sum",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Quickselect",
+                    "nameTranslated": "快速选择",
+                    "slug": "quickselect",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-05-18T16:21:40.146597+00:00",
+            "thumbnail": "https://assets.leetcode-cn.com/solution-static/1738/1.png",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "前言思路与算法我们用 ⊕\\oplus⊕ 表示按位异或运算。由于「按位异或运算」与「加法运算」有着十分相似的性质，它们都满足交换律：以及结合律：因此我们可以使用「前缀和」这一技巧对按位异或运算的结果进行维护。由于本题中给定的矩阵 matrix\\textit{matrix}matrix 是二维的，因此我们需要使用二维前缀和",
+            "topic": {
+                "id": 784300,
+                "subscribed": false,
+                "commentCount": 151,
+                "viewCount": 23860,
+                "post": {
+                    "id": 1730100,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 106,
+            "isEditorsPick": false,
+            "hitCount": 49012,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "find-kth-largest-xor-coordinate-value",
+                "questionFrontendId": "1738"
+            },
+            "next": {
+                "slug": "liang-chong-fang-fa-er-wei-qian-zhui-yi-689bf",
+                "title": "两种方法：二维前缀异或和/列前缀异或和（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

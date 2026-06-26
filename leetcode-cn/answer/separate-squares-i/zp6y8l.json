@@ -1,0 +1,150 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "zp6y8l",
+            "title": "分割正方形 I",
+            "content": "#### 方法一：二分查找\n\n**思路与算法**\n\n设数组 $\\textit{squares}$ 的长度为 $n$，数组中的每个元素为 $(x_i,y_i,l_i)$，此时所有正方形的面积之和则为:\n\n$$\n\\textit{totalArea} = \\sum_{i=0}^{n-1} l_i^2\n$$\n\n根据题目要求，我们需要找到一个分割线 $y$，使得所有在 $y$ 以上的正方形的面积之和等于所有在 $y$ 以下的正方形的面积之和。设 $y$ 以下的正方形面积为 $\\textit{area}_y$，此时需要满足：\n\n$$\n\\textit{area}_y \\cdot 2= \\textit{totalArea}\n$$\n\n随着分割线 $y$ 的增大，$\\textit{area}_y$ 单调不减，因此可以使用二分查找。具体地，我们可以二分查找找到最小的 $y$ 的值，使得在 $y$ 以下的正方形的面积满足：\n\n$$\n\\textit{area}_y \\cdot 2 \\ge \\textit{totalArea}\n$$\n\n假设给定的 $y$ 的值，如果给定正方形 $(x_i,y_i,l_i)$，满足 $y_i < y$，那么这个正方形在 $y$ 以下，否则在 $y$ 以上。此时该正方形在 $y$ 以下的面积则为：\n\n$$\n\\textit{area} = l_i \\cdot \\min(y - y_i, l_i)\n$$\n\n我们可以根据这个性质来计算在 $y$ 以下的所有正方形的面积之和：\n\n$$\n\\textit{area}_y = \\sum_{i=0}^{n-1}  l_i \\cdot \\max(0,\\min(y - y_i, l_i))\n$$\n\n由于计算面积时存在精度问题，题目要求与实际答案的误差在 $10^{-5}$ 以内。我们需要在二分查找时使用 $10^{-5}$ 作为精度，即可以使用上限与下限的差距不超过 $\\text{10}^{-5}$ 作为二分查找的终止条件:\n\n$$\n\\textit{hi} - \\textit{lo} \\le 10^{-5}\n$$\n\n我们通过二分查找找到最小的 $y$ 值即为答案。\n\n**细节**\n\n我们可以分析二分查找的次数上限，设初始二分区间长度为 $L$，每二分一次，二分区间长度减半。要至少减半到 $10^{-5}$ 才能满足题目的误差要求。设循环次数为 $k$，我们有：\n\n$$\n\\dfrac{L}{2^k} \\le 10^{-5}\n$$\n\n解得：\n\n$$\nk \\ge \\log_2 (L \\cdot 10^5)\n$$\n\n在本题的数据范围下，$0 \\le L \\le 10^9$，此时 $k \\ge \\log_2 (L \\cdot 10^5) \\ge \\log_2 (10^{14}) = 14 \\log_2 (10) \\approx 46.506993328423076$。二分查找的次数上限为 $47$ 次。\n\n\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    double separateSquares(vector<vector<int>>& squares) {\n        double max_y = 0, total_area = 0;\n        for (auto& sq : squares) {\n            int y = sq[1], l = sq[2];\n            total_area += (double)l * l;\n            max_y = max(max_y, (double)(y + l));\n        }\n        \n        auto check = [&](double limit_y) -> bool {\n            double area = 0;\n            for (auto& sq : squares) {\n                int y = sq[1], l = sq[2];\n                if (y < limit_y) {\n                    area += l * min(limit_y - y, (double)l);\n                }\n            }\n            return area >= total_area / 2;\n        };\n        \n        double lo = 0, hi = max_y;\n        double eps = 1e-5;\n        while (abs(hi - lo) > eps) {\n            double mid = (hi + lo) / 2;\n            if (check(mid)) {\n                hi = mid;\n            } else {\n                lo = mid;\n            }\n        }\n        return hi;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public double separateSquares(int[][] squares) {\n        double max_y = 0, total_area = 0;\n        for (int[] sq : squares) {\n            int y = sq[1], l = sq[2];\n            total_area += (double)l * l;\n            max_y = Math.max(max_y, (double)(y + l));\n        }\n        \n        double lo = 0, hi = max_y;\n        double eps = 1e-5;\n        while (Math.abs(hi - lo) > eps) {\n            double mid = (hi + lo) / 2;\n            if (check(mid, squares, total_area)) {\n                hi = mid;\n            } else {\n                lo = mid;\n            }\n        }\n\n        return hi;\n    }\n\n    private Boolean check(double limit_y, int[][] squares, double total_area) {\n        double area = 0;\n        for (int[] sq : squares) {\n            int y = sq[1], l = sq[2];\n            if (y < limit_y) {\n                area += (double)l * Math.min(limit_y - y, (double)l);\n            }\n        }\n        return area >= total_area / 2;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public double SeparateSquares(int[][] squares) {\n        double max_y = 0, total_area = 0;\n        foreach (int[] sq in squares) {\n            int y = sq[1], l = sq[2];\n            total_area += (double)l * l;\n            max_y = Math.Max(max_y, (double)(y + l));\n        }\n        \n        double lo = 0, hi = max_y;\n        double eps = 1e-5;\n        while (Math.Abs(hi - lo) > eps) {\n            double mid = (hi + lo) / 2;\n            if (Check(mid, squares, total_area)) {\n                hi = mid;\n            } else {\n                lo = mid;\n            }\n        }\n\n        return hi;\n    }\n\n    private bool Check(double limit_y, int[][] squares, double total_area) {\n        double area = 0;\n        foreach (int[] sq in squares) {\n            int y = sq[1], l = sq[2];\n            if (y < limit_y) {\n                area += (double)l * Math.Min(limit_y - y, (double)l);\n            }\n        }\n        return area >= total_area / 2;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc separateSquares(squares [][]int) float64 {\n    max_y, total_area := 0.0, 0.0\n    for _, sq := range squares {\n        y, l := sq[1], sq[2]\n        total_area += float64(l * l)\n        if float64(y + l) > max_y {\n            max_y = float64(y + l)\n        }\n    }\n    \n    check := func(limit_y float64) bool {\n        area := 0.0\n        for _, sq := range squares {\n            y, l := sq[1], sq[2]\n            if float64(y) < limit_y {\n                overlap := math.Min(limit_y-float64(y), float64(l))\n                area += float64(l) * overlap\n            }\n        }\n        \n        return area >= total_area / 2.0\n    }\n    \n    lo, hi := 0.0, max_y\n    eps := 1e-5\n    for math.Abs(hi-lo) > eps {\n        mid := (hi + lo) / 2.0\n        if check(mid) {\n            hi = mid\n        } else {\n            lo = mid\n        }\n    }\n    return hi\n}\n```\n\n```Python [sol1-Python]\nclass Solution:\n    def separateSquares(self, squares: List[List[int]]) -> float:\n        max_y, total_area = 0, 0\n        for x, y, l in squares:\n            total_area += l ** 2\n            max_y = max(max_y, y + l)\n        \n        def check(limit_y):\n            area = 0\n            for x, y, l in squares:\n                if y < limit_y:\n                    area += l * min(limit_y - y, l)\n            return area >= total_area / 2\n        \n        lo, hi = 0, max_y\n        eps = 1e-5\n        while abs(hi - lo) > eps:\n            mid = (hi + lo) / 2\n            if check(mid):\n                hi = mid\n            else:\n                lo = mid\n\n        return hi\n```\n\n```C [sol1-C]\nbool check(double limit_y, int** squares, int squaresSize, double total_area) {\n    double area = 0.0;\n\n    for (int i = 0; i < squaresSize; i++) {\n        int y = squares[i][1];\n        int l = squares[i][2];\n        if (y < limit_y) {\n            area += (double)l * fmin(l, limit_y - y);\n        }\n    }\n\n    return area >= total_area / 2.0;\n}\n\ndouble separateSquares(int** squares, int squaresSize, int* squaresColSize) {\n    double max_y = 0.0, total_area = 0.0;\n    for (int i = 0; i < squaresSize; i++) {\n        int y = squares[i][1];\n        int l = squares[i][2];\n        total_area += (double)l * l;\n        if (y + l > max_y) {\n            max_y = y + l;\n        }\n    }\n    \n    double lo = 0.0, hi = max_y;\n    double eps = 1e-5;\n    while (fabs(hi - lo) > eps) {\n        double mid = (hi + lo) / 2.0;\n        if (check(mid, squares, squaresSize, total_area)) {\n            hi = mid;\n        } else {\n            lo = mid;\n        }\n    }\n    return hi;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar separateSquares = function(squares) {\n    let max_y = 0, total_area = 0;\n    for (const [x, y, l] of squares) {\n        total_area += l * l;\n        max_y = Math.max(max_y, y + l);\n    }\n    \n    const check = (limit_y) => {\n        let area = 0;\n        for (const [x, y, l] of squares) {\n            if (y < limit_y) {\n                area += l * Math.min(limit_y - y, l);\n            }\n        }\n        return area >= total_area / 2;\n    };\n    \n    let lo = 0, hi = max_y;\n    const eps = 1e-5;\n    while (Math.abs(hi - lo) > eps) {\n        const mid = (hi + lo) / 2;\n        if (check(mid)) {\n            hi = mid;\n        } else {\n            lo = mid;\n        }\n    }\n    return hi;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction separateSquares(squares: number[][]): number {\n    let max_y = 0, total_area = 0;\n    for (const [x, y, l] of squares) {\n        total_area += l * l;\n        max_y = Math.max(max_y, y + l);\n    }\n    \n    const check = (limit_y: number): boolean => {\n        let area = 0;\n        for (const [x, y, l] of squares) {\n            if (y < limit_y) {\n                area += l * Math.min(limit_y - y, l);\n            }\n        }\n        return area >= total_area / 2;\n    };\n    \n    let lo = 0, hi = max_y;\n    const eps = 1e-5;\n    while (Math.abs(hi - lo) > eps) {\n        const mid = (hi + lo) / 2;\n        if (check(mid)) {\n            hi = mid;\n        } else {\n            lo = mid;\n        }\n    }\n    return hi;\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn separate_squares(squares: Vec<Vec<i32>>) -> f64 {\n        let mut max_y: f64 = 0.0;\n        let mut total_area: f64 = 0.0;\n        \n        for sq in &squares {\n            let l = sq[2] as f64;\n            total_area += l * l;\n            max_y = max_y.max((sq[1] + sq[2]) as f64);\n        }\n        \n        let mut lo = 0.0;\n        let mut hi = max_y;\n        let eps = 1e-5;\n        while (hi - lo).abs() > eps {\n            let mid = (hi + lo) / 2.0;\n            if Self::check(mid, &squares, total_area) {\n                hi = mid;\n            } else {\n                lo = mid;\n            }\n        }\n        \n        hi\n    }\n    \n    fn check(limit_y: f64, squares: &Vec<Vec<i32>>, total_area: f64) -> bool {\n        let mut area = 0.0;\n        \n        for sq in squares {\n            let y = sq[1] as f64;\n            let l = sq[2] as f64;\n            if y < limit_y {\n                let overlap = (limit_y - y).min(l);\n                area += l * overlap;\n            }\n        }\n        \n        area >= total_area / 2.0\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log (LU))$，其中 $n$ 是数组 $\\textit{squares}$ 的长度，设数组中的每个元素为 $(x_i,y_i,l_i)$，此时 $U = \\max(y_i + l_i)$，$L = 10^5$。二分查找每次校验的时间复杂度度为 $O(n)$，二分查找的次数为 $O(\\log (LU))$，因此总时间复杂度为 $O(n \\log (LU))$。\n\n- 空间复杂度：$O(1)$。\n\n#### 方法二：扫描线\n\n**思路与算法**\n\n我们可以参考「[扫描线](https://oi-wiki.org/geometry/scanning/)」的解法。首先可以计算出所有正方形的总面积 $\\textit{totalArea}$，接着我们从下往上进行扫描，设扫描线 $y = y^{'}$ 下方的覆盖的面积和为 $\\textit{area}$，那么扫描线上方的面积和为 $\\textit{totalArea}−\\textit{area}$。\n\n题目要求 $y = y^{'}$ 下面的面积与上方的面积相等，即:\n\n$$\n\\textit{area} = \\textit{totalArea}− \\textit{area}\n$$\n\n即：\n\n$$\n\\textit{area} = \\dfrac{\\textit{totalArea}}{2}\n$$\n\n设当前经过正方形上/下边界的扫描线为 $y = y^{'}$，此时扫面线以下的覆盖面积为 $\\textit{area}$；向上移动时下一个需要经过的正方形上/下边界的扫描线为 $y = y^{''}$，此时被正方形覆盖的底边长之和为 $\\textit{width}$，则此时在扫面线 $y = y^{''}$ 以下覆盖的面积之和为:\n\n$$\n\\textit{area} + \\textit{width} \\cdot (y^{''} - y^{'})\n$$\n\n此时当满足：\n\n$$\n\\textit{area} < \\dfrac{\\textit{totalArea}}{2} \\\\\n\\textit{area} + \\textit{width} \\cdot (y^{''} - y^{'}) \\ge \\dfrac{\\textit{totalArea}}{2}\n$$\n\n时，则可以知道目标值 $y$ 一定处于区间 $[y^{'},y^{''}]$。\n由于两个扫面线之间的被覆盖区域中所有的矩形的高度相同，扫面线在区间 $[y^{'},y^{''}]$ 移动长度为 $\\Delta$ 时，此时被覆盖区域的面积变化即为 $\\Delta \\cdot \\textit{width}$，此时被覆盖的面积只需增加 $\\dfrac{\\textit{totalArea}}{2} - \\textit{area}$，即可满足上下面积相等，此时我们可以直接求出目标值 $y$ 即为：\n\n$$\ny = y^{'} + \\dfrac{\\dfrac{\\textit{totalArea}}{2} - \\textit{area}}{\\textit{width}} = y^{'} + \\dfrac{\\textit{totalArea} - 2\\cdot \\textit{area}}{2\\cdot\\textit{width}}\n$$\n\n我们依次遍历每个正方形上/下边界的扫面线，找到目标值返回即可。\n\n**代码**\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    double separateSquares(vector<vector<int>>& squares) {\n        long long total_area = 0;\n        vector<tuple<int, int, int>> events; \n        for (const auto& sq : squares) {\n            int y = sq[1], l = sq[2];\n            total_area += (long long)l * l;\n            events.emplace_back(y, l, 1);\n            events.emplace_back(y + l, l, -1);\n        }\n        // 按照 y 坐标进行排序\n        sort(events.begin(), events.end(), [](const auto& a, const auto& b) {\n            return get<0>(a) < get<0>(b);\n        });\n        \n        double covered_width = 0;  // 当前扫描线下所有底边之和\n        double curr_area = 0;       // 当前累计面积\n        double prev_height = 0;     // 前一个扫描线的高度\n        for (const auto &[y, l, delta] : events) {\n            int diff = y - prev_height;\n            // 两条扫面线之间新增的面积\n            double area = covered_width * diff;\n            // 如果加上这部分面积超过总面积的一半\n            if (2LL * (curr_area + area) >= total_area) {\n                return prev_height + (total_area - 2.0 * curr_area) / (2.0 * covered_width);\n            }\n            // 更新宽度：开始事件加宽度，结束事件减宽度\n            covered_width += delta * l;\n            curr_area += area;\n            prev_height = y;\n        }\n        \n        return 0.0;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public double separateSquares(int[][] squares) {\n        long totalArea = 0;\n        List<int[]> events = new ArrayList<>();\n        \n        for (int[] sq : squares) {\n            int y = sq[1], l = sq[2];\n            totalArea += (long) l * l;\n            events.add(new int[]{y, l, 1});\n            events.add(new int[]{y + l, l, -1});\n        }\n        \n        // 按y坐标排序\n        events.sort((a, b) -> Integer.compare(a[0], b[0]));\n        double coveredWidth = 0;  // 当前扫描线下所有底边之和\n        double currArea = 0;      // 当前累计面积\n        double prevHeight = 0;    // 前一个扫描线的高度\n        \n        for (int[] event : events) {\n            int y = event[0];\n            int l = event[1];\n            int delta = event[2];\n            \n            int diff = y - (int) prevHeight;\n            // 两条扫描线之间新增的面积\n            double area = coveredWidth * diff;\n            // 如果加上这部分面积超过总面积的一半\n            if (2L * (currArea + area) >= totalArea) {\n                return prevHeight + (totalArea - 2.0 * currArea) / (2.0 * coveredWidth);\n            }\n            // 更新宽度：开始事件加宽度，结束事件减宽度\n            coveredWidth += delta * l;\n            currArea += area;\n            prevHeight = y;\n        }\n        \n        return 0.0;\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    public double SeparateSquares(int[][] squares) {\n        long totalArea = 0;\n        List<int[]> events = new List<int[]>();\n        \n        foreach (var sq in squares) {\n            int y = sq[1], l = sq[2];\n            totalArea += (long)l * l;\n            events.Add(new int[] { y, l, 1 });\n            events.Add(new int[] { y + l, l, -1 });\n        }\n        \n        // 按y坐标排序\n        events.Sort((a, b) => a[0].CompareTo(b[0]));\n        \n        double coveredWidth = 0;  // 当前扫描线下所有底边之和\n        double currArea = 0;      // 当前累计面积\n        double prevHeight = 0;    // 前一个扫描线的高度\n        \n        foreach (var eventItem in events) {\n            int y = eventItem[0];\n            int l = eventItem[1];\n            int delta = eventItem[2];\n            \n            int diff = y - (int)prevHeight;\n            // 两条扫描线之间新增的面积\n            double area = coveredWidth * diff;\n            // 如果加上这部分面积超过总面积的一半\n            if (2L * (currArea + area) >= totalArea) {\n                return prevHeight + (totalArea - 2.0 * currArea) / (2.0 * coveredWidth);\n            }\n            // 更新宽度：开始事件加宽度，结束事件减宽度\n            coveredWidth += delta * l;\n            currArea += area;\n            prevHeight = y;\n        }\n        \n        return 0.0;\n    }\n}\n```\n\n```Go [sol2-Go]\nfunc separateSquares(squares [][]int) float64 {\n    var totalArea int64 = 0\n    type Event struct {\n        y     int\n        l     int\n        delta int\n    }\n    events := make([]Event, 0, len(squares)*2)\n    \n    for _, sq := range squares {\n        y, l := sq[1], sq[2]\n        totalArea += int64(l) * int64(l)\n        events = append(events, Event{y, l, 1})\n        events = append(events, Event{y + l, l, -1})\n    }\n    \n    // 按y坐标排序\n    sort.Slice(events, func(i, j int) bool {\n        return events[i].y < events[j].y\n    })\n    \n    coveredWidth := 0.0  // 当前扫描线下所有底边之和\n    currArea := 0.0      // 当前累计面积\n    prevHeight := 0.0    // 前一个扫描线的高度\n    \n    for _, event := range events {\n        y, l, delta := event.y, event.l, event.delta\n        diff := float64(y) - prevHeight\n        // 两条扫描线之间新增的面积\n        area := coveredWidth * diff\n        // 如果加上这部分面积超过总面积的一半\n        if 2.0*(currArea+area) >= float64(totalArea) {\n            return prevHeight + (float64(totalArea) - 2.0*currArea) / (2.0 * coveredWidth)\n        }\n        // 更新宽度：开始事件加宽度，结束事件减宽度\n        coveredWidth += float64(delta * l)\n        currArea += area\n        prevHeight = float64(y)\n    }\n    \n    return 0.0\n}\n```\n\n```Python [sol2-Python]\nclass Solution:\n    def separateSquares(self, squares: List[List[int]]) -> float:\n        total_area = 0\n        events = []\n        \n        for sq in squares:\n            y, l = sq[1], sq[2]\n            total_area += l * l\n            events.append((y, l, 1))\n            events.append((y + l, l, -1))\n        \n        # 按y坐标排序\n        events.sort(key=lambda x: x[0])\n        \n        covered_width = 0.0  # 当前扫描线下所有底边之和\n        curr_area = 0.0      # 当前累计面积\n        prev_height = 0.0    # 前一个扫描线的高度\n        \n        for y, l, delta in events:\n            diff = y - prev_height\n            # 两条扫描线之间新增的面积\n            area = covered_width * diff\n            # 如果加上这部分面积超过总面积的一半\n            if 2 * (curr_area + area) >= total_area:\n                return prev_height + (total_area - 2 * curr_area) / (2 * covered_width)\n            # 更新宽度：开始事件加宽度，结束事件减宽度\n            covered_width += delta * l\n            curr_area += area\n            prev_height = y\n        \n        return 0.0\n```\n\n```C [sol2-C]\ntypedef struct {\n    int y;\n    int l;\n    int delta;\n} Event;\n\nint compareEvents(const void* a, const void* b) {\n    Event* e1 = (Event*)a;\n    Event* e2 = (Event*)b;\n    return e1->y - e2->y;\n}\n\ndouble separateSquares(int** squares, int squaresSize, int* squaresColSize) {\n    long long totalArea = 0;\n    Event* events = malloc(2 * squaresSize * sizeof(Event));\n    int eventCount = 0;\n    \n    for (int i = 0; i < squaresSize; i++) {\n        int y = squares[i][1];\n        int l = squares[i][2];\n        totalArea += (long long)l * l;\n        events[eventCount++] = (Event){y, l, 1};\n        events[eventCount++] = (Event){y + l, l, -1};\n    }\n    \n    // 按y坐标排序\n    qsort(events, eventCount, sizeof(Event), compareEvents);\n    \n    double coveredWidth = 0.0;  // 当前扫描线下所有底边之和\n    double currArea = 0.0;      // 当前累计面积\n    double prevHeight = 0.0;    // 前一个扫描线的高度\n    \n    for (int i = 0; i < eventCount; i++) {\n        int y = events[i].y;\n        int l = events[i].l;\n        int delta = events[i].delta;\n        \n        int diff = y - (int)prevHeight;\n        // 两条扫描线之间新增的面积\n        double area = coveredWidth * diff;\n        // 如果加上这部分面积超过总面积的一半\n        if (2LL * (currArea + area) >= totalArea) {\n            double result = prevHeight + (totalArea - 2.0 * currArea) / (2.0 * coveredWidth);\n            free(events);\n            return result;\n        }\n        // 更新宽度：开始事件加宽度，结束事件减宽度\n        coveredWidth += delta * l;\n        currArea += area;\n        prevHeight = y;\n    }\n    \n    free(events);\n    return 0.0;\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar separateSquares = function(squares) {\n    let totalArea = 0n;\n    const events = [];\n    \n    for (const sq of squares) {\n        const y = sq[1], l = sq[2];\n        totalArea += BigInt(l) * BigInt(l);\n        events.push([y, l, 1]);\n        events.push([y + l, l, -1]);\n    }\n    \n    // 按y坐标排序\n    events.sort((a, b) => a[0] - b[0]);\n    \n    let coveredWidth = 0;  // 当前扫描线下所有底边之和\n    let currArea = 0;      // 当前累计面积\n    let prevHeight = 0;    // 前一个扫描线的高度\n    \n    for (const [y, l, delta] of events) {\n        const diff = y - prevHeight;\n        // 两条扫描线之间新增的面积\n        const area = coveredWidth * diff;\n        // 如果加上这部分面积超过总面积的一半\n        if (2n * BigInt(Math.ceil(currArea + area)) >= totalArea) {\n            return prevHeight + (Number(totalArea) - 2.0 * currArea) / (2.0 * coveredWidth);\n        }\n        // 更新宽度：开始事件加宽度，结束事件减宽度\n        coveredWidth += delta * l;\n        currArea += area;\n        prevHeight = y;\n    }\n    \n    return 0.0;\n};\n```\n\n```TypeScript [sol2-TypeScript]\nfunction separateSquares(squares: number[][]): number {\n    let totalArea: bigint = 0n;\n    const events: [number, number, number][] = [];\n    \n    for (const sq of squares) {\n        const y = sq[1], l = sq[2];\n        totalArea += BigInt(l) * BigInt(l);\n        events.push([y, l, 1]);\n        events.push([y + l, l, -1]);\n    }\n    \n    // 按y坐标排序\n    events.sort((a, b) => a[0] - b[0]);\n    \n    let coveredWidth: number = 0;  // 当前扫描线下所有底边之和\n    let currArea: number = 0;      // 当前累计面积\n    let prevHeight: number = 0;    // 前一个扫描线的高度\n    \n    for (const [y, l, delta] of events) {\n        const diff: number = y - prevHeight;\n        // 两条扫描线之间新增的面积\n        const area: number = coveredWidth * diff;\n        // 如果加上这部分面积超过总面积的一半\n        if (2n * BigInt(Math.ceil(currArea + area)) >= totalArea) {\n            return prevHeight + (Number(totalArea) - 2.0 * currArea) / (2.0 * coveredWidth);\n        }\n        // 更新宽度：开始事件加宽度，结束事件减宽度\n        coveredWidth += delta * l;\n        currArea += area;\n        prevHeight = y;\n    }\n    \n    return 0.0;\n}\n```\n\n```Rust [sol2-Rust]\nimpl Solution {\n    pub fn separate_squares(squares: Vec<Vec<i32>>) -> f64 {\n        let mut total_area: i64 = 0;\n        let mut events: Vec<(i32, i32, i32)> = Vec::new();\n        \n        for sq in &squares {\n            let y = sq[1];\n            let l = sq[2];\n            total_area += l as i64 * l as i64;\n            events.push((y, l, 1));\n            events.push((y + l, l, -1));\n        }\n        \n        // 按y坐标排序\n        events.sort_by_key(|&(y, _, _)| y);\n        \n        let mut covered_width: f64 = 0.0;  // 当前扫描线下所有底边之和\n        let mut curr_area: f64 = 0.0;      // 当前累计面积\n        let mut prev_height: f64 = 0.0;    // 前一个扫描线的高度\n        \n        for (y, l, delta) in events {\n            let diff = y as f64 - prev_height;\n            // 两条扫描线之间新增的面积\n            let area = covered_width * diff;\n            // 如果加上这部分面积超过总面积的一半\n            if 2.0 * (curr_area + area) >= total_area as f64 {\n                return prev_height + (total_area as f64 - 2.0 * curr_area) / (2.0 * covered_width);\n            }\n            // 更新宽度：开始事件加宽度，结束事件减宽度\n            covered_width += (delta * l) as f64;\n            curr_area += area;\n            prev_height = y as f64;\n        }\n        \n        0.0\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log n)$，其中 $n$ 是数组 $\\textit{squares}$ 的长度。排序需要的时间复杂度为 $O(n \\log n)$。\n\n- 空间复杂度：$O(n)$，其中 $n$ 是数组 $\\textit{squares}$ 的长度。存储扫面线高度，需要的空间为 $O(n)$。",
+            "slateValue": "",
+            "slug": "fen-ge-zheng-fang-xing-i-by-leetcode-sol-aq2x",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "zp6y8l",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 9,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Sorting",
+                    "nameTranslated": "排序",
+                    "slug": "sorting",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Sweep Line",
+                    "nameTranslated": "扫描线",
+                    "slug": "line-sweep",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2026-01-08T04:04:42.327818+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：二分查找 思路与算法 设数组 [latex] 的长度为 [latex]，数组中的每个元素为 [latex]，此时所有正方形的面积之和则为: [latex] 根据题目要求，我们需要找到一个分割线 [latex]，使得所有在 [latex] 以上的正方形的面积之和等于所有在 [latex] 以下的正方形的面积之和。",
+            "topic": {
+                "id": 3875568,
+                "subscribed": false,
+                "commentCount": 2,
+                "viewCount": 30,
+                "post": {
+                    "id": 7070838,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 25,
+            "isEditorsPick": false,
+            "hitCount": 6655,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "separate-squares-i",
+                "questionFrontendId": "3453"
+            },
+            "next": {
+                "slug": "zheng-shu-er-fen-pythonjavacgo-by-endles-8yn5",
+                "title": "三种方法：浮点二分 / 整数二分 / 差分（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

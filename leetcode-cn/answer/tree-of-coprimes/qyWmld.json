@@ -1,0 +1,150 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "qyWmld",
+            "title": "互质树",
+            "content": "#### 方法一：深度优先搜索\n\n很容易想到，对于树中的一个节点可以采用深度优先搜索，由于根节点到任意节点的搜索路径就是该节点的祖先节点的集合，所以搜索路径上最近的与其互质的就是答案。在搜索遍历树处理答案的时候，有许多信息可以复用。\n\n从数据范围入手，发现 $\\textit{nums}[i]$ 的范围是 $[1,50]$，预处理 $\\textit{gcds}[j]$ 表示 $[1,50]$ 中与 $j$ 互质的元素的集合。用 $\\textit{tmp}[i]$ 表示在搜索过程中 $i = \\textit{nums}[x]$ 的节点坐标集合，显然该集合的末尾元素离当前节点最近。对于任意一个节点 $x$，初始化 $\\textit{ans}[x] = -1$，通过预处理的 $\\textit{gcds}$ 数组得到与 $\\textit{nums}[x]$ 互质的所有整数。对于每个整数 $y$，$\\textit{tmp}[y]$ 中存储的最后一个位置，就是与当前节点距离最近的祖先节点的位置。找到所有这样的节点，并与当前节点 $\\textit{ans}[x]$ 的深度进行比较后更新。\n\n需要注意一下，题目中的边并没有指定方向。同时当前节点 $x$ 在搜索子节点前，令 $i = \\textit{nums}[x]$，会放进 $\\textit{tmp}[i]$ 的末尾，在回溯时需要 $\\textit{pop}$ 出来。\n\n```C++ [sol1-C++]\nclass Solution {\nprivate:\n    vector<vector<int>> gcds; \n    vector<vector<int>> tmp;\n    vector<vector<int>> g;\n    vector<int> dep;\n    vector<int> ans;\n\npublic:\n    void dfs(vector<int> &nums, int x, int depth) {\n        dep[x] = depth;\n        for (int val : gcds[nums[x]]) {\n            if (tmp[val].empty()) {\n                continue;\n            }\n        \n            int las = tmp[val].back();\n            if (ans[x] == -1 || dep[las] > dep[ans[x]]) {\n                ans[x] = las;\n            }\n        }\n        tmp[nums[x]].push_back(x);\n\n        for (int val : g[x]) {\n            if (dep[val] == -1) { // 被访问过的点dep不为-1\n                dfs(nums, val, depth + 1);\n            }\n        }\n\n        tmp[nums[x]].pop_back();\n    }\n\n    vector<int> getCoprimes(vector<int>& nums, vector<vector<int>>& edges) {\n        int n = nums.size();\n        \n        // 初始化\n        gcds.resize(51);\n        tmp.resize(51);\n        ans.resize(n, -1);\n        dep.resize(n, -1);\n        g.resize(n);\n\n        for (int i = 1; i <= 50; i++) {\n            for (int j = 1; j <= 50; j++) {\n                if (gcd(i, j) == 1) {\n                    gcds[i].push_back(j);\n                } \n            }\n        }\n        \n        for (const auto &val : edges) {\n            g[val[0]].push_back(val[1]);\n            g[val[1]].push_back(val[0]);\n        }\n\n        dfs(nums, 0, 1);\n        \n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    List<Integer>[] gcds;\n    List<Integer>[] tmp;\n    List<Integer>[] g;\n    int[] dep;\n    int[] ans;\n\n    public int[] getCoprimes(int[] nums, int[][] edges) {\n        int n = nums.length;\n        \n        // 初始化\n        gcds = new List[51];\n        tmp = new List[51];\n        for (int i = 0; i <= 50; i++) {\n            gcds[i] = new ArrayList<Integer>();\n            tmp[i] = new ArrayList<Integer>();\n        }\n        ans = new int[n];\n        dep = new int[n];\n        Arrays.fill(ans, -1);\n        Arrays.fill(dep, -1);\n        g = new List[n];\n        for (int i = 0; i < n; i++) {\n            g[i] = new ArrayList<Integer>();\n        }\n\n        for (int i = 1; i <= 50; i++) {\n            for (int j = 1; j <= 50; j++) {\n                if (gcd(i, j) == 1) {\n                    gcds[i].add(j);\n                } \n            }\n        }\n\n        for (int[] val : edges) {\n            g[val[0]].add(val[1]);\n            g[val[1]].add(val[0]);\n        }\n\n        dfs(nums, 0, 1);\n        \n        return ans;\n    }\n\n    public int gcd(int x, int y) {\n        while (y != 0) {\n            int temp = x;\n            x = y;\n            y = temp % y;\n        }\n        return x;\n    }\n\n    public void dfs(int[] nums, int x, int depth) {\n        dep[x] = depth;\n        for (int val : gcds[nums[x]]) {\n            if (tmp[val].isEmpty()) {\n                continue;\n            }\n        \n            int las = tmp[val].get(tmp[val].size() - 1);\n            if (ans[x] == -1 || dep[las] > dep[ans[x]]) {\n                ans[x] = las;\n            }\n        }\n        tmp[nums[x]].add(x);\n\n        for (int val : g[x]) {\n            if (dep[val] == -1) { // 被访问过的点dep不为-1\n                dfs(nums, val, depth + 1);\n            }\n        }\n\n        tmp[nums[x]].remove(tmp[nums[x]].size() - 1);\n    }\n}\n```\n\n```C [sol1-C]\nstruct ListNode *createListNode(int val) {\n    struct ListNode *obj = (struct ListNode *)malloc(sizeof(struct ListNode));\n    obj->val = val;\n    obj->next = NULL;\n    return obj;\n}\n\nvoid freeList(struct ListNode *list) {\n    while (list) {\n        struct ListNode *p = list;\n        list = list->next;\n        free(p);\n    }\n}\n\nvoid dfs(int x, int depth, int *dep, int *ans, const int *nums, struct ListNode **tmp, struct ListNode **gcds, struct ListNode **g) {\n    dep[x] = depth;\n    for (struct ListNode *p = gcds[nums[x]]; p; p = p->next) {\n        int val = p->val;\n        if (tmp[val] == NULL) {\n            continue;\n        }\n        int las = tmp[val]->val;\n        if (ans[x] == -1 || dep[las] > dep[ans[x]]) {\n            ans[x] = las;\n        }\n    }\n    struct ListNode *node = createListNode(x);\n    node->next = tmp[nums[x]];\n    tmp[nums[x]] = node;\n    for (struct ListNode *p = g[x]; p; p = p->next) {\n        int val = p->val;\n        if (dep[val] == -1) { // 被访问过的点dep不为-1\n            dfs(val, depth + 1, dep, ans, nums, tmp, gcds, g);\n        }\n    }\n    node = tmp[nums[x]];\n    tmp[nums[x]] = tmp[nums[x]]->next;\n    free(node);\n}\n\nint gcd(int a, int b) {\n    while (b != 0) {\n        int temp = b;\n        b = a % b;\n        a = temp;\n    }\n    return a;\n}\n\nint* getCoprimes(int* nums, int numsSize, int** edges, int edgesSize, int* edgesColSize, int* returnSize) {\n    int n = numsSize;\n\n    struct ListNode *gcds[51];\n    struct ListNode *tmp[51];\n    struct ListNode *g[n];\n    int *ans = (int *)malloc(sizeof(int) * n);\n    int *dep = (int *)malloc(sizeof(int) * n);\n    // 初始化\n    for (int i = 0; i < n; i++) {\n        g[i] = NULL;\n        ans[i] = -1;\n        dep[i] = -1;\n    }\n    for (int i = 1; i <= 50; i++) {\n        gcds[i] = NULL;\n        tmp[i] = NULL;\n        for (int j = 1; j <= 50; j++) {\n            if (gcd(i, j) == 1) {\n                struct ListNode *p = createListNode(j);\n                p->next = gcds[i];\n                gcds[i] = p;\n            } \n        }\n    }\n    for (int i = 0; i < edgesSize; i++) {\n        int x = edges[i][0], y = edges[i][1];\n        struct ListNode *nodex = createListNode(x);\n        nodex->next = g[y];\n        g[y] = nodex;\n        struct ListNode *nodey = createListNode(y);\n        nodey->next = g[x];\n        g[x] = nodey;\n    }\n\n    dfs(0, 1, dep, ans, nums, tmp, gcds, g);\n    *returnSize = n;\n    for (int i = 1; i <= 50; i++) {\n        freeList(gcds[i]);\n        freeList(tmp[i]);\n    }\n    for (int i = 0; i < n; i++) {\n        freeList(g[i]);\n    }\n    free(dep);\n    return ans;\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def getCoprimes(self, nums: List[int], edges: List[List[int]]) -> List[int]:\n        n = len(nums)\n        # 初始化\n        gcds = [[] for _ in range(51)]\n        tmp = [[] for _ in range(51)]\n        ans = [-1] * n\n        dep = [-1] * n \n        g = [[] for _ in range(n)]\n\n        def dfs(x: int, depth: int):\n            dep[x] = depth\n            for val in gcds[nums[x]]:\n                if not tmp[val]:\n                    continue\n                las = tmp[val][-1]\n                if ans[x] == -1 or dep[las] > dep[ans[x]]:\n                    ans[x] = las\n            tmp[nums[x]].append(x)\n            for val in g[x]:\n                if dep[val] == -1: # 被访问过的点dep不为-1\n                    dfs(val, depth + 1)\n            tmp[nums[x]].pop()\n\n        for i in range(1, 51):\n            for j in range(1, 51):\n                if math.gcd(i, j) == 1:\n                    gcds[i].append(j)\n        for x, y in edges:\n            g[x].append(y)\n            g[y].append(x)\n        dfs(0, 1)\n        return ans\n```\n\n```Go [sol1-Go]\nfunc getCoprimes(nums []int, edges [][]int) []int {\n    n := len(nums)\n\tgcds := make([][]int, 51)\n\ttmp := make([][]int, 51)\n\tans := make([]int, n)\n\tdep := make([]int, n)\n\tg := make([][]int, n)\n    // 初始化\n\tfor i := 0; i < 51; i++ {\n\t\tgcds[i] = []int{}\n\t\ttmp[i] = []int{}\n\t}\n\tfor i := 0; i < n; i++ {\n\t\tg[i] = []int{}\n        ans[i], dep[i] = -1, -1\n\t}\n\n\tvar dfs func(x, depth int)\n\tdfs = func(x, depth int) {\n\t\tdep[x] = depth\n\t\tfor _, val := range gcds[nums[x]] {\n\t\t\tif len(tmp[val]) == 0 {\n\t\t\t\tcontinue\n\t\t\t}\n\t\t\tlas := tmp[val][len(tmp[val]) - 1]\n\t\t\tif ans[x] == -1 || dep[las] > dep[ans[x]] {\n\t\t\t\tans[x] = las\n\t\t\t}\n\t\t}\n\t\ttmp[nums[x]] = append(tmp[nums[x]], x)\n\t\tfor _, val := range g[x] {\n\t\t\tif dep[val] == -1 { // 被访问过的点dep不为-1\n\t\t\t\tdfs(val, depth + 1)\n\t\t\t}\n\t\t}\n\t\ttmp[nums[x]] = tmp[nums[x]][:len(tmp[nums[x]]) - 1]\n\t}\n\n\tfor i := 1; i <= 50; i++ {\n\t\tfor j := 1; j <= 50; j++ {\n\t\t\tif gcd(i, j) == 1 {\n\t\t\t\tgcds[i] = append(gcds[i], j)\n\t\t\t}\n\t\t}\n\t}\n\tfor _, edge := range edges {\n\t\tx := edge[0]\n\t\ty := edge[1]\n\t\tg[x] = append(g[x], y)\n\t\tg[y] = append(g[y], x)\n\t}\n\n\tdfs(0, 1)\n\treturn ans\n}\n\nfunc gcd(a, b int) int {\n    for b != 0 {\n        a, b = b, a % b\n    }\n    return a\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar getCoprimes = function(nums, edges) {\n    const n = nums.length;\n    const gcds = Array.from({ length: 51 }, () => []);\n    const tmp = Array.from({ length: 51 }, () => []);\n    const ans = Array(n).fill(-1);\n    const dep = Array(n).fill(-1);\n    const g = Array.from({ length: n }, () => []);\n\n    function gcd(a, b) {\n        while (b !== 0) {\n            [a, b] = [b, a % b];\n        }\n        return a;\n    }\n\n    function dfs(x, depth) {\n        dep[x] = depth;\n        for (const val of gcds[nums[x]]) {\n            if (tmp[val].length === 0) continue;\n            const las = tmp[val][tmp[val].length - 1];\n            if (ans[x] === -1 || dep[las] > dep[ans[x]]) {\n                ans[x] = las;\n            }\n        }\n        tmp[nums[x]].push(x);\n        for (const val of g[x]) {\n            if (dep[val] === -1) { // 被访问过的点dep不为-1\n                dfs(val, depth + 1);\n            }\n        }\n        tmp[nums[x]].pop();\n    }\n\n    // 初始化\n    for (let i = 1; i <= 50; i++) {\n        for (let j = 1; j <= 50; j++) {\n            if (gcd(i, j) === 1) {\n                gcds[i].push(j);\n            }\n        }\n    }\n    for (const [x, y] of edges) {\n        g[x].push(y);\n        g[y].push(x);\n    }\n\n    dfs(0, 1);\n    return ans;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction getCoprimes(nums: number[], edges: number[][]): number[] {\n    const n: number = nums.length;\n    const gcds: number[][] = Array.from({ length: 51 }, () => []);\n    const tmp: number[][] = Array.from({ length: 51 }, () => []);\n    const ans: number[] = Array(n).fill(-1);\n    const dep: number[] = Array(n).fill(-1);\n    const g: number[][] = Array.from({ length: n }, () => []);\n\n    function gcd(a: number, b: number): number {\n        while (b !== 0) {\n            [a, b] = [b, a % b];\n        }\n        return a;\n    }\n\n    function dfs(x: number, depth: number): void {\n        dep[x] = depth;\n        for (const val of gcds[nums[x]]) {\n            if (tmp[val].length === 0) continue;\n            const las: number = tmp[val][tmp[val].length - 1];\n            if (ans[x] === -1 || dep[las] > dep[ans[x]]) {\n                ans[x] = las;\n            }\n        }\n        tmp[nums[x]].push(x);\n        for (const val of g[x]) {\n            if (dep[val] === -1) { // 被访问过的点dep不为-1\n                dfs(val, depth + 1);\n            }\n        }\n        tmp[nums[x]].pop();\n    }\n\n    // 初始化\n    for (let i = 1; i <= 50; i++) {\n        for (let j = 1; j <= 50; j++) {\n            if (gcd(i, j) === 1) {\n                gcds[i].push(j);\n            }\n        }\n    }\n    for (const [x, y] of edges) {\n        g[x].push(y);\n        g[y].push(x);\n    }\n\n    dfs(0, 1);\n    return ans;\n};\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn get_coprimes(nums: Vec<i32>, edges: Vec<Vec<i32>>) -> Vec<i32> {\n        let n = nums.len();\n        let mut gcds = vec![vec![]; 51];\n        let mut tmp = vec![vec![]; 51];\n        let mut ans = vec![-1; n];\n        let mut dep = vec![-1; n];\n        let mut g = vec![vec![]; n];\n\n        fn gcd(a: i32, b: i32) -> i32 {\n            let mut a = a;\n            let mut b = b;\n            while b != 0 {\n                let temp = b;\n                b = a % b;\n                a = temp;\n            }\n            a.abs()\n        }\n\n        fn dfs(x: usize, depth: i32, dep: &mut [i32], ans: &mut [i32], nums: &Vec<i32>, tmp: &mut Vec<Vec<usize>>, gcds: &Vec<Vec<i32>>, g: &Vec<Vec<usize>>) {\n            dep[x] = depth;\n            for &val in &gcds[nums[x] as usize] {\n                if tmp[val as usize].is_empty() {\n                    continue;\n                }\n                let las = *tmp[val as usize].last().unwrap();\n                if ans[x] == -1 || dep[las] > dep[ans[x] as usize] {\n                    ans[x] = las as i32;\n                }\n            }\n            tmp[nums[x] as usize].push(x);\n            for &val in &g[x] {\n                if dep[val] == -1 { // 被访问过的点dep不为-1\n                    dfs(val, depth + 1, dep, ans, nums, tmp, gcds, g);\n                }\n            }\n            tmp[nums[x] as usize].pop();\n        }\n\n        // 初始化\n        for i in 1..= 50 {\n            for j in 1..= 50 {\n                if gcd(i, j) == 1 {\n                    gcds[i as usize].push(j);\n                }\n            }\n        }\n        for edge in &edges {\n            let x = edge[0] as usize;\n            let y = edge[1] as usize;\n            g[x].push(y);\n            g[y].push(x);\n        }\n        dfs(0, 1, &mut dep, &mut ans, &nums, &mut tmp, &gcds, &g);\n        ans\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(C \\times n)$。$n$ 为数组 $\\textit{nums}$ 的长度，$C$ 表示 $\\textit{nums}$ 的数据范围，在本题中最大为 $50$。\n\n- 空间复杂度：$O(C^2 \\log C + C \\times n)$。",
+            "slateValue": "",
+            "slug": "hu-zhi-shu-by-leetcode-solution-ef42",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "qyWmld",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 12,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Tree",
+                    "nameTranslated": "树",
+                    "slug": "tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Depth-First Search",
+                    "nameTranslated": "深度优先搜索",
+                    "slug": "depth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Number Theory",
+                    "nameTranslated": "数论",
+                    "slug": "number-theory",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2024-04-08T07:55:33.823222+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：深度优先搜索 很容易想到，对于树中的一个节点可以采用深度优先搜索，由于根节点到任意节点的搜索路径就是该节点的祖先节点的集合，所以搜索路径上最近的与其互质的就是答案。在搜索遍历树处理答案的时候，有许多信息可以复用。 从数据范围入手，发现 $\\textit{nums}[i]$ 的范围是 $[1,50]$，预处理 $",
+            "topic": {
+                "id": 2729332,
+                "subscribed": false,
+                "commentCount": 46,
+                "viewCount": 831,
+                "post": {
+                    "id": 5004137,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 34,
+            "isEditorsPick": false,
+            "hitCount": 12717,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "tree-of-coprimes",
+                "questionFrontendId": "1766"
+            },
+            "next": {
+                "slug": "dfs-zhong-ji-lu-jie-dian-zhi-de-shen-du-4v5d2",
+                "title": "DFS 中记录节点值的深度和编号，回溯写法（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

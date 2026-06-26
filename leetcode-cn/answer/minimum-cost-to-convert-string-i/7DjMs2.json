@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "7DjMs2",
+            "title": "转换字符串的最小成本 I",
+            "content": "#### 方法一：Floyd 算法\n\n**思路与算法**\n\n我们需要得到字符串 $\\textit{source}$ 转换为 $\\textit{target}$ 的最小成本，而每个字符都是单独修改的，因此最小成本等于每一组 $\\textit{source}[i]$ 转换为 $\\textit{target}[i]$ 的最小成本之和。\n\n我们构造有向图 $G$，$G$ 中的每个节点是一个小写字母。对于每一组 $(\\textit{original}[i], \\textit{changed}[i], \\textit{cost}[i])$，我们在 $G$ 中从 $\\textit{original}[i]$ 向 $\\textit{changed}[i]$ 建边，边权为 $\\textit{cost}[i]$。这样一来，将 $\\textit{source}[i]$ 转换为 $\\textit{target}[i]$ 的最小成本，就等于 $G$ 中 $\\textit{source}[i]$ 到 $\\textit{target}[i]$ 的最短路径。\n\n由于 $G$ 中不超过 $|\\Sigma| = 26$ 个节点，并且最多有 $m = 2000$ 条边，因此可以使用 $\\text{Floyd}$ 算法预处理出所有节点之间的最短路。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    long long minimumCost(string source, string target, vector<char>& original, vector<char>& changed, vector<int>& cost) {\n        vector<vector<int>> G(26, vector<int>(26, inf));\n        for (int i = 0; i < 26; ++i) {\n            G[i][i] = 0;\n        }\n\n        int m = original.size();\n        for (int i = 0; i < m; ++i) {\n            int idx = original[i] - 'a';\n            int idy = changed[i] - 'a';\n            G[idx][idy] = min(G[idx][idy], cost[i]);\n        }\n\n        for (int k = 0; k < 26; ++k) {\n            for (int i = 0; i < 26; ++i) {\n                for (int j = 0; j < 26; ++j) {\n                    G[i][j] = min(G[i][j], G[i][k] + G[k][j]);\n                }\n            }\n        }\n\n        int n = source.size();\n        long long ans = 0;\n        for (int i = 0; i < n; ++i) {\n            int idx = source[i] - 'a';\n            int idy = target[i] - 'a';\n            if (G[idx][idy] == inf) {\n                return -1;\n            }\n            ans += G[idx][idy];\n        }\n\n        return ans;\n    }\n\nprivate:\n    static constexpr int inf = INT_MAX / 2;\n};\n```\n\n```Python [sol1-Python]\nclass Solution:\n    def minimumCost(self, source: str, target: str, original: List[str], changed: List[str], cost: List[int]) -> int:\n        G = [[inf] * 26 for _ in range(26)]\n        for i in range(26):\n            G[i][i] = 0\n\n        for x, y, z in zip(original, changed, cost):\n            idx = ord(x) - ord(\"a\")\n            idy = ord(y) - ord(\"a\")\n            G[idx][idy] = min(G[idx][idy], z)\n\n        for k in range(26):\n            for i in range(26):\n                for j in range(26):\n                    G[i][j] = min(G[i][j], G[i][k] + G[k][j])\n\n        ans = 0\n        for x, y in zip(source, target):\n            idx = ord(x) - ord(\"a\")\n            idy = ord(y) - ord(\"a\")\n            if G[idx][idy] == inf:\n                return -1\n            ans += G[idx][idy]\n\n        return ans\n```\n\n```Java [sol1-Java]\nclass Solution {\n    private static final int INF = Integer.MAX_VALUE / 2;\n    \n    public long minimumCost(String source, String target, char[] original, char[] changed, int[] cost) {\n        int[][] G = new int[26][26];\n        for (int i = 0; i < 26; i++) {\n            Arrays.fill(G[i], INF);\n            G[i][i] = 0;\n        }\n        \n        int m = original.length;\n        for (int i = 0; i < m; i++) {\n            int idx = original[i] - 'a';\n            int idy = changed[i] - 'a';\n            G[idx][idy] = Math.min(G[idx][idy], cost[i]);\n        }\n        \n        for (int k = 0; k < 26; k++) {\n            for (int i = 0; i < 26; i++) {\n                for (int j = 0; j < 26; j++) {\n                    if (G[i][k] != INF && G[k][j] != INF) {\n                        G[i][j] = Math.min(G[i][j], G[i][k] + G[k][j]);\n                    }\n                }\n            }\n        }\n        \n        int n = source.length();\n        long ans = 0;\n        for (int i = 0; i < n; i++) {\n            int idx = source.charAt(i) - 'a';\n            int idy = target.charAt(i) - 'a';\n            if (G[idx][idy] == INF) {\n                return -1;\n            }\n            ans += G[idx][idy];\n        }\n        \n        return ans;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    private const int INF = int.MaxValue / 2;\n    \n    public long MinimumCost(string source, string target, char[] original, char[] changed, int[] cost) {\n        int[,] G = new int[26, 26];\n        for (int i = 0; i < 26; i++) {\n            for (int j = 0; j < 26; j++) {\n                G[i, j] = INF;\n            }\n            G[i, i] = 0;\n        }\n        \n        int m = original.Length;\n        for (int i = 0; i < m; i++) {\n            int idx = original[i] - 'a';\n            int idy = changed[i] - 'a';\n            G[idx, idy] = Math.Min(G[idx, idy], cost[i]);\n        }\n        \n        for (int k = 0; k < 26; k++) {\n            for (int i = 0; i < 26; i++) {\n                for (int j = 0; j < 26; j++) {\n                    if (G[i, k] != INF && G[k, j] != INF) {\n                        G[i, j] = Math.Min(G[i, j], G[i, k] + G[k, j]);\n                    }\n                }\n            }\n        }\n        \n        int n = source.Length;\n        long ans = 0;\n        for (int i = 0; i < n; i++) {\n            int idx = source[i] - 'a';\n            int idy = target[i] - 'a';\n            if (G[idx, idy] == INF) {\n                return -1;\n            }\n            ans += G[idx, idy];\n        }\n        \n        return ans;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc minimumCost(source string, target string, original []byte, changed []byte, cost []int) int64 {\n    const INF = int(^uint(0) >> 1) / 2\n    \n    G := make([][]int, 26)\n    for i := range G {\n        G[i] = make([]int, 26)\n        for j := range G[i] {\n            G[i][j] = INF\n        }\n        G[i][i] = 0\n    }\n    \n    m := len(original)\n    for i := 0; i < m; i++ {\n        idx := int(original[i] - 'a')\n        idy := int(changed[i] - 'a')\n        if cost[i] < G[idx][idy] {\n            G[idx][idy] = cost[i]\n        }\n    }\n    \n    for k := 0; k < 26; k++ {\n        for i := 0; i < 26; i++ {\n            for j := 0; j < 26; j++ {\n                if G[i][k] != INF && G[k][j] != INF {\n                    G[i][j] = min(G[i][j], G[i][k] + G[k][j])\n                }\n            }\n        }\n    }\n    \n    n := len(source)\n    var ans int64 = 0\n    for i := 0; i < n; i++ {\n        idx := int(source[i] - 'a')\n        idy := int(target[i] - 'a')\n        if G[idx][idy] == INF {\n            return -1\n        }\n        ans += int64(G[idx][idy])\n    }\n    \n    return ans\n}\n```\n\n```C [sol1-C]\nconst int INF = INT_MAX / 2;\n\nlong long minimumCost(char* source, char* target, char* original, int originalSize, char* changed, int changedSize, int* cost, int costSize) {\n    int G[26][26];\n    \n    for (int i = 0; i < 26; i++) {\n        for (int j = 0; j < 26; j++) {\n            G[i][j] = INF;\n        }\n        G[i][i] = 0;\n    }\n    \n    for (int i = 0; i < costSize; i++) {\n        int idx = original[i] - 'a';\n        int idy = changed[i] - 'a';\n        if (cost[i] < G[idx][idy]) {\n            G[idx][idy] = cost[i];\n        }\n    }\n    \n    for (int k = 0; k < 26; k++) {\n        for (int i = 0; i < 26; i++) {\n            for (int j = 0; j < 26; j++) {\n                if (G[i][k] != INF && G[k][j] != INF) {\n                    int new_cost = G[i][k] + G[k][j];\n                    if (new_cost < G[i][j]) {\n                        G[i][j] = new_cost;\n                    }\n                }\n            }\n        }\n    }\n    \n    long long ans = 0;\n    int n = strlen(source);\n    for (int i = 0; i < n; i++) {\n        int idx = source[i] - 'a';\n        int idy = target[i] - 'a';\n        if (G[idx][idy] == INF) {\n            return -1;\n        }\n        ans += G[idx][idy];\n    }\n    \n    return ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nfunction minimumCost(source, target, original, changed, cost) {\n    const INF = Number.MAX_SAFE_INTEGER / 2;\n    const G = Array(26).fill().map(() => Array(26).fill(INF));\n    for (let i = 0; i < 26; i++) {\n        G[i][i] = 0;\n    }\n    \n    const m = original.length;\n    for (let i = 0; i < m; i++) {\n        const idx = original[i].charCodeAt(0) - 97;\n        const idy = changed[i].charCodeAt(0) - 97;\n        G[idx][idy] = Math.min(G[idx][idy], cost[i]);\n    }\n    \n    for (let k = 0; k < 26; k++) {\n        for (let i = 0; i < 26; i++) {\n            for (let j = 0; j < 26; j++) {\n                if (G[i][k] !== INF && G[k][j] !== INF) {\n                    G[i][j] = Math.min(G[i][j], G[i][k] + G[k][j]);\n                }\n            }\n        }\n    }\n    \n    let ans = 0;\n    const n = source.length;\n    for (let i = 0; i < n; i++) {\n        const idx = source.charCodeAt(i) - 97;\n        const idy = target.charCodeAt(i) - 97;\n        if (G[idx][idy] === INF) {\n            return -1;\n        }\n        ans += G[idx][idy];\n    }\n    \n    return ans;\n}\n```\n\n```TypeScript [sol1-TypeScript]\nfunction minimumCost(source, target, original, changed, cost) {\n    const INF = Number.MAX_SAFE_INTEGER / 2;\n    const G = Array(26).fill().map(() => Array(26).fill(INF));\n    for (let i = 0; i < 26; i++) {\n        G[i][i] = 0;\n    }\n    \n    const m = original.length;\n    for (let i = 0; i < m; i++) {\n        const idx = original.charCodeAt(i) - 97;\n        const idy = changed.charCodeAt(i) - 97;\n        G[idx][idy] = Math.min(G[idx][idy], cost[i]);\n    }\n    \n    for (let k = 0; k < 26; k++) {\n        for (let i = 0; i < 26; i++) {\n            for (let j = 0; j < 26; j++) {\n                if (G[i][k] !== INF && G[k][j] !== INF) {\n                    G[i][j] = Math.min(G[i][j], G[i][k] + G[k][j]);\n                }\n            }\n        }\n    }\n    \n    let ans = 0;\n    const n = source.length;\n    for (let i = 0; i < n; i++) {\n        const idx = source.charCodeAt(i) - 97;\n        const idy = target.charCodeAt(i) - 97;\n        if (G[idx][idy] === INF) {\n            return -1;\n        }\n        ans += G[idx][idy];\n    }\n    \n    return ans;\n}\n```\n\n```Go [sol1-Go]\nimpl Solution {\n    pub fn minimum_cost(source: String, target: String, original: Vec<char>, changed: Vec<char>, cost: Vec<i32>) -> i64 {\n        const INF: i32 = i32::MAX / 2;\n        let mut g = [[INF; 26]; 26];\n        for i in 0..26 {\n            g[i][i] = 0;\n        }\n        \n        for i in 0..original.len() {\n            let idx = (original[i] as u8 - b'a') as usize;\n            let idy = (changed[i] as u8 - b'a') as usize;\n            g[idx][idy] = g[idx][idy].min(cost[i]);\n        }\n        \n        for k in 0..26 {\n            for i in 0..26 {\n                for j in 0..26 {\n                    if g[i][k] != INF && g[k][j] != INF {\n                        g[i][j] = g[i][j].min(g[i][k] + g[k][j]);\n                    }\n                }\n            }\n        }\n        \n        let mut ans: i64 = 0;\n        let source_bytes = source.as_bytes();\n        let target_bytes = target.as_bytes();\n        \n        for i in 0..source_bytes.len() {\n            let idx = (source_bytes[i] - b'a') as usize;\n            let idy = (target_bytes[i] - b'a') as usize;\n            if g[idx][idy] == INF {\n                return -1;\n            }\n            ans += g[idx][idy] as i64;\n        }\n        \n        ans\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n + m + |\\Sigma|^3)$，其中 $n$ 是数组 $\\textit{source}$ 和 $\\textit{target}$ 的长度，$m$ 是数组 $\\textit{original}$、$\\textit{changed}$ 和 $\\textit{cost}$ 的长度，$\\Sigma$ 是字符集，在本题中为全部小写字母，$|\\Sigma| = 26$。\n\n- 空间复杂度：$O(|\\Sigma|^2)$。",
+            "slateValue": "",
+            "slug": "zhuan-huan-zi-fu-chuan-de-zui-xiao-cheng-9qc0",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "7DjMs2",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 3,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Shortest Path",
+                    "nameTranslated": "最短路",
+                    "slug": "shortest-path",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2026-01-26T03:31:05.814431+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：Floyd 算法 思路与算法 我们需要得到字符串 [latex] 转换为 [latex] 的最小成本，而每个字符都是单独修改的，因此最小成本等于每一组 [latex] 转换为 [latex] 的最小成本之和。 我们构造有向图 [latex]，[latex] 中的每个节点是一个小写字母。对于每一组 [latex]",
+            "topic": {
+                "id": 3889113,
+                "subscribed": false,
+                "commentCount": 7,
+                "viewCount": 13,
+                "post": {
+                    "id": 7094235,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 5,
+            "isEditorsPick": false,
+            "hitCount": 4427,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "minimum-cost-to-convert-string-i",
+                "questionFrontendId": "2976"
+            },
+            "next": {
+                "slug": "floyd-suan-fa-by-endlesscheng-ug8s",
+                "title": "Floyd 算法（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

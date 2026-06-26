@@ -1,0 +1,114 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "rEUbxL",
+            "title": "含有重复元素集合的全排列",
+            "content": "#### 方法一：搜索回溯\n\n**思路和算法**\n\n此题是「[剑指 Offer II 083. 没有重复元素集合的全排列](https://leetcode.cn/problems/VvJkup/)」的进阶，序列中包含了重复的数字，要求我们返回不重复的全排列，那么我们依然可以选择使用搜索回溯的方法来做。\n\n我们将这个问题看作有 $n$ 个排列成一行的空格，我们需要从左往右依次填入题目给定的 $n$ 个数，每个数只能使用一次。那么很直接的可以想到一种穷举的算法，即从左往右每一个位置都依此尝试填入一个数，看能不能填完这 $n$ 个空格，在程序中我们可以用「回溯法」来模拟这个过程。\n\n我们定义递归函数 $\\textit{backtrack}(\\textit{idx}, \\textit{perm})$ 表示当前排列为 $\\textit{perm}$，下一个待填入的位置是第 $\\textit{idx}$ 个位置（下标从 $0$ 开始）。那么整个递归函数分为两个情况：\n\n- 如果 $\\textit{idx} = n$，说明我们已经填完了 $n$ 个位置，找到了一个可行的解，我们将 $\\textit{perm}$ 放入答案数组中，递归结束。\n-  如果 $\\textit{idx} < n$，我们要考虑第 $\\textit{idx}$ 个位置填哪个数。根据题目要求我们肯定不能填已经填过的数，因此很容易想到的一个处理手段是我们定义一个标记数组 $\\textit{vis}$ 来标记已经填过的数，那么在填第 $\\textit{idx}$ 个数的时候我们遍历题目给定的 $n$ 个数，如果这个数没有被标记过，我们就尝试填入，并将其标记，继续尝试填下一个位置，即调用函数 $\\textit{backtrack}(\\textit{idx} + 1, \\textit{perm})$。搜索回溯的时候要撤销该个位置填的数以及标记，并继续尝试其他没被标记过的数。\n\n但题目解到这里并没有满足「全排列不重复」 的要求，在上述的递归函数中我们会生成大量重复的排列，因为对于第 $\\textit{idx}$ 的位置，如果存在重复的数字 $i$，我们每次会将重复的数字都重新填上去并继续尝试导致最后答案的重复，因此我们需要处理这个情况。\n\n要解决重复问题，我们只要设定一个规则，保证在填第 $\\textit{idx}$ 个数的时候**重复数字只会被填入一次即可**。而在本题解中，我们选择对原数组排序，保证相同的数字都相邻，然后每次填入的数一定是这个数所在重复数集合中「从左往右第一个未被填过的数字」，即如下的判断条件：\n\n```C++ [sol0-C++]\nif (i > 0 && nums[i] == nums[i - 1] && !vis[i - 1]) {\n    continue;\n}\n```\n\n这个判断条件保证了对于重复数的集合，一定是从左往右逐个填入的。\n\n假设我们有 $3$ 个重复数排完序后相邻，那么我们一定保证每次都是拿从左往右第一个未被填过的数字，即整个数组的状态其实是保证了 $[未填入，未填入，未填入]$ 到 $[填入，未填入，未填入]$，再到 $[填入，填入，未填入]$，最后到 $[填入，填入，填入]$ 的过程的，因此可以达到去重的目标。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\n    vector<int> vis;\n\npublic:\n    void backtrack(vector<int>& nums, vector<vector<int>>& ans, int idx, vector<int>& perm) {\n        if (idx == nums.size()) {\n            ans.emplace_back(perm);\n            return;\n        }\n        for (int i = 0; i < (int)nums.size(); ++i) {\n            if (vis[i] || (i > 0 && nums[i] == nums[i - 1] && !vis[i - 1])) {\n                continue;\n            }\n            perm.emplace_back(nums[i]);\n            vis[i] = 1;\n            backtrack(nums, ans, idx + 1, perm);\n            vis[i] = 0;\n            perm.pop_back();\n        }\n    }\n\n    vector<vector<int>> permuteUnique(vector<int>& nums) {\n        vector<vector<int>> ans;\n        vector<int> perm;\n        vis.resize(nums.size());\n        sort(nums.begin(), nums.end());\n        backtrack(nums, ans, 0, perm);\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    boolean[] vis;\n\n    public List<List<Integer>> permuteUnique(int[] nums) {\n        List<List<Integer>> ans = new ArrayList<List<Integer>>();\n        List<Integer> perm = new ArrayList<Integer>();\n        vis = new boolean[nums.length];\n        Arrays.sort(nums);\n        backtrack(nums, ans, 0, perm);\n        return ans;\n    }\n\n    public void backtrack(int[] nums, List<List<Integer>> ans, int idx, List<Integer> perm) {\n        if (idx == nums.length) {\n            ans.add(new ArrayList<Integer>(perm));\n            return;\n        }\n        for (int i = 0; i < nums.length; ++i) {\n            if (vis[i] || (i > 0 && nums[i] == nums[i - 1] && !vis[i - 1])) {\n                continue;\n            }\n            perm.add(nums[i]);\n            vis[i] = true;\n            backtrack(nums, ans, idx + 1, perm);\n            vis[i] = false;\n            perm.remove(idx);\n        }\n    }\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar permuteUnique = function(nums) {\n    const ans = [];\n    const vis = new Array(nums.length).fill(false);\n    const backtrack = (idx, perm) => {\n        if (idx === nums.length) {\n            ans.push(perm.slice());\n            return;\n        }\n        for (let i = 0; i < nums.length; ++i) {\n            if (vis[i] || (i > 0 && nums[i] === nums[i - 1] && !vis[i - 1])) {\n                continue;\n            }\n            perm.push(nums[i]);\n            vis[i] = true;\n            backtrack(idx + 1, perm);\n            vis[i] = false;\n            perm.pop();\n        }\n    }\n    nums.sort((x, y) => x - y);\n    backtrack(0, []);\n    return ans;\n};\n```\n\n```Golang [sol1-Golang]\nfunc permuteUnique(nums []int) (ans [][]int) {\n    sort.Ints(nums)\n    n := len(nums)\n    perm := []int{}\n    vis := make([]bool, n)\n    var backtrack func(int)\n    backtrack = func(idx int) {\n        if idx == n {\n            ans = append(ans, append([]int(nil), perm...))\n            return\n        }\n        for i, v := range nums {\n            if vis[i] || i > 0 && !vis[i-1] && v == nums[i-1] {\n                continue\n            }\n            perm = append(perm, v)\n            vis[i] = true\n            backtrack(idx + 1)\n            vis[i] = false\n            perm = perm[:len(perm)-1]\n        }\n    }\n    backtrack(0)\n    return\n}\n```\n\n```C [sol1-C]\nint* vis;\n\nvoid backtrack(int* nums, int numSize, int** ans, int* ansSize, int idx, int* perm) {\n    if (idx == numSize) {\n        int* tmp = malloc(sizeof(int) * numSize);\n        memcpy(tmp, perm, sizeof(int) * numSize);\n        ans[(*ansSize)++] = tmp;\n        return;\n    }\n    for (int i = 0; i < numSize; ++i) {\n        if (vis[i] || (i > 0 && nums[i] == nums[i - 1] && !vis[i - 1])) {\n            continue;\n        }\n        perm[idx] = nums[i];\n        vis[i] = 1;\n        backtrack(nums, numSize, ans, ansSize, idx + 1, perm);\n        vis[i] = 0;\n    }\n}\n\nint cmp(void* a, void* b) {\n    return *(int*)a - *(int*)b;\n}\n\nint** permuteUnique(int* nums, int numsSize, int* returnSize, int** returnColumnSizes) {\n    int** ans = malloc(sizeof(int*) * 2001);\n    int* perm = malloc(sizeof(int) * 2001);\n    vis = malloc(sizeof(int) * numsSize);\n    memset(vis, 0, sizeof(int) * numsSize);\n    qsort(nums, numsSize, sizeof(int), cmp);\n    *returnSize = 0;\n    backtrack(nums, numsSize, ans, returnSize, 0, perm);\n    *returnColumnSizes = malloc(sizeof(int) * (*returnSize));\n    for (int i = 0; i < *returnSize; i++) {\n        (*returnColumnSizes)[i] = numsSize;\n    }\n    return ans;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n\\times n!)$，其中 $n$ 为序列的长度。\n\n  算法的复杂度首先受 $\\textit{backtrack}$ 的调用次数制约，$\\textit{backtrack}$ 的调用次数为 $\\sum_{k = 1}^{n}{P(n, k)}$ 次，其中 $P(n, k) = \\frac{n!}{(n - k)!} = n (n - 1) \\ldots (n - k + 1)$，该式被称作 [n 的 k - 排列，或者部分排列](https://baike.baidu.com/item/%E6%8E%92%E5%88%97/7804523)。\n\n  而 $\\sum_{k = 1}^{n}{P(n, k)} = n! + \\frac{n!}{1!} + \\frac{n!}{2!} + \\frac{n!}{3!} + \\ldots + \\frac{n!}{(n-1)!} < 2n! + \\frac{n!}{2} + \\frac{n!}{2^2} + \\frac{n!}{2^{n-2}} < 3n!$\n\n  这说明 $\\textit{backtrack}$ 的调用次数是 $O(n!)$ 的。\n\n  而对于 $\\textit{backtrack}$ 调用的每个叶结点（最坏情况下没有重复数字共 $n!$ 个），我们需要将当前答案使用 $O(n)$ 的时间复制到答案数组中，相乘得时间复杂度为 $O(n \\times n!)$。\n\n  因此时间复杂度为 $O(n \\times n!)$。\n\n- 空间复杂度：$O(n)$。我们需要 $O(n)$ 的标记数组，同时在递归的时候栈深度会达到 $O(n)$，因此总空间复杂度为 $O(n + n)=O(2n)=O(n)$。",
+            "slateValue": "",
+            "slug": "han-you-zhong-fu-yuan-su-ji-he-de-quan-p-qxwv",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "rEUbxL",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 15,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Backtracking",
+                    "nameTranslated": "回溯",
+                    "slug": "backtracking",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-04-08T06:59:29.554694+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：搜索回溯 思路和算法 此题是「剑指 Offer II 083. 没有重复元素集合的全排列」的进阶，序列中包含了重复的数字，要求我们返回不重复的全排列，那么我们依然可以选择使用搜索回溯的方法来做。 我们将这个问题看作有 $n$ 个排列成一行的空格，我们需要从左往右依次填入题目给定的 $n$ 个数，每个数只能使用一",
+            "topic": {
+                "id": 1404273,
+                "subscribed": false,
+                "commentCount": 22,
+                "viewCount": 5553,
+                "post": {
+                    "id": 2898034,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 50,
+            "isEditorsPick": false,
+            "hitCount": 20508,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "7p8L0Z",
+                "questionFrontendId": "LCR 084"
+            },
+            "next": {
+                "slug": "hui-su-jia-zhong-fu-biao-ji-by-yang-zhi-43oqv",
+                "title": "回溯加重复标记"
+            },
+            "prev": null
+        }
+    }
+}

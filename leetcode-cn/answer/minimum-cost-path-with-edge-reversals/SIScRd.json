@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "SIScRd",
+            "title": "边反转的最小路径总成本",
+            "content": "#### 方法一：Dijkstra \n\n**思路与算法**\n\n「[$\\textit{Dijkstra}$](https://oi-wiki.org/graph/shortest-path/#dijkstra-%E7%AE%97%E6%B3%95)」是一种常用的求解最短路径的算法。在本题中，我们需要求解从 $0$ 到 $n - 1$ 的最短路，特殊之处在于每个节点有一次反转其相邻边的机会。在 $\\textit{Dijkstra}$ 算法中，每个点最多只会被遍历一次，因此我们不需要考虑题目中的特殊条件：\n\n1. 每个节点都有「最多可使用一次」的开关\n2. 反转仅对那一次移动有效\n\n具体的，我们将每条边 $[x, y, w]$ 的反向边 $[y, x, 2w]$ 加入图中，然后使用 $\\textit{Dijkstra}$ 算法求解 $0$ 到 $n - 1$ 的最短路即可。\n\n需要注意的是，$\\textit{Dijkstra}$ 可以使用最小堆来进行优化，每次从堆中获取当前未到达的点集合中距离最小的点，然后根据该点去松弛其余未到达点的距离。整个过程每个点可能进堆多次，但只有第一次出堆需要处理，这样可以保证复杂度是 $O(m\\log m)$，其中 $n$ 是点的个数，$m$ 是边的个数。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\n    using PII = pair<int, int>;\npublic:\n    int minCost(int n, vector<vector<int>>& edges) {\n        vector<vector<PII>> g(n);\n        for (auto &e : edges) {\n            int x = e[0], y = e[1], w = e[2];\n            g[x].emplace_back(y, w);\n            g[y].emplace_back(x, 2 * w);\n        }\n\n        vector<int> d(n, INT_MAX);\n        vector<bool> v(n, false);\n        priority_queue<PII, vector<PII>, greater<PII>> q;\n        d[0] = 0;\n        q.emplace(0, 0);\n\n        while (!q.empty()) {\n            int x = q.top().second;\n            q.pop();\n            if (x == n - 1) {\n                return d[x];\n            }\n            // 只有第一次出堆需要去松弛其他点\n            if (v[x]) {\n                continue;\n            }\n            v[x] = 1;\n\n            for (auto &[y, w] : g[x]) {\n                if (d[x] + w < d[y]) {\n                    d[y] = d[x] + w;\n                    q.emplace(d[y], y);\n                }\n            }\n        }\n        return -1;\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def minCost(self, n: int, edges: List[List[int]]) -> int:\n        g = [[] for _ in range(n)]\n        for x, y, w in edges:\n            g[x].append((y, w))\n            g[y].append((x, 2 * w))\n        \n        dist = [inf] * n\n        visited = [False] * n\n        dist[0] = 0\n        heap = [(0, 0)]  # (距离, 节点)\n        \n        while heap:\n            cur_dist, x = heapq.heappop(heap)\n            \n            if x == n - 1:\n                return cur_dist\n            \n            # 已经处理过\n            if visited[x]:\n                continue\n            visited[x] = True\n            \n            # 松弛邻居\n            for y, w in g[x]:\n                new_dist = cur_dist + w\n                if new_dist < dist[y]:\n                    dist[y] = new_dist\n                    heapq.heappush(heap, (new_dist, y))\n        \n        return -1\n```\n\n```Rust [sol1-Rust]\nuse std::collections::BinaryHeap;\n\nimpl Solution {\n    pub fn min_cost(n: i32, edges: Vec<Vec<i32>>) -> i32 {\n        let n = n as usize;\n        let mut g = vec![vec![]; n];\n        for e in edges {\n            let (x, y, w) = (e[0] as usize, e[1] as usize, e[2]);\n            g[x].push((y as i32, w));\n            g[y].push((x as i32, 2 * w));\n        }\n        \n        let mut dist = vec![i32::MAX; n];\n        let mut visited = vec![false; n];\n        let mut heap = BinaryHeap::new();  // 最大堆，但存负值\n        \n        dist[0] = 0;\n        heap.push((0, 0));  // (-距离, 节点)\n        \n        while let Some((neg_d, node)) = heap.pop() {\n            let d = -neg_d;\n            let node = node as usize;\n            \n            if node == n - 1 {\n                return d;\n            }\n            \n            if visited[node] {\n                continue;\n            }\n            visited[node] = true;\n            \n            for &(next, weight) in &g[node] {\n                let next_idx = next as usize;\n                let new_dist = d + weight;\n                if new_dist < dist[next_idx] {\n                    dist[next_idx] = new_dist;\n                    heap.push((-new_dist, next));\n                }\n            }\n        }\n        \n        -1\n    }\n}\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int minCost(int n, int[][] edges) {\n        List<int[]>[] g = new ArrayList[n];\n        for (int i = 0; i < n; i++) {\n            g[i] = new ArrayList<>();\n        }\n        \n        for (int[] e : edges) {\n            int x = e[0], y = e[1], w = e[2];\n            g[x].add(new int[]{y, w});\n            g[y].add(new int[]{x, 2 * w});\n        }\n        \n        // Dijkstra算法\n        int[] d = new int[n];\n        boolean[] visited = new boolean[n];\n        Arrays.fill(d, Integer.MAX_VALUE);\n        d[0] = 0;\n        \n        PriorityQueue<int[]> pq = new PriorityQueue<>(Comparator.comparingInt(a -> a[0]));\n        pq.offer(new int[]{0, 0}); // [距离, 节点]\n        \n        while (!pq.isEmpty()) {\n            int[] current = pq.poll();\n            int dist = current[0];\n            int x = current[1];\n            \n            if (x == n - 1) {\n                return dist;\n            }\n            \n            if (visited[x]) {\n                continue;\n            }\n            visited[x] = true;\n            \n            for (int[] neighbor : g[x]) {\n                int y = neighbor[0];\n                int w = neighbor[1];\n                \n                if (dist + w < d[y]) {\n                    d[y] = dist + w;\n                    pq.offer(new int[]{d[y], y});\n                }\n            }\n        }\n        \n        return -1;\n    }\n}\n```\n\n```C# [sol1-C#]\nusing System;\nusing System.Collections.Generic;\n\npublic class Solution {\n    public int MinCost(int n, int[][] edges) {\n        var g = new List<(int node, int weight)>[n];\n        for (int i = 0; i < n; i++) {\n            g[i] = new List<(int, int)>();\n        }\n        \n        foreach (var e in edges) {\n            int x = e[0], y = e[1], w = e[2];\n            g[x].Add((y, w));\n            g[y].Add((x, 2 * w));\n        }\n        \n        int[] dist = new int[n];\n        bool[] visited = new bool[n];\n        Array.Fill(dist, int.MaxValue);\n        dist[0] = 0;\n        \n        var pq = new PriorityQueue<(int dist, int node), int>();\n        pq.Enqueue((0, 0), 0);\n        \n        while (pq.Count > 0) {\n            var current = pq.Dequeue();\n            int currentDist = current.dist;\n            int x = current.node;\n            \n            if (x == n - 1) {\n                return currentDist;\n            }\n            \n            if (visited[x]) {\n                continue;\n            }\n            visited[x] = true;\n            foreach (var neighbor in g[x]) {\n                int y = neighbor.node;\n                int w = neighbor.weight;\n                \n                if (currentDist + w < dist[y]) {\n                    dist[y] = currentDist + w;\n                    pq.Enqueue((dist[y], y), dist[y]);\n                }\n            }\n        }\n        \n        return -1;\n    }\n}\n```\n\n```Go [sol1-C#]\nfunc minCost(n int, edges [][]int) int {\n    g := make([][][2]int, n)\n    for _, e := range edges {\n        x, y, w := e[0], e[1], e[2]\n        g[x] = append(g[x], [2]int{y, w})\n        g[y] = append(g[y], [2]int{x, 2 * w})\n    }\n    \n    // Dijkstra算法\n    dist := make([]int, n)\n    visited := make([]bool, n)\n    for i := range dist {\n        dist[i] = math.MaxInt32\n    }\n    dist[0] = 0\n    \n    pq := make(PriorityQueue, 0)\n    heap.Init(&pq)\n    heap.Push(&pq, &Item{node: 0, distance: 0})\n    \n    for pq.Len() > 0 {\n        current := heap.Pop(&pq).(*Item)\n        x := current.node\n        currentDist := current.distance\n        if x == n-1 {\n            return currentDist\n        }\n        \n        if visited[x] {\n            continue\n        }\n        visited[x] = true\n        \n        for _, neighbor := range g[x] {\n            y := neighbor[0]\n            w := neighbor[1]\n            \n            if currentDist + w < dist[y] {\n                dist[y] = currentDist + w\n                heap.Push(&pq, &Item{node: y, distance: dist[y]})\n            }\n        }\n    }\n    \n    return -1\n}\n\ntype Item struct {\n\tnode     int\n\tdistance int\n\tindex    int\n}\n\ntype PriorityQueue []*Item\n\nfunc (pq PriorityQueue) Len() int           { \n    return len(pq) \n}\n\nfunc (pq PriorityQueue) Less(i, j int) bool { \n    return pq[i].distance < pq[j].distance \n}\n\nfunc (pq PriorityQueue) Swap(i, j int) {\n    pq[i], pq[j] = pq[j], pq[i]\n    pq[i].index = i\n    pq[j].index = j\n}\n\nfunc (pq *PriorityQueue) Push(x interface{}) {\n    n := len(*pq)\n    item := x.(*Item)\n    item.index = n\n    *pq = append(*pq, item)\n}\n\nfunc (pq *PriorityQueue) Pop() interface{} {\n    old := *pq\n    n := len(old)\n    item := old[n-1]\n    item.index = -1\n    *pq = old[0 : n-1]\n    return item\n}\n```\n\n```C [sol1-C]\n#define MIN_QUEUE_SIZE 64\n\ntypedef struct Element {\n    int data[2];\n} Element;\n\ntypedef bool (*compare)(const void *, const void *);\n\ntypedef struct PriorityQueue {\n    Element *arr;\n    int capacity;\n    int queueSize;\n    compare lessFunc;\n} PriorityQueue;\n\nElement *createElement(int x, int y) {\n    Element *obj = (Element *)malloc(sizeof(Element));\n    obj->data[0] = x;\n    obj->data[1] = y;\n    return obj;\n}\n\nstatic bool less(const void *a, const void *b) {\n    Element *e1 = (Element *)a;\n    Element *e2 = (Element *)b;\n    return e1->data[0] > e2->data[0];\n}\n\nstatic bool greater(const void *a, const void *b) {\n    Element *e1 = (Element *)a;\n    Element *e2 = (Element *)b;\n    return e1->data[0] < e2->data[0];\n}\n\nstatic void memswap(void *m1, void *m2, size_t size){\n    unsigned char *a = (unsigned char*)m1;\n    unsigned char *b = (unsigned char*)m2;\n    while (size--) {\n        *b ^= *a ^= *b ^= *a;\n        a++;\n        b++;\n    }\n}\n\nstatic void swap(Element *arr, int i, int j) {\n    memswap(&arr[i], &arr[j], sizeof(Element));\n}\n\nstatic void down(Element *arr, int size, int i, compare cmpFunc) {\n    for (int k = 2 * i + 1; k < size; k = 2 * k + 1) {\n        if (k + 1 < size && cmpFunc(&arr[k], &arr[k + 1])) {\n            k++;\n        }\n        if (cmpFunc(&arr[k], &arr[(k - 1) / 2])) {\n            break;\n        }\n        swap(arr, k, (k - 1) / 2);\n    }\n}\n\nPriorityQueue *createPriorityQueue(compare cmpFunc) {\n    PriorityQueue *obj = (PriorityQueue *)malloc(sizeof(PriorityQueue));\n    obj->capacity = MIN_QUEUE_SIZE;\n    obj->arr = (Element *)malloc(sizeof(Element) * obj->capacity);\n    obj->queueSize = 0;\n    obj->lessFunc = cmpFunc;\n    return obj;\n}\n\nvoid heapfiy(PriorityQueue *obj) {\n    for (int i = obj->queueSize / 2 - 1; i >= 0; i--) {\n        down(obj->arr, obj->queueSize, i, obj->lessFunc);\n    }\n}\n\nvoid enQueue(PriorityQueue *obj, Element *e) {\n    // we need to alloc more space, just twice space size\n    if (obj->queueSize == obj->capacity) {\n        obj->capacity *= 2;\n        obj->arr = realloc(obj->arr, sizeof(Element) * obj->capacity);\n    }\n    memcpy(&obj->arr[obj->queueSize], e, sizeof(Element));\n    for (int i = obj->queueSize; i > 0 && obj->lessFunc(&obj->arr[(i - 1) / 2], &obj->arr[i]); i = (i - 1) / 2) {\n        swap(obj->arr, i, (i - 1) / 2);\n    }\n    obj->queueSize++;\n}\n\nElement* deQueue(PriorityQueue *obj) {\n    swap(obj->arr, 0, obj->queueSize - 1);\n    down(obj->arr, obj->queueSize - 1, 0, obj->lessFunc);\n    Element *e =  &obj->arr[obj->queueSize - 1];\n    obj->queueSize--;\n    return e;\n}\n\nbool isEmpty(const PriorityQueue *obj) {\n    return obj->queueSize == 0;\n}\n\nElement* front(const PriorityQueue *obj) {\n    if (obj->queueSize == 0) {\n        return NULL;\n    } else {\n        return &obj->arr[0];\n    }\n}\n\nvoid clear(PriorityQueue *obj) {\n    obj->queueSize = 0;\n}\n\nint size(const PriorityQueue *obj) {\n    return obj->queueSize;\n}\n\nvoid freeQueue(PriorityQueue *obj) {\n    free(obj->arr);\n    free(obj);\n}\n\ntypedef struct AdjNode {\n    int vertex; \n    int weight;\n    struct AdjNode *next;\n} AdjNode;\n\ntypedef struct {\n    AdjNode **lists; \n    int n;            \n} Graph;\n\nAdjNode* createAdjNode(int vertex, int weight) {\n    AdjNode *newNode = (AdjNode*)malloc(sizeof(AdjNode));\n    newNode->vertex = vertex;\n    newNode->weight = weight;\n    newNode->next = NULL;\n    return newNode;\n}\n\nGraph* createGraph(int n) {\n    Graph *graph = (Graph*)malloc(sizeof(Graph));\n    graph->n = n;\n    graph->lists = (AdjNode**)malloc(n * sizeof(AdjNode*));\n    for (int i = 0; i < n; i++) {\n        graph->lists[i] = NULL;\n    }\n    \n    return graph;\n}\n\nvoid addEdge(Graph *graph, int src, int dest, int weight) {\n    AdjNode *newNode = createAdjNode(dest, weight);\n    newNode->next = graph->lists[src];\n    graph->lists[src] = newNode;\n    \n    AdjNode *reverseNode = createAdjNode(src, 2 * weight);\n    reverseNode->next = graph->lists[dest];\n    graph->lists[dest] = reverseNode;\n}\n\nvoid freeGraph(Graph *graph) {\n    if (!graph) return;\n    \n    for (int i = 0; i < graph->n; i++) {\n        AdjNode *current = graph->lists[i];\n        while (current) {\n            AdjNode *temp = current;\n            current = current->next;\n            free(temp);\n        }\n    }\n    \n    free(graph->lists);\n    free(graph);\n}\n\nint minCost(int n, int** edges, int edgesSize, int* edgesColSize) {\n    Graph *graph = createGraph(n);\n    for (int i = 0; i < edgesSize; i++) {\n        int src = edges[i][0];\n        int dest = edges[i][1];\n        int weight = edges[i][2];\n        addEdge(graph, src, dest, weight);\n    }\n    \n    int *dist = (int *)malloc(n * sizeof(int));\n    bool *visited = (bool *)calloc(n, sizeof(bool));\n    for (int i = 0; i < n; i++) {\n        dist[i] = INT_MAX;\n    }\n    dist[0] = 0;\n    PriorityQueue *pq = createPriorityQueue(less);\n    \n    Element startElem;\n    startElem.data[0] = 0;\n    startElem.data[1] = 0;\n    enQueue(pq, &startElem);\n    \n    while (!isEmpty(pq)) {\n        Element *current = front(pq);\n        int currentDist = current->data[0];\n        int x = current->data[1];\n        deQueue(pq);\n\n        if (x == n - 1) {\n            int result = currentDist;\n            free(dist);\n            free(visited);\n            freeQueue(pq);\n            freeGraph(graph);\n            return result;\n        }\n        if (visited[x]) {\n            continue;\n        }\n\n        visited[x] = true;\n        for (AdjNode *neighbor = graph->lists[x]; neighbor != NULL; neighbor = neighbor->next) {\n            int y = neighbor->vertex;\n            int w = neighbor->weight;\n            if (currentDist + w < dist[y]) {\n                dist[y] = currentDist + w;\n                \n                Element newElem;\n                newElem.data[0] = dist[y];\n                newElem.data[1] = y;\n                enQueue(pq, &newElem);\n            }\n        }\n    }\n    \n    free(dist);\n    free(visited);\n    freeQueue(pq);\n    freeGraph(graph);\n    \n    return -1;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar minCost = function(n, edges) {\n    const g = Array.from({ length: n }, () => []);\n    for (const e of edges) {\n        const [x, y, w] = e;\n        g[x].push([y, w]);\n        g[y].push([x, 2 * w]);\n    }\n    \n    const dist = Array(n).fill(Infinity);\n    const visited = Array(n).fill(false);\n    dist[0] = 0;\n    const pq = new PriorityQueue((a, b) => {\n        return a[0] < b[0] ? -1 : 1;\n    });\n    pq.enqueue([0, 0]);\n    \n    while (!pq.isEmpty()) {\n        const [currentDist, x] = pq.dequeue();\n        if (x === n - 1) {\n            return currentDist;\n        }\n        \n        if (visited[x]) {\n            continue;\n        }\n        visited[x] = true;\n        \n        for (const [y, w] of g[x]) {\n            if (currentDist + w < dist[y]) {\n                dist[y] = currentDist + w;\n                pq.enqueue([dist[y], y]);\n            }\n        }\n    }\n    \n    return -1;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction minCost(n: number, edges: number[][]): number {\n    const g: [number, number][][] = Array.from({ length: n }, () => []);\n    for (const e of edges) {\n        const [x, y, w] = e;\n        g[x].push([y, w]);\n        g[y].push([x, 2 * w]);\n    }\n    \n    const dist: number[] = Array(n).fill(Infinity);\n    const visited: boolean[] = Array(n).fill(false);\n    dist[0] = 0;\n    const pq = new PriorityQueue<[number, number]>((a, b) => {\n        return a[0] < b[0] ? -1 : 1;\n    });\n    pq.enqueue([0, 0]);\n    \n    while (!pq.isEmpty()) {\n        const [currentDist, x] = pq.dequeue()!;\n        if (x === n - 1) {\n            return currentDist;\n        }\n        if (visited[x]) {\n            continue;\n        }\n        visited[x] = true;\n        \n        for (const [y, w] of g[x]) {\n            if (currentDist + w < dist[y]) {\n                dist[y] = currentDist + w;\n                pq.enqueue([dist[y], y]);\n            }\n        }\n    }\n    \n    return -1;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n + m\\log m)$，其中 $m$ 是边的数量，$n$ 是点的数量。\n- 空间复杂度：$O(n + m)$。",
+            "slateValue": "",
+            "slug": "bian-fan-zhuan-de-zui-xiao-lu-jing-zong-5yugt",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "SIScRd",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 5,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Graph",
+                    "nameTranslated": "图",
+                    "slug": "graph",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Shortest Path",
+                    "nameTranslated": "最短路",
+                    "slug": "shortest-path",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python3",
+                    "nameTranslated": "",
+                    "slug": "python3",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2026-01-23T02:56:00.347196+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：Dijkstra 思路与算法 「[latex]」是一种常用的求解最短路径的算法。在本题中，我们需要求解从 [latex] 到 [latex] 的最短路，特殊之处在于每个节点有一次反转其相邻边的机会。在 [latex] 算法中，每个点最多只会被遍历一次，因此我们不需要考虑题目中的特殊条件： 每个节点都有「最多可使",
+            "topic": {
+                "id": 3887138,
+                "subscribed": false,
+                "commentCount": 15,
+                "viewCount": 18,
+                "post": {
+                    "id": 7090671,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 20,
+            "isEditorsPick": false,
+            "hitCount": 5325,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "minimum-cost-path-with-edge-reversals",
+                "questionFrontendId": "3650"
+            },
+            "next": {
+                "slug": "dijkstra-mo-ban-ti-pythonjavacgo-by-endl-mziq",
+                "title": "Dijkstra 模板题（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

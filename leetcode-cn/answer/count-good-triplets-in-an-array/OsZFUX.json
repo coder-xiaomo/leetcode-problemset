@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "OsZFUX",
+            "title": "统计数组中好三元组数目",
+            "content": "#### 方法一：树状数组\n\n**思路**\n\n如果 $i, j, k$ 满足 $0 <= i < j < k < n$，且 $0 <= \\textit{pos2}_{\\textit{nums1}[i]} < \\textit{pos2}_{\\textit{nums1}[j]} < \\textit{pos2}_{\\textit{nums1}[k]} < n$，则 $\\textit{nums1}[i]$, $\\textit{nums1}[j]$, $\\textit{nums1}[k]$ 就构成一个好三元组。因为 $\\textit{nums1}$ 和 $\\textit{nums2}$ 都是 $0$ 到 $n-1$ 的排列，因此，我们可以通过计算符合条件的 $i, j, k$ 的三元组数，来计统计题目要求的好三元组数。\n\n用另一个数组 $\\textit{indexMapping}$ 来表述上述关系，其中 $\\textit{indexMapping}[i] = \\textit{pos2}_{\\textit{nums1}[i]}$，且 $\\textit{indexMapping}$ 也是 $0$ 到 $n-1$ 的排列。求符合条件的 $i, j, k$ 的三元组数时，我们可以首先固定 $j$，然后统计 $\\textit{indexMapping}$ 中，在下标 $j$ 左侧有多少小于 $\\textit{indexMapping}[j]$ 的数，记为 $\\textit{left}$，再统计下标 $j$ 右侧有多少大于 $\\textit{indexMapping}[j]$ 的数，记为 $\\textit{right}$。这样，$\\textit{left}\\times\\textit{right}$ 就表示中间元素为 $j$ 的三元组数。遍历所有的 $j$ 即可算出答案。\n\n上述计算过程可以参考!「315. 计算右侧小于当前元素的个数」(https://leetcode.cn/problems/count-of-smaller-numbers-after-self/description/)，用树状数组来求解。树状数组可以在 $O(\\log{n})$ 的时间内完成对某个下标的增减和求前缀和。在应用树状数组时，我们要按照 $\\textit{indexMapping}$ 中值从小到大遍历，对当前下标 $\\textit{pos}$ 求前缀和即表示下标 $pos$ 左侧有多少小于 $\\textit{indexMapping}[pos]$ 的数，还可以通过计算得到下标 $pos$ 右侧有多少大于 $\\textit{indexMapping}[pos]$ 的数，然后再将当前下标的值加 $1$。因为是按照值的大小遍历，因此我们需要另一个数组 $\\textit{reversedIndexMapping}$ 来保存 $\\textit{indexMapping}$ 中各个值的下标。代码中，可以省去 $\\textit{indexMapping}$ 这一变量。遍历完后即可返回结果。\n\n**代码**\n\n```Python [sol1-Python3]\nclass FenwickTree:\n    def __init__(self, size):\n        self.tree = [0] * (size + 1)  \n\n    def update(self, index, delta):\n        index += 1\n        while index <= len(self.tree) - 1:\n            self.tree[index] += delta\n            index += index & -index  \n\n    def query(self, index):\n        index += 1\n        res = 0\n        while index > 0:\n            res += self.tree[index]\n            index -= index & -index  \n        return res\n\nclass Solution:\n    def goodTriplets(self, nums1: List[int], nums2: List[int]) -> int:\n        n = len(nums1)\n        pos2, reversedIndexMapping = [0] * n, [0] * n\n        for i, num2 in enumerate(nums2):\n            pos2[num2] = i\n        for i, num1 in enumerate(nums1):\n            reversedIndexMapping[pos2[num1]] = i\n        tree = FenwickTree(n)\n        res = 0\n        for value in range(n):\n            pos = reversedIndexMapping[value]\n            left = tree.query(pos)\n            tree.update(pos, 1)\n            right = (n - 1 - pos) - (value - left)\n            res += left * right\n        return res\n```\n\n```C++ [sol1-C++]\nclass FenwickTree {\nprivate:\n    vector<int> tree;\npublic:\n    FenwickTree(int size) : tree(size + 1, 0) {}\n\n    void update(int index, int delta) {\n        index++;\n        while (index < tree.size()) {\n            tree[index] += delta;\n            index += index & -index;\n        }\n    }\n\n    int query(int index) {\n        index++;\n        int res = 0;\n        while (index > 0) {\n            res += tree[index];\n            index -= index & -index;\n        }\n        return res;\n    }\n};\n\nclass Solution {\npublic:\n    long long goodTriplets(vector<int>& nums1, vector<int>& nums2) {\n        int n = nums1.size();\n        vector<int> pos2(n), reversedIndexMapping(n);\n        for (int i = 0; i < n; i++) {\n            pos2[nums2[i]] = i;\n        }\n        for (int i = 0; i < n; i++) {\n            reversedIndexMapping[pos2[nums1[i]]] = i;\n        }\n        FenwickTree tree(n);\n        long long res = 0;\n        for (int value = 0; value < n; value++) {\n            int pos = reversedIndexMapping[value];\n            int left = tree.query(pos);\n            tree.update(pos, 1);\n            int right = (n - 1 - pos) - (value - left);\n            res += (long long)left * right;\n        }\n        return res;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass FenwickTree {\n    private int[] tree;\n\n    public FenwickTree(int size) {\n        tree = new int[size + 1];\n    }\n\n    public void update(int index, int delta) {\n        index++;\n        while (index < tree.length) {\n            tree[index] += delta;\n            index += index & -index;\n        }\n    }\n\n    public int query(int index) {\n        index++;\n        int res = 0;\n        while (index > 0) {\n            res += tree[index];\n            index -= index & -index;\n        }\n        return res;\n    }\n}\n\nclass Solution {\n    public long goodTriplets(int[] nums1, int[] nums2) {\n        int n = nums1.length;\n        int[] pos2 = new int[n], reversedIndexMapping = new int[n];\n        for (int i = 0; i < n; i++) {\n            pos2[nums2[i]] = i;\n        }\n        for (int i = 0; i < n; i++) {\n            reversedIndexMapping[pos2[nums1[i]]] = i;\n        }\n        FenwickTree tree = new FenwickTree(n);\n        long res = 0;\n        for (int value = 0; value < n; value++) {\n            int pos = reversedIndexMapping[value];\n            int left = tree.query(pos);\n            tree.update(pos, 1);\n            int right = (n - 1 - pos) - (value - left);\n            res += (long) left * right;\n        }\n        return res;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class FenwickTree {\n    private int[] tree;\n\n    public FenwickTree(int size) {\n        tree = new int[size + 1];\n    }\n\n    public void Update(int index, int delta) {\n        index++;\n        while (index < tree.Length) {\n            tree[index] += delta;\n            index += index & -index;\n        }\n    }\n\n    public int Query(int index) {\n        index++;\n        int res = 0;\n        while (index > 0) {\n            res += tree[index];\n            index -= index & -index;\n        }\n        return res;\n    }\n}\n\npublic class Solution {\n    public long GoodTriplets(int[] nums1, int[] nums2) {\n        int n = nums1.Length;\n        int[] pos2 = new int[n], reversedIndexMapping = new int[n];\n        for (int i = 0; i < n; i++) {\n            pos2[nums2[i]] = i;\n        }\n        for (int i = 0; i < n; i++) {\n            reversedIndexMapping[pos2[nums1[i]]] = i;\n        }\n        FenwickTree tree = new FenwickTree(n);\n        long res = 0;\n        for (int value = 0; value < n; value++) {\n            int pos = reversedIndexMapping[value];\n            int left = tree.Query(pos);\n            tree.Update(pos, 1);\n            int right = (n - 1 - pos) - (value - left);\n            res += (long) left * right;\n        }\n        return res;\n    }\n}\n```\n\n```Go [sol1-Go]\ntype FenwickTree struct {\n    tree []int\n}\n\nfunc fenwickTree(size int) *FenwickTree {\n    return &FenwickTree{tree: make([]int, size+1)}\n}\n\nfunc (ft *FenwickTree) update(index, delta int) {\n    index++\n    for index < len(ft.tree) {\n        ft.tree[index] += delta\n        index += index & -index\n    }\n}\n\nfunc (ft *FenwickTree) query(index int) int {\n    index++\n    res := 0\n    for index > 0 {\n        res += ft.tree[index]\n        index -= index & -index\n    }\n    return res\n}\n\nfunc goodTriplets(nums1 []int, nums2 []int) int64 {\n    n := len(nums1)\n    pos2, reversedIndexMapping := make([]int, n), make([]int, n)\n    for i, num := range nums2 {\n        pos2[num] = i\n    }\n    \n    for i, num := range nums1 {\n        reversedIndexMapping[pos2[num]] = i\n    }\n    tree := fenwickTree(n)\n    var res int64\n    for value := 0; value < n; value++ {\n        pos := reversedIndexMapping[value]\n        left := tree.query(pos)\n        tree.update(pos, 1)\n        right := (n - 1 - pos) - (value - left)\n        res += int64(left * right)\n    }\n    return res\n}\n```\n\n```C [sol1-C]\ntypedef struct {\n    int* tree;\n    int size;\n} FenwickTree;\n\nFenwickTree* fenwickTreeCreate(int size) {\n    FenwickTree* obj = (FenwickTree*)malloc(sizeof(FenwickTree));\n    obj->tree = (int*)calloc(size + 1, sizeof(int));\n    obj->size = size;\n    return obj;\n}\n\nvoid fenwickTreeUpdate(FenwickTree* obj, int index, int delta) {\n    index++;\n    while (index <= obj->size) {\n        obj->tree[index] += delta;\n        index += index & -index;\n    }\n}\n\nint fenwickTreeQuery(FenwickTree* obj, int index) {\n    index++;\n    int res = 0;\n    while (index > 0) {\n        res += obj->tree[index];\n        index -= index & -index;\n    }\n    return res;\n}\n\nvoid fenwickTreeFree(FenwickTree* obj) {\n    free(obj->tree);\n    free(obj);\n}\n\nlong long goodTriplets(int* nums1, int nums1Size, int* nums2, int nums2Size) {\n    int n = nums1Size;\n    int* pos2 = (int*)malloc(n * sizeof(int)), *reversedIndexMapping = (int*)malloc(n * sizeof(int));\n    for (int i = 0; i < n; i++) {\n        pos2[nums2[i]] = i;\n    }\n    for (int i = 0; i < n; i++) {\n        reversedIndexMapping[pos2[nums1[i]]] = i;\n    }\n    FenwickTree* tree = fenwickTreeCreate(n);\n    long long res = 0;\n    for (int value = 0; value < n; value++) {\n        int pos = reversedIndexMapping[value];\n        int left = fenwickTreeQuery(tree, pos);\n        fenwickTreeUpdate(tree, pos, 1);\n        int right = (n - 1 - pos) - (value - left);\n        res += (long long)left * right;\n    }\n    free(pos2);\n    free(reversedIndexMapping);\n    fenwickTreeFree(tree);\n    return res;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nclass FenwickTree {\n    constructor(size) {\n        this.tree = new Array(size + 1).fill(0);\n    }\n\n    update(index, delta) {\n        index++;\n        while (index < this.tree.length) {\n            this.tree[index] += delta;\n            index += index & -index;\n        }\n    }\n\n    query(index) {\n        index++;\n        let res = 0;\n        while (index > 0) {\n            res += this.tree[index];\n            index -= index & -index;\n        }\n        return res;\n    }\n}\n\nvar goodTriplets = function(nums1, nums2) {\n    const n = nums1.length;\n    const pos2 = new Array(n), reversedIndexMapping = new Array(n);;\n    for (let i = 0; i < n; i++) {\n        pos2[nums2[i]] = i;\n    }\n    for (let i = 0; i < n; i++) {\n        reversedIndexMapping[pos2[nums1[i]]] = i;\n    }\n    const tree = new FenwickTree(n);\n    let res = 0;\n    for (let value = 0; value < n; value++) {\n        const pos = reversedIndexMapping[value];\n        const left = tree.query(pos);\n        tree.update(pos, 1);\n        const right = (n - 1 - pos) - (value - left);\n        res += left * right;\n    }\n    return res;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nclass FenwickTree {\n    private tree: number[];\n\n    constructor(size: number) {\n        this.tree = new Array(size + 1).fill(0);\n    }\n\n    update(index: number, delta: number): void {\n        index++;\n        while (index < this.tree.length) {\n            this.tree[index] += delta;\n            index += index & -index;\n        }\n    }\n\n    query(index: number): number {\n        index++;\n        let res = 0;\n        while (index > 0) {\n            res += this.tree[index];\n            index -= index & -index;\n        }\n        return res;\n    }\n}\n\nfunction goodTriplets(nums1: number[], nums2: number[]): number {\n    const n = nums1.length;\n    const pos2 = new Array(n), reversedIndexMapping = new Array(n);;\n    for (let i = 0; i < n; i++) {\n        pos2[nums2[i]] = i;\n    }\n    for (let i = 0; i < n; i++) {\n        reversedIndexMapping[pos2[nums1[i]]] = i;\n    }\n    const tree = new FenwickTree(n);\n    let res = 0;\n    for (let value = 0; value < n; value++) {\n        const pos = reversedIndexMapping[value];\n        const left = tree.query(pos);\n        tree.update(pos, 1);\n        const right = (n - 1 - pos) - (value - left);\n        res += left * right;\n    }\n    return res;\n}\n```\n\n```Rust [sol1-Rust]\nstruct FenwickTree {\n    tree: Vec<i32>,\n}\n\nimpl FenwickTree {\n    fn new(size: usize) -> Self {\n        FenwickTree {\n            tree: vec![0; size + 1],\n        }\n    }\n\n    fn update(&mut self, index: usize, delta: i32) {\n        let mut idx = index + 1;\n        while idx < self.tree.len() {\n            self.tree[idx] += delta;\n            idx += idx & (!idx + 1);\n        }\n    }\n\n    fn query(&self, index: usize) -> i32 {\n        let mut idx = index + 1;\n        let mut res = 0;\n        while idx > 0 {\n            res += self.tree[idx];\n            idx -= idx & (!idx + 1);\n        }\n        res\n    }\n}\n\nimpl Solution {\n    pub fn good_triplets(nums1: Vec<i32>, nums2: Vec<i32>) -> i64 {\n        let n = nums1.len();\n        let mut pos2 = vec![0; n];\n        for (i, &num) in nums2.iter().enumerate() {\n            pos2[num as usize] = i;\n        }\n        let mut reversed_index_mapping = vec![0; n];\n        for (i, &num) in nums1.iter().enumerate() {\n            reversed_index_mapping[pos2[num as usize]] = i;\n        }\n        let mut tree = FenwickTree::new(n);\n        let mut res = 0i64;\n        for value in 0..n {\n            let pos = reversed_index_mapping[value];\n            let left = tree.query(pos) as i64;\n            tree.update(pos, 1);\n            let right = (n - 1 - pos) as i64 - (value as i64 - left);\n            res += left * right;\n        }\n        res\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n\\times\\log{n})$。\n\n- 空间复杂度：$O(n)$。",
+            "slateValue": "",
+            "slug": "tong-ji-shu-zu-zhong-hao-san-yuan-zu-shu-u13d",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "OsZFUX",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 9,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Binary Indexed Tree",
+                    "nameTranslated": "树状数组",
+                    "slug": "binary-indexed-tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2025-04-14T02:44:10.369056+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：树状数组 思路 如果 [latex] 满足 [latex]，且 [latex]，则 [latex], [latex], [latex] 就构成一个好三元组。因为 [latex] 和 [latex] 都是 [latex] 到 [latex] 的排列，因此，我们可以通过计算符合条件的 [latex] 的三元组数，来",
+            "topic": {
+                "id": 3650507,
+                "subscribed": false,
+                "commentCount": 23,
+                "viewCount": 101,
+                "post": {
+                    "id": 6663926,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 39,
+            "isEditorsPick": false,
+            "hitCount": 8985,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "count-good-triplets-in-an-array",
+                "questionFrontendId": "2179"
+            },
+            "next": {
+                "slug": "deng-jie-zhuan-huan-shu-zhuang-shu-zu-by-xmyd",
+                "title": "转化成严格递增子序列 + 枚举中间 + 树状数组（Java/Python/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

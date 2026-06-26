@@ -1,0 +1,144 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "2OT0jq",
+            "title": "统计梯形的数目 II",
+            "content": "#### 方法一：哈希表 + 几何数学\n\n**思路及解法**\n\n本题与「[3623. 统计梯形的数目 I](https://leetcode.cn/problems/count-number-of-trapezoids-i/description/)」 的区别在于对线段的斜率没有限制了，并且不能统计平行四边形的数量。\n\n我们可以沿用「[3623. 统计梯形的数目 I](https://leetcode.cn/problems/count-number-of-trapezoids-i/description/)」 的思路，分别统计不同斜率对应的梯形的数量。但是在只知道斜率的情况下，无法判断两条线段是否共线，因此需要引入截距来区分不共线的线段，这里的截距可以类比为 「[3623. 统计梯形的数目 I](https://leetcode.cn/problems/count-number-of-trapezoids-i/description/)」 中的高度 $y$ 值。\n\n平行四边形可以通过中点相同的不同斜率的两条线段来确定，因此我们可以统计相同中点不同斜率的线段的数量来统计平行四边形的数量。\n\n由于使用哈希表套 $\\textit{map}$ 的形式会导致创建大量无用的 $\\textit{map}$ 对象，这样会导致时间复杂度过高，因此我们使用哈希表套 $\\textit{vector}$ 的形式来统计相同斜率线段的各种截距以及相同中点线段的各种斜率。减轻了创建 $\\textit{map}$ 对象的开销。在计算梯形和平行四边形的过程中再对相同斜率线段的不同截距以及相同终点线段的不同斜率创建 $\\textit{map}$ 对象，统计每种截距、中点中线段的个数，这样可以提高运行速度。\n\n$\\textit{slopeToIntercept}$ 代表相同斜率线段的各种截距，$\\textit{midToSlope}$ 代表相同中点线段的各种斜率。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int countTrapezoids(vector<vector<int>>& points) {\n        int n = points.size();\n        int inf = 1e9 + 7;\n        unordered_map<float, vector<float>> slopeToIntercept;\n        unordered_map<int, vector<float>> midToSlope;\n        int ans = 0;\n        for (int i = 0; i < n; i++) {\n            int x1 = points[i][0];\n            int y1 = points[i][1];\n            for (int j = i + 1; j < n; j++) {\n                int x2 = points[j][0];\n                int y2 = points[j][1];\n                int dx = x1 - x2;\n                int dy = y1 - y2;\n                float k, b;\n                if (x2 == x1) {\n                    k = inf;\n                    b = x1;\n                } else {\n                    k = (float)(y2 - y1) / (x2 - x1);\n                    b = (float)(y1 * dx - x1 * dy) / dx;\n                }\n                int mid = (x1 + x2) * 10000 + (y1 + y2);\n                slopeToIntercept[k].push_back(b);\n                midToSlope[mid].push_back(k);\n            }\n        }\n        for (auto& [_, sti] : slopeToIntercept) {\n            if (sti.size() == 1) {\n                continue;\n            }\n            map<float, int> cnt;\n            for (float b : sti) {\n                cnt[b]++;\n            }\n            int sum = 0;\n            for (auto& [_, count] : cnt) {\n                ans += sum * count;\n                sum += count;\n            }\n        }\n        for (auto& [_, mts] : midToSlope) {\n            if (mts.size() == 1) {\n                continue;\n            }\n            map<float, int> cnt;\n            for (float k : mts) {\n                cnt[k]++;\n            }\n            int sum = 0;\n            for (auto& [_, count] : cnt) {\n                ans -= sum * count;\n                sum += count;\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def countTrapezoids(self, points: List[List[int]]) -> int:\n        n = len(points)\n        inf = 10**9 + 7\n        slope_to_intercept = defaultdict(list)\n        mid_to_slope = defaultdict(list)\n        ans = 0\n        \n        for i in range(n):\n            x1, y1 = points[i]\n            for j in range(i + 1, n):\n                x2, y2 = points[j]\n                dx = x1 - x2\n                dy = y1 - y2\n                \n                if x2 == x1:\n                    k = inf\n                    b = x1\n                else:\n                    k = (y2 - y1) / (x2 - x1)\n                    b = (y1 * dx - x1 * dy) / dx\n                \n                mid = (x1 + x2) * 10000 + (y1 + y2)\n                slope_to_intercept[k].append(b)\n                mid_to_slope[mid].append(k)\n\n        for sti in slope_to_intercept.values():\n            if len(sti) == 1:\n                continue\n            \n            cnt = defaultdict(int)\n            for b_val in sti:\n                cnt[b_val] += 1\n            \n            total_sum = 0\n            for count in cnt.values():\n                ans += total_sum * count\n                total_sum += count\n\n        for mts in mid_to_slope.values():\n            if len(mts) == 1:\n                continue\n            \n            cnt = defaultdict(int)\n            for k_val in mts:\n                cnt[k_val] += 1\n            \n            total_sum = 0\n            for count in cnt.values():\n                ans -= total_sum * count\n                total_sum += count\n        \n        return ans\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int countTrapezoids(int[][] points) {\n        int n = points.length;\n        double inf = 1e9 + 7;\n        Map<Double, List<Double>> slopeToIntercept = new HashMap<>();\n        Map<Integer, List<Double>> midToSlope = new HashMap<>();\n        int ans = 0;\n        \n        for (int i = 0; i < n; i++) {\n            int x1 = points[i][0];\n            int y1 = points[i][1];\n            for (int j = i + 1; j < n; j++) {\n                int x2 = points[j][0];\n                int y2 = points[j][1];\n                int dx = x1 - x2;\n                int dy = y1 - y2;\n                double k, b;\n                \n                if (x2 == x1) {\n                    k = inf;\n                    b = x1;\n                } else {\n                    k = 1.0 * (y2 - y1) / (x2 - x1);\n                    b = 1.0 * (y1 * dx - x1 * dy) / dx;\n                }\n                if (k == -0.0) {\n                    k = 0.0;\n                }\n                if (b == -0.0) {\n                    b = 0.0;\n                }\n                int mid = (x1 + x2) * 10000 + (y1 + y2);\n                slopeToIntercept.computeIfAbsent(k, key -> new ArrayList<>()).add(b);\n                midToSlope.computeIfAbsent(mid, key -> new ArrayList<>()).add(k);\n            }\n        }\n        \n        for (List<Double> sti : slopeToIntercept.values()) {\n            if (sti.size() == 1) {\n                continue;\n            }\n            Map<Double, Integer> cnt = new TreeMap<>();\n            for (double b : sti) {\n                cnt.put(b, cnt.getOrDefault(b, 0) + 1);\n            }\n            int sum = 0;\n            for (int count : cnt.values()) {\n                ans += sum * count;\n                sum += count;\n            }\n        }\n        \n        for (List<Double> mts : midToSlope.values()) {\n            if (mts.size() == 1) {\n                continue;\n            }\n            Map<Double, Integer> cnt = new TreeMap<>();\n            for (double k : mts) {\n                cnt.put(k, cnt.getOrDefault(k, 0) + 1);\n            }\n            int sum = 0;\n            for (int count : cnt.values()) {\n                ans -= sum * count;\n                sum += count;\n            }\n        }\n        \n        return ans;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int CountTrapezoids(int[][] points) {\n        int n = points.Length;\n        double inf = 1e9 + 7;\n        Dictionary<double, List<double>> slopeToIntercept = new Dictionary<double, List<double>>();\n        Dictionary<double, List<double>> midToSlope = new Dictionary<double, List<double>>();\n        int ans = 0;\n        \n        for (int i = 0; i < n; i++) {\n            int x1 = points[i][0], y1 = points[i][1];\n            for (int j = i + 1; j < n; j++) {\n                int x2 = points[j][0], y2 = points[j][1];\n                int dx = x1 - x2;\n                int dy = y1 - y2;\n                \n                double k, b;\n                if (x2 == x1) {\n                    k = inf;\n                    b = x1;\n                } else {\n                    k = (double)(y2 - y1) / (x2 - x1);\n                    b = (double)(y1 * dx - x1 * dy) / dx;\n                }\n                \n                double mid = (x1 + x2) * 10000.0 + (y1 + y2);\n                if (!slopeToIntercept.ContainsKey(k)) {\n                    slopeToIntercept[k] = new List<double>();\n                }\n                if (!midToSlope.ContainsKey(mid)) {\n                    midToSlope[mid] = new List<double>();\n                }\n                slopeToIntercept[k].Add(b);\n                midToSlope[mid].Add(k);\n            }\n        }\n        \n        foreach (var sti in slopeToIntercept.Values) {\n            if (sti.Count == 1) {\n                continue;\n            }\n            Dictionary<double, int> cnt = new Dictionary<double, int>();\n            foreach (double bVal in sti) {\n                cnt[bVal] = cnt.GetValueOrDefault(bVal, 0) + 1;\n            }\n            int totalSum = 0;\n            foreach (int count in cnt.Values) {\n                ans += totalSum * count;\n                totalSum += count;\n            }\n        }\n        \n        foreach (var mts in midToSlope.Values) {\n            if (mts.Count == 1) {\n                continue;\n            }\n            Dictionary<double, int> cnt = new Dictionary<double, int>();\n            foreach (double kVal in mts) {\n                cnt[kVal] = cnt.GetValueOrDefault(kVal, 0) + 1;\n            }\n            \n            int totalSum = 0;\n            foreach (int count in cnt.Values) {\n                ans -= totalSum * count;\n                totalSum += count;\n            }\n        }\n        \n        return ans;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc countTrapezoids(points [][]int) int {\n    n := len(points)\n    inf := 1e9 + 7\n    slopeToIntercept := make(map[float64][]float64)\n    midToSlope := make(map[float64][]float64)\n    ans := 0\n    \n    for i := 0; i < n; i++ {\n        x1, y1 := points[i][0], points[i][1]\n        for j := i + 1; j < n; j++ {\n            x2, y2 := points[j][0], points[j][1]\n            dx := x1 - x2\n            dy := y1 - y2\n            \n            var k, b float64\n            if x2 == x1 {\n                k = inf\n                b = float64(x1)\n            } else {\n                k = float64(y2-y1) / float64(x2-x1)\n                b = float64(y1*dx - x1*dy) / float64(dx)\n            }\n            \n            mid := float64((x1+x2)*10000 + (y1+y2))\n            slopeToIntercept[k] = append(slopeToIntercept[k], b)\n            midToSlope[mid] = append(midToSlope[mid], k)\n        }\n    }\n    \n    for _, sti := range slopeToIntercept {\n        if len(sti) == 1 {\n            continue\n        }\n        \n        cnt := make(map[float64]int)\n        for _, bVal := range sti {\n            cnt[bVal]++\n        }\n        \n        totalSum := 0\n        for _, count := range cnt {\n            ans += totalSum * count\n            totalSum += count\n        }\n    }\n    \n    for _, mts := range midToSlope {\n        if len(mts) == 1 {\n            continue\n        }\n        \n        cnt := make(map[float64]int)\n        for _, kVal := range mts {\n            cnt[kVal]++\n        }\n        \n        totalSum := 0\n        for _, count := range cnt {\n            ans -= totalSum * count\n            totalSum += count\n        }\n    }\n    \n    return ans\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar countTrapezoids = function(points) {\n    const n = points.length;\n    const inf = 1e9 + 7;\n    const slopeToIntercept = new Map();\n    const midToSlope = new Map();\n    let ans = 0;\n    \n    for (let i = 0; i < n; i++) {\n        const [x1, y1] = points[i];\n        for (let j = i + 1; j < n; j++) {\n            const [x2, y2] = points[j];\n            const dx = x1 - x2;\n            const dy = y1 - y2;\n            \n            let k, b;\n            if (x2 === x1) {\n                k = inf;\n                b = x1;\n            } else {\n                k = (y2 - y1) / (x2 - x1);\n                b = (y1 * dx - x1 * dy) / dx;\n            }\n            \n            const mid = (x1 + x2) * 10000 + (y1 + y2);\n            if (!slopeToIntercept.has(k)) {\n                slopeToIntercept.set(k, []);\n            }\n            if (!midToSlope.has(mid)) {\n                midToSlope.set(mid, []);\n            }\n            slopeToIntercept.get(k).push(b);\n            midToSlope.get(mid).push(k);\n        }\n    }\n    \n    for (const sti of slopeToIntercept.values()) {\n        if (sti.length === 1) {\n            continue;\n        }\n        const cnt = new Map();\n        for (const bVal of sti) {\n            cnt.set(bVal, (cnt.get(bVal) || 0) + 1);\n        }\n        \n        let totalSum = 0;\n        for (const count of cnt.values()) {\n            ans += totalSum * count;\n            totalSum += count;\n        }\n    }\n    \n    for (const mts of midToSlope.values()) {\n        if (mts.length === 1) {\n            continue;\n        }\n        const cnt = new Map();\n        for (const kVal of mts) {\n            cnt.set(kVal, (cnt.get(kVal) || 0) + 1);\n        }\n        \n        let totalSum = 0;\n        for (const count of cnt.values()) {\n            ans -= totalSum * count;\n            totalSum += count;\n        }\n    }\n    \n    return ans;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction countTrapezoids(points: number[][]): number {\n    const n: number = points.length;\n    const inf: number = 1e9 + 7;\n    const slopeToIntercept: Map<number, number[]> = new Map();\n    const midToSlope: Map<number, number[]> = new Map();\n    let ans: number = 0;\n    \n    for (let i = 0; i < n; i++) {\n        const [x1, y1] = points[i];\n        for (let j = i + 1; j < n; j++) {\n            const [x2, y2] = points[j];\n            const dx = x1 - x2;\n            const dy = y1 - y2;\n            \n            let k: number, b: number;\n            if (x2 === x1) {\n                k = inf;\n                b = x1;\n            } else {\n                k = (y2 - y1) / (x2 - x1);\n                b = (y1 * dx - x1 * dy) / dx;\n            }\n            \n            const mid: number = (x1 + x2) * 10000 + (y1 + y2);\n            if (!slopeToIntercept.has(k)) {\n                slopeToIntercept.set(k, []);\n            }\n            if (!midToSlope.has(mid)) {\n                midToSlope.set(mid, []);\n            }\n            slopeToIntercept.get(k)!.push(b);\n            midToSlope.get(mid)!.push(k);\n        }\n    }\n    \n    for (const sti of slopeToIntercept.values()) {\n        if (sti.length === 1) {\n            continue;\n        }\n        const cnt: Map<number, number> = new Map();\n        for (const bVal of sti) {\n            cnt.set(bVal, (cnt.get(bVal) || 0) + 1);\n        }\n        \n        let totalSum: number = 0;\n        for (const count of cnt.values()) {\n            ans += totalSum * count;\n            totalSum += count;\n        }\n    }\n    \n    for (const mts of midToSlope.values()) {\n        if (mts.length === 1) {\n            continue;\n        }\n        const cnt: Map<number, number> = new Map();\n        for (const kVal of mts) {\n            cnt.set(kVal, (cnt.get(kVal) || 0) + 1);\n        }\n        \n        let totalSum: number = 0;\n        for (const count of cnt.values()) {\n            ans -= totalSum * count;\n            totalSum += count;\n        }\n    }\n    \n    return ans;\n}\n```\n\n```Rust [sol1-Rust]\nuse std::collections::HashMap;\n\nimpl Solution {\n    pub fn count_trapezoids(points: Vec<Vec<i32>>) -> i32 {\n        let n = points.len();\n        let inf = 1e9 as i32;\n        let mut slope_to_intercept: HashMap<String, Vec<String>> = HashMap::new();\n        let mut mid_to_slope: HashMap<i64, Vec<String>> = HashMap::new();\n        let mut ans = 0;\n        \n        for i in 0..n {\n            let x1 = points[i][0];\n            let y1 = points[i][1];\n            for j in i + 1..n {\n                let x2 = points[j][0];\n                let y2 = points[j][1];\n                let dx = x1 - x2;\n                let dy = y1 - y2;\n                \n                let (k, b) = if x2 == x1 {\n                    (inf.to_string(), x1.to_string())\n                } else {\n                    let mut k_val = (y2 - y1) as f64 / (x2 - x1) as f64;\n                    let mut b_val = (y1 as i64 * dx as i64 - x1 as i64 * dy as i64) as f64 / dx as f64;\n                    if (k_val == -0.0) {\n                        k_val = 0.0;\n                    }\n                    if (b_val == -0.0) {\n                        b_val = 0.0;\n                    }\n                    (format!(\"{:.10}\", k_val), format!(\"{:.10}\", b_val))\n                };\n                \n                let mid = (x1 + x2) as i64 * 10000 + (y1 + y2) as i64;\n                slope_to_intercept.entry(k.clone()).or_insert(Vec::new()).push(b.clone());\n                mid_to_slope.entry(mid).or_insert(Vec::new()).push(k);\n            }\n        }\n        \n        for sti in slope_to_intercept.values() {\n            if sti.len() == 1 {\n                continue;\n            }\n            let mut cnt: HashMap<&String, i32> = HashMap::new();\n            for b_val in sti {\n                *cnt.entry(b_val).or_insert(0) += 1;\n            }\n            let mut total_sum = 0;\n            for &count in cnt.values() {\n                ans += total_sum * count;\n                total_sum += count;\n            }\n        }\n        \n        for mts in mid_to_slope.values() {\n            if mts.len() == 1 {\n                continue;\n            }\n            \n            let mut cnt: HashMap<&String, i32> = HashMap::new();\n            for k_val in mts {\n                *cnt.entry(k_val).or_insert(0) += 1;\n            }\n            \n            let mut total_sum = 0;\n            for &count in cnt.values() {\n                ans -= total_sum * count;\n                total_sum += count;\n            }\n        }\n        \n        ans\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n ^ 2)$，其中 $n$ 为 $\\textit{points}$ 的长度。值得一提的是，在最终计数的过程中，使用 $\\textit{map}$ 辅助计数，每一次操作时间复杂度为 $O(\\log m)$，其中 $m$ 是当前斜率或中点对应的线段的个数，不妨设所有线段的斜率或中点相同，计数过程在最坏情况下时间复杂度会达到 $O(m ^ 2 \\log m)$，此时 $m = n$，但由于 $n$ 的范围较小，$\\log n$ 几乎为常数，并且计数过程大多数情况是稀疏的，也就是相同斜率或中点的线段往往较少，因此时间复杂度主要集中于预处理线段的阶段，故为 $O(n ^ 2)$。\n\n- 空间复杂度：$O(n ^ 2)$。",
+            "slateValue": "",
+            "slug": "tong-ji-ti-xing-de-shu-mu-ii-by-leetcode-6uwd",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "2OT0jq",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 5,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Geometry",
+                    "nameTranslated": "几何",
+                    "slug": "geometry",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2025-11-28T09:01:13.423760+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：哈希表 + 几何数学 思路及解法 本题与「3623. 统计梯形的数目 I」 的区别在于对线段的斜率没有限制了，并且不能统计平行四边形的数量。 我们可以沿用「3623. 统计梯形的数目 I」 的思路，分别统计不同斜率对应的梯形的数量。但是在只知道斜率的情况下，无法判断两条线段是否共线，因此需要引入截距来区分不共线",
+            "topic": {
+                "id": 3844283,
+                "subscribed": false,
+                "commentCount": 11,
+                "viewCount": 39,
+                "post": {
+                    "id": 7016650,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 21,
+            "isEditorsPick": false,
+            "hitCount": 5767,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "count-number-of-trapezoids-ii",
+                "questionFrontendId": "3625"
+            },
+            "next": {
+                "slug": "tong-ji-zhi-xian-qu-diao-zhong-fu-tong-j-a3f9",
+                "title": "统计直线 + 去掉重复统计的平行四边形，附思考题（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

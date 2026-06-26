@@ -1,0 +1,84 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "XUixaR",
+            "title": "扁平化嵌套数组",
+            "content": "[TOC]\n\n---\n# 解决方案\n\n## 概述\n\n你将获得一个多维数组 `arr` 和一个整数 `n`。你的任务是通过移除数组 `arr` 中深度为 `n` 的子数组来扁平化数组。扁平化后的数组应该只包含来自子数组的实际元素，而不包含子数组本身。\n\n## 用例\n\n### 数据处理\n\n- 在处理嵌套格式的数据时，比如 JSON 或 XML，扁平化结构可以简化数据处理任务。例如，如果你从 API 中获得了嵌套的 JSON 响应，但只需要某些字段，扁平化 JSON 可以更容易地提取和分析所需的数据。\n\n- 例如：\n\n  ```javascript\n  const people = [\n      { name: 'Mike', items: ['hammer', 'axe'] },\n      { name: 'Steve', items: ['rock', 'stick'] }\n  ];\n\n  const allItems = people.map(d => d.items).flat();\n  ```\n\n### 树遍历\n\n- 在计算机科学中，树经常用于表示层次结构。当遍历类似树状结构时，扁平化可用于将树转换为线性表示，从而更容易导航和操作数据。\n\n### 递归算法\n\n- 许多算法涉及数据结构的递归操作。在这些情况下，扁平化嵌套数组可能很有帮助。例如，在实现深度优先搜索或递归回溯等算法时，通过提供数据的线性视图，扁平化可以简化处理过程。\n\n### 数据库查询\n\n- 在数据库系统中，嵌套结构可以存储为数组或 JSON 对象。在查询数据时，扁平化嵌套数组可以用于检索特定元素或在结构的不同层次上执行聚合。\n\n## 方法 1：递归方法\n\n### 概述\n\n由于这是一个深度嵌套结构，解决方法中将涉及一些重复步骤，因此递归是解决此问题的合适方法。\n\n### 算法\n\n- 我们创建一个递归函数 `flattening`，该函数接受数组 `nums` 和层级 `l` 作为参数。\n\n- 在 `flattening` 中，我们使用 `for...of` 循环来迭代 `nums` 数组的元素。\n\n- 对于每个元素，我们检查它是否是数组以及层级 `l` 是否在指定范围内（`l > 0` 且 `l <= n`）。\n\n  - 如果元素是数组且满足层级条件，我们会递归调用 `flattening`，并将嵌套数组和层级减小 1（即 `l - 1`）传递给它。\n\n  - 如果元素不是数组或层级条件不满足，我们将元素推送到结果数组 `res` 中。\n\n- 最初，我们使用数组 `arr` 和深度 `n` 作为参数调用 `flattening` 函数以启动扁平化过程。\n\n- 最后，将包含扁平化元素的 `res` 数组作为结果返回。\n\n### 实现\n\n```javascript []\n/**\n * @param {any[]} arr\n * @param {number} depth\n * @return {any[]}\n */\nvar flat = function (arr, n) {\n    let res = [];\n    const flattening = (nums, l) => {\n      for (const num of nums) {\n        if (Array.isArray(num) && l > 0) {\n          flattening(num, l - 1);\n        } else {\n          res.push(num);\n        }\n      }\n    }\n\n    flattening(arr, n);\n    return res;\n};\n```\n```typescript []\ntype MultiDimensionalArray = (number | MultiDimensionalArray)[];\n\nconst flat = function (arr: MultiDimensionalArray, n: number): MultiDimensionalArray {\n    let res: MultiDimensionalArray = [];\n\n    const flattening = (nums: MultiDimensionalArray, l: number) => {\n        for (const num of nums) {\n            if (Array.isArray(num) && l > 0 && l <= n) {\n                flattening(num as MultiDimensionalArray, l - 1);\n            } else {\n                res.push(num);\n            }\n        }\n    };\n\n    flattening(arr, n);\n    return res;\n};\n```\n\n### 复杂度分析：\n\n- 时间复杂度：\n  - 最坏情况下，每个元素都是一个数组，并且最大深度 `n` 被达到，递归函数将在每个层级的每个嵌套数组上被调用。\n  - 这导致总共 $O(k * n)$ 次递归调用，其中 `k` 表示每个层级平均嵌套数组的数量，`n` 是最大深度级别。\n\n- 空间复杂度：\n  - 解决方案的空间复杂度由深度级别 `n` 决定，因为它影响递归的最大深度。\n  - 每个递归调用在调用堆栈上消耗额外的空间，因此空间复杂度为 $O(n)$，因为我们需要为调用堆栈上的 $n$ 次递归调用分配空间。\n\n## 方法 2：使用迭代队列\n\n### 概述\n\n我们可以将嵌套数组的所有子数组放入队列以便在后续迭代中处理。\n\n### 算法步骤\n\n- 我们首先初始化一个布尔变量 `nestedArrayElement` 为 `true`，表示仍然有嵌套数组需要扁平化。\n- 我们还初始化一个变量 `queue`，用于在扁平化过程中存储元素。\n- 初始时，将深度 `depth` 设置为 0，表示当前深度级别。\n- 函数进入一个 `while` 循环，只要还有单个数组元素需要处理（`nestedArrayElement` 为 `true`），且深度小于 `n`。\n  - 在每次循环迭代内，首先将 `nestedArrayElement` 设置为 `false`，表示尚未遇到嵌套数组。\n  - 为当前迭代创建一个新的空队列 `queue`，用于存储当前迭代中的元素。\n  - 使用 `for` 循环遍历数组 `arr` 中的每个元素。\n    - 如果元素是数组，将其元素展开到队列 `queue` 中，并将 `nestedArrayElement` 设置为 `true`，表示遇到嵌套数组。\n    - 如果元素不是数组，将其直接推送到队列 `queue` 中。\n  - 处理完数组 `arr` 的所有元素后，将数组 `arr` 更新为队列中的元素。\n  - 这个操作通过扩展操作 `arr = [...queue]` 实现，有效地更新了数组 `arr` 为当前级别的嵌套数组的扁平化元素。这个更新后的数组 `arr` 将在下一次 `while` 循环迭代中用于扁平化下一个级别的嵌套数组。\n  - 增加深度 `depth`，表示处理了新的嵌套级别。\n- 循环继续，直到没有更多单个数组元素（`nestedArrayElement` 为 `false`）或深度达到指定级别 `n`。\n- 最后，将更新后的数组 `arr` 作为扁平化后的数组返回。\n\n### 实现\n\n```javascript []\n/**\n * @param {any[]} arr\n * @param {number} depth\n * @return {any[]}\n */\nvar flat = function (arr, n) {\n    let nestedArrayElement = true;\n    let queue;\n    let depth = 0;\n\n    while(nestedArrayElement && depth < n) {\n        nestedArrayElement = false;\n        queue = [];\n\n        for(let i = 0; i < arr.length; i++) {\n            if(Array.isArray(arr[i])) {\n                queue.push(...arr[i]);\n                nestedArrayElement = true;\n            } else {\n                queue.push(arr[i]);\n            }\n        }\n        arr = [...queue];\n        depth++;\n    }\n\n    return arr;\n};\n```\n```typescript []\ntype MultiDimensionalArray = (number | MultiDimensionalArray)[];\n\nconst flat = function (arr: MultiDimensionalArray, n: number): MultiDimensionalArray {\n    let nestedArrayElement = true;\n    let queue: MultiDimensionalArray;\n    let depth = 0;\n\n    while (nestedArrayElement && depth < n) {\n        nestedArrayElement = false;\n        queue = [];\n\n        for (let i = 0; i < arr.length; i++) {\n            if (Array.isArray(arr[i])) {\n                queue.push(...arr[i] as MultiDimensionalArray);\n                nestedArrayElement = true;\n            } else {\n                queue.push(arr[i]);\n            }\n        }\n        arr = [...queue];\n        depth++;\n    }\n\n    return arr;\n};\n```\n\n### 复杂度分析：\n\n**时间复杂度：**\n\n  - 时间复杂度为 $O(n * m)$，其中 `n` 是最大深度级别，`m` 是数组中的总元素数量。我们为每个级别中的所有元素迭代，所以总复杂度为 $O(n * m)$。\n\n**空间复杂度：**\n\n  - 空间复杂度为 $O(m)$，因为我们使用了额外的队列来存储数组中的元素。\n\n## 方法 3：使用迭代堆栈\n\n### 概述\n\n我们可以将输入数组的每个元素与初始深度级别 `n` 映射到一个堆栈中。然后，在 `while` 循环中，我们弹出堆栈中的元素和深度。如果元素是数组且深度大于 0，则将数组的每个元素与降低的深度推回堆栈中。这个过程一直进行，直到堆栈为空。如果元素不是数组或深度为 0，则它被视为叶元素，并将其推送到结果数组中。最后，结果数组被反转以保持元素的原始顺序。\n\n### 算法\n\n- 我们初始化一个名为 `stack` 的堆栈，其中包含数组 `arr` 中的元素以及它们的初始深度级别。每个元素表示为一个对 `[item, depth]`。\n- 我们还初始化一个空数组 `res`，用于存储扁平化的结果。\n- 函数进入一个 `while` 循环，只要堆栈中仍有元素。\n  - 在每次循环迭代中，使用 `pop()` 方法从堆栈中获取顶部元素 `[item, depth]`。\n  - 如果元素是数组且当前深度 `depth` 大于 0，表示元素是包含需要进一步扁平化的项的盒子。\n    - 将元素 `item` 数组中的每个元素映射到对 `[el, depth - 1]`，表示元素以及降低的深度级别（`depth - 1`）。\n    - 这些映射的对将使用 `push()` 方法重新推回堆栈，有效地排队以供后续处理。\n  - 如果元素不是数组或深度为 0，表示元素是一个项，它可以直接添加到结果数组 `res` 中。\n- 循环继续，直到堆栈中没有更多元素。\n- 最后，将包含扁平化元素的结果数组 `res` 返回，但以相反的顺序。为了确保元素保持原始顺序，使用 `reverse()` 方法进行反转。\n\n### 实现\n\n```javascript []\n/**\n * @param {any[]} arr\n * @param {number} depth\n * @return {any[]}\n */\nvar flat = function (arr, n) {\n    const stack = [...arr.map((item) => [item, n])];\n    const res = [];\n\n    while (stack.length > 0) {\n        const [item, depth] = stack.pop();\n        if (Array.isArray(item) && depth > 0) {\n            // 降低深度后重新推回堆栈\n            stack.push(...item.map((el) => [el, depth - 1]));\n        } else {\n            res.push(item);\n        }\n    }\n\n    return res.reverse();\n};\n```\n```typescript []\ntype MultiDimensionalArray = (number | MultiDimensionalArray)[];\n\nconst flat = function (arr: MultiDimensionalArray, n: number): MultiDimensionalArray {\n    const stack: [MultiDimensionalArray, number][] = arr.map((item) => [item, n] as [MultiDimensionalArray, number]);\n    const res: MultiDimensionalArray = [];\n\n    while (stack.length > 0) {\n        const [item, depth] = stack.pop()!;\n        if (Array.isArray(item) && depth > 0) {\n            stack.push(...item.map((el) => [el, depth - 1] as [MultiDimensionalArray, number]));\n        } else {\n            res.push(item);\n        }\n    }\n\n    return res.reverse();\n};\n```\n\n**复杂度分析：**\n\n- 时间复杂度：\n  - 代码涉及到一个 `while` 循环，只要堆栈中有元素，每次迭代中弹出元素并进行处理。\n  - 在最坏情况下，每个元素仅处理一次，需要迭代输入数组的元素并映射它们以推回堆栈。\n  - 因此，代码的时间复杂度是 $O(m)$，其中 `m` 是输入数组中的总元素数量。\n\n- 空间复杂度：\n  - 代码的空间复杂度是 $O(m)$，其中 `m` 是输入数组中的总元素数量。\n\n## 面试提示\n\n1. 解释扁平化多维数组的概念。为什么在某些情景下扁平化很有用？\n\n  扁平化多维数组意味着通过删除任何嵌套数组并替换为它们的实际元素将其转换为单维数组。这在需要将数组作为扁平列表进行处理、而不考虑其原始嵌套结构时很有用。它简化了搜索、过滤或转换数组元素的操作。\n\n2. 是否存在需要考虑的特殊情况或边缘情景？你的解决方案如何处理这些情况？\n\n  是的，我们应该考虑空数组或没有嵌套数组的情况。在这种情况下，函数应该返回原始数组，因为没有需要扁平化的嵌套数组。此外，我们需要处理深度 `n` 为负数或超出数组的实际深度的情况。在这些情况下，函数也应返回原始数组，而不进行扁平化。\n\n3. 你的解决方案如何处理输入数组中的循环引用或自引用数组？\n\n  循环引用或自引用数组可能导致无限递归。提供的解决方案不显式处理循环引用。如果输入数组包含循环引用，递归扁平化过程可能导致无限循环或堆栈溢出错误。",
+            "slateValue": "",
+            "slug": "none-by-leetcode-solution-n5h3",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "XUixaR",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 3,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-10-31T12:13:41.710808+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "解决方案 概述 你将获得一个多维数组 arr 和一个整数 n。你的任务是通过移除数组 arr 中深度为 n 的子数组来扁平化数组。扁平化后的数组应该只包含来自子数组的实际元素，而不包含子数组本身。 用例 数据处理 在处理嵌套格式的数据时，比如 JSON 或 XML，扁平化结构可以简化数据处理任务。例如，如果你从 API",
+            "topic": {
+                "id": 2506896,
+                "subscribed": false,
+                "commentCount": 4,
+                "viewCount": 194,
+                "post": {
+                    "id": 4670255,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 24,
+            "isEditorsPick": false,
+            "hitCount": 6328,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "flatten-deeply-nested-array",
+                "questionFrontendId": "2625"
+            },
+            "next": {
+                "slug": "2625-bian-ping-hua-qian-tao-shu-zu-cong-b9vg5",
+                "title": "2625. 扁平化嵌套数组。从递归到迭代"
+            },
+            "prev": null
+        }
+    }
+}

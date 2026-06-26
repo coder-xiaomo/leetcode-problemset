@@ -1,0 +1,134 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "DRLUfF",
+            "title": "生成平衡数组的方案数",
+            "content": "#### 方法一：动态规划\n\n**思路与算法**\n\n首先题目给出一个下标从 $0$ 开始长度为 $n$ 的整数数组 $\\textit{nums}$，并给出「平衡数组」的定义：数组中奇数下标元素和与偶数下标元素的和相等。现在我们可以选择一个位置 $i$，$0 \\le i < n$ 的元素删除（注意删除后 $i$ 之后的下标可能会因此发生改变）。我们需要求出所有删除该下标元素后的数组为「平衡数组」的下标数目。\n\n我们设 $\\textit{preOdd}[i]$ 表示位置 $i$，$0 \\le i < n$ 前所有奇数位置元素的和，$\\textit{preEven}[i]$ 表示位置 $i$ 前所有偶数位置元素的和，$\\textit{sufOdd}[i]$ 表示位置 $i$ 后所有奇数位置元素的和，$\\textit{sufEven}[i]$ 表示位置 $i$ 后所有偶数位置元素的和，我们来看如何进行状态转移——\n\n- 当 $i$ 为奇数时：\n  - $\\textit{preOdd}[i + 1] = \\textit{preOdd}[i] + \\textit{nums}[i]$，$i + 1 < n$\n  - $\\textit{sufOdd}[i] = \\textit{sufOdd}[i - 1] - \\textit{nums}[i]$，$i - 1 \\ge 0$\n  - $\\textit{preEven}[i + 1] = \\textit{preEven}[i]$，$i + 1 < n$\n  - $\\textit{sufEven}[i] = \\textit{sufEven}[i - 1]$，$i - 1 \\ge 0$\n- 当 $i$ 为偶数时：\n  - $\\textit{preEven}[i + 1] = \\textit{preEven}[i] + \\textit{nums}[i]$，$i + 1 < n$\n  - $\\textit{sufEven}[i] = \\textit{sufEven}[i - 1] - \\textit{nums}[i]$，$i - 1 < n$\n  - $\\textit{preOdd}[i + 1] = \\textit{preOdd}[i]$，$i + 1 < n$\n  - $\\textit{sufOdd}[i] = \\textit{sufOdd}[i - 1]$，$i - 1 \\ge 0$\n\n其中边界条件为：当 $i = 0$ 时，$\\textit{preOdd}[0] = 0$，$\\textit{preEven}[0] = 0$，$\\textit{sufOdd}[0] = \\sum_{2i + 1}^{n}\\textit{nums}[2i + 1]$，$\\textit{sufEven}[0] = \\sum_{2i}^{n}\\textit{nums}[2i]$。\n\n不失一般性，现在我们将下标 $i$ 的元素进行删除，显而易见下标 $i$ 之前的元素下标并不会因此发生改变，而下标 $i$ 之后的原本在 $j$，$j > i$ 下标的数组元素会移动到下标 $j - 1$，即下标 $i$ 之后的奇数下标元素会成为偶数下标元素，偶数下标元素会成为奇数下标元素。所以删除后数组中全部奇数下标元素和为 $\\textit{preOdd}[i] + \\textit{sufEven}[i]$，全部偶数下标元素和为 $\\textit{preEven}[i] + \\textit{sufOdd}[i]$，若两者相等则说明删除下标 $i$ 后的数组为「平衡数组」。那么我们尝试删除每一个下标 $i$，$0 \\le i < n$，来统计能生成「平衡数组」的下标即可。又因为 $\\textit{preOdd}[i]$，$\\textit{preEven}[i]$，$\\textit{sufOdd}[i]$，$\\textit{sufEven}[i]$ 求解都与前一个数有关，因此我们可以用「滚动数组」的技巧来进行空间优化。\n\n**代码**\n\n```Python [sol1-Python3]\nclass Solution:\n    def waysToMakeFair(self, nums: List[int]) -> int:\n        res = odd1 = even1 = odd2 = even2 = 0\n        for i, num in enumerate(nums):\n            if i & 1:\n                odd2 += num\n            else:\n                even2 += num\n        for i, num in enumerate(nums):\n            if i & 1:\n                odd2 -= num\n            else:\n                even2 -= num\n            if odd1 + even2 == odd2 + even1:\n                res += 1\n            if i & 1:\n                odd1 += num\n            else:\n                even1 += num\n        return res\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int waysToMakeFair(vector<int>& nums) {\n        int odd1 = 0, even1 = 0;\n        int odd2 = 0, even2 = 0;\n        for (int i = 0; i < nums.size(); ++i) {\n            if (i & 1) {\n                odd2 += nums[i];\n            } else {\n                even2 += nums[i];\n            }\n        }\n        int res = 0;\n        for (int i = 0; i < nums.size(); ++i) {\n            if (i & 1) {\n                odd2 -= nums[i];\n            } else {\n                even2 -= nums[i];\n            }\n            if (odd1 + even2 == odd2 + even1) {\n                ++res;\n            }\n            if (i & 1) {\n                odd1 += nums[i];\n            } else {\n                even1 += nums[i];\n            }\n        }\n        return res;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int waysToMakeFair(int[] nums) {\n        int odd1 = 0, even1 = 0;\n        int odd2 = 0, even2 = 0;\n        for (int i = 0; i < nums.length; ++i) {\n            if ((i & 1) != 0) {\n                odd2 += nums[i];\n            } else {\n                even2 += nums[i];\n            }\n        }\n        int res = 0;\n        for (int i = 0; i < nums.length; ++i) {\n            if ((i & 1) != 0) {\n                odd2 -= nums[i];\n            } else {\n                even2 -= nums[i];\n            }\n            if (odd1 + even2 == odd2 + even1) {\n                ++res;\n            }\n            if ((i & 1) != 0) {\n                odd1 += nums[i];\n            } else {\n                even1 += nums[i];\n            }\n        }\n        return res;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int WaysToMakeFair(int[] nums) {\n        int odd1 = 0, even1 = 0;\n        int odd2 = 0, even2 = 0;\n        for (int i = 0; i < nums.Length; ++i) {\n            if ((i & 1) != 0) {\n                odd2 += nums[i];\n            } else {\n                even2 += nums[i];\n            }\n        }\n        int res = 0;\n        for (int i = 0; i < nums.Length; ++i) {\n            if ((i & 1) != 0) {\n                odd2 -= nums[i];\n            } else {\n                even2 -= nums[i];\n            }\n            if (odd1 + even2 == odd2 + even1) {\n                ++res;\n            }\n            if ((i & 1) != 0) {\n                odd1 += nums[i];\n            } else {\n                even1 += nums[i];\n            }\n        }\n        return res;\n    }\n}\n```\n\n```C [sol1-C]\nint waysToMakeFair(int* nums, int numsSize) {\n    int odd1 = 0, even1 = 0;\n    int odd2 = 0, even2 = 0;\n    for (int i = 0; i < numsSize; ++i) {\n        if (i & 1) {\n            odd2 += nums[i];\n        } else {\n            even2 += nums[i];\n        }\n    }\n    int res = 0;\n    for (int i = 0; i < numsSize; ++i) {\n        if (i & 1) {\n            odd2 -= nums[i];\n        } else {\n            even2 -= nums[i];\n        }\n        if (odd1 + even2 == odd2 + even1) {\n            ++res;\n        }\n        if (i & 1) {\n            odd1 += nums[i];\n        } else {\n            even1 += nums[i];\n        }\n    }\n    return res;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar waysToMakeFair = function(nums) {\n    let odd1 = 0, even1 = 0;\n    let odd2 = 0, even2 = 0;\n    for (let i = 0; i < nums.length; ++i) {\n        if ((i & 1) !== 0) {\n            odd2 += nums[i];\n        } else {\n            even2 += nums[i];\n        }\n    }\n    let res = 0;\n    for (let i = 0; i < nums.length; ++i) {\n        if ((i & 1) != 0) {\n            odd2 -= nums[i];\n        } else {\n            even2 -= nums[i];\n        }\n        if (odd1 + even2 === odd2 + even1) {\n            ++res;\n        }\n        if ((i & 1) !== 0) {\n            odd1 += nums[i];\n        } else {\n            even1 += nums[i];\n        }\n    }\n    return res;\n};\n```\n\n```go [sol1-Golang]\nfunc waysToMakeFair(nums []int) (res int) {\n    var odd1, even1, odd2, even2 int\n    for i, num := range nums {\n        if i&1 > 0 {\n            odd2 += num\n        } else {\n            even2 += num\n        }\n    }\n    for i, num := range nums {\n        if i&1 > 0 {\n            odd2 -= num\n        } else {\n            even2 -= num\n        }\n        if odd1+even2 == odd2+even1 {\n            res++\n        }\n        if i&1 > 0 {\n            odd1 += num\n        } else {\n            even1 += num\n        }\n    }\n    return\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 为数组 $\\textit{nums}$ 的长度。\n- 空间复杂度：$O(1)$，仅使用常量空间。",
+            "slateValue": "",
+            "slug": "sheng-cheng-ping-heng-shu-zu-de-fang-an-0mkaj",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "DRLUfF",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 51,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 3,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-01-27T10:37:43.943789+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 思路与算法 首先题目给出一个下标从 $0$ 开始长度为 $n$ 的整数数组 $\\textit{nums}$，并给出「平衡数组」的定义：数组中奇数下标元素和与偶数下标元素的和相等。现在我们可以选择一个位置 $i$，$0 \\le i < n$ 的元素删除（注意删除后 $i$ 之后的下标可能会因此发生改变）",
+            "topic": {
+                "id": 2078340,
+                "subscribed": false,
+                "commentCount": 92,
+                "viewCount": 1030,
+                "post": {
+                    "id": 3978961,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 34,
+            "isEditorsPick": false,
+            "hitCount": 14568,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "ways-to-make-a-fair-array",
+                "questionFrontendId": "1664"
+            },
+            "next": {
+                "slug": "by-lcbin-3jl3",
+                "title": "[Python3/Java/C++/Go] 一题一解：预处理 + 枚举"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,144 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "qlJ9kf",
+            "title": "统计打字方案数",
+            "content": "#### 方法一：动态规划\n\n**思路与算法**\n\n我们可以将字符串分解为多个部分，每个部分由相同的字符组成，且相邻两个部分的字符不一样。那么，根据乘法原理，构成文字信息的总方案数等于这些部分各自对应方案数的**乘积**。\n\n而对于某个特定字符组成的子串，其方案数仅与**子串的长度**和**字符对应的字母种类数**有关。我们用 $\\textit{dp}_4[i]$ 表示连续 $i$ 个对应 $4$ 个字母的字符（即 $\\texttt{`7'}$ 或 $\\texttt{`9'}$）组成子串对应的方案数，用 $\\textit{dp}_3[i]$ 表示连续 $i$ 个对应 $3$ 个字母的字符（即其余字符）组成子串对应的方案数。\n\n我们以 $\\textit{dp}_3[i]$ 为例构造转移方程。对于 $3$ 个字母的按键，对应字母字符串的末尾字符可能有三种情况，分别对应按 $1, 2, 3$ 次的情况。那么，我们可以得到如下的转移方程（为了方便起见，当 $i < 0$ 时 $\\textit{dp}_3[i] = 0$；当 $i = 0$ 时，由于空字符串也是一种方案，因此 $\\textit{dp}_3[0] = 1$，下同）：\n\n$$\n\\textit{dp}_3[i] = （\\textit{dp}_3[i - 1] + \\textit{dp}_3[i - 2] + \\textit{dp}_3[i - 3]）\\bmod (10^9 + 7).\n$$\n\n注意由于我们需要将结果对 $10^9 + 7$ 取余，因此我们可以提前对数组元素进行取模处理。\n\n同理，对于 $4$ 个字母的按键，我们也可以类似地构造转移方程：\n\n$$\n\\textit{dp}_4[i] = (\\textit{dp}_4[i - 1] + \\textit{dp}_4[i - 2] + \\textit{dp}_4[i - 3] + \\textit{dp}_4[i - 4]）\\bmod (10^9 + 7).\n$$\n\n我们用 $n$ 表示字符串 $\\textit{pressedKeys}$，为了方便计算，我们可以预处理并用数组保存 $[0, n]$ 闭区间内的 $\\textit{dp}_4$ 与 $\\textit{dp}_3$ 数组。随后，我们遍历字符串 $\\textit{pressedKeys}$ 计算总方案数。\n\n具体地，我们用 $\\textit{res}$ 表示总方案数，$\\textit{res}$ 的初值为 $1$。随后，我们从左至右遍历字符串，并统计当前字符连续出现的次数 $\\textit{cnt}$。每当我们遍历到与前一个字符不一样的新字符，此时说明我们刚刚遍历完成长度为 $\\textit{cnt}$ 的相同字符子串，我们就根据前一个字符的数值将 $\\textit{res}$ 乘上对应的 $\\textit{dp}_4[\\textit{cnt}]$ 或 $\\textit{dp}_3[\\textit{cnt}]$ 并对 $10^9 + 7$ 取余。最终，我们还需要对最后一段相同字符组成的子串进行计算并更新 $\\textit{res}$。当上述操作完成后，我们返回 $\\textit{res}$ 作为答案。\n\n\n**细节**\n\n由于计算的中间值可能超过 $32$ 位有符号整数的上界，因此我们可以考虑用 $64$ 位整数保存 $\\textit{res}$ 以及 $\\textit{dp}_4$ 与 $\\textit{dp}_3$ 数组的元素。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int countTexts(string pressedKeys) {\n        int m = 1000000007;\n        vector<long long> dp3 = {1, 1, 2, 4};   // 连续按多次 3 个字母按键对应的方案数\n        vector<long long> dp4 = {1, 1, 2, 4};   // 连续按多次 4 个字母按键对应的方案数\n        int n = pressedKeys.size();\n        for (int i = 4; i < n + 1; ++i) {\n            dp3.push_back((dp3[i-1] + dp3[i-2] + dp3[i-3]) % m);\n            dp4.push_back((dp4[i-1] + dp4[i-2] + dp4[i-3] + dp4[i-4]) % m);\n        }\n        long long res = 1;   // 总方案数\n        int cnt = 1;   // 当前字符连续出现的次数\n        for (int i = 1; i < n; ++i) {\n            if (pressedKeys[i] == pressedKeys[i-1]) {\n                ++cnt;\n            } else {\n                // 对按键对应字符数量讨论并更新总方案数\n                if (pressedKeys[i-1] == '7' || pressedKeys[i-1] == '9') {\n                    res *= dp4[cnt];\n                } else {\n                    res *= dp3[cnt];\n                }\n                res %= m;\n                cnt = 1;\n            }\n        }\n        // 更新最后一段连续字符子串对应的方案数\n        if (pressedKeys[n-1] == '7' || pressedKeys[n-1] == '9') {\n            res *= dp4[cnt];\n        } else {\n            res *= dp3[cnt];\n        }\n        res %= m;\n        return res;\n    }\n};\n```\n\n\n```Python [sol1-Python3]\nclass Solution:\n    def countTexts(self, pressedKeys: str) -> int:\n        m = 10 ** 9 + 7\n        dp3 = [1, 1, 2, 4]   # 连续按多次 3 个字母按键对应的方案数\n        dp4 = [1, 1, 2, 4]   # 连续按多次 4 个字母按键对应的方案数\n        n = len(pressedKeys)\n        for i in range(4, n + 1):\n            dp3.append((dp3[i-1] + dp3[i-2] + dp3[i-3]) % m)\n            dp4.append((dp4[i-1] + dp4[i-2] + dp4[i-3] + dp4[i-4]) % m)\n        res = 1   # 总方案数\n        cnt = 1   # 当前字符连续出现的次数\n        for i in range(1, n):\n            if pressedKeys[i] == pressedKeys[i-1]:\n                cnt += 1\n            else:\n                # 对按键对应字符数量讨论并更新总方案数\n                if pressedKeys[i-1] in \"79\":\n                    res *= dp4[cnt]\n                else:\n                    res *= dp3[cnt]\n                res %= m\n                cnt = 1\n        # 更新最后一段连续字符子串对应的方案数\n        if pressedKeys[-1] in \"79\":\n            res *= dp4[cnt]\n        else:\n            res *= dp3[cnt]\n        res %= m\n        return res\n```\n\n```C [sol1-C]\nint countTexts(char* pressedKeys) {\n    int m = 1000000007;\n    int n = strlen(pressedKeys);\n    long long dp3[100001] = {1, 1, 2, 4};   // 连续按多次 3 个字母按键对应的方案数\n    long long dp4[100001] = {1, 1, 2, 4};   // 连续按多次 4 个字母按键对应的方案数\n    for (int i = 4; i <= n; ++i) {\n        dp3[i] = (dp3[i-1] + dp3[i-2] + dp3[i-3]) % m;\n        dp4[i] = (dp4[i-1] + dp4[i-2] + dp4[i-3] + dp4[i-4]) % m;\n    }\n    long long res = 1;   // 总方案数\n    int cnt = 1;   // 当前字符连续出现的次数\n    for (int i = 1; i < n; ++i) {\n        if (pressedKeys[i] == pressedKeys[i-1]) {\n            ++cnt;\n        } else {\n            // 对按键对应字符数量讨论并更新总方案数\n            if (pressedKeys[i-1] == '7' || pressedKeys[i-1] == '9') {\n                res = (res * dp4[cnt]) % m;\n            } else {\n                res = (res * dp3[cnt]) % m;\n            }\n            cnt = 1;\n        }\n    }\n    // 更新最后一段连续字符子串对应的方案数\n    if (pressedKeys[n-1] == '7' || pressedKeys[n-1] == '9') {\n        res = (res * dp4[cnt]) % m;\n    } else {\n        res = (res * dp3[cnt]) % m;\n    }\n    return res;\n}\n```\n\n```Go [sol1-Go]\nfunc countTexts(pressedKeys string) int {\n    m := 1000000007\n    n := len(pressedKeys)\n    dp3 := []int{1, 1, 2, 4} // 连续按多次 3 个字母按键对应的方案数\n    dp4 := []int{1, 1, 2, 4} // 连续按多次 4 个字母按键对应的方案数\n    for i := 4; i <= n; i++ {\n        dp3 = append(dp3, (dp3[i - 1] + dp3[i - 2] + dp3[i - 3]) % m)\n        dp4 = append(dp4, (dp4[i - 1] + dp4[i - 2] + dp4[i - 3] + dp4[i - 4]) % m)\n    }\n    res := 1 // 总方案数\n    cnt := 1 // 当前字符连续出现的次数\n    for i := 1; i < n; i++ {\n        if pressedKeys[i] == pressedKeys[i - 1] {\n            cnt++\n        } else {\n            // 对按键对应字符数量讨论并更新总方案数\n            if pressedKeys[i - 1] == '7' || pressedKeys[i - 1] == '9' {\n                res = (res * dp4[cnt]) % m\n            } else {\n                res = (res * dp3[cnt]) % m\n            }\n            cnt = 1\n        }\n    }\n    // 更新最后一段连续字符子串对应的方案数\n    if pressedKeys[n - 1] == '7' || pressedKeys[n - 1] == '9' {\n        res = (res * dp4[cnt]) % m\n    } else {\n        res = (res * dp3[cnt]) % m\n    }\n    return res\n}\n```\n\n```Java [sol1-Java]\npublic class Solution {\n    public int countTexts(String pressedKeys) {\n        int m = 1000000007;\n        int n = pressedKeys.length();\n        List<Long> dp3 = new ArrayList<>(Arrays.asList(1L, 1L, 2L, 4L));   // 连续按多次 3 个字母按键对应的方案数\n        List<Long> dp4 = new ArrayList<>(Arrays.asList(1L, 1L, 2L, 4L));   // 连续按多次 4 个字母按键对应的方案数\n        for (int i = 4; i <= n; ++i) {\n            dp3.add((dp3.get(i-1) + dp3.get(i-2) + dp3.get(i-3)) % m);\n            dp4.add((dp4.get(i-1) + dp4.get(i-2) + dp4.get(i-3) + dp4.get(i-4)) % m);\n        }\n        long res = 1;   // 总方案数\n        int cnt = 1;   // 当前字符连续出现的次数\n        for (int i = 1; i < n; ++i) {\n            if (pressedKeys.charAt(i) == pressedKeys.charAt(i-1)) {\n                ++cnt;\n            } else {\n                // 对按键对应字符数量讨论并更新总方案数\n                if (pressedKeys.charAt(i-1) == '7' || pressedKeys.charAt(i-1) == '9') {\n                    res = (res * dp4.get(cnt)) % m;\n                } else {\n                    res = (res * dp3.get(cnt)) % m;\n                }\n                cnt = 1;\n            }\n        }\n        // 更新最后一段连续字符子串对应的方案数\n        if (pressedKeys.charAt(n-1) == '7' || pressedKeys.charAt(n-1) == '9') {\n            res = (res * dp4.get(cnt)) % m;\n        } else {\n            res = (res * dp3.get(cnt)) % m;\n        }\n        return (int) res;\n    }\n}\n```\n\n```C# [sol1-C#]\nusing System;\nusing System.Collections.Generic;\n\npublic class Solution {\n    public int CountTexts(string pressedKeys) {\n        int m = 1000000007;\n        int n = pressedKeys.Length;\n        List<long> dp3 = new List<long> {1, 1, 2, 4};   // 连续按多次 3 个字母按键对应的方案数\n        List<long> dp4 = new List<long> {1, 1, 2, 4};   // 连续按多次 4 个字母按键对应的方案数\n        for (int i = 4; i <= n; ++i) {\n            dp3.Add((dp3[i-1] + dp3[i-2] + dp3[i-3]) % m);\n            dp4.Add((dp4[i-1] + dp4[i-2] + dp4[i-3] + dp4[i-4]) % m);\n        }\n        long res = 1;   // 总方案数\n        int cnt = 1;   // 当前字符连续出现的次数\n        for (int i = 1; i < n; ++i) {\n            if (pressedKeys[i] == pressedKeys[i-1]) {\n                ++cnt;\n            } else {\n                // 对按键对应字符数量讨论并更新总方案数\n                if (pressedKeys[i-1] == '7' || pressedKeys[i-1] == '9') {\n                    res = (res * dp4[cnt]) % m;\n                } else {\n                    res = (res * dp3[cnt]) % m;\n                }\n                cnt = 1;\n            }\n        }\n        // 更新最后一段连续字符子串对应的方案数\n        if (pressedKeys[n-1] == '7' || pressedKeys[n-1] == '9') {\n            res = (res * dp4[cnt]) % m;\n        } else {\n            res = (res * dp3[cnt]) % m;\n        }\n        return (int) res;\n    }\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar countTexts = function(pressedKeys) {\n    const m = 1000000007;\n    const n = pressedKeys.length;\n    const dp3 = [1, 1, 2, 4]; // 连续按多次 3 个字母按键对应的方案数\n    const dp4 = [1, 1, 2, 4]; // 连续按多次 4 个字母按键对应的方案数\n    for (let i = 4; i <= n; i++) {\n        dp3.push((dp3[i - 1] + dp3[i - 2] + dp3[i - 3]) % m);\n        dp4.push((dp4[i - 1] + dp4[i - 2] + dp4[i - 3] + dp4[i - 4]) % m);\n    }\n    let res = BigInt(1); // 总方案数\n    let cnt = 1; // 当前字符连续出现的次数\n    for (let i = 1; i < n; i++) {\n        if (pressedKeys[i] === pressedKeys[i - 1]) {\n            cnt++;\n        } else {\n            // 对按键对应字符数量讨论并更新总方案数\n            if (pressedKeys[i - 1] === '7' || pressedKeys[i - 1] === '9') {\n                res = (res * BigInt(dp4[cnt])) % BigInt(m);\n            } else {\n                res = (res * BigInt(dp3[cnt])) % BigInt(m);\n            }\n            cnt = 1;\n        }\n    }\n    // 更新最后一段连续字符子串对应的方案数\n    if (pressedKeys[n - 1] === '7' || pressedKeys[n - 1] === '9') {\n        res = (res * BigInt(dp4[cnt])) % BigInt(m);\n    } else {\n        res = (res * BigInt(dp3[cnt])) % BigInt(m);\n    }\n    return Number(res);\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction countTexts(pressedKeys: string): number {\n    const m = 1000000007;\n    const n = pressedKeys.length;\n    const dp3: number[] = [1, 1, 2, 4]; // 连续按多次 3 个字母按键对应的方案数\n    const dp4: number[] = [1, 1, 2, 4]; // 连续按多次 4 个字母按键对应的方案数\n    for (let i = 4; i <= n; i++) {\n        dp3.push((dp3[i - 1] + dp3[i - 2] + dp3[i - 3]) % m);\n        dp4.push((dp4[i - 1] + dp4[i - 2] + dp4[i - 3] + dp4[i - 4]) % m);\n    }\n    let res = BigInt(1); // 总方案数\n    let cnt = 1; // 当前字符连续出现的次数\n    for (let i = 1; i < n; i++) {\n        if (pressedKeys[i] === pressedKeys[i - 1]) {\n            cnt++;\n        } else {\n            // 对按键对应字符数量讨论并更新总方案数\n            if (pressedKeys[i - 1] === '7' || pressedKeys[i - 1] === '9') {\n                res = (res * BigInt(dp4[cnt])) % BigInt(m);\n            } else {\n                res = (res * BigInt(dp3[cnt])) % BigInt(m);\n            }\n            cnt = 1;\n        }\n    }\n    // 更新最后一段连续字符子串对应的方案数\n    if (pressedKeys[n - 1] === '7' || pressedKeys[n - 1] === '9') {\n        res = (res * BigInt(dp4[cnt])) % BigInt(m);\n    } else {\n        res = (res * BigInt(dp3[cnt])) % BigInt(m);\n    }\n    return Number(res);\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn count_texts(pressed_keys: String) -> i32 {\n        let m = 1000000007;\n        let n = pressed_keys.len();\n        let mut dp3 = vec![1, 1, 2, 4]; // 连续按多次 3 个字母按键对应的方案数\n        let mut dp4 = vec![1, 1, 2, 4]; // 连续按多次 4 个字母按键对应的方案数\n        for i in 4..=n {\n            dp3.push((dp3[i - 1] + dp3[i - 2] + dp3[i - 3]) % m);\n            dp4.push((dp4[i - 1] + dp4[i - 2] + dp4[i - 3] + dp4[i - 4]) % m);\n        }\n        let mut res = 1i64; // 总方案数\n        let mut cnt = 1; // 当前字符连续出现的次数\n        let pressed_keys: Vec<char> = pressed_keys.chars().collect();\n        for i in 1..n {\n            if pressed_keys[i] == pressed_keys[i - 1] {\n                cnt += 1;\n            } else {\n                // 对按键对应字符数量讨论并更新总方案数\n                if pressed_keys[i - 1] == '7' || pressed_keys[i - 1] == '9' {\n                    res = (res * dp4[cnt]) % m as i64;\n                } else {\n                    res = (res * dp3[cnt]) % m as i64;\n                }\n                cnt = 1;\n            }\n        }\n        // 更新最后一段连续字符子串对应的方案数\n        if pressed_keys[n - 1] == '7' || pressed_keys[n - 1] == '9' {\n            res = (res * dp4[cnt]) % m as i64;\n        } else {\n            res = (res * dp3[cnt]) % m as i64;\n        }\n        res as i32\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 为 $\\textit{pressedKeys}$ 的长度。即为预处理动态规划数组与遍历字符串计算方案数的时间复杂度。\n\n- 空间复杂度：$O(n)$，即为动态规划数组的空间开销。",
+            "slateValue": "",
+            "slug": "tong-ji-da-zi-fang-an-shu-by-leetcode-so-714a",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "qlJ9kf",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 15,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-06-06T10:44:36.093810+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 思路与算法 我们可以将字符串分解为多个部分，每个部分由相同的字符组成，且相邻两个部分的字符不一样。那么，根据乘法原理，构成文字信息的总方案数等于这些部分各自对应方案数的乘积。 而对于某个特定字符组成的子串，其方案数仅与子串的长度和字符对应的字母种类数有关。我们用 [latex] 表示连续 [latex",
+            "topic": {
+                "id": 1538660,
+                "subscribed": false,
+                "commentCount": 55,
+                "viewCount": 1552,
+                "post": {
+                    "id": 3137028,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 47,
+            "isEditorsPick": false,
+            "hitCount": 18059,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "count-number-of-texts",
+                "questionFrontendId": "2266"
+            },
+            "next": {
+                "slug": "by-endlesscheng-gj8f",
+                "title": "分组 + 爬楼梯（Python/Go/C++/Java）"
+            },
+            "prev": null
+        }
+    }
+}

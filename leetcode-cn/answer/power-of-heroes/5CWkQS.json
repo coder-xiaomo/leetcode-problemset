@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "5CWkQS",
+            "title": "英雄的力量",
+            "content": "#### 方法一：动态规划 + 前缀和\n\n**思路与算法**\n\n题目给出一个长度为 $n$ 的数组 $\\textit{nums}$，我们需要求出所有可能的非空子序列的「英雄组的力量」之和。因为我们的目标是全部子序列的「英雄组的力量」之和，并且「英雄组的力量」与给定的自序列中的最小值和最大值有关，所以我们不妨将给定的数组 $\\textit{nums}$ 进行排序。\n\n现在我们考虑如何计算以某一个 $\\textit{nums}[i]$，$0 < i < n$（排序后，下同）结尾的全部子序列的「英雄组的力量」之和。由于以 $\\textit{nums}[i]$ 结尾的子序列的最大值一定是 $\\textit{nums}[i]$，所以我们只用考虑全部子序列中的最小值之和。我们用 $\\textit{dp}[j]$ 表示以 $\\textit{nums}[j]$ 结尾的子序列的最小值之和，由于以 $\\textit{nums}[i]$ 结尾的子序列可以由以 $\\textit{nums}[0], \\dots, \\textit{nums}[i - 1]$ 结尾的子序列最后加上 $\\textit{nums}[i]$，以及单独一个 $\\textit{nums}[i]$ 得到，有\n\n$$\n\\textit{dp}[i] = \\textit{nums}[i] + \\sum_{j = 0}^{i - 1}\\textit{dp}[j] \\tag{1}\n$$\n\n那么以 $\\textit{nums}[i]$ 结尾的全部子序列的「英雄组的力量」之和为\n\n$$\n\\textit{nums}[i] \\times \\textit{nums}[i] \\times \\textit{dp}[i] \\tag{2}\n$$\n\n最后 $(\\sum_{i = 0}^{n - 1} \\textit{nums}[i] \\times \\textit{nums}[i] \\times \\textit{dp}[i]) \\bmod (10^9 + 7)$ 即为答案。\n\n以上在 $(1)$ 中计算 $\\textit{dp}[i]$ 需要 $O(n)$ 的时间复杂度，总的复杂度会达到 $O(n^2)$，将会超时，我们可以考虑用「前缀和」进行优化：我们用 $\\textit{pre\\_sum}[i + 1]$ 来表示 $\\sum_{j = 0}^{i}\\textit{dp}[j]$，特殊地记 $\\textit{pre\\_sum}[0] = 0$，有\n\n$$\n\\textit{pre\\_sum}[i + 1] = \\textit{pre\\_sum}[i] + \\textit{dp}[i] \\tag{3}\n$$\n\n进一步 $(1)$ 可以优化为\n\n$$\n\\textit{dp}[i] = \\textit{nums}[i] + \\textit{pre\\_sum}[i] \\tag{4}\n$$\n\n由 $(3)$ 和 $(4)$ 我们就可以在 $O(1)$ 的时间完成对 $\\textit{pre\\_sum}[i + 1]$ 和 $\\textit{dp}[i]$ 的计算。又因为 $\\textit{dp}[i]$ 和 $\\textit{pre\\_sum}[i]$ 的计算只与前一个状态有关，所以在代码实现的过程中，我们可以用「滚动数组」的方式来进行空间优化。\n\n**代码**\n\n未空间优化版\n\n```Python [sol11-Python3]\nclass Solution:\n    def sumOfPower(self, nums: List[int]) -> int:\n        nums.sort()\n        dp = [0 for i in range(len(nums))]\n        pre_sum = [0 for i in range(len(nums) + 1)]\n        res, mod = 0, 10 ** 9 + 7\n        for i in range(len(nums)):\n            dp[i] = (nums[i] + pre_sum[i]) % mod\n            pre_sum[i + 1] = (pre_sum[i] + dp[i]) % mod\n            res = (res + nums[i] * nums[i] * dp[i]) % mod\n        return res\n```\n\n```Java [sol11-Java]\nclass Solution {\n    public int sumOfPower(int[] nums) {\n        Arrays.sort(nums);\n        int[] dp = new int[nums.length];\n        int[] preSum = new int[nums.length + 1];\n        int res = 0, mod = 1000000007;\n        for (int i = 0; i < nums.length; i++) {\n            dp[i] = (nums[i] + preSum[i]) % mod;\n            preSum[i + 1] = (preSum[i] + dp[i]) % mod;\n            res = (int) ((res + (long) nums[i] * nums[i] % mod * dp[i]) % mod);\n            if (res < 0) {\n                res += mod;\n            }\n        }\n        return res;\n    }\n}\n```\n\n```C# [sol11-C#]\npublic class Solution {\n    public int SumOfPower(int[] nums) {\n        Array.Sort(nums);\n        int[] dp = new int[nums.Length];\n        int[] preSum = new int[nums.Length + 1];\n        int res = 0, mod = 1000000007;\n        for (int i = 0; i < nums.Length; i++) {\n            dp[i] = (nums[i] + preSum[i]) % mod;\n            preSum[i + 1] = (preSum[i] + dp[i]) % mod;\n            res = (int) ((res + (long) nums[i] * nums[i] % mod * dp[i]) % mod);\n            if (res < 0) {\n                res += mod;\n            }\n        }\n        return res;\n    }\n}\n```\n\n```C++ [sol11-C++]\nclass Solution {\npublic:\n    int sumOfPower(vector<int>& nums) {\n        int n = nums.size();\n        sort(nums.begin(), nums.end());\n        vector<int> dp(n);\n        vector<int> preSum(n + 1);\n        int res = 0, mod = 1e9 + 7;\n        for (int i = 0; i < n; i++) {\n            dp[i] = (nums[i] + preSum[i]) % mod;\n            preSum[i + 1] = (preSum[i] + dp[i]) % mod;\n            res = (int) ((res + (long long) nums[i] * nums[i] % mod * dp[i]) % mod);\n            if (res < 0) {\n                res += mod;\n            }\n        }\n        return res;\n    }\n};\n```\n\n```C [sol11-C]\nstatic int cmp(const void *a, const void *b) {\n    return *(int *)a - *(int *)b;\n}\n\nint sumOfPower(int* nums, int numsSize) {\n    qsort(nums, numsSize, sizeof(int), cmp);\n    int dp[numsSize], preSum[numsSize + 1];\n    memset(preSum, 0, sizeof(preSum));\n    int res = 0, mod = 1e9 + 7;\n    for (int i = 0; i < numsSize; i++) {\n        dp[i] = (nums[i] + preSum[i]) % mod;\n        preSum[i + 1] = (preSum[i] + dp[i]) % mod;\n        res = (int) ((res + (long long) nums[i] * nums[i] % mod * dp[i]) % mod);\n        if (res < 0) {\n            res += mod;\n        }\n    }\n    return res;\n}\n```\n\n```Go [sol11-Go]\nfunc sumOfPower(nums []int) int {\n    n := len(nums)\n    sort.Ints(nums)\n    dp := make([]int, n)\n    preSum := make([]int, n + 1)\n    res := 0\n    mod := int(1e9 + 7)\n    for i := 0; i < n; i++ {\n        dp[i] = (nums[i] + preSum[i]) % mod\n        preSum[i+1] = (preSum[i] + dp[i]) % mod\n        res = (res + (nums[i] * nums[i] % mod * dp[i]) % mod) % mod\n    }\n    return res\n}\n```\n\n```JavaScript [sol11-JavaScript]\nvar sumOfPower = function(nums) {\n    let n = nums.length, res = 0;\n    nums.sort((a, b) => a - b);\n    const mod = Math.pow(10, 9) + 7;\n    let dp = new Array(n).fill(0);\n    let preSum = new Array(n + 1).fill(0);\n    for (let i = 0; i < n; i++) {\n        dp[i] = (nums[i] + preSum[i]) % mod;\n        preSum[i + 1] = (preSum[i] + dp[i]) % mod;\n        res = (res + Number(BigInt(nums[i]) * BigInt(nums[i]) * BigInt(dp[i]) % BigInt(mod))) % mod;\n    }\n    return res;\n};\n```\n\n「滚动数组」空间优化版\n\n```Python [sol12-Python3]\nclass Solution:\n    def sumOfPower(self, nums: List[int]) -> int:\n        nums.sort()\n        dp, pre_sum = 0, 0\n        res, mod = 0, 10 ** 9 + 7\n        for i in range(len(nums)):\n            dp = (nums[i] + pre_sum) % mod\n            pre_sum = (pre_sum + dp) % mod\n            res = (res + nums[i] * nums[i] * dp) % mod\n        return res\n```\n\n```Java [sol12-Java]\nclass Solution {\n    public int sumOfPower(int[] nums) {\n        Arrays.sort(nums);\n        int dp = 0, preSum = 0;\n        int res = 0, mod = 1000000007;\n        for (int i = 0; i < nums.length; i++) {\n            dp = (nums[i] + preSum) % mod;\n            preSum = (preSum + dp) % mod;\n            res = (int) ((res + (long) nums[i] * nums[i] % mod * dp) % mod);\n            if (res < 0) {\n                res += mod;\n            }\n        }\n        return res;\n    }\n}\n```\n\n```C# [sol12-C#]\npublic class Solution {\n    public int SumOfPower(int[] nums) {\n        Array.Sort(nums);\n        int dp = 0, preSum = 0;\n        int res = 0, mod = 1000000007;\n        for (int i = 0; i < nums.Length; i++) {\n            dp = (nums[i] + preSum) % mod;\n            preSum = (preSum + dp) % mod;\n            res = (int) ((res + (long) nums[i] * nums[i] % mod * dp) % mod);\n            if (res < 0) {\n                res += mod;\n            }\n        }\n        return res;\n    }\n}\n```\n\n```C++ [sol12-C++]\nclass Solution {\npublic:\n    int sumOfPower(vector<int>& nums) {\n        int n = nums.size();\n        sort(nums.begin(), nums.end());\n        int dp = 0, preSum = 0; \n        int res = 0, mod = 1e9 + 7;\n        for (int i = 0; i < n; i++) {\n            dp = (nums[i] + preSum) % mod;\n            preSum = (preSum + dp) % mod;\n            res = (int) ((res + (long long) nums[i] * nums[i] % mod * dp) % mod);\n            if (res < 0) {\n                res += mod;\n            }\n        }\n        return res;\n    }\n};\n```\n\n```C [sol12-C]\nstatic int cmp(const void *a, const void *b) {\n    return *(int *)a - *(int *)b;\n}\n\nint sumOfPower(int* nums, int numsSize) {\n    qsort(nums, numsSize, sizeof(int), cmp);\n    int dp = 0, preSum = 0;\n    int res = 0, mod = 1e9 + 7;\n    for (int i = 0; i < numsSize; i++) {\n        dp = (nums[i] + preSum) % mod;\n        preSum = (preSum + dp) % mod;\n        res = (int) ((res + (long long) nums[i] * nums[i] % mod * dp) % mod);\n        if (res < 0) {\n            res += mod;\n        }\n    }\n    return res;\n}\n```\n\n```Go [sol12-Go]\nfunc sumOfPower(nums []int) int {\n    n := len(nums)\n    sort.Ints(nums)\n    dp := 0\n    preSum := 0\n    res := 0\n    mod := int(1e9 + 7)\n    for i := 0; i < n; i++ {\n        dp = (nums[i] + preSum) % mod\n        preSum = (preSum + dp) % mod\n        res = (res + (nums[i] * nums[i] % mod * dp) % mod) % mod\n    }\n    return res\n}\n```\n\n```JavaScript [sol12-JavaScript]\nvar sumOfPower = function(nums) {\n    let n = nums.length;\n    nums.sort((a, b) => a - b);\n    let dp = 0, preSum = 0;\n    let res = 0, mod = 1e9 + 7;\n    for (let i = 0; i < n; i++) {\n        dp = (nums[i] + preSum) % mod;\n        preSum = (preSum + dp) % mod;\n        res = (res + Number(BigInt(nums[i]) * BigInt(nums[i]) * BigInt(dp) % BigInt(mod))) % mod;\n    }\n    return res;\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log n)$，其中 $n$ 为数组 $\\textit{nums}$ 的长度。排序需要 $O(n \\log n)$ 的时间，动态规划需要 $O(n)$ 的时间。\n- 空间复杂度：$O(\\log n)$，其中 $n$ 为数组 $\\textit{nums}$ 的长度。排序需要 $O(\\log n)$ 的递归调用栈空间，动态规划通过「滚动数组」优化后仅使用常量空间。",
+            "slateValue": "",
+            "slug": "ying-xiong-de-li-liang-by-leetcode-solut-9k1g",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "5CWkQS",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 31,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Prefix Sum",
+                    "nameTranslated": "前缀和",
+                    "slug": "prefix-sum",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-07-26T06:35:48.103297+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 + 前缀和思路与算法题目给出一个长度为 nnn 的数组 nums\\textit{nums}nums，我们需要求出所有可能的非空子序列的「英雄组的力量」之和。因为我们的目标是全部子序列的「英雄组的力量」之和，并且「英雄组的力量」与给定的自序列中的最小值和最大值有关，所以我们不妨将给定的数组 nums\\t",
+            "topic": {
+                "id": 2359660,
+                "subscribed": false,
+                "commentCount": 38,
+                "viewCount": 1025,
+                "post": {
+                    "id": 4435325,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 39,
+            "isEditorsPick": false,
+            "hitCount": 7225,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "power-of-heroes",
+                "questionFrontendId": "2681"
+            },
+            "next": {
+                "slug": "gong-xian-fa-pythonjavacgo-by-endlessche-d4jx",
+                "title": "贡献法（Python/Java/C++/Go/JS）"
+            },
+            "prev": null
+        }
+    }
+}

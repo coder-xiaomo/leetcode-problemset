@@ -1,0 +1,144 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "gsoDGM",
+            "title": "矩阵中和能被 K 整除的路径",
+            "content": "#### 方法一：动态规划\n\n**思路与算法**\n\n可以看出这是一道典型的计数问题，此类问题一般考虑用动态规划算法求解。\n\n考虑 $k$ 的规模为 $1 \\le k \\le 50$，设状态 $\\textit{dp}(i,\\, j,\\, \\textit{r})$ 代表在矩阵的 $(i,\\, j)$ 处，当前路径和对 $k$ 求余后为 $r$ 的方案数。那么，初始状态为：\n\n$$\n\\begin{aligned}\n\n\\textit{dp}(i,\\, j,\\, \\textit{r}) =\n    \\begin{cases}\n    1, & (i,\\, j,\\, r) = (0,\\, 0,\\, \\textit{grid}_{0,0} \\bmod k)\\\\\n    0, & (i,\\, j,\\, r) \\ne (0,\\, 0,\\, \\textit{grid}_{0,0} \\bmod k)\n    \\end{cases}\n\n\\end{aligned}\n$$\n\n然后考虑状态转移。$dp(i,\\, j,\\, r)$ 可以从上方和左侧的状态转移而来，即：\n\n$$\n\\begin{aligned}\n\n\\textit{dp}(i,\\, j,\\, r) =\n\n    \\begin{cases}\n    \\textit{dp}(i - 1,\\, j,\\, \\textit{prevMod}), & i \\gt 0, & j = 0\\\\\n    \\textit{dp}(i,\\, j - 1,\\, \\textit{prevMod}), & i = 0, & j \\gt 0\\\\\n    \\textit{dp}(i - 1,\\, j,\\, \\textit{prevMod}) + dp(i,\\, j - 1,\\, \\textit{prevMod}), & i \\gt 0, & j \\gt 0\n    \\end{cases}\n\n\\end{aligned}\n$$\n\n其中的关键是 $\\textit{prevMod}$，即前一个状态的余数分量为多少。考虑 $\\textit{prevMod}$ 与 $r$ 的关系，有：\n\n$$\n\\begin{aligned}\n\\textit{prevMod} + \\textit{grid}_{i,j} \\equiv r \\pmod k\n\\end{aligned}\n$$\n\n即：\n\n$$\n\\begin{aligned}\n\\textit{prevMod} \\equiv r - \\textit{grid}_{i,j} \\pmod k\n\\end{aligned}\n$$\n\n根据同余运算的规则将其展开，最后得到：\n\n$$\n\\begin{aligned}\n\\textit{prevMod} = (r - \\textit{grid}_{i,j} + k) \\bmod k\n\\end{aligned}\n$$\n\n按上述转移方程计算 $\\textit{dp}$ 状态数组，并按题目要求对 $10^9 + 7$ 取模即可。完成 $\\textit{dp}$ 状态的计算后，$\\textit{dp}(n,\\, m,\\, 0)$ 即为所求。\n\n**代码**\n\n```C++ [sol1-C++]\ntypedef long long ll;\nconst int MOD = 1e9 + 7;\n\nclass Solution {\npublic:\n    int numberOfPaths(vector<vector<int>>& grid, int k) {\n        int m = grid.size();\n        int n = grid[0].size();\n\n        auto dp = vector(m + 1, vector(n + 1, vector<ll>(k)));\n\n        for (int i = 1; i <= m; i++) {\n            for (int j = 1; j <= n; j++) {\n                if (i == 1 && j == 1) {\n                    dp[i][j][grid[0][0] % k] = 1;\n                    continue;\n                }\n\n                int value = grid[i - 1][j - 1] % k;\n                for (int r = 0; r < k; r++) {\n                    int prevMod = (r - value + k) % k;\n                    dp[i][j][r] =\n                        (dp[i - 1][j][prevMod] + dp[i][j - 1][prevMod]) % MOD;\n                }\n            }\n        }\n\n        return dp[m][n][0];\n    }\n};\n```\n\n```JavaScript [sol1-JavaScript]\nconst MOD = 1e9 + 7;\n\nvar numberOfPaths = function (grid, k) {\n    const m = grid.length;\n    const n = grid[0].length;\n\n    const dp = [];\n\n    for (let i = 0; i <= m; i++) {\n        dp[i] = [];\n        for (let j = 0; j <= n; j++) {\n            dp[i][j] = new Array(k).fill(0);\n\n            if (i === 1 && j === 1) {\n                dp[i][j][grid[0][0] % k] = 1;\n                continue;\n            }\n\n            if (i >= 1 && j >= 1) {\n                const value = grid[i - 1][j - 1] % k;\n\n                for (let r = 0; r < k; r++) {\n                    const prevMod = (r - value + k) % k;\n\n                    dp[i][j][r] = dp[i - 1][j][prevMod] + dp[i][j - 1][prevMod];\n                    dp[i][j][r] %= MOD;\n                }\n            }\n        }\n    }\n\n    return dp[m][n][0];\n}\n```\n\n```TypeScript [sol1-TypeScript]\nconst MOD = 1e9 + 7;\n\nfunction numberOfPaths(grid: number[][], k: number): number {\n    const m = grid.length;\n    const n = grid[0].length;\n\n    const dp: number[][][] = [];\n\n    for (let i = 0; i <= m; i++) {\n        dp[i] = [];\n        for (let j = 0; j <= n; j++) {\n            dp[i][j] = new Array(k).fill(0);\n\n            if (i === 1 && j === 1) {\n                dp[i][j][grid[0][0] % k] = 1;\n                continue;\n            }\n\n            if (i >= 1 && j >= 1) {\n                const value = grid[i - 1][j - 1] % k;\n\n                for (let r = 0; r < k; r++) {\n                    const prevMod = (r - value + k) % k;\n\n                    dp[i][j][r] = dp[i - 1][j][prevMod] + dp[i][j - 1][prevMod];\n                    dp[i][j][r] %= MOD;\n                }\n            }\n        }\n    }\n\n    return dp[m][n][0];\n}\n```\n\n```Java [sol1-Java]\nclass Solution {\n    private static final int MOD = 1000000007;\n\n    public int numberOfPaths(int[][] grid, int k) {\n        int m = grid.length;\n        int n = grid[0].length;\n\n        long[][][] dp = new long[m + 1][n + 1][k];\n\n        for (int i = 1; i <= m; i++) {\n            for (int j = 1; j <= n; j++) {\n                if (i == 1 && j == 1) {\n                    dp[i][j][grid[0][0] % k] = 1;\n                    continue;\n                }\n\n                int value = grid[i - 1][j - 1] % k;\n                for (int r = 0; r < k; r++) {\n                    int prevMod = (r - value + k) % k;\n                    dp[i][j][r] = (dp[i - 1][j][prevMod] + dp[i][j - 1][prevMod]) % MOD;\n                }\n            }\n        }\n\n        return (int) dp[m][n][0];\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    private const int MOD = 1000000007;\n\n    public int NumberOfPaths(int[][] grid, int k) {\n        int m = grid.Length;\n        int n = grid[0].Length;\n\n        long[][][] dp = new long[m + 1][][];\n        for (int i = 0; i <= m; i++) {\n            dp[i] = new long[n + 1][];\n            for (int j = 0; j <= n; j++) {\n                dp[i][j] = new long[k];\n            }\n        }\n\n        for (int i = 1; i <= m; i++) {\n            for (int j = 1; j <= n; j++) {\n                if (i == 1 && j == 1) {\n                    dp[i][j][grid[0][0] % k] = 1;\n                    continue;\n                }\n\n                int value = grid[i - 1][j - 1] % k;\n                for (int r = 0; r < k; r++) {\n                    int prevMod = (r - value + k) % k;\n                    dp[i][j][r] = (dp[i - 1][j][prevMod] + dp[i][j - 1][prevMod]) % MOD;\n                }\n            }\n        }\n\n        return (int) dp[m][n][0];\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc numberOfPaths(grid [][]int, k int) int {\n    const MOD = 1000000007\n    m, n := len(grid), len(grid[0])\n    \n    dp := make([][][]int64, m + 1)\n    for i := range dp {\n        dp[i] = make([][]int64, n + 1)\n        for j := range dp[i] {\n            dp[i][j] = make([]int64, k)\n        }\n    }\n    \n    for i := 1; i <= m; i++ {\n        for j := 1; j <= n; j++ {\n            if i == 1 && j == 1 {\n                dp[i][j][grid[0][0] % k] = 1\n                continue\n            }\n            \n            value := grid[i - 1][j - 1] % k\n            for r := 0; r < k; r++ {\n                prevMod := (r - value + k) % k\n                dp[i][j][r] = (dp[i - 1][j][prevMod] + dp[i][j - 1][prevMod]) % MOD\n            }\n        }\n    }\n    \n    return int(dp[m][n][0])\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def numberOfPaths(self, grid: List[List[int]], k: int) -> int:\n        MOD = 10**9 + 7\n        m, n = len(grid), len(grid[0])\n        \n        dp = [[[0] * k for _ in range(n + 1)] for _ in range(m + 1)]\n        \n        for i in range(1, m + 1):\n            for j in range(1, n + 1):\n                if i == 1 and j == 1:\n                    dp[i][j][grid[0][0] % k] = 1\n                    continue\n                \n                value = grid[i-1][j-1] % k\n                for r in range(k):\n                    prev_mod = (r - value + k) % k\n                    dp[i][j][r] = (dp[i-1][j][prev_mod] + dp[i][j-1][prev_mod]) % MOD\n        \n        return dp[m][n][0]\n```\n\n```C [sol1-C]\n#define MOD 1000000007\n\nint numberOfPaths(int** grid, int gridSize, int* gridColSize, int k) {\n    int m = gridSize;\n    int n = gridColSize[0];\n    \n    long long ***dp = (long long ***)malloc((m + 1) * sizeof(long long **));\n    for (int i = 0; i <= m; i++) {\n        dp[i] = (long long **)malloc((n + 1) * sizeof(long long *));\n        for (int j = 0; j <= n; j++) {\n            dp[i][j] = (long long *)calloc(k, sizeof(long long));\n        }\n    }\n    \n    for (int i = 1; i <= m; i++) {\n        for (int j = 1; j <= n; j++) {\n            if (i == 1 && j == 1) {\n                dp[i][j][grid[0][0] % k] = 1;\n                continue;\n            }\n            \n            int value = grid[i - 1][j - 1] % k;\n            for (int r = 0; r < k; r++) {\n                int prevMod = (r - value + k) % k;\n                dp[i][j][r] = (dp[i - 1][j][prevMod] + dp[i][j - 1][prevMod]) % MOD;\n            }\n        }\n    }\n    \n    int result = dp[m][n][0];\n    for (int i = 0; i <= m; i++) {\n        for (int j = 0; j <= n; j++) {\n            free(dp[i][j]);\n        }\n        free(dp[i]);\n    }\n    free(dp);\n    \n    return result;\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn number_of_paths(grid: Vec<Vec<i32>>, k: i32) -> i32 {\n        const MOD: i64 = 1_000_000_007;\n        let m = grid.len();\n        let n = grid[0].len();\n        let k = k as usize;\n        \n        let mut dp = vec![vec![vec![0i64; k]; n + 1]; m + 1];\n        \n        for i in 1..=m {\n            for j in 1..=n {\n                if i == 1 && j == 1 {\n                    dp[i][j][(grid[0][0] % k as i32) as usize] = 1;\n                    continue;\n                }\n                \n                let value = (grid[i-1][j-1] % k as i32) as usize;\n                for r in 0..k {\n                    let prev_mod = (r as i32 - value as i32 + k as i32) as usize % k;\n                    dp[i][j][r] = (dp[i-1][j][prev_mod] + dp[i][j-1][prev_mod]) % MOD;\n                }\n            }\n        }\n        \n        dp[m][n][0] as i32\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(m \\times n \\times k)$。\n\n- 空间复杂度：$O(m \\times n \\times k)$。",
+            "slateValue": "",
+            "slug": "ju-zhen-zhong-he-neng-bei-k-zheng-chu-de-67ra",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "gsoDGM",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 9,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Matrix",
+                    "nameTranslated": "矩阵",
+                    "slug": "matrix",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2025-11-18T12:23:36.321884+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 思路与算法 可以看出这是一道典型的计数问题，此类问题一般考虑用动态规划算法求解。 考虑 [latex] 的规模为 [latex]，设状态 [latex] 代表在矩阵的 [latex] 处，当前路径和对 [latex] 求余后为 [latex] 的方案数。那么，初始状态为： [latex] 然后考虑状态",
+            "topic": {
+                "id": 3835592,
+                "subscribed": false,
+                "commentCount": 10,
+                "viewCount": 36,
+                "post": {
+                    "id": 7001391,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 13,
+            "isEditorsPick": false,
+            "hitCount": 5826,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "paths-in-matrix-whose-sum-is-divisible-by-k",
+                "questionFrontendId": "2435"
+            },
+            "next": {
+                "slug": "dong-tai-gui-hua-pythonjavacgo-by-endles-94wq",
+                "title": "动态规划：从记忆化搜索到递推（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

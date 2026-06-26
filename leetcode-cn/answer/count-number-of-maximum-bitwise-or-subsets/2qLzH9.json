@@ -1,0 +1,140 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "2qLzH9",
+            "title": "统计按位或能得到最大值的子集数目",
+            "content": "#### 方法一：位运算\n\n**思路**\n\n记 $n$ 是数组 $\\textit{nums}$ 的长度，数组中的每个元素都可以选取或者不选取，因此数组的非空子集数目一共有 $(2^n-1)$ 个。可以用一个长度为 $n$ 比特的整数来表示不同的子集，在整数的二进制表示中，$n$ 个比特的值代表了对数组不同元素的取舍。第 $i$ 位值为 $1$ 则表示该子集选取对应元素，第 $i$ 位值为 $0$ 则表示该子集不选取对应元素。求出每个子集的按位或的值，并计算取到最大值时的子集个数。\n\n**代码**\n\n```Python [sol1-Python3]\nclass Solution:\n    def countMaxOrSubsets(self, nums: List[int]) -> int:\n        maxOr, cnt = 0, 0\n        for i in range(1, 1 << len(nums)):\n            orVal = reduce(or_, (num for j, num in enumerate(nums) if (i >> j) & 1), 0)\n            if orVal > maxOr:\n                maxOr, cnt = orVal, 1\n            elif orVal == maxOr:\n                cnt += 1\n        return cnt\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int countMaxOrSubsets(int[] nums) {\n        int maxOr = 0, cnt = 0;\n        for (int i = 0; i < 1 << nums.length; i++) {\n            int orVal = 0;\n            for (int j = 0; j < nums.length; j++) {\n                if (((i >> j) & 1) == 1) {\n                    orVal |= nums[j];\n                }\n            }\n            if (orVal > maxOr) {\n                maxOr = orVal;\n                cnt = 1;\n            } else if (orVal == maxOr) {\n                cnt++;\n            }\n        }\n        return cnt;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int CountMaxOrSubsets(int[] nums) {\n        int maxOr = 0, cnt = 0;\n        for (int i = 0; i < 1 << nums.Length; i++) {\n            int orVal = 0;\n            for (int j = 0; j < nums.Length; j++) {\n                if (((i >> j) & 1) == 1) {\n                    orVal |= nums[j];\n                }\n            }\n            if (orVal > maxOr) {\n                maxOr = orVal;\n                cnt = 1;\n            } else if (orVal == maxOr) {\n                cnt++;\n            }\n        }\n        return cnt;\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int countMaxOrSubsets(vector<int>& nums) {\n        int n = nums.size(), maxValue = 0, cnt = 0, stateNumber = 1 << n;\n        for (int i = 0; i < stateNumber; i++) {\n            int cur = 0;\n            for (int j = 0; j < n; j++) {\n                if (((i >> j) & 1) == 1) {\n                    cur |= nums[j];\n                }\n            }\n            if (cur == maxValue) {\n                cnt++;\n            } else if (cur > maxValue) {\n                maxValue = cur;\n                cnt = 1;\n            }\n        }\n        return cnt;\n    }\n};\n```\n\n```C [sol1-C]\nint countMaxOrSubsets(int* nums, int numsSize){\n    int n = numsSize, maxValue = 0, cnt = 0, stateNumber = 1 << n;\n    for (int i = 0; i < stateNumber; i++) {\n        int cur = 0;\n        for (int j = 0; j < n; j++) {\n            if (((i >> j) & 1) == 1) {\n                cur |= nums[j];\n            }\n        }\n        if (cur == maxValue) {\n            cnt++;\n        } else if (cur > maxValue) {\n            maxValue = cur;\n            cnt = 1;\n        }\n    }\n    return cnt;\n}\n```\n\n```go [sol1-Golang]\nfunc countMaxOrSubsets(nums []int) (ans int) {\n    maxOr := 0\n    for i := 1; i < 1<<len(nums); i++ {\n        or := 0\n        for j, num := range nums {\n            if i>>j&1 == 1 {\n                or |= num\n            }\n        }\n        if or > maxOr {\n            maxOr = or\n            ans = 1\n        } else if or == maxOr {\n            ans++\n        }\n    }\n    return\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar countMaxOrSubsets = function(nums) {\n    let maxOr = 0, cnt = 0;\n    for (let i = 0; i < 1 << nums.length; i++) {\n        let orVal = 0;\n        for (let j = 0; j < nums.length; j++) {\n            if (((i >> j) & 1) === 1) {\n                orVal |= nums[j];\n            }\n        }\n        if (orVal > maxOr) {\n            maxOr = orVal;\n            cnt = 1;\n        } else if (orVal === maxOr) {\n            cnt++;\n        }\n    }\n    return cnt;\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(2^n \\times n)$，其中 $n$ 是数组 $\\textit{nums}$ 的长度。需要遍历 $O(2^n)$ 个状态，遍历每个状态时需要遍历 $O(n)$ 位。\n\n- 空间复杂度：$O(1)$。仅使用常量空间。\n\n#### 方法二：回溯\n\n**思路**\n\n记 $n$ 是数组 $\\textit{nums}$ 的长度。方法一的缺点是，计算不同状态的按位或的值，都需要消耗 $O(n)$ 的时间。这一步部分可以进行优化。每个长度为 $n$ 比特的状态的按位或的值，都是可以在长度为 $n - 1$ 比特的状态的按位或的值上计算出来的，而这个计算只需要消耗常数时间。以此类推，边界情况是长度为 $0$ 比特的状态的按位或的值。我们定义一个搜索函数，参数 $\\textit{pos}$ 表示当前下标，$\\textit{orVal}$ 表示当前下标之前的某个子集按位或值，这样就可以保存子集按位或的值的信息，并根据当前元素选择与否更新 $\\textit{orVal}$。当搜索到最后位置时，更新最大值和子集个数。\n\n**代码**\n\n```Python [sol2-Python3]\nclass Solution:\n    def countMaxOrSubsets(self, nums: List[int]) -> int:\n        maxOr, cnt = 0, 0\n        def dfs(pos: int, orVal: int) -> None:\n            if pos == len(nums):\n                nonlocal maxOr, cnt\n                if orVal > maxOr:\n                    maxOr, cnt = orVal, 1\n                elif orVal == maxOr:\n                    cnt += 1\n                return\n            dfs(pos + 1, orVal | nums[pos])\n            dfs(pos + 1, orVal)\n        dfs(0, 0)\n        return cnt\n```\n\n```Java [sol2-Java]\nclass Solution {\n    int[] nums;\n    int maxOr, cnt;\n\n    public int countMaxOrSubsets(int[] nums) {\n        this.nums = nums;\n        this.maxOr = 0;\n        this.cnt = 0;\n        dfs(0, 0);\n        return cnt;\n    }\n\n    public void dfs(int pos, int orVal) {\n        if (pos == nums.length) {\n            if (orVal > maxOr) {\n                maxOr = orVal;\n                cnt = 1;\n            } else if (orVal == maxOr) {\n                cnt++;\n            }\n            return;\n        }\n        dfs(pos + 1, orVal | nums[pos]);\n        dfs(pos + 1, orVal);\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    int[] nums;\n    int maxOr, cnt;\n\n    public int CountMaxOrSubsets(int[] nums) {\n        this.nums = nums;\n        this.maxOr = 0;\n        this.cnt = 0;\n        DFS(0, 0);\n        return cnt;\n    }\n\n    public void DFS(int pos, int orVal) {\n        if (pos == nums.Length) {\n            if (orVal > maxOr) {\n                maxOr = orVal;\n                cnt = 1;\n            } else if (orVal == maxOr) {\n                cnt++;\n            }\n            return;\n        }\n        DFS(pos + 1, orVal | nums[pos]);\n        DFS(pos + 1, orVal);\n    }\n}\n```\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    int countMaxOrSubsets(vector<int>& nums) {\n        this->nums = nums;\n        this->maxOr = 0;\n        this->cnt = 0;\n        dfs(0, 0);\n        return cnt;\n    }\n\n    void dfs(int pos, int orVal) {\n        if (pos == nums.size()) {\n            if (orVal > maxOr) {\n                maxOr = orVal;\n                cnt = 1;\n            } else if (orVal == maxOr) {\n                cnt++;\n            }\n            return;\n        }\n        dfs(pos + 1, orVal| nums[pos]);\n        dfs(pos + 1, orVal);\n    }\n\nprivate:\n    vector<int> nums;\n    int maxOr, cnt;\n};\n```\n\n```C [sol2-C]\nvoid dfs(int pos, int orVal, const int* nums, int numsSize, int* maxOr, int* cnt) {\n    if (pos == numsSize) {\n        if (orVal > *maxOr) {\n            *maxOr = orVal;\n            *cnt = 1;\n        } else if (orVal == *maxOr) {\n            (*cnt)++;\n        }\n        return;\n    }\n    dfs(pos + 1, orVal | nums[pos], nums, numsSize, maxOr, cnt);\n    dfs(pos + 1, orVal, nums, numsSize, maxOr, cnt);\n}\n\nint countMaxOrSubsets(int* nums, int numsSize) {\n    int cnt = 0;\n    int maxOr = 0;\n    dfs(0, 0, nums, numsSize, &maxOr, &cnt);\n    return cnt;\n}\n```\n\n```go [sol2-Golang]\nfunc countMaxOrSubsets(nums []int) (ans int) {\n    maxOr := 0\n    var dfs func(int, int)\n    dfs = func(pos, or int) {\n        if pos == len(nums) {\n            if or > maxOr {\n                maxOr = or\n                ans = 1\n            } else if or == maxOr {\n                ans++\n            }\n            return\n        }\n        dfs(pos+1, or|nums[pos])\n        dfs(pos+1, or)\n    }\n    dfs(0, 0)\n    return\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar countMaxOrSubsets = function(nums) {\n    this.nums = nums;\n    this.maxOr = 0;\n    this.cnt = 0;\n    dfs(0, 0);\n    return cnt;\n};\n\nconst dfs = (pos, orVal) => {\n    if (pos === nums.length) {\n        if (orVal > maxOr) {\n            maxOr = orVal;\n            cnt = 1;\n        } else if (orVal === maxOr) {\n            cnt++;\n        }\n        return;\n    }\n    dfs(pos + 1, orVal | nums[pos]);\n    dfs(pos + 1, orVal);\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(2^n)$，其中 $n$ 是数组 $\\textit{nums}$ 的长度。状态数一共有 $O(2^0 + 2^1 + ... + 2^n) = O(2\\times2^n) = O(2^n)$ 种，每次计算只消耗常数时间。\n\n- 空间复杂度：$O(n)$，其中 $n$ 是数组 $\\textit{nums}$ 的长度。搜索深度最多为 $n$。",
+            "slateValue": "",
+            "slug": "tong-ji-an-wei-huo-neng-de-dao-zui-da-zh-r6zd",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "2qLzH9",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 47,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 0,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Bit Manipulation",
+                    "nameTranslated": "位运算",
+                    "slug": "bit-manipulation",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Backtracking",
+                    "nameTranslated": "回溯",
+                    "slug": "backtracking",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-03-14T01:57:52.806639+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：位运算 思路 记 $n$ 是数组 $\\textit{nums}$ 的长度，数组中的每个元素都可以选取或者不选取，因此数组的非空子集数目一共有 $(2^n-1)$ 个。可以用一个长度为 $n$ 比特的整数来表示不同的子集，在整数的二进制表示中，$n$ 个比特的值代表了对数组不同元素的取舍。第 $i$ 位值为 $1",
+            "topic": {
+                "id": 1335667,
+                "subscribed": false,
+                "commentCount": 134,
+                "viewCount": 21075,
+                "post": {
+                    "id": 2773504,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 74,
+            "isEditorsPick": false,
+            "hitCount": 42635,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "count-number-of-maximum-bitwise-or-subsets",
+                "questionFrontendId": "2044"
+            },
+            "next": {
+                "slug": "o2n-zi-ji-huo-xie-fa-by-endlesscheng-bczp",
+                "title": "子集型回溯 + 剪枝（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

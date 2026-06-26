@@ -1,0 +1,79 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "LopF3r",
+            "title": "间隔取消",
+            "content": "[TOC]\n\n---\n# 解决方案\n\n## 概述\n\n你将获得一个函数 `fn`，一个参数数组 `args`，以及一个时间间隔 `t`。你需要实现一个函数 `cancelFn`，它会立即用 `args` 调用 `fn`，然后按照每 `t` 毫秒的时间间隔安排后续对 `fn` 的调用，直到调用 `cancelFn`。\n\n## 用例：\n\n- **编辑应用中的自动保存：** 在使用文本编辑器、文档处理器或其他内容创建工具时，经常需要有一个自动保存功能，以定期保存更改。你可以使用间隔取消来安排定期自动保存。如果用户明确保存文档或退出应用程序，你可以取消间隔以防止不必要的保存操作。\n\n- **动画和幻灯片播放定时：** 在开发过程中，你可能想要创建动画或幻灯片，以自动在不同状态或图像之间进行切换。你可以使用间隔取消来控制这些切换的时间。如果用户与动画或幻灯片进行交互，你可以取消间隔以暂停或停止自动切换。\n\n> **注意：** 对于更复杂或性能关键的动画，建议使用 `requestAnimationFrame` 方法，而不是 `setInterval`，因为它提供更好的性能和效率。\n\n- **基于时间的提醒：** 考虑一个任务管理应用程序，用户可以为特定任务设置提醒。你可以使用间隔取消来触发指定间隔的提醒。一旦用户确认了提醒或任务已完成，你可以取消间隔以停止后续的提醒。\n\n---\n\n在继续之前，我们需要学习两个概念，即 `setInterval` 和 `clearInterval`。\n\n1. **setInterval**\n\n`setInterval` 函数用于重复执行一个函数或代码片段，每次调用之间都有一个固定的时间延迟。它接受两个参数：要执行的函数或代码片段，以及以毫秒为单位指定的时间延迟。\n\n```javascript\nsetInterval(function, delay);\n```\n\n- `function` 参数表示在每个间隔中将执行的函数或代码片段。\n- `delay` 参数指定每次执行函数之间的时间延迟（以毫秒为单位）。\n\n当调用 `setInterval` 时，它会在初始延迟后安排执行指定的函数的第一次执行。随后的执行将根据指定的延迟重复发生。`setInterval` 返回一个间隔 ID，这是一个唯一的数字值。此 ID 可以在以后用于识别和控制间隔计划。需要注意的是 `setInterval` 不是完全精确的。\n\n`setInterval` 实际上是一个可变参数函数，可以接受无限数量的参数。例如，你可以传递多个参数给要执行的函数。\n\n你可以参考 [MDN 文档中的 `setInterval`](https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/setInterval) 以获取更多详细信息。\n\n1. **clearInterval**\n\n`clearInterval` 函数用于取消先前通过调用 `setInterval` 建立的定时重复操作。它接受由 `setInterval` 返回的间隔 ID 作为参数。\n\n```javascript\nclearInterval(intervalID);\n```\n\n- `intervalID` 参数代表 `setInterval` 创建的间隔的唯一 ID。通过使用适当的间隔 ID 调用 `clearInterval`，你可以有效地停止指定的函数重复执行。它取消了预定的间隔，并阻止了对指定函数的进一步调用。\n\n## 方法 1：使用 `setInterval` 和 `clearInterval`\n\n要设置一个间隔计时器，我们使用 `setInterval` 函数。在下面的代码片段中，`setInterval` 将每隔 `t` 毫秒调用 `() => fn(...args)`。值得注意的是，在设置间隔之前，`setInterval` 不会立即调用该函数，这就是为什么我们在设置间隔之前手动调用了 `fn(...args)`。\n\n接下来，我们定义了一个名为 `cancelFn` 的函数，当它被调用时，会清除间隔。我们从主函数返回 `cancelFn`。值得一提的是，`cancelFn` 在我们的可取消函数首次定义时不会被调用。然而，每当可取消函数被调用时，它都会返回 `cancelFn`。然后可以在以后的某个时候调用 `cancelFn` 以清除间隔。\n\n### 实现：\n\n```javascript []\n/**\n * @param {Function} fn\n * @param {Array} args\n * @param {number} t\n * @return {Function}\n */\nvar cancellable = function(fn, args, t) {\n    fn(...args);\n    const timer = setInterval(() => fn(...args), t);\n\n    const cancelFn = () => clearInterval(timer);\n    return cancelFn;\n};\n```\n```typescript []\nfunction cancellable(fn: Function, args: any[], t: number): Function {\n    fn(...args);\n    const timer = setInterval(() => fn(...args), t);\n\n    const cancelFn = () => clearInterval(timer);\n    return cancelFn;\n}\n```\n\n### 复杂度分析：\n\n- 时间复杂度：$O(1)$\n- 空间复杂度：$O(1)$\n\n## 方法 2：使用递归\n\n**思路：**\n\n我们可以设置一个定时间隔，其中函数将被重复执行。这将提供一种在需要时取消间隔执行的方式。简单来说，只要布尔标志未切换，每个函数都会不断调用自身（经过 t 毫秒，通过一个超时函数）。\n\n**算法：**\n\n当我们调用可取消函数时，首先使用给定的参数 `(args)` 执行提供的函数 `(fn)`，即 `fn(...args)`。这确保了在启动间隔之前至少会调用一次函数。\n\n接下来，我们定义了一个名为 `startInterval` 的内部函数。此函数通过使用 `setTimeout` 来等待指定的 `t`，然后再次执行函数（`fn`）。它重复这个过程，直到我们决定取消间隔，这将由我们在代码开始时声明的布尔变量 `isCancelled` 决定。\n\n为了创建这种重复执行，`startInterval` 使用了一个巧妙的技巧。它在 `setTimeout` 回调函数内部递归调用自身。这意味着在每次执行函数后，通过再次调用 `startInterval` 来安排下一次执行。这会创建一种循环的行为，其中函数被执行，然后再次调用 `startInterval` 以安排下一次执行。\n\n### 实现 1：\n\n```javascript []\n/**\n * @param {Function} fn\n * @param {Array} args\n * @param {number} t\n * @return {Function}\n */\nvar cancellable = function(fn, args, t) {\n    let isCancelled = false;\n    fn(...args);\n    const startInterval = () => {\n        setTimeout(() => {\n            fn(...args);\n            if (isCancelled) return;\n            startInterval();\n        }, t);\n    }\n    startInterval();\n    const cancelInterval = () => {\n        isCancelled = true;\n    }\n\n    return cancelInterval;\n};\n```\n```typescript []\nfunction cancellable(fn: Function, args: any[], t: number): Function {\n  let isCancelled: boolean = false;\n  fn(...args);\n  \n  const startInterval = (): void => {\n    setTimeout(() => {\n      fn(...args);\n      if (isCancelled) return;\n      startInterval();\n    }, t);\n  };\n  \n  startInterval();\n  \n  const cancelInterval: Function = (): void => {\n    isCancelled = true;\n  };\n\n  return cancelInterval;\n}\n```\n\n### 实现 2：\n\n实现 1 是可以的，但更高效的方法是使用 `clearTimeout` 来清除这些递归超时，这种方法可以确保不会不必要地调用回调：\n\n```javascript []\n/**\n * @param {Function} fn\n * @param {Array} args\n * @param {number} t\n * @return {Function}\n */\nvar cancellable = function(fn, args, t) {\n    let timerId = null;\n    fn(...args);\n\n    const startInterval = () => {\n        timerId = setTimeout(() => {\n            fn(...args);\n            startInterval();\n        }, t);\n    };\n    startInterval();\n\n    const cancelInterval = () => {\n        if (timerId !== null) {\n            clearTimeout(timerId);\n        }\n    };\n\n    return cancelInterval;\n};\n```\n```typescript []\nfunction cancellable(fn: Function, args: any[], t: number): Function {\n  let timerId = null;\n  fn(...args);\n\n  const startInterval = (): void => {\n    timerId = setTimeout(() => {\n      fn(...args);\n      startInterval();\n    }, t);\n  };\n  startInterval();\n\n  const cancelInterval: Function = (): void => {\n    if (timerId !== null) {\n      clearTimeout(timerId);\n    }\n  };\n\n  return cancelInterval;\n}\n```\n\n### 复杂度分析：\n\n在给定的实现中，执行涉及设置一个延迟为 `t` 毫秒的 `setTimeout` 函数。然而，重要的是要注意，函数调用的调度不会引入递归或影响 JavaScript 引擎内存使用方面的复杂性。\n\n让我们深入了解一下：\n\n1. JavaScript 引擎初始化并为 `cancellable` 函数创建上下文。\n2. `cancellable` 函数的语句，包括 `setTimeout` 调用，被执行。\n3. `setTimeout` 函数指示 JavaScript 引擎在 t 毫秒延迟后安排函数调用。\n4. `cancellable` 函数的上下文被销毁，JavaScript 引擎继续进行其他操作。\n5. 此时，从内存使用的角度来看，JavaScript 引擎回到初始状态，没有任何额外的内存分配或递归。唯一剩下的信息是对函数的引用和将来调用的计划时间。\n6. 在指定的延迟之后，JavaScript 引擎执行预定的函数，而不会对内存使用或递归产生影响。\n7. 一旦函数执行完成，与计划调用相关的任何剩余引用或数据都被清除。\n\n考虑到这些事件序列，我们可以得出结论，该代码的复杂性是常数 $O(1)$。内存利用不会随延迟的持续时间而增加，没有递归或内存堆积，因为 JavaScript 引擎独立处理函数的调度和执行。\n\n- 时间复杂度：$O(1)$\n- 空间复杂度：$O(1)$\n\n## 面试提示\n\n1. 在设置后是否可以动态更改间隔时间？\n\n   是的，可以通过使用 `clearInterval` 取消现有的间隔，然后使用更新后的时间使用 `setInterval` 设置新的间隔来动态更改间隔时间。这允许你根据不断变化的需求或用户交互动态调整定时。\n\n   >**注意：** 虽然可以创建动态间隔的幻觉，但重要的是要注意，这不会真正动态更改原始的间隔时间。它取消了先前的间隔，并启动了一个新的间隔。\n\n2. 使用间隔取消时是否需要考虑限制或性能问题？\n\n   当使用间隔取消时，重要的是考虑间隔时间以及对性能的潜在影响。频繁和短暂的间隔可能会占用大量 CPU 资源。此外，如果 `fn` 函数的执行时间长于间隔时间，那么后续的调用可能会重叠，导致意外行为。确保间隔时间和 `fn` 的执行时间得到适当的平衡是至关重要的。这就是为什么在某些情况下，强烈建议使用 `requestAnimationFrame` 这样的其他方法。\n\n   `requestAnimationFrame` 接受单个参数，即要执行的函数。当浏览器准备好重新绘制屏幕时，将调用指定的 `requestAnimationFrame` 函数。当此函数运行时，它取决于执行代码的计算机的 CPU 能力、浏览器打开的显示器的刷新率以及其他一些标准，以确保动画在占用尽可能少的资源的情况下尽可能流畅。\n\n3. 如果间隔时间 `(t)` 设置为负值或零会发生什么？\n\n   它会立即连续执行，并将重复执行 0 或负数次，可能会阻塞主线程，导致浏览器不响应。\n\n4. 可以在取消后重新启动或重新安排间隔吗？\n\n   尽管你无法直接重新启动已取消的间隔，但你可以通过使用所需的间隔时间和要执行的函数再次调用 `setInterval` 来创建一个新的间隔。",
+            "slateValue": "",
+            "slug": "jian-ge-qu-xiao-by-leetcode-solution-vb4n",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "LopF3r",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [],
+            "tags": [
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-10-31T03:27:09.639545+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "解决方案 概述 你将获得一个函数 fn，一个参数数组 args，以及一个时间间隔 t。你需要实现一个函数 cancelFn，它会立即用 args 调用 fn，然后按照每 t 毫秒的时间间隔安排后续对 fn 的调用，直到调用 cancelFn。 用例： 编辑应用中的自动保存： 在使用文本编辑器、文档处理器或其他内容创建工",
+            "topic": {
+                "id": 2506147,
+                "subscribed": false,
+                "commentCount": 8,
+                "viewCount": 31,
+                "post": {
+                    "id": 4669056,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 6,
+            "isEditorsPick": false,
+            "hitCount": 2982,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "interval-cancellation",
+                "questionFrontendId": "2725"
+            },
+            "next": {
+                "slug": "jsbi-bao-ti-by-l00-q695",
+                "title": " js闭包题"
+            },
+            "prev": null
+        }
+    }
+}

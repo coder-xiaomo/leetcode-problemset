@@ -1,0 +1,78 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "XfRFEM",
+            "title": "数组归约运算",
+            "content": "[TOC]\n\n---\n# 解决方案\n\n## 综述\n\n本问题要求你编写一个基于 ***回调*** 函数的输出执行缩减变换的函数。除了 `map` 和 `filter` 之外，它是 JavaScript 中最常用和重要的函数之一。\n\n首先，建议你阅读关于 [map](https://leetcode.cn/problems/apply-transform-over-each-element-in-array/) 和 [filter](https://leetcode.cn/problems/filter-elements-from-array/) 的内容，因为它们当中包含了相关的讨论。\n\n### Reduce 的用途\nReduce 遍历数组中的每个值，并以某种方式将每个值合并到一个 ***累加器*** 变量中。第一个参数是一个回调函数，它接受当前的`accumulator` 值和每个数组元素，并返回一个新的 `accumulator` 值。第二个参数是 `accumulator` 的初始值。在遍历整个数组后，将返回 `accumulator` 的最终值。\n\n这是一个简单的操作，但在可以执行的转换类型上非常多样。在 Array.map 和 Array.filter 无法解决问题时你可以将其用于几乎所有数组迭代。\n\n以下示例使用内置的 `Array.reduce` 方法。\n\n#### 求和数组中的值\nReduce 的经典用例是将数组中的所有值相加。\n\n```javascript\nconst nums = [1, 2, 3];\nconst sum = nums.reduce((accumulator, val) => accumulator + val, 0);\nconsole.log(sum); // 6\n```\n\n你还可以基于某个属性对值求和，稍作修改即可。\n\n```javascript\nconst nums = [{x: 1}, {x: 2}, {x: 3}];\nconst sum = nums.reduce((accumulator, val) => accumulator + val.x, 0);\nconsole.log(sum); // 6\n```\n\n#### 按键索引数组\n在编程中非常常见的任务形式是将一组数据按某个键进行索引。这样，可以通过 $O(1)$ 的时间复杂度访问数据的键。\n\n```javascript\nconst groceries = [\n  { id: 173, name: \"Soup\" }, \n  { id: 964, name: \"Apple\" },\n  { id: 535, name: \"Cheese\" }\n];\n\nconst indexedGroceries = groceries.reduce((accumulator, val) => {\n  accumulator[val.id] = val;\n  return accumulator;\n}, {});\n\nconsole.log(indexedGroceries);\n/**\n * {\n *   \"173\": { id: 173, name: \"Soup\" },\n *   \"964\": { id: 964, name: \"Apple\" },\n *   \"535\": { id: 535, name: \"Cheese\" },\n * }\n */\n```\n\n请注意，开发人员常犯的一个性能错误是在每次数组迭代时创建累加器的克隆，即 `return { ...accumulator, [val.id]: val };`。这将导致该算法的复杂度为 $O(n^2)$。\n\n#### 结合 Filter 和 Map\n有时候需要将 `.filter()` 和 `.map()` 链接在一起，以删除数组中的元素并进行转换。问题在于这种方法效率较低，因为这种数组方法会在只需要一个数组的情况下创建两个数组。\n你可以将 filter 和 map 合并为单个 `reduce`，以提高性能。\n\n```javascript\nconst groceries = [\n  { id: 173, name: \"Soup\" }, \n  { id: 964, name: \"Apple\" },\n  { id: 535, name: \"Cheese\" }\n];\n\n/** 使用 filter 和 map */\nvar names = groceries\n  .filter(item => item.id > 500)\n  .map(item => item.name)\n\n/** 使用 reduce */\nvar names = groceries.reduce((accumulator, val) => {\n  if (val.id > 500) {\n    accumulator.push(val.name);\n  }\n  return accumulator;\n}, []);\n\nconsole.log(names); // [\"Apple\", \"Cheese\"]\n```\n\n### 内置 Array.reduce\n这个问题要求你重新实现 `Array.reduce` 方法，它是 JavaScript 中最常用的数组方法之一。但是，你的实现会与标准库有四个小差异。\n\n1. `Array.reduce` 是数组原型上的方法。这个实现是一个函数，接受数组作为第一个参数。\n2. 传递给 `Array.reduce` 的回调函数接受额外的两个参数。第三个参数是数组的 `currentIndex`。第四个参数是对原始数组的引用。\n3. `Array.reduce` 可选地允许你不传递`initialValue` 作为第二个参数。如果数组中没有元素，将会抛出一个错误。否则，`initialValue`将被视为数组中的第一个元素，并从索引 1 开始迭代。\n4. `Array.reduce` 处理稀疏数组。例如，如果你编写代码 `let arr = Array(100); arr[1] = 10;`，`Array.reduce` 将只会查看索引 1，并会忽略空索引。这相当于在调用 `reduce()` 之前过滤掉所有空值。\n\n#### 方法 1：使用 For...of 循环\nJavaScript 具有简单的语法，允许你遍历 ***可迭代*** 对象的每个元素。Set、Map 和 String 都是可迭代对象的示例。\n\n```javascript []\nvar reduce = function(arr, fn, initialVal) {\n  let accumulator = initialVal;\n  for (const element of arr) {\n      accumulator = fn(accumulator, element);\n  }\n  return accumulator;\n};\n```\n\n```typescript []\ntype Fn = (accum: number, curr: number) => number\n\nfunction reduce(arr: number[], fn: Fn, initialVal: number): number {\n  let accumulator = initialVal;\n  for (const element of arr) {\n      accumulator = fn(accumulator, element);\n  }\n  return accumulator;\n};\n```\n\n---\n\n#### 方法 2：使用 Array.forEach 循环\nJavaScript 数组具有用于遍历每个元素的内置方法。通常之所以优先选择它而不是普通的 for 循环，是因为它将实际值作为回调的第一个参数提供给回调函数，从而可能节省一行代码。\n\n```javascript []\nvar reduce = function(arr, fn, initialVal) {\n  let accumulator = initialVal;\n  arr.forEach((element) => {\n    accumulator = fn(accumulator, element);\n  });\n  return accumulator;\n};\n```\n\n```typescript []\ntype Fn = (accum: number, curr: number) => number\n\nfunction reduce(arr: number[], fn: Fn, initialVal: number): number {\n  let accumulator = initialVal;\n  arr.forEach((element) => {\n    accumulator = fn(accumulator, element);\n  });\n  return accumulator;\n};\n```\n\n---\n\n#### 方法 3：使用 For...in 循环\n\nFor...in 循环更常用于遍历对象的键。但是，它们也可以用于遍历数组的索引。这种方法的显著特点是，它通过忽略空索引来考虑稀疏数组。例如，如果你编写了 `let arr = Array(100); arr[1] = 10;`，这种方法会将数组视为只有一个元素。\n\n```javascript []\nvar reduce = function(arr, fn, initialVal) {\n  let accumulator = initialVal;\n  for (const index in arr) {\n    accumulator = fn(accumulator, arr[index]);\n  } \n  return accumulator;\n};\n```\n\n```typescript []\ntype Fn = (accum: number, curr: number) => number\n\nfunction reduce(arr: number[], fn: Fn, initialVal: number): number {\n  let accumulator = initialVal;\n  for (const index in arr) {\n    accumulator = fn(accumulator, arr[index]);\n  } \n  return accumulator;\n};\n```\n\n---\n\n### 复杂度分析\n以下分析适用于所有这些方法。假设 $N$ 是输入数组的长度。\n* 时间复杂度：$O(N)$。算法会遍历所有元素。\n* 空间复杂度取决于提供的回调函数。例如，对数组中的元素求和是空间复杂度为 $O(1)$ 的操作。而在最坏的情况下，过滤数组的空间复杂度为 $O(N)$。",
+            "slateValue": "",
+            "slug": "shu-zu-gui-yue-yun-suan-by-leetcode-solu-iyjm",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "XfRFEM",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 7,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-10-24T04:10:46.013304+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "解决方案 综述 本问题要求你编写一个基于 回调 函数的输出执行缩减变换的函数。除了 map 和 filter 之外，它是 JavaScript 中最常用和重要的函数之一。 首先，建议你阅读关于 map 和 filter 的内容，因为它们当中包含了相关的讨论。 Reduce 的用途 Reduce 遍历数组中的每个值，并以",
+            "topic": {
+                "id": 2496234,
+                "subscribed": false,
+                "commentCount": 3,
+                "viewCount": 213,
+                "post": {
+                    "id": 4653623,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 16,
+            "isEditorsPick": false,
+            "hitCount": 5312,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "array-reduce-transformation",
+                "questionFrontendId": "2626"
+            },
+            "next": {
+                "slug": "2626-shu-zu-gui-yue-yun-suan-ben-zhi-shi-ggl7",
+                "title": "2626. 数组归约运算。本质是数学的递推"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,150 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "uaScUp",
+            "title": "购买物品的最大开销",
+            "content": "#### 方法一：排序不等式 + 小根堆\n\n**思路与算法**\n\n由于每一个商店的物品都已经按照价值单调递减排好序了，那么当我们选择某个商店购买物品时，都可以买到该商店中价值最低的物品。由于我们可以任意选择商店，这就说，我们**总是可以买到当前所有物品中价值最低的那个**。\n\n在开销的计算公式中，物品的价值会乘上购买它的天数。根据排序不等式，在理想状态下我们应该将所有商品按照价值从低到高排序，分别在第 $1$ 到 $m \\times n$ 天去购买。根据上一段的结论，我们一定是可以达到这个理想状态的。\n\n因此，我们可以将 $m \\times n$ 个商品按照价值进行排序，就可以得到答案，但这样做的时间复杂度是 $O(mn \\log (mn))$，没有进一步用到「每一个商店的物品都已经按照价值单调递减排好序」这个性质。我们可以使用「[23. 合并 K 个升序链表](https://leetcode.cn/problems/merge-k-sorted-lists/)」中的方法，使用一个小根堆，存储每个商店当前价值最小的物品，那么小根堆的堆顶就是全局价值最小的物品。随后，我们将该物品在对应的商店中的下一个物品放入小根堆中，重复一共 $m \\times n$ 次操作即可，时间复杂度降低至 $O(mn \\log m)$。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    long long maxSpending(vector<vector<int>>& values) {\n        int m = values.size(), n = values[0].size();\n        priority_queue<ti3, vector<ti3>, greater<ti3>> q;\n        for (int i = 0; i < m; ++i) {\n            q.emplace(values[i][n - 1], i, n - 1);\n        }\n        long long ans = 0;\n        for (int turn = 1; turn <= m * n; ++turn) {\n            auto [val, i, j] = q.top();\n            q.pop();\n            ans += static_cast<long long>(val) * turn;\n            if (j > 0) {\n                q.emplace(values[i][j - 1], i, j - 1);\n            }\n        }\n        return ans;\n    }\n\nprivate:\n    using ti3 = tuple<int, int, int>;\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def maxSpending(self, values: List[List[int]]) -> int:\n        m, n = len(values), len(values[0])\n        q = [(values[i][-1], i, n - 1) for i in range(m)]\n        heapify(q)\n        ans = 0\n        for turn in range(1, m * n + 1):\n            val, i, j = heappop(q)\n            ans += val * turn\n            if j > 0:\n                heappush(q, (values[i][j - 1], i, j - 1))\n        return ans\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public long maxSpending(int[][] values) {\n        int m = values.length, n = values[0].length;\n        PriorityQueue<int[]> pq = new PriorityQueue<>((a, b) -> a[0] - b[0]);\n        for (int i = 0; i < m; i++) {\n            pq.offer(new int[]{values[i][n - 1], i, n - 1});\n        }\n\n        long ans = 0;\n        for (int turn = 1; turn <= m * n; turn++) {\n            int[] top = pq.poll();\n            int val = top[0], i = top[1], j = top[2];\n            ans += (long)val * turn;\n            if (j > 0) {\n                pq.offer(new int[]{values[i][j - 1], i, j - 1});\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public long MaxSpending(int[][] values) {\n        int m = values.Length, n = values[0].Length;\n        var pq = new PriorityQueue<int[], int>(\n            Comparer<int>.Create((a, b) => a.CompareTo(b))\n        );\n        for (int i = 0; i < m; i++) {\n            pq.Enqueue(new int[]{values[i][n - 1], i, n - 1}, values[i][n - 1]);\n        }\n        long ans = 0;\n        for (int turn = 1; turn <= m * n; turn++) {\n            var top = pq.Dequeue();\n            int val = top[0], i = top[1], j = top[2];\n            ans += (long)val * turn;\n            if (j > 0) {\n                pq.Enqueue(new int[]{values[i][j - 1], i, j - 1}, values[i][j - 1]);\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc maxSpending(values [][]int) int64 {\n    m, n := len(values), len(values[0])\n    pq := &Heap{}\n    for i := 0; i < m; i++ {\n        heap.Push(pq, []int{values[i][n-1], i, n - 1})\n    }\n    ans := int64(0)\n    for turn := 1; turn <= m * n; turn++ {\n        top := heap.Pop(pq).([]int)\n        val, i, j := top[0], top[1], top[2]\n        ans += int64(val) * int64(turn)\n        if j > 0 {\n            heap.Push(pq, []int{values[i][j-1], i, j - 1})\n        }\n    }\n    return ans\n}\n\ntype Heap [][]int\n\nfunc (h Heap) Len() int { \n    return len(h) \n}\n\nfunc (h Heap) Less(i, j int) bool { \n    if (h[i][0] == h[j][0]) {\n        return h[i][1] < h[j][1]\n    }\n    return h[i][0] < h[j][0]\n}\n\nfunc (h Heap) Swap(i, j int) { \n    h[i], h[j] = h[j], h[i] \n}\n\nfunc (h *Heap) Push(x interface{}) { \n    *h = append(*h, x.([]int)) \n}\n\nfunc (h *Heap) Pop() interface{} {\n\told := *h\n\tn := len(old)\n\tx := old[n - 1]\n\t*h = old[0 : n - 1]\n\treturn x\n}\n```\n\n```C [sol1-C]\n#define MIN_QUEUE_SIZE 64\n\ntypedef struct Element {\n    int data[3];\n} Element;\n\ntypedef bool (*compare)(const void *, const void *);\n\ntypedef struct PriorityQueue {\n    Element *arr;\n    int capacity;\n    int queueSize;\n    compare lessFunc;\n} PriorityQueue;\n\nstatic bool less(const void *a, const void *b) {\n    Element *e1 = (Element *)a;\n    Element *e2 = (Element *)b;\n    return e1->data[0] > e2->data[0] || \\\n           (e1->data[0] == e2->data[0] && \\\n           e1->data[1] > e2->data[1]);\n}\n\nstatic bool greater(const void *a, const void *b) {\n    Element *e1 = (Element *)a;\n    Element *e2 = (Element *)b;\n    return e1->data[0] < e2->data[0];\n}\n\nstatic void memswap(void *m1, void *m2, size_t size){\n    unsigned char *a = (unsigned char*)m1;\n    unsigned char *b = (unsigned char*)m2;\n    while (size--) {\n        *b ^= *a ^= *b ^= *a;\n        a++;\n        b++;\n    }\n}\n\nstatic void swap(Element *arr, int i, int j) {\n    memswap(&arr[i], &arr[j], sizeof(Element));\n}\n\nstatic void down(Element *arr, int size, int i, compare cmpFunc) {\n    for (int k = 2 * i + 1; k < size; k = 2 * k + 1) {\n        if (k + 1 < size && cmpFunc(&arr[k], &arr[k + 1])) {\n            k++;\n        }\n        if (cmpFunc(&arr[k], &arr[(k - 1) / 2])) {\n            break;\n        }\n        swap(arr, k, (k - 1) / 2);\n    }\n}\n\nPriorityQueue *createPriorityQueue(compare cmpFunc) {\n    PriorityQueue *obj = (PriorityQueue *)malloc(sizeof(PriorityQueue));\n    obj->capacity = MIN_QUEUE_SIZE;\n    obj->arr = (Element *)malloc(sizeof(Element) * obj->capacity);\n    obj->queueSize = 0;\n    obj->lessFunc = cmpFunc;\n    return obj;\n}\n\nvoid heapfiy(PriorityQueue *obj) {\n    for (int i = obj->queueSize / 2 - 1; i >= 0; i--) {\n        down(obj->arr, obj->queueSize, i, obj->lessFunc);\n    }\n}\n\nvoid enQueue(PriorityQueue *obj, Element *e) {\n    // we need to alloc more space, just twice space size\n    if (obj->queueSize == obj->capacity) {\n        obj->capacity *= 2;\n        obj->arr = realloc(obj->arr, sizeof(Element) * obj->capacity);\n    }\n    memcpy(&obj->arr[obj->queueSize], e, sizeof(Element));\n    for (int i = obj->queueSize; i > 0 && obj->lessFunc(&obj->arr[(i - 1) / 2], &obj->arr[i]); i = (i - 1) / 2) {\n        swap(obj->arr, i, (i - 1) / 2);\n    }\n    obj->queueSize++;\n}\n\nElement* deQueue(PriorityQueue *obj) {\n    swap(obj->arr, 0, obj->queueSize - 1);\n    down(obj->arr, obj->queueSize - 1, 0, obj->lessFunc);\n    Element *e =  &obj->arr[obj->queueSize - 1];\n    obj->queueSize--;\n    return e;\n}\n\nbool isEmpty(const PriorityQueue *obj) {\n    return obj->queueSize == 0;\n}\n\nElement* front(const PriorityQueue *obj) {\n    if (obj->queueSize == 0) {\n        return NULL;\n    } else {\n        return &obj->arr[0];\n    }\n}\n\nvoid clear(PriorityQueue *obj) {\n    obj->queueSize = 0;\n}\n\nint size(const PriorityQueue *obj) {\n    return obj->queueSize;\n}\n\nvoid freeQueue(PriorityQueue *obj) {\n    free(obj->arr);\n    free(obj);\n}\n\nlong long maxSpending(int** values, int valuesSize, int* valuesColSize) {\n    int m = valuesSize, n = valuesColSize[0];\n    PriorityQueue *pq = createPriorityQueue(less);\n    Element e;\n    for (int i = 0; i < m; ++i) {\n        e.data[0] = values[i][n - 1];\n        e.data[1] = i;\n        e.data[2] = n - 1;\n        enQueue(pq, &e);\n    }\n    long long ans = 0;\n    for (int turn = 1; turn <= m * n; ++turn) {\n        Element *p = front(pq);\n        int val = p->data[0];\n        int i = p->data[1];\n        int j = p->data[2];\n        deQueue(pq);\n        ans += (long long)val * turn;\n        if (j > 0) {\n            e.data[0] = values[i][j - 1];\n            e.data[1] = i;\n            e.data[2] = j - 1;\n            enQueue(pq, &e);\n        }\n    }\n    freeQueue(pq);\n    return ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar maxSpending = function(values) {\n    const m = values.length, n = values[0].length;\n    const pq = new MinPriorityQueue();\n    for (let i = 0; i < m; i++) {\n        pq.enqueue([values[i][n - 1], i, n - 1], values[i][n - 1]);\n    }\n    \n    let ans = 0;\n    for (let turn = 1; turn <= m * n; turn++) {\n        const [val, i, j] = pq.dequeue().element;\n        ans += val * turn;\n        if (j > 0) {\n            pq.enqueue([values[i][j - 1], i, j - 1], values[i][j - 1]);\n        }\n    }\n    return ans;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction maxSpending(values: number[][]): number {\n    const m = values.length, n = values[0].length;\n    const pq = new MinPriorityQueue();\n    for (let i = 0; i < m; i++) {\n        pq.enqueue([values[i][n - 1], i, n - 1], values[i][n - 1]);\n    }\n    \n    let ans = 0;\n    for (let turn = 1; turn <= m * n; turn++) {\n        const [val, i, j] = pq.dequeue().element;\n        ans += val * turn;\n        if (j > 0) {\n            pq.enqueue([values[i][j - 1], i, j - 1], values[i][j - 1]);\n        }\n    }\n    return ans;\n};\n```\n\n```Rust [sol1-Rust]\nuse std::collections::BinaryHeap;\n\n#[derive(Eq, PartialEq)]\nstruct Item {\n    value: i32,\n    i: usize,\n    j: usize,\n}\n\nimpl Ord for Item {\n    fn cmp(&self, other: &Self) -> std::cmp::Ordering {\n        other.value.cmp(&self.value)\n    }\n}\n\nimpl PartialOrd for Item {\n    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {\n        Some(self.cmp(other))\n    }\n}\n\nimpl Solution {\n    pub fn max_spending(values: Vec<Vec<i32>>) -> i64 {\n        let m = values.len();\n        let n = values[0].len();\n        let mut pq = BinaryHeap::new();\n        for i in 0..m {\n            pq.push(Item { value: values[i][n - 1], i, j: n - 1 });\n        }\n        \n        let mut ans: i64 = 0;\n        for turn in 1..= m * n {\n            if let Some(top) = pq.pop() {\n                let val = top.value;\n                let i = top.i;\n                let j = top.j;\n                ans += (val as i64) * (turn as i64);\n                if j > 0 {\n                    pq.push(Item { value: values[i][j - 1], i, j: j - 1 });\n                }\n            }\n        }\n        ans\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(mn \\log m)$。\n\n- 空间复杂度：$O(m)$，即为小根堆（优先队列）需要使用的空间。",
+            "slateValue": "",
+            "slug": "gou-mai-wu-pin-de-zui-da-kai-xiao-by-lee-zwv3",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "uaScUp",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 7,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Matrix",
+                    "nameTranslated": "矩阵",
+                    "slug": "matrix",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Sorting",
+                    "nameTranslated": "排序",
+                    "slug": "sorting",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Heap (Priority Queue)",
+                    "nameTranslated": "堆（优先队列）",
+                    "slug": "heap-priority-queue",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2024-11-29T00:46:35.750737+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：排序不等式 + 小根堆 思路与算法 由于每一个商店的物品都已经按照价值单调递减排好序了，那么当我们选择某个商店购买物品时，都可以买到该商店中价值最低的物品。由于我们可以任意选择商店，这就说，我们总是可以买到当前所有物品中价值最低的那个。 在开销的计算公式中，物品的价值会乘上购买它的天数。根据排序不等式，在理想状",
+            "topic": {
+                "id": 3004329,
+                "subscribed": false,
+                "commentCount": 35,
+                "viewCount": 512,
+                "post": {
+                    "id": 5437776,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 15,
+            "isEditorsPick": false,
+            "hitCount": 6733,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "maximum-spending-after-buying-items",
+                "questionFrontendId": "2931"
+            },
+            "next": {
+                "slug": "liang-chong-fang-fa-pai-xu-zui-xiao-dui-bzedc",
+                "title": "两种方法：排序/最小堆（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,156 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "RgS3FP",
+            "title": "统计主要元素子数组数目 II",
+            "content": "#### 方法一：前缀和\n\n**思路与算法**\n\n本题是[「3737. 统计主要元素子数组数目 I」](https://leetcode.cn/problems/count-majority-element-subarrays-i/)的数据加强版。\n\n记数组 $\\textit{nums}$ 的长度为 $n$，我们将其进行变换：将值为 $\\textit{target}$ 的元素视为 $+1$，其余元素视为 $-1$。这样，$\\textit{target}$ 是子数组 $\\textit{nums}[l..r]$ 的主要元素，当且仅当变换后该子数组的元素和大于 $0$。\n\n设变换后的数组的前缀和为数组 $s$，长度为 $n+1$。此时，子数组 $\\textit{nums}[l..r]$ 变换后的元素和为 $s[r+1] - s[l]$，大于 $0$ 的条件等价于 $s[r+1] > s[l]$。因此问题转化为：对于每个 $r$，统计满足 $0 \\leq l \\leq r$ 且 $s[l] < s[r+1]$ 的 $l$ 的个数。\n\n朴素做法是对每个 $r$ 遍历所有 $l$，时间复杂度为 $O(n^2)$，会超出时间限制。注意到 $s$ 的值域为整数区间 $[-n, n]$，我们可以用计数数组 $\\textit{pre}$ 来加速：$\\textit{pre}[v]$ 记录到目前为止，前缀和 $v$ 出现了多少次。那么对于当前前缀和 $s[r+1]$，满足 $s[l] < s[r+1]$ 的 $l$ 的个数，就是 $\\textit{pre}$ 数组中所有下标严格小于 $s[r+1]$ 的元素之和，也就是 $\\textit{pre}$ 的一个前缀和。\n\n如果对每个 $r$ 都重新求这个前缀和，时间复杂度仍然很高。但关键观察是：相邻两步之间，$s[r+1]$ 相比 $s[r]$ 只变化了 $+1$ 或 $-1$，因此求和的上界也只偏移了 $1$。这意味着可以用一个变量 $\\textit{presum}$ 来增量维护这个求和，每步只需 $O(1)$ 更新：\n\n- 遇到 $+1$：$s[r+1] = s[r] + 1$，求和上界增大，多包含了 $\\textit{pre}[s[r]]$ 这一项，$\\textit{presum}$ 加上它；\n- 遇到 $-1$：$s[r+1] = s[r] - 1$，求和上界减小，少包含了 $\\textit{pre}[s[r+1]]$ 这一项，$\\textit{presum}$ 减去它。\n\n更新 $\\textit{presum}$ 后，将当前的 $s[r+1]$ 记入 $\\textit{pre}$，再将 $\\textit{presum}$ 累加到答案中。\n\n在代码实现中，用变量 $\\textit{cnt}$ 维护当前的前缀和 $s[r+1]$。由于前缀和可能为负数，而大部分语言的数组不支持负数下标，因此将下标整体偏移 $n$。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    long long countMajoritySubarrays(vector<int>& nums, int target) {\n        int n = nums.size();\n        // 表示前缀和为 -n, -(n-1), ..., 0, 1, ..., n 的出现次数，下标偏移 n\n        vector<int> pre(n * 2 + 1, 0);\n        pre[n] = 1;\n        int cnt = n;\n        long long ans = 0, presum = 0;\n        for (int i = 0; i < n; ++i) {\n            if (nums[i] == target) {\n                presum += pre[cnt];\n                ++cnt;\n                ++pre[cnt];\n            } else {\n                --cnt;\n                presum -= pre[cnt];\n                ++pre[cnt];\n            }\n            ans += presum;\n        }\n        return ans;\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def countMajoritySubarrays(self, nums: List[int], target: int) -> int:\n        n = len(nums)\n        # 表示前缀和为 -n, -(n-1), ..., 0, 1, ..., n 的前缀数量，下标偏移 n\n        pre = [0] * (n * 2 + 1)\n        pre[n] = 1\n        cnt = n\n        ans = presum = 0\n        for i in range(n):\n            if nums[i] == target:\n                presum += pre[cnt]\n                cnt += 1\n                pre[cnt] += 1\n            else:\n                cnt -= 1\n                presum -= pre[cnt]\n                pre[cnt] += 1\n            ans += presum\n        return ans\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public long countMajoritySubarrays(int[] nums, int target) {\n        int n = nums.length;\n        // 表示前缀和为 -n, -(n-1), ..., 0, 1, ..., n 的出现次数，下标偏移 n\n        int[] pre = new int[n * 2 + 1];\n        pre[n] = 1;\n        int cnt = n;\n        long ans = 0, presum = 0;\n        for (int i = 0; i < n; ++i) {\n            if (nums[i] == target) {\n                presum += pre[cnt];\n                ++cnt;\n                ++pre[cnt];\n            } else {\n                --cnt;\n                presum -= pre[cnt];\n                ++pre[cnt];\n            }\n            ans += presum;\n        }\n        return ans;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public long CountMajoritySubarrays(int[] nums, int target) {\n        int n = nums.Length;\n        // 表示前缀和为 -n, -(n-1), ..., 0, 1, ..., n 的出现次数，下标偏移 n\n        int[] pre = new int[n * 2 + 1];\n        pre[n] = 1;\n        int cnt = n;\n        long ans = 0, presum = 0;\n        for (int i = 0; i < n; ++i) {\n            if (nums[i] == target) {\n                presum += pre[cnt];\n                ++cnt;\n                ++pre[cnt];\n            } else {\n                --cnt;\n                presum -= pre[cnt];\n                ++pre[cnt];\n            }\n            ans += presum;\n        }\n        return ans;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc countMajoritySubarrays(nums []int, target int) int64 {\n    n := len(nums)\n    // 表示前缀和为 -n, -(n-1), ..., 0, 1, ..., n 的出现次数，下标偏移 n\n    pre := make([]int, n*2+1)\n    pre[n] = 1\n    cnt := n\n    var ans, presum int64 = 0, 0\n    for i := 0; i < n; i++ {\n        if nums[i] == target {\n            presum += int64(pre[cnt])\n            cnt++\n            pre[cnt]++\n        } else {\n            cnt--\n            presum -= int64(pre[cnt])\n            pre[cnt]++\n        }\n        ans += presum\n    }\n    return ans\n}\n```\n\n```C [sol1-C]\nlong long countMajoritySubarrays(int* nums, int numsSize, int target) {\n    int n = numsSize;\n    // 表示前缀和为 -n, -(n-1), ..., 0, 1, ..., n 的出现次数，下标偏移 n\n    int* pre = (int*)calloc(n * 2 + 1, sizeof(int));\n    pre[n] = 1;\n    int cnt = n;\n    long long ans = 0, presum = 0;\n    for (int i = 0; i < n; ++i) {\n        if (nums[i] == target) {\n            presum += pre[cnt];\n            ++cnt;\n            ++pre[cnt];\n        } else {\n            --cnt;\n            presum -= pre[cnt];\n            ++pre[cnt];\n        }\n        ans += presum;\n    }\n    free(pre);\n    return ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar countMajoritySubarrays = function(nums, target) {\n    const n = nums.length;\n    // 表示前缀和为 -n, -(n-1), ..., 0, 1, ..., n 的出现次数，下标偏移 n\n    const pre = new Array(n * 2 + 1).fill(0);\n    pre[n] = 1;\n    let cnt = n;\n    let ans = 0, presum = 0;\n    for (let i = 0; i < n; ++i) {\n        if (nums[i] === target) {\n            presum += pre[cnt];\n            ++cnt;\n            ++pre[cnt];\n        } else {\n            --cnt;\n            presum -= pre[cnt];\n            ++pre[cnt];\n        }\n        ans += presum;\n    }\n    return ans;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction countMajoritySubarrays(nums: number[], target: number): number {\n    const n = nums.length;\n    // 表示前缀和为 -n, -(n-1), ..., 0, 1, ..., n 的出现次数，下标偏移 n\n    const pre = new Array<number>(n * 2 + 1).fill(0);\n    pre[n] = 1;\n    let cnt = n;\n    let ans = 0, presum = 0;\n    for (let i = 0; i < n; ++i) {\n        if (nums[i] === target) {\n            presum += pre[cnt];\n            ++cnt;\n            ++pre[cnt];\n        } else {\n            --cnt;\n            presum -= pre[cnt];\n            ++pre[cnt];\n        }\n        ans += presum;\n    }\n    return ans;\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn count_majority_subarrays(nums: Vec<i32>, target: i32) -> i64 {\n        let n = nums.len();\n        // 表示前缀和为 -n, -(n-1), ..., 0, 1, ..., n 的出现次数，下标偏移 n\n        let mut pre = vec![0; n * 2 + 1];\n        pre[n] = 1;\n        let mut cnt = n as i32;\n        let mut ans: i64 = 0;\n        let mut presum: i64 = 0;\n        for i in 0..n {\n            if nums[i] == target {\n                presum += pre[cnt as usize] as i64;\n                cnt += 1;\n                pre[cnt as usize] += 1;\n            } else {\n                cnt -= 1;\n                presum -= pre[cnt as usize] as i64;\n                pre[cnt as usize] += 1;\n            }\n            ans += presum;\n        }\n        ans\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是数组 $\\textit{nums}$ 的长度。\n\n- 空间复杂度：$O(n)$，即为数组 $\\textit{pre}$ 需要使用的空间。",
+            "slateValue": "",
+            "slug": "tong-ji-zhu-yao-yuan-su-zi-shu-zu-shu-mu-bifu",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "RgS3FP",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 7,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Binary Indexed Tree",
+                    "nameTranslated": "树状数组",
+                    "slug": "binary-indexed-tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Divide and Conquer",
+                    "nameTranslated": "分治",
+                    "slug": "divide-and-conquer",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Prefix Sum",
+                    "nameTranslated": "前缀和",
+                    "slug": "prefix-sum",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2026-06-17T01:39:32.865816+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：前缀和 思路与算法 本题是「3737. 统计主要元素子数组数目 I」的数据加强版。 记数组 [latex] 的长度为 [latex]，我们将其进行变换：将值为 [latex] 的元素视为 [latex]，其余元素视为 [latex]。这样，[latex] 是子数组 [latex] 的主要元素，当且仅当变换后该子",
+            "topic": {
+                "id": 3984750,
+                "subscribed": false,
+                "commentCount": 5,
+                "viewCount": 9,
+                "post": {
+                    "id": 7263350,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 13,
+            "isEditorsPick": false,
+            "hitCount": 2828,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "count-subarrays-with-majority-element-ii",
+                "questionFrontendId": "3739"
+            },
+            "next": {
+                "slug": "mei-ju-you-wei-hu-zuo-on-zuo-fa-pythonja-ojfh",
+                "title": "枚举右维护左，O(n) 做法（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,144 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "aK45dJ",
+            "title": "切蛋糕的最小总开销 I",
+            "content": "#### 方法一：记忆化搜索\n\n**思路**\n\n将原问题分解成子问题，设计函数 $\\textit{dp}[\\textit{row}_1, \\textit{col}_1,\\textit{row}_2,\\textit{col}_2]$ 表示切割完整的子矩形至最小单元的代价，其中子矩形的两个对角顶点的坐标分别为 $(\\textit{row}_1,\\textit{col}_1)$ 和 $(\\textit{row}_2,\\textit{col}_2)$。我们可以任意水平或者垂直切一刀，然后将问题分解成更小的子问题，直到分到最小单元。遍历所有可能的切法，取出最小值作为子问题的返回值。因为递归过程中有许多重复状态，我们利用记忆话搜索的方式来降低时间复杂度。最后返回 $\\textit{dp}(0, 0, m - 1, n - 1)$ 即可。\n\n**代码**\n\n```Python [sol1-Python3]\nclass Solution:\n    def minimumCost(self, m: int, n: int, horizontalCut: List[int], verticalCut: List[int]) -> int:\n        \n        @cache\n        def dp(row1: int, col1: int, row2: int, col2: int) -> int:\n            if row1 == row2 and col1 == col2:\n                return 0\n            res = inf\n            for i in range(row1, row2):\n                res = min(res, dp(row1, col1, i, col2) + dp(i + 1, col1, row2, col2) + horizontalCut[i])\n            for i in range(col1, col2):\n                res = min(res, dp(row1, col1, row2, i) + dp(row1, i + 1, row2, col2) + verticalCut[i])\n            return res\n\n        return dp(0, 0, m - 1, n - 1)\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int minimumCost(int m, int n, vector<int>& horizontalCut, vector<int>& verticalCut) {\n        vector<int> cache(m * m * n * n, -1);\n        auto index = [&](int row1, int col1, int row2, int col2) -> int {\n            return (row1 * n + col1) * m * n + row2 * n + col2;\n        };\n        function<int(int, int, int, int)> dp;\n        dp = [&](int row1, int col1, int row2, int col2) -> int {\n            if (row1 == row2 && col1 == col2) {\n                return 0;\n            }\n            int ind = index(row1, col1, row2, col2);\n            if (cache[ind] >= 0) {\n                return cache[ind];\n            }\n            cache[ind] = INT_MAX;\n            for (int i = row1; i < row2; i++) {\n                cache[ind] = min(cache[ind], dp(row1, col1, i, col2) + dp(i + 1, col1, row2, col2) + horizontalCut[i]);\n            }\n            for (int i = col1; i < col2; i++) {\n                cache[ind] = min(cache[ind], dp(row1, col1, row2, i) + dp(row1, i + 1, row2, col2) + verticalCut[i]);\n            }\n            return cache[ind];\n        };\n        return dp(0, 0, m - 1, n - 1);\n    }\n};\n```\n\n```Go [sol1-Go]\nfunc minimumCost(m int, n int, horizontalCut []int, verticalCut []int) int {\n    cache := make([]int, m*m*n*n)\n    for i := range cache {\n        cache[i] = -1\n    }\n\n    index := func(row1, col1, row2, col2 int) int {\n        return (row1*n + col1)*m*n + row2*n + col2\n    }\n\n    var dp func(row1, col1, row2, col2 int) int\n    dp = func(row1, col1, row2, col2 int) int {\n        if row1 == row2 && col1 == col2 {\n            return 0\n        }\n        ind := index(row1, col1, row2, col2)\n        if cache[ind] >= 0 {\n            return cache[ind]\n        }\n        cache[ind] = math.MaxInt32\n        for i := row1; i < row2; i++ {\n            cache[ind] = min(cache[ind], dp(row1, col1, i, col2)+dp(i+1, col1, row2, col2)+horizontalCut[i])\n        }\n        for i := col1; i < col2; i++ {\n            cache[ind] = min(cache[ind], dp(row1, col1, row2, i)+dp(row1, i+1, row2, col2)+verticalCut[i])\n        }\n        return cache[ind]\n    }\n\n    return dp(0, 0, m-1, n-1)\n}\n```\n\n```C [sol1-C]\nint idx(int m, int n, int row1, int col1, int row2, int col2) {\n    return (row1 * n + col1) * m * n + row2 * n + col2;\n}\n\nint dp(int m, int n, int row1, int col1, int row2, int col2, int *horizontalCut, int *verticalCut, int *cache) {\n    if (row1 == row2 && col1 == col2) {\n        return 0;\n    }\n    int ind = idx(m, n, row1, col1, row2, col2);\n    if (cache[ind] >= 0) {\n        return cache[ind];\n    }\n    cache[ind] = INT_MAX;\n    for (int i = row1; i < row2; i++) {\n        cache[ind] = fmin(cache[ind], dp(m, n, row1, col1, i, col2, horizontalCut, verticalCut, cache) + dp(m, n, i + 1, col1, row2, col2, horizontalCut, verticalCut, cache) + horizontalCut[i]);\n    }\n    for (int i = col1; i < col2; i++) {\n        cache[ind] = fmin(cache[ind], dp(m, n, row1, col1, row2, i, horizontalCut, verticalCut, cache) + dp(m, n, row1, i + 1, row2, col2, horizontalCut, verticalCut, cache) + verticalCut[i]);\n    }\n    return cache[ind];\n}\n\nint minimumCost(int m, int n, int *horizontalCut, int horizontalCutSize, int *verticalCut, int verticalCutSize) {\n    int *cache = (int *)malloc(m * m * n * n * sizeof(int));\n    memset(cache, 0xff, m * m * n * n * sizeof(int));\n    int res = dp(m, n, 0, 0, m - 1, n - 1, horizontalCut, verticalCut, cache);\n    free(cache);\n    return res;\n}\n```\n\n```Java [sol1-Java]\nclass Solution {\n    int[][][][] memo;\n    int[] horizontalCut;\n    int[] verticalCut;\n\n    public int minimumCost(int m, int n, int[] horizontalCut, int[] verticalCut) {\n        this.memo = new int[m][n][m][n];\n        this.horizontalCut = horizontalCut;\n        this.verticalCut = verticalCut;\n        for (int i = 0; i < m; i++) {\n            for (int j = 0; j < n; j++) {\n                for (int k = 0; k < m; k++) {\n                    Arrays.fill(memo[i][j][k], -1);\n                }\n            }\n        }\n        return dp(0, 0, m - 1, n - 1);\n    }\n\n    public int dp(int row1, int col1, int row2, int col2) {\n        if (row1 == row2 && col1 == col2) {\n            return 0;\n        }\n        if (memo[row1][col1][row2][col2] < 0) {\n            int res = Integer.MAX_VALUE;\n            for (int i = row1; i < row2; i++) {\n                res = Math.min(res, dp(row1, col1, i, col2) + dp(i + 1, col1, row2, col2) + horizontalCut[i]);\n            }\n            for (int i = col1; i < col2; i++) {\n                res = Math.min(res, dp(row1, col1, row2, i) + dp(row1, i + 1, row2, col2) + verticalCut[i]);\n            }\n            memo[row1][col1][row2][col2] = res;\n        }\n        return memo[row1][col1][row2][col2];\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    int[][][][] memo;\n    int[] horizontalCut;\n    int[] verticalCut;\n\n    public int MinimumCost(int m, int n, int[] horizontalCut, int[] verticalCut) {\n        this.memo = new int[m][][][];\n        this.horizontalCut = horizontalCut;\n        this.verticalCut = verticalCut;\n        for (int i = 0; i < m; i++) {\n            memo[i] = new int[n][][];\n            for (int j = 0; j < n; j++) {\n                memo[i][j] = new int[m][];\n                for (int k = 0; k < m; k++) {\n                    memo[i][j][k] = new int[n];\n                    Array.Fill(memo[i][j][k], -1);\n                }\n            }\n        }\n        return DP(0, 0, m - 1, n - 1);\n    }\n\n    public int DP(int row1, int col1, int row2, int col2) {\n        if (row1 == row2 && col1 == col2) {\n            return 0;\n        }\n        if (memo[row1][col1][row2][col2] < 0) {\n            int res = int.MaxValue;\n            for (int i = row1; i < row2; i++) {\n                res = Math.Min(res, DP(row1, col1, i, col2) + DP(i + 1, col1, row2, col2) + horizontalCut[i]);\n            }\n            for (int i = col1; i < col2; i++) {\n                res = Math.Min(res, DP(row1, col1, row2, i) + DP(row1, i + 1, row2, col2) + verticalCut[i]);\n            }\n            memo[row1][col1][row2][col2] = res;\n        }\n        return memo[row1][col1][row2][col2];\n    }\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar minimumCost = function(m, n, horizontalCut, verticalCut) {\n    const memo = new Array(m * m * n * n).fill(-1);\n    const index = (row1, col1, row2, col2) => {\n        return (row1 * n + col1) * m * n + row2 * n + col2;\n    };\n\n    const dp = (row1, col1, row2, col2) => {\n        if (row1 === row2 && col1 === col2) {\n            return 0;\n        }\n        const ind = index(row1, col1, row2, col2);\n        if (memo[ind] >= 0) {\n            return memo[ind];\n        }\n\n        memo[ind] = Number.MAX_SAFE_INTEGER;\n        for (let i = row1; i < row2; i++) {\n            memo[ind] = Math.min(memo[ind], dp(row1, col1, i, col2) + dp(i + 1, col1, row2, col2) + horizontalCut[i]);\n        }\n        for (let i = col1; i < col2; i++) {\n            memo[ind] = Math.min(memo[ind], dp(row1, col1, row2, i) + dp(row1, i + 1, row2, col2) + verticalCut[i]);\n        }\n        return memo[ind];\n    };\n\n    return dp(0, 0, m - 1, n - 1);\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction minimumCost(m: number, n: number, horizontalCut: number[], verticalCut: number[]): number {\n    const memo: number[] = new Array(m * m * n * n).fill(-1);\n    const index = (row1: number, col1: number, row2: number, col2: number): number => {\n        return (row1 * n + col1) * m * n + row2 * n + col2;\n    };\n    const dp = (row1: number, col1: number, row2: number, col2: number): number => {\n        if (row1 === row2 && col1 === col2) {\n            return 0;\n        }\n        const ind = index(row1, col1, row2, col2);\n        if (memo[ind] >= 0) {\n            return memo[ind];\n        }\n        memo[ind] = Number.MAX_SAFE_INTEGER;\n        for (let i = row1; i < row2; i++) {\n            memo[ind] = Math.min(memo[ind], dp(row1, col1, i, col2) + dp(i + 1, col1, row2, col2) + horizontalCut[i]);\n        }\n        for (let i = col1; i < col2; i++) {\n            memo[ind] = Math.min(memo[ind], dp(row1, col1, row2, i) + dp(row1, i + 1, row2, col2) + verticalCut[i]);\n        }\n        return memo[ind];\n    };\n\n    return dp(0, 0, m - 1, n - 1);\n};\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn minimum_cost(m: i32, n: i32, horizontal_cut: Vec<i32>, vertical_cut: Vec<i32>) -> i32 {\n        let mut memo = vec![-1; (m * m * n * n) as usize];\n\n        fn dp(\n            row1: i32,\n            col1: i32,\n            row2: i32,\n            col2: i32,\n            m: i32,\n            n: i32,\n            horizontal_cut: &Vec<i32>,\n            vertical_cut: &Vec<i32>,\n            memo: &mut Vec<i32>\n        ) -> i32 {\n            let index = |row1: i32, col1: i32, row2: i32, col2: i32| -> usize {\n                ((row1 * n + col1) * m * n + row2 * n + col2) as usize\n            };\n            if row1 == row2 && col1 == col2 {\n                return 0;\n            }\n            let ind = index(row1, col1, row2, col2);\n            if memo[ind] >= 0 {\n                return memo[ind];\n            }\n            memo[ind] = i32::MAX;\n            for i in row1..row2 {\n                memo[ind] = memo[ind].min(dp(row1, col1, i, col2, m, n, horizontal_cut, vertical_cut, memo)\n                    + dp(i + 1, col1, row2, col2, m, n, horizontal_cut, vertical_cut, memo)\n                    + horizontal_cut[i as usize]);\n            }\n            for i in col1..col2 {\n                memo[ind] = memo[ind].min(dp(row1, col1, row2, i, m, n, horizontal_cut, vertical_cut, memo)\n                    + dp(row1, i + 1, row2, col2, m, n, horizontal_cut, vertical_cut, memo)\n                    + vertical_cut[i as usize]);\n            }\n            memo[ind]\n        }\n\n        dp(0, 0, m - 1, n - 1, m, n, &horizontal_cut, &vertical_cut, &mut memo)\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(m^2\\times n^2 \\times (m+n))$，一共有 $O(m^2\\times n^2)$ 个状态，每个状态消耗 $O(m+n)$ 的时间计算。\n\n- 空间复杂度：$O(m^2\\times n^2)$。",
+            "slateValue": "",
+            "slug": "qie-dan-gao-de-zui-xiao-zong-kai-xiao-i-7kpj5",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "aK45dJ",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 17,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Memoization",
+                    "nameTranslated": "记忆化",
+                    "slug": "memoization",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2024-12-11T02:11:37.764522+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：记忆化搜索 思路 将原问题分解成子问题，设计函数 [latex] 表示切割完整的子矩形至最小单元的代价，其中子矩形的两个对角顶点的坐标分别为 [latex] 和 [latex]。我们可以任意水平或者垂直切一刀，然后将问题分解成更小的子问题，直到分到最小单元。遍历所有可能的切法，取出最小值作为子问题的返回值。因为",
+            "topic": {
+                "id": 3016927,
+                "subscribed": false,
+                "commentCount": 49,
+                "viewCount": 621,
+                "post": {
+                    "id": 5458276,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 21,
+            "isEditorsPick": false,
+            "hitCount": 9408,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "minimum-cost-for-cutting-cake-i",
+                "questionFrontendId": "3218"
+            },
+            "next": {
+                "slug": "fei-bao-li-tan-xin-zuo-fa-pythonjavacgo-mae7e",
+                "title": "【图解】逆向思维+最小生成树（Python/Java/C++/C/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

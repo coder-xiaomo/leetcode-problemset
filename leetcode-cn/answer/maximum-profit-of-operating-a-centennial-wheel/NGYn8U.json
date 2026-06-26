@@ -1,0 +1,126 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "NGYn8U",
+            "title": "经营摩天轮的最大利润",
+            "content": "#### 方法一：模拟\n\n假设每位游客需要支付的费用是 $\\textit{boardingCost}$，一次轮转有 $\\textit{curCustomers}$ 位游客登上座舱，每次轮转的运行成本是 $\\textit{runningCost}$，则摩天轮当前一次轮转的利润是 $\\textit{boardingCost} \\times \\textit{curCustomers} - \\textit{runningCost}$，其中 $\\textit{boardingCost}$ 和 $\\textit{runningCost}$ 的值是已知的，$\\textit{curCustomers}$ 的值由正在等摩天轮的游客的数量和座舱可以容纳的游客的数量中的最小值决定，其中座舱可以容纳的游客的数量为 $4$。\n\n对于长度为 $n$ 的数组 $\\textit{customers}$，$\\textit{customers}[i]$ 是在第 $i$ 次轮转之前到达的新游客的数量（$i$ 从 $0$ 开始），因此可以根据到达的新游客的数量和登上摩天轮的游客的数量计算每一次轮转时正在等摩天轮的游客的数量。\n\n轮转摩天轮分成两个阶段。第一阶段是前 $n$ 次轮转，每次轮转之前都可能有新游客到达。如果在第一阶段结束之后还有剩余的游客在等摩天轮，则进入第二阶段，将剩余的游客轮转完毕。\n\n对于第一阶段的每次轮转，需要首先计算该次轮转时正在等摩天轮的游客的数量，然后计算该次轮转的利润以及总利润，同时维护最大利润与最大利润的最小轮转次数。具体而言，第 $i$ 次轮转的流程如下：\n\n1. 使用 $\\textit{customers}[i]$ 的值更新正在等摩天轮的游客的数量；\n\n2. 计算登上座舱的游客的数量，为正在等摩天轮的游客的数量和座舱可以容纳的游客的数量的最小值；\n\n3. 将登上座舱的游客的数量从正在等摩天轮的游客的数量中减去；\n\n4. 计算该次轮转的利润，并计算到该次轮转的总利润；\n\n5. 如果总利润大于最大利润，则更新最大利润与最大利润的最小轮转次数。\n\n第一阶段结束后，如果没有剩余的游客在等摩天轮，则直接返回最大利润的最小轮转次数。如果还有剩余的游客在等摩天轮，只有当剩余的游客带来的利润为正时，才需要考虑第二阶段，可能获得更多的利润。\n\n由于每位游客需要支付的费用是正数，因此当座舱满舱时（即座舱上有 $4$ 位游客，达到最大容纳数量），可以达到一次轮转的最大利润。如果一次轮转的最大利润不为正，则第二阶段的利润一定不为正，因此直接返回第一阶段的最大利润的最小轮转次数。\n\n如果一次轮转的最大利润为正，则每次座舱满舱的轮转的利润都为正，因此计算全部满舱轮转之后的总利润，如果大于最大利润则更新最大利润与最大利润的最小轮转次数。最后可能剩下少于 $4$ 位游客，需要进行最后一次非满舱的轮转，在最后一次轮转之后计算总利润，如果总利润大于最大利润则更新最大利润与最大利润的最小轮转次数。\n\n```Python [sol1-Python3]\nclass Solution:\n    def minOperationsMaxProfit(self, customers: List[int], boardingCost: int, runningCost: int) -> int:\n        ans = -1\n        maxProfit = totalProfit = operations = customersCount = 0\n        for c in customers:\n            operations += 1\n            customersCount += c\n            curCustomers = min(customersCount, 4)\n            customersCount -= curCustomers\n            totalProfit += boardingCost * curCustomers - runningCost\n            if totalProfit > maxProfit:\n                maxProfit = totalProfit\n                ans = operations\n\n        if customersCount == 0:\n            return ans\n\n        profitEachTime = boardingCost * 4 - runningCost\n        if profitEachTime <= 0:\n            return ans\n\n        if customersCount > 0:\n            fullTimes = customersCount // 4\n            totalProfit += profitEachTime * fullTimes\n            operations += fullTimes\n            if totalProfit > maxProfit:\n                maxProfit = totalProfit\n                ans = operations\n\n            remainingCustomers = customersCount % 4\n            remainingProfit = boardingCost * remainingCustomers - runningCost\n            totalProfit += remainingProfit\n            if totalProfit > maxProfit:\n                operations += 1\n                ans += 1\n        return ans\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int minOperationsMaxProfit(int[] customers, int boardingCost, int runningCost) {\n        int ans = -1;\n        int maxProfit = 0;\n        int totalProfit = 0;\n        int operations = 0;\n        int customersCount = 0;\n        int n = customers.length;\n        for (int i = 0; i < n; i++) {\n            operations++;\n            customersCount += customers[i];\n            int curCustomers = Math.min(customersCount, 4);\n            customersCount -= curCustomers;\n            totalProfit += boardingCost * curCustomers - runningCost;\n            if (totalProfit > maxProfit) {\n                maxProfit = totalProfit;\n                ans = operations;\n            }\n        }\n        if (customersCount == 0) {\n            return ans;\n        }\n        int profitEachTime = boardingCost * 4 - runningCost;\n        if (profitEachTime <= 0) {\n            return ans;\n        }\n        if (customersCount > 0) {\n            int fullTimes = customersCount / 4;\n            totalProfit += profitEachTime * fullTimes;\n            operations += fullTimes;\n            if (totalProfit > maxProfit) {\n                maxProfit = totalProfit;\n                ans = operations;\n            }\n            int remainingCustomers = customersCount % 4;\n            int remainingProfit = boardingCost * remainingCustomers - runningCost;\n            totalProfit += remainingProfit;\n            if (totalProfit > maxProfit) {\n                maxProfit = totalProfit;\n                operations++;\n                ans++;\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MinOperationsMaxProfit(int[] customers, int boardingCost, int runningCost) {\n        int ans = -1;\n        int maxProfit = 0;\n        int totalProfit = 0;\n        int operations = 0;\n        int customersCount = 0;\n        int n = customers.Length;\n        for (int i = 0; i < n; i++) {\n            operations++;\n            customersCount += customers[i];\n            int curCustomers = Math.Min(customersCount, 4);\n            customersCount -= curCustomers;\n            totalProfit += boardingCost * curCustomers - runningCost;\n            if (totalProfit > maxProfit) {\n                maxProfit = totalProfit;\n                ans = operations;\n            }\n        }\n        if (customersCount == 0) {\n            return ans;\n        }\n        int profitEachTime = boardingCost * 4 - runningCost;\n        if (profitEachTime <= 0) {\n            return ans;\n        }\n        if (customersCount > 0) {\n            int fullTimes = customersCount / 4;\n            totalProfit += profitEachTime * fullTimes;\n            operations += fullTimes;\n            if (totalProfit > maxProfit) {\n                maxProfit = totalProfit;\n                ans = operations;\n            }\n            int remainingCustomers = customersCount % 4;\n            int remainingProfit = boardingCost * remainingCustomers - runningCost;\n            totalProfit += remainingProfit;\n            if (totalProfit > maxProfit) {\n                maxProfit = totalProfit;\n                operations++;\n                ans++;\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```C [sol1-C]\n#define MIN(a, b) ((a) < (b) ? (a) : (b))\n\nint minOperationsMaxProfit(int* customers, int customersSize, int boardingCost, int runningCost) {\n    int ans = -1;\n    int maxProfit = 0;\n    int totalProfit = 0;\n    int operations = 0;\n    int customersCount = 0;\n    int n = customersSize;\n    for (int i = 0; i < n; i++) {\n        operations++;\n        customersCount += customers[i];\n        int curCustomers = MIN(customersCount, 4);\n        customersCount -= curCustomers;\n        totalProfit += boardingCost * curCustomers - runningCost;\n        if (totalProfit > maxProfit) {\n            maxProfit = totalProfit;\n            ans = operations;\n        }\n    }\n    if (customersCount == 0) {\n        return ans;\n    }\n    int profitEachTime = boardingCost * 4 - runningCost;\n    if (profitEachTime <= 0) {\n        return ans;\n    }\n    if (customersCount > 0) {\n        int fullTimes = customersCount / 4;\n        totalProfit += profitEachTime * fullTimes;\n        operations += fullTimes;\n        if (totalProfit > maxProfit) {\n            maxProfit = totalProfit;\n            ans = operations;\n        }\n        int remainingCustomers = customersCount % 4;\n        int remainingProfit = boardingCost * remainingCustomers - runningCost;\n        totalProfit += remainingProfit;\n        if (totalProfit > maxProfit) {\n            maxProfit = totalProfit;\n            operations++;\n            ans++;\n        }\n    }\n    return ans;\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int minOperationsMaxProfit(vector<int>& customers, int boardingCost, int runningCost) {\n        int ans = -1;\n        int maxProfit = 0;\n        int totalProfit = 0;\n        int operations = 0;\n        int customersCount = 0;\n        int n = customers.size();\n        for (int i = 0; i < n; i++) {\n            operations++;\n            customersCount += customers[i];\n            int curCustomers = min(customersCount, 4);\n            customersCount -= curCustomers;\n            totalProfit += boardingCost * curCustomers - runningCost;\n            if (totalProfit > maxProfit) {\n                maxProfit = totalProfit;\n                ans = operations;\n            }\n        }\n        if (customersCount == 0) {\n            return ans;\n        }\n        int profitEachTime = boardingCost * 4 - runningCost;\n        if (profitEachTime <= 0) {\n            return ans;\n        }\n        if (customersCount > 0) {\n            int fullTimes = customersCount / 4;\n            totalProfit += profitEachTime * fullTimes;\n            operations += fullTimes;\n            if (totalProfit > maxProfit) {\n                maxProfit = totalProfit;\n                ans = operations;\n            }\n            int remainingCustomers = customersCount % 4;\n            int remainingProfit = boardingCost * remainingCustomers - runningCost;\n            totalProfit += remainingProfit;\n            if (totalProfit > maxProfit) {\n                maxProfit = totalProfit;\n                operations++;\n                ans++;\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```JavaScript [sol1-JavaScript]\nvar minOperationsMaxProfit = function(customers, boardingCost, runningCost) {\n    let ans = -1;\n    let maxProfit = 0;\n    let totalProfit = 0;\n    let operations = 0;\n    let customersCount = 0;\n    const n = customers.length;\n    for (let i = 0; i < n; i++) {\n        operations++;\n        customersCount += customers[i];\n        let curCustomers = Math.min(customersCount, 4);\n        customersCount -= curCustomers;\n        totalProfit += boardingCost * curCustomers - runningCost;\n        if (totalProfit > maxProfit) {\n            maxProfit = totalProfit;\n            ans = operations;\n        }\n    }\n    if (customersCount === 0) {\n        return ans;\n    }\n    const profitEachTime = boardingCost * 4 - runningCost;\n    if (profitEachTime <= 0) {\n        return ans;\n    }\n    if (customersCount > 0) {\n        const fullTimes = Math.floor(customersCount / 4);\n        totalProfit += profitEachTime * fullTimes;\n        operations += fullTimes;\n        if (totalProfit > maxProfit) {\n            maxProfit = totalProfit;\n            ans = operations;\n        }\n        const remainingCustomers = customersCount % 4;\n        const remainingProfit = boardingCost * remainingCustomers - runningCost;\n        totalProfit += remainingProfit;\n        if (totalProfit > maxProfit) {\n            maxProfit = totalProfit;\n            operations++;\n            ans++;\n        }\n    }\n    return ans;\n};\n```\n\n```go [sol1-Golang]\nfunc minOperationsMaxProfit(customers []int, boardingCost, runningCost int) int {\n    ans := -1\n    var maxProfit, totalProfit, operations, customersCount int\n    for _, c := range customers {\n        operations++\n        customersCount += c\n        curCustomers := min(customersCount, 4)\n        customersCount -= curCustomers\n        totalProfit += boardingCost*curCustomers - runningCost\n        if totalProfit > maxProfit {\n            maxProfit = totalProfit\n            ans = operations\n        }\n    }\n    if customersCount == 0 {\n        return ans\n    }\n    profitEachTime := boardingCost*4 - runningCost\n    if profitEachTime <= 0 {\n        return ans\n    }\n    if customersCount > 0 {\n        fullTimes := customersCount / 4\n        totalProfit += profitEachTime * fullTimes\n        operations += fullTimes\n        if totalProfit > maxProfit {\n            maxProfit = totalProfit\n            ans = operations\n        }\n        remainingCustomers := customersCount % 4\n        remainingProfit := boardingCost*remainingCustomers - runningCost\n        totalProfit += remainingProfit\n        if totalProfit > maxProfit {\n            maxProfit = totalProfit\n            operations++\n            ans++\n        }\n    }\n    return ans\n}\n\nfunc min(a, b int) int {\n    if a > b {\n        return b\n    }\n    return a\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是数组 $\\textit{customers}$ 的长度。遍历数组一次计算第一阶段的最大利润与最小轮转次数，时间复杂度是 $O(n)$，第二阶段的最大利润与最小轮转次数的计算的时间复杂度是 $O(1)$。\n\n- 空间复杂度：$O(1)$。只需要维护常量的额外空间。",
+            "slateValue": "",
+            "slug": "jing-ying-mo-tian-lun-de-zui-da-li-run-b-4mdh",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "NGYn8U",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 20,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Simulation",
+                    "nameTranslated": "模拟",
+                    "slug": "simulation",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2023-03-04T10:32:35.221312+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：模拟 假设每位游客需要支付的费用是 $\\textit{boardingCost}$，一次轮转有 $\\textit{curCustomers}$ 位游客登上座舱，每次轮转的运行成本是 $\\textit{runningCost}$，则摩天轮当前一次轮转的利润是 $\\textit{boardingCost} \\tim",
+            "topic": {
+                "id": 2147029,
+                "subscribed": false,
+                "commentCount": 163,
+                "viewCount": 1503,
+                "post": {
+                    "id": 4089390,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 19,
+            "isEditorsPick": false,
+            "hitCount": 21869,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "maximum-profit-of-operating-a-centennial-wheel",
+                "questionFrontendId": "1599"
+            },
+            "next": {
+                "slug": "python3javacgo-yi-ti-yi-jie-mo-ni-by-lcb-6kz7",
+                "title": "[Python3/Java/C++/Go] 一题一解：模拟"
+            },
+            "prev": null
+        }
+    }
+}

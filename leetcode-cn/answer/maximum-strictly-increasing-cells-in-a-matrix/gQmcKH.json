@@ -1,0 +1,150 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "gQmcKH",
+            "title": "矩阵中严格递增的单元格数",
+            "content": "#### 方法一：动态规划\n\n**思路与算法**\n\n设 $d[i][j]$ 为移动到单元格 $(i, j)$ 的最大步数，其中 $(i, j)$ 可以作为起始单元格，也可以是从其他单元格移动而来。那么我们会考虑从第 $i$ 行以及第 $j$ 列上矩阵数值小于 $\\textit{mat}[i][j]$ 的位置进行转移，即取以下数值中的最大值：\n\n- 第 $i$ 行：$\\max(d[i][j'] + 1)$，其中 $\\textit{mat}[i][j'] < \\textit{mat}[i][j]$；\n- 第 $j$ 列：$\\max(d[i'][j] + 1)$，其中 $\\textit{mat}[i'][j] < \\textit{mat}[i][j]$。\n\n因此，整个状态空间在进行转移时是有序的，我们可以对 $\\textit{mat}$ 进行排序，从小到大进行转移。但在转移时，每个状态都要扫描一遍对应的行和列，时间复杂度为 $O(n + m)$，而整体求解的时间复杂度为 $O(nm(n+m))$，可能会超时，因此需要进行优化。\n\n考虑到所有的 $d[i][j]$ 在更新时，值只会越来越大，而转移过程中我们只考虑对应行和对应列上 $d$ 的最大值（由于大于 $\\textit{mat}[i][j]$ 的位置还未遍历到，它们的状态还未更新，可设置为 $0$）。因此，设置长度为 $m$ 的数组 $\\textit{row}$ 来维护每一行 $d$ 的最大值，设置长度为 $n$ 的数组 $\\textit{col}$ 来维护每一列的最大值，这样一来：\n\n$$d[i][j] = \\max(\\textit{row}[i], \\textit{col}[j]) + 1$$\n\n在每次更新了 $d[i][j]$ 后，需要更新 $\\textit{row}[i]$ 和 $\\textit{col}[j]$。另外需要注意的是，由于 $\\textit{mat}$ 中可能包含相同数字，我们需要同时更新它们的 $d$ 值，然后再同时更新它们对应的 $\\textit{row}$ 和 $\\textit{col}$。\n\n**代码**\n\n```Python [sol1-Python3]\nclass Solution:\n    def maxIncreasingCells(self, mat: List[List[int]]) -> int:\n        m, n = len(mat), len(mat[0])\n        mp = defaultdict(list)\n        row = [0] * m\n        col = [0] * n\n\n        for i in range(m):\n            for j in range(n):\n                mp[mat[i][j]].append((i, j))\n        for _, pos in sorted(mp.items(), key=lambda k:k[0]):\n            # 存放相同数值的答案，便于后续更新 row 和 col\n            res = [max(row[i], col[j]) + 1 for i, j in pos]\n            for (i, j), d in zip(pos, res):\n                row[i] = max(row[i], d)\n                col[j] = max(col[j], d)\n        return max(row)\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int maxIncreasingCells(int[][] mat) {\n        int m = mat.length, n = mat[0].length;\n        Map<Integer, List<int[]>> mp = new HashMap<Integer, List<int[]>>();\n        int[] row = new int[m];\n        int[] col = new int[n];\n\n        for (int i = 0; i < m; i++) {\n            for (int j = 0; j < n; j++) {\n                mp.putIfAbsent(mat[i][j], new ArrayList<int[]>());\n                mp.get(mat[i][j]).add(new int[]{i, j});\n            }\n        }\n        List<Integer> keys = new ArrayList<Integer>(mp.keySet());\n        Collections.sort(keys);\n        for (int key : keys) {\n            List<int[]> pos = mp.get(key);\n            List<Integer> res = new ArrayList<Integer>(); // 存放相同数值的答案，便于后续更新 row 和 col\n            for (int[] arr : pos) {\n                res.add(Math.max(row[arr[0]], col[arr[1]]) + 1);\n            }\n            for (int i = 0; i < pos.size(); i++) {\n                int[] arr = pos.get(i);\n                int d = res.get(i);\n                row[arr[0]] = Math.max(row[arr[0]], d);\n                col[arr[1]] = Math.max(col[arr[1]], d);\n            }\n        }\n        return Arrays.stream(row).max().getAsInt();\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MaxIncreasingCells(int[][] mat) {\n        int m = mat.Length, n = mat[0].Length;\n        IDictionary<int, IList<int[]>> dic = new Dictionary<int, IList<int[]>>();\n        int[] row = new int[m];\n        int[] col = new int[n];\n\n        for (int i = 0; i < m; i++) {\n            for (int j = 0; j < n; j++) {\n                dic.TryAdd(mat[i][j], new List<int[]>());\n                dic[mat[i][j]].Add(new int[]{i, j});\n            }\n        }\n        IList<int> keys = new List<int>(dic.Keys);\n        ((List<int>) keys).Sort();\n        foreach (int key in keys) {\n            IList<int[]> pos = dic[key];\n            IList<int> res = new List<int>(); // 存放相同数值的答案，便于后续更新 row 和 col\n            foreach (int[] arr in pos) {\n                res.Add(Math.Max(row[arr[0]], col[arr[1]]) + 1);\n            }\n            for (int i = 0; i < pos.Count; i++) {\n                int[] arr = pos[i];\n                int d = res[i];\n                row[arr[0]] = Math.Max(row[arr[0]], d);\n                col[arr[1]] = Math.Max(col[arr[1]], d);\n            }\n        }\n        return row.Max();\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int maxIncreasingCells(vector<vector<int>>& mat) {\n        int m = mat.size(), n = mat[0].size();\n        map<int, vector<pair<int, int>>> mp;\n        vector<int> row(m), col(n);\n        \n        for (int i = 0; i < m; i++) {\n            for (int j = 0; j < n; j++) {\n                mp[mat[i][j]].push_back({i, j});\n            }\n        }\n\n        vector<int> res; // 存放相同数值的答案，便于后续更新 row 和 col\n        for (auto &[_, pos] : mp) {\n            res.clear();\n            for (auto &[x, y] : pos) {\n                res.push_back(max(row[x], col[y]) + 1);\n            }\n            for (int i = 0; i < pos.size(); i++) {\n                auto &[x, y] = pos[i];\n                row[x] = max(row[x], res[i]);\n                col[y] = max(col[y], res[i]);\n            }\n        }\n\n        return *max_element(row.begin(), row.end());\n    }\n};\n```\n\n```Go [sol1-Go]\nfunc maxIncreasingCells(mat [][]int) int {\n    m, n := len(mat), len(mat[0])\n    mp := make(map[int][][2]int)\n    row := make([]int, m)\n    col := make([]int, n)\n    for i := 0; i < m; i++ {\n        for j := 0; j < n; j++ {\n            mp[mat[i][j]] = append(mp[mat[i][j]], [2]int{i, j})\n        }\n    }\n    keys := []int{}\n    for key, _ := range mp {\n        keys = append(keys, key)\n    }\n    sort.Ints(keys)\n\n    for _, key := range keys {\n        pos := mp[key]\n        res := []int{} // 存放相同数值的答案，便于后续更新 row 和 col\n        for _, arr := range pos {\n            res = append(res, max(row[arr[0]], col[arr[1]]) + 1);\n        }\n        for i := 0; i < len(pos); i++ {\n            arr, d := pos[i], res[i]\n            row[arr[0]] = max(row[arr[0]], d)\n            col[arr[1]] = max(col[arr[1]], d)\n        }\n    }\n    \n    return maxSlice(row)\n}\n\nfunc maxSlice(slice []int) int {\n    maxVal := slice[0]\n    for _, val := range slice {\n        if val > maxVal {\n            maxVal = val\n        }\n    }\n    return maxVal\n}\n```\n\n```C [sol1-C]\ntypedef struct Element {\n    int x;\n    int y;\n    struct Element *next;\n} Element;\n\ntypedef struct {\n    int key;\n    Element *val;\n    UT_hash_handle hh;\n} HashItem; \n\nElement *createElement(int x, int y) {\n    Element *obj = (Element *)malloc(sizeof(Element));\n    obj->x = x;\n    obj->y = y;\n    obj->next = NULL;\n    return obj;\n}\n\nvoid freeList(Element *list) {\n    while (list) {\n        Element *p = list;\n        list = list->next;\n        free(p);\n    }\n}\n\nHashItem *hashFindItem(HashItem **obj, int key) {\n    HashItem *pEntry = NULL;\n    HASH_FIND_INT(*obj, &key, pEntry);\n    return pEntry;\n}\n\nbool hashAddItem(HashItem **obj, int key, int x, int y) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    Element *p = createElement(x, y);\n    if (pEntry) {\n        p->next = pEntry->val;\n        pEntry->val = p;\n    } else {\n        HashItem *pEntry = (HashItem *)malloc(sizeof(HashItem));\n        pEntry->key = key;\n        pEntry->val = p;\n        HASH_ADD_INT(*obj, key, pEntry);\n    }\n\n    return true;\n}\n\nElement* hashGetItem(HashItem **obj, int key, Element *defaultVal) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        return defaultVal;\n    }\n    return pEntry->val;\n}\n\nvoid hashFree(HashItem **obj) {\n    HashItem *curr = NULL, *tmp = NULL;\n    HASH_ITER(hh, *obj, curr, tmp) {\n        HASH_DEL(*obj, curr);  \n        free(curr->val);\n        free(curr);\n    }\n}\n\nstatic int cmp(const void *a, const void *b) {\n    return *(int *)a - *(int *)b;\n}\n\nint maxIncreasingCells(int** mat, int matSize, int* matColSize){\n    int m = matSize, n = matColSize[0];\n    HashItem *mp = NULL;\n    int row[m], col[n];\n    memset(row, 0, sizeof(row));\n    memset(col, 0, sizeof(col));\n    for (int i = 0; i < m; i++) {\n        for (int j = 0; j < n; j++) {\n            hashAddItem(&mp, mat[i][j], i, j);\n        }\n    }\n    \n    int len = HASH_COUNT(mp);\n    int sortedKeys[len]; \n    int pos = 0;\n    for (HashItem *pEntry = mp; pEntry; pEntry = pEntry->hh.next) {\n        sortedKeys[pos++] = pEntry->key;\n    }\n    qsort(sortedKeys, len, sizeof(int), cmp);\n    int res[m * n]; // 存放相同数值的答案，便于后续更新 row 和 col\n    for (int i = 0; i < pos; i++) {\n        Element *pos = hashGetItem(&mp, sortedKeys[i], NULL);\n        int k = 0;\n        for (Element *p = pos; p; p = p->next) {\n            int x = p->x;\n            int y = p->y;\n            res[k++] = fmax(row[x], col[y]) + 1;\n        }\n        int j = 0;\n        for (Element *p = pos; p; p = p->next) {\n            int x = p->x;\n            int y = p->y;\n            row[x] = fmax(row[x], res[j]);\n            col[y] = fmax(col[y], res[j]);\n            j++;\n        }\n    }\n\n    int maxVal = 0;\n    for (int i = 0; i < m; i++) {\n        maxVal = fmax(maxVal, row[i]);\n    }\n    hashFree(&mp);\n    return maxVal;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar maxIncreasingCells = function(mat) {\n    const m = mat.length;\n    const n = mat[0].length;\n    const mp = new Map();\n    const row = new Array(m).fill(0);\n    const col = new Array(n).fill(0);\n\n    for (let i = 0; i < m; i++) {\n        for (let j = 0; j < n; j++) {\n            if (!mp.has(mat[i][j])) {\n                mp.set(mat[i][j], []);\n            }\n            mp.get(mat[i][j]).push([i, j]);\n        }\n    }\n    const sortedMap = new Map([...mp.entries()].sort((a, b) => a[0] - b[0]));\n    for (const [_, pos] of sortedMap) {\n        const res = pos.map(([i, j]) => Math.max(row[i], col[j]) + 1); // 存放相同数值的答案，便于后续更新 row 和 col\n        for (let k = 0; k < pos.length; k++) {\n            const [i, j] = pos[k];\n            const d = res[k];\n            row[i] = Math.max(row[i], d);\n            col[j] = Math.max(col[j], d);\n        }\n    }\n    return Math.max(...row);\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction maxIncreasingCells(mat: number[][]): number {\n    const m: number = mat.length;\n    const n: number = mat[0].length;\n    const mp: Map<number, [number, number][]> = new Map();\n    const row: number[] = new Array(m).fill(0);\n    const col: number[] = new Array(n).fill(0);\n\n    for (let i = 0; i < m; i++) {\n        for (let j = 0; j < n; j++) {\n            if (!mp.has(mat[i][j])) {\n                mp.set(mat[i][j], []);\n            }\n            mp.get(mat[i][j])!.push([i, j]);\n        }\n    }\n    const sortedMap: Map<number, [number, number][]> = new Map([...mp.entries()].sort((a, b) => a[0] - b[0]));\n    for (const [_, pos] of sortedMap) {\n        const res: number[] = pos.map(([i, j]) => Math.max(row[i], col[j]) + 1); // 存放相同数值的答案，便于后续更新 row 和 col\n        for (let k = 0; k < pos.length; k++) {\n            const [i, j] = pos[k];\n            const d = res[k];\n            row[i] = Math.max(row[i], d);\n            col[j] = Math.max(col[j], d);\n        }\n    }\n    return Math.max(...row);\n};\n```\n\n```Rust [sol1-Rust]\nuse std::collections::HashMap;\n\nimpl Solution {\n    pub fn max_increasing_cells(mat: Vec<Vec<i32>>) -> i32 {\n        let m = mat.len();\n        let n = mat[0].len();\n        let mut mp: HashMap<i32, Vec<(usize, usize)>> = HashMap::new();\n        let mut row = vec![0; m];\n        let mut col = vec![0; n];\n\n        for i in 0..m {\n            for j in 0..n {\n                mp.entry(mat[i][j]).or_insert(Vec::new()).push((i, j));\n            }\n        }\n        let mut sorted_map: Vec<_> = mp.iter().collect();\n        sorted_map.sort_by(|a, b| a.0.cmp(b.0));\n        for (_, pos) in sorted_map {\n            let res: Vec<_> = pos.iter().map(|&(i, j)| row[i].max(col[j]) + 1).collect(); // 存放相同数值的答案，便于后续更新 row 和 col\n            for (&(i, j), &d) in pos.iter().zip(res.iter()) {\n                row[i] = row[i].max(d);\n                col[j] = col[j].max(d);\n            }\n        }\n        *row.iter().max().unwrap()\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(mn\\log (mn))$，其中 $m$ 是 $\\textit{mat}$ 的行数，$n$ 是 $\\textit{mat}$ 的列数。从小到大进行状态转移之前，需要对 $\\textit{mat}$ 进行排序，这部分时间复杂度为 $O(mn\\log (mn))$。每个状态转移的时间复杂度为 $O(1)$，所有状态转移的时间复杂度为 $O(mn)$。因此总体时间复杂度为 $O(mn\\log (mn))$。\n\n- 空间复杂度：$O(mn)$。",
+            "slateValue": "",
+            "slug": "ju-zhen-zhong-yan-ge-di-zeng-de-dan-yuan-ff4v",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "gQmcKH",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 26,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Matrix",
+                    "nameTranslated": "矩阵",
+                    "slug": "matrix",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2024-06-13T05:10:55.841229+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 思路与算法 设 $d[i][j]$ 为移动到单元格 $(i, j)$ 的最大步数，其中 $(i, j)$ 可以作为起始单元格，也可以是从其他单元格移动而来。那么我们会考虑从第 $i$ 行以及第 $j$ 列上矩阵数值小于 $\\textit{mat}[i][j]$ 的位置进行转移，即取以下数值中的最大值：",
+            "topic": {
+                "id": 2809597,
+                "subscribed": false,
+                "commentCount": 26,
+                "viewCount": 729,
+                "post": {
+                    "id": 5129649,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 45,
+            "isEditorsPick": false,
+            "hitCount": 12438,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "maximum-strictly-increasing-cells-in-a-matrix",
+                "questionFrontendId": "2713"
+            },
+            "next": {
+                "slug": "dong-tai-gui-hua-you-hua-pythonjavacgo-b-axv0",
+                "title": "动态规划+优化（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

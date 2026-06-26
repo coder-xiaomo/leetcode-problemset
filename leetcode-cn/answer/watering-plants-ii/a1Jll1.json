@@ -1,0 +1,126 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "a1Jll1",
+            "title": "给植物浇水 II",
+            "content": "#### 方法一：模拟\n\n**思路与算法**\n\n我们可以模拟 $\\textit{Alice}$ 与 $\\textit{Bob}$ 浇水的过程，并在模拟的过程中统计重新灌满水罐的次数。\n\n我们用 $\\textit{pos}_a, \\textit{pos}_b$ 分别表示 $\\textit{Alice}$ 与 $\\textit{Bob}$ 当前所在植物的下标，并用 $\\textit{val}_a, \\textit{val}_b$ 分别表示两人水罐中的剩余水量。我们用 $n$ 表示植物的数量，当模拟开始时，$\\textit{Alice}$ 与 $\\textit{Bob}$ 的位置满足 $\\textit{pos}_a = 0, \\textit{pos}_b = n - 1$；剩余水量满足 $\\textit{val}_a = \\textit{capacity}_a, \\textit{val}_b = \\textit{capacity}_b$。\n\n当 $\\textit{Alice}$ 与 $\\textit{Bob}$ **相遇前**的每一个时刻，我们需要模拟两人对当前位置植物浇水的过程。以 $\\textit{Alice}$ 为例，我们比较当前剩余水量 $\\textit{val}_a$ 与植物所需水量 $\\textit{plants}[\\textit{pos}_a]$ 的大小，此时会有两种情况：\n\n- 如果剩余水量大于等于植物所需水量，即 $\\textit{val}_a \\ge \\textit{plants}[\\textit{pos}_a]$，此时不需要重新灌满水罐，浇水后剩余水量变为 $\\textit{val}_a - \\textit{plants}[\\textit{pos}_a]$；\n\n- 如果剩余水量小于植物所需水量，即 $\\textit{val}_a < \\textit{plants}[\\textit{pos}_a]$，此时需要先重新灌满水罐，**我们需要将重新灌满水罐的次数加上 $1$**，浇水后剩余水量等于水罐容积减去植物所需水量，即 $\\textit{capacity}_a - \\textit{plants}[\\textit{pos}_a]$。\n\n在浇水操作后，我们需要将 $\\textit{Alice}$ 与 $\\textit{Bob}$ 分别移动至下一株植物的位置，即 $\\textit{pos}_a$ 变为 $\\textit{pos}_a + 1$， $\\textit{pos}_b$ 变为 $\\textit{pos}_b - 1$。\n\n当 $\\textit{Alice}$ 与 $\\textit{Bob}$ **相遇后**，此时根据 $n$ 的奇偶性会有两种情况：\n\n- $n$ 为偶数，相遇后两人所在位置都被浇过水，因此无需任何操作；\n\n- $n$ 为奇数，两人位置重合，且该位置植物未被浇水，此时需要先比较两人的剩余水量，再进行上文的浇水操作并维护重新灌满次数：如果 $\\textit{val}_a \\ge \\textit{val}_b$，则 $\\textit{Alice}$ 浇水，反之则 $\\textit{Bob}$ 浇水。\n\n事实上，对于可能的最后一步操作，我们只需要判断是否需要重新灌满水罐并维护对应次数即可。\n\n模拟结束后，我们返回统计的重新灌满水罐次数作为答案。\n\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int minimumRefill(vector<int>& plants, int capacityA, int capacityB) {\n        int res = 0;   // 灌满水罐次数\n        int n = plants.size();   \n        int posa = 0, posb = n - 1;  // 两人位置\n        int vala = capacityA, valb = capacityB; // 两人剩余水量\n        // 模拟相遇前的浇水过程\n        while (posa < posb) {\n            if (vala < plants[posa]) {\n                ++res;\n                vala = capacityA - plants[posa];\n            }\n            else {\n                vala -= plants[posa];\n            }\n            ++posa;\n            if (valb < plants[posb]) {\n                ++res;\n                valb = capacityB - plants[posb];\n            }\n            else {\n                valb -= plants[posb];\n            }\n            --posb;\n        }\n        // 模拟相遇后可能的浇水过程\n        if (posa == posb) {\n            if (vala >= valb && vala < plants[posa]) {\n                ++res;\n            }\n            if (vala < valb && valb < plants[posb]) {\n                ++res;\n            }\n        }\n        return res;\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def minimumRefill(self, plants: List[int], capacityA: int, capacityB: int) -> int:\n        res = 0   # 灌满水罐次数\n        n = len(plants)\n        posa, posb = 0, n - 1   # 两人位置\n        vala, valb = capacityA, capacityB   # 两人剩余水量\n        # 模拟相遇前的浇水过程\n        while posa < posb:\n            if vala < plants[posa]:\n                res += 1\n                vala = capacityA - plants[posa]\n            else:\n                vala -= plants[posa]\n            posa += 1\n            if valb < plants[posb]:\n                res += 1\n                valb = capacityB - plants[posb]\n            else:\n                valb -= plants[posb]\n            posb -= 1\n        # 模拟相遇后可能的浇水过程\n        if posa == posb:\n            if vala >= valb and vala < plants[posa]:\n                res += 1\n            elif vala < valb and valb < plants[posb]:\n                res += 1\n        return res\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int minimumRefill(int[] plants, int capacityA, int capacityB) {\n        int res = 0; // 灌满水罐次数\n        int n = plants.length; \n        int posa = 0, posb = n - 1;  // 两人位置\n        int vala = capacityA, valb = capacityB; // 两人剩余水量\n        // 模拟相遇前的浇水过程\n        while (posa < posb) {\n            if (vala < plants[posa]) {\n                ++res;\n                vala = capacityA - plants[posa];\n            } else {\n                vala -= plants[posa];\n            }\n            ++posa;\n            if (valb < plants[posb]) {\n                ++res;\n                valb = capacityB - plants[posb];\n            } else {\n                valb -= plants[posb];\n            }\n            --posb;\n        }\n        // 模拟相遇后可能的浇水过程\n        if (posa == posb) {\n            if (vala >= valb && vala < plants[posa]) {\n                ++res;\n            }\n            if (vala < valb && valb < plants[posb]) {\n                ++res;\n            }\n        }\n        return res;\n    }\n}\n```\n\n```C [sol1-C]\nint minimumRefill(int* plants, int plantsSize, int capacityA, int capacityB) {\n    int res = 0;   // 灌满水罐次数\n    int n = plantsSize;   \n    int posa = 0, posb = n - 1;  // 两人位置\n    int vala = capacityA, valb = capacityB;  // 两人剩余水量\n    // 模拟相遇前的浇水过程\n    while (posa < posb) {\n        if (vala < plants[posa]) {\n            ++res;\n            vala = capacityA - plants[posa];\n        } else {\n            vala -= plants[posa];\n        }\n        ++posa;\n        if (valb < plants[posb]) {\n            ++res;\n            valb = capacityB - plants[posb];\n        } else {\n            valb -= plants[posb];\n        }\n        --posb;\n    }\n    // 模拟相遇后可能的浇水过程\n    if (posa == posb) {\n        if (vala >= valb && vala < plants[posa]) {\n            ++res;\n        }\n        if (vala < valb && valb < plants[posb]) {\n            ++res;\n        }\n    }\n    return res;\n}\n```\n\n```Go [sol1-Go]\nfunc minimumRefill(plants []int, capacityA int, capacityB int) int {\n    res := 0   // 灌满水罐次数\n    n := len(plants)  \n    posa, posb := 0, n - 1  // 两人位置\n    vala, valb := capacityA, capacityB  // 两人剩余水量\n    // 模拟相遇前的浇水过程\n    for posa < posb {\n        if vala < plants[posa] {\n            res++\n            vala = capacityA - plants[posa]\n        } else {\n            vala -= plants[posa]\n        }\n        posa++\n        if valb < plants[posb] {\n            res++\n            valb = capacityB - plants[posb]\n        } else {\n            valb -= plants[posb]\n        }\n        posb--\n    }\n    // 模拟相遇后可能的浇水过程\n    if posa == posb {\n        if vala >= valb && vala < plants[posa] {\n            res++\n        }\n        if vala < valb && valb < plants[posb] {\n            res++\n        }\n    }\n    return res\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar minimumRefill = function(plants, capacityA, capacityB) {\n    let res = 0; // 灌满水罐次数\n    let n = plants.length;\n    let posa = 0, posb = n - 1; // 两人位置\n    let vala = capacityA, valb = capacityB; // 两人剩余水量\n    // 模拟相遇前的浇水过程\n    while (posa < posb) {\n        if (vala < plants[posa]) {\n            ++res;\n            vala = capacityA - plants[posa];\n        } else {\n            vala -= plants[posa];\n        }\n        ++posa;\n        if (valb < plants[posb]) {\n            ++res;\n            valb = capacityB - plants[posb];\n        } else {\n            valb -= plants[posb];\n        }\n        --posb;\n    }\n    // 模拟相遇后可能的浇水过程\n    if (posa === posb) {\n        if (vala >= valb && vala < plants[posa]) {\n            ++res;\n        }\n        if (vala < valb && valb < plants[posb]) {\n            ++res;\n        }\n    }\n    return res;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction minimumRefill(plants: number[], capacityA: number, capacityB: number): number {\n    let res = 0; // 灌满水罐次数\n    let n = plants.length;\n    let posa = 0, posb = n - 1; // 两人位置\n    let vala = capacityA, valb = capacityB; // 两人剩余水量\n    // 模拟相遇前的浇水过程\n    while (posa < posb) {\n        if (vala < plants[posa]) {\n            ++res;\n            vala = capacityA - plants[posa];\n        } else {\n            vala -= plants[posa];\n        }\n        ++posa;\n        if (valb < plants[posb]) {\n            ++res;\n            valb = capacityB - plants[posb];\n        } else {\n            valb -= plants[posb];\n        }\n        --posb;\n    }\n    // 模拟相遇后可能的浇水过程\n    if (posa === posb) {\n        if (vala >= valb && vala < plants[posa]) {\n            ++res;\n        }\n        if (vala < valb && valb < plants[posb]) {\n            ++res;\n        }\n    }\n    return res;\n};\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn minimum_refill(plants: Vec<i32>, capacity_a: i32, capacity_b: i32) -> i32 {\n        let mut res = 0;\n        let n = plants.len();\n        let mut posa = 0; // 两人位置\n        let mut posb = n - 1;\n        let mut vala = capacity_a; // 两人剩余水量\n        let mut valb = capacity_b;\n        // 模拟相遇前的浇水过程\n        while posa < posb {\n            if vala < plants[posa] {\n                res += 1;\n                vala = capacity_a - plants[posa];\n            } else {\n                vala -= plants[posa];\n            }\n            posa += 1;\n            if valb < plants[posb] {\n                res += 1;\n                valb = capacity_b - plants[posb];\n            } else {\n                valb -= plants[posb];\n            }\n            posb -= 1;\n        }\n        // 模拟相遇后可能的浇水过程\n        if posa == posb {\n            if vala >= valb && vala < plants[posa] {\n                res += 1;\n            }\n            if vala < valb && valb < plants[posb] {\n                res += 1;\n            }\n        }\n        res\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 为 $\\textit{plants}$ 的长度。模拟浇水过程并统计重新灌满水罐次数的时间复杂度为 $O(n)$。\n\n- 空间复杂度：$O(1)$。",
+            "slateValue": "",
+            "slug": "gei-zhi-wu-jiao-shui-ii-by-leetcode-solu-5cki",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "a1Jll1",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 8,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-12-12T08:20:42.592086+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：模拟 思路与算法 我们可以模拟 [latex] 与 [latex] 浇水的过程，并在模拟的过程中统计重新灌满水罐的次数。 我们用 [latex] 分别表示 [latex] 与 [latex] 当前所在植物的下标，并用 [latex] 分别表示两人水罐中的剩余水量。我们用 [latex] 表示植物的数量，当模拟开",
+            "topic": {
+                "id": 1153687,
+                "subscribed": false,
+                "commentCount": 53,
+                "viewCount": 2811,
+                "post": {
+                    "id": 2432542,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 11,
+            "isEditorsPick": false,
+            "hitCount": 13648,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "watering-plants-ii",
+                "questionFrontendId": "2105"
+            },
+            "next": {
+                "slug": "shuang-zhi-zhen-mo-ni-by-endlesscheng-9l76",
+                "title": "相向双指针模拟（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

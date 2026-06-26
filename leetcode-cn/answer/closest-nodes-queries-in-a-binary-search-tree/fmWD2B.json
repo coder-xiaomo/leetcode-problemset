@@ -1,0 +1,156 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "fmWD2B",
+            "title": "二叉搜索树最近节点查询",
+            "content": "#### 方法一：二分查找\n\n**思路与算法**\n\n根据题意要求给定查询的值 $\\textit{queries}_i$，需要在二叉搜索中找到 $\\textit{min}_i, \\textit{max}_i$：\n+ $\\textit{min}_i$ 是树中小于等于 $\\textit{queries}_i$ 的**最大值**。如果不存在这样的值，则使用 $-1$ 代替。\n+ $\\textit{max}_i$ 是树中大于等于 $\\textit{queries}_i$ 的**最小值**。如果不存在这样的值，则使用 $-1$ 代替。\n\n由于该二叉搜索树并不是平衡的，则最坏情况该树可能形成一条链，直接在树上查找可能存在超时。我们可以保存树中所有的节点值，并将其排序，每次给定查询值 $\\textit{val}$ 时，利用二分查找直接在树中找到大于等于 $\\textit{val}$ 的最小值与小于等于 $\\textit{val}$ 的最小值。由于给定的二叉树为**二叉搜索树**，因此按照**中序**遍历该树的结果即为升序，我们直接用数组 $\\textit{arr}$ 保存二叉树的中序遍历结果，并使用二分查找在索引中找到大于等于 $\\textit{val}$ 最左侧的索引 $\\textit{index}$，此时分析如下：\n+ 如果索引 $\\textit{index}$ 合法存在，则此时大于等于 $\\textit{val}$ 的最小元素即为 $\\textit{arr}[\\textit{index}]$，否则则为 $-1$，如果此时 $\\textit{arr}[\\textit{index}] = \\textit{val}$，则小于等于 $\\textit{val}$ 的最大元素也为 $\\textit{arr}[\\textit{index}]$。\n+ 如果索引 $\\textit{index}$ 大于 $0$，则此时小于等于 $\\textit{val}$ 的最大元素即为 $\\textit{arr}[\\textit{index} -1]$，否则则为 $-1$。\n\n我们按照题目要求返回查询结果即可。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<vector<int>> closestNodes(TreeNode* root, vector<int>& queries) {\n        vector<int> arr;\n        function<void(TreeNode*)> dfs = [&](TreeNode *root) {\n            if (!root) {\n                return;\n            }    \n            dfs(root->left);\n            arr.emplace_back(root->val);\n            dfs(root->right);\n        };\n        dfs(root);\n\n        vector<vector<int>> res;\n        for (int val : queries) {\n            int maxVal = -1, minVal = -1;\n            auto it = lower_bound(arr.begin(), arr.end(), val);\n            if (it != arr.end()) {\n                maxVal = *it;\n                if (*it == val) {\n                    minVal = *it;\n                    res.push_back({minVal, maxVal});\n                    continue;\n                }\n            }\n            if (it != arr.begin()) {\n                minVal = *(--it);\n            }\n            res.push_back({minVal, maxVal});\n        }\n        return res;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public List<List<Integer>> closestNodes(TreeNode root, List<Integer> queries) {\n        List<Integer> arr = new ArrayList<Integer>();\n        dfs(root, arr);\n\n        List<List<Integer>> res = new ArrayList<List<Integer>>();\n        for (int val : queries) {\n            int maxVal = -1, minVal = -1;\n            int idx = binarySearch(arr, val);\n            if (idx != arr.size()) {\n                maxVal = arr.get(idx);\n                if (arr.get(idx) == val) {\n                    minVal = val;\n                    List<Integer> list = new ArrayList<Integer>();\n                    list.add(minVal);\n                    list.add(maxVal);\n                    res.add(list);\n                    continue;\n                }\n            }\n            if (idx > 0) {\n                minVal = arr.get(idx - 1);\n            }\n            List<Integer> list2 = new ArrayList<Integer>();\n            list2.add(minVal);\n            list2.add(maxVal);\n            res.add(list2);\n        }\n        return res;\n    }\n\n    public void dfs(TreeNode root, List<Integer> arr) {\n        if (root == null) {\n            return;\n        }    \n        dfs(root.left, arr);\n        arr.add(root.val);\n        dfs(root.right, arr);\n    }\n\n    public int binarySearch(List<Integer> arr, int target) {\n        int low = 0, high = arr.size();\n        while (low < high) {\n            int mid = low + (high - low) / 2;\n            if (arr.get(mid) >= target) {\n                high = mid;\n            } else {\n                low = mid + 1;\n            }\n        }\n        return low;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public IList<IList<int>> ClosestNodes(TreeNode root, IList<int> queries) {\n        IList<int> arr = new List<int>();\n        DFS(root, arr);\n\n        IList<IList<int>> res = new List<IList<int>>();\n        foreach (int val in queries) {\n            int maxVal = -1, minVal = -1;\n            int idx = BinarySearch(arr, val);\n            if (idx != arr.Count) {\n                maxVal = arr[idx];\n                if (arr[idx] == val) {\n                    minVal = val;\n                    IList<int> list = new List<int>();\n                    list.Add(minVal);\n                    list.Add(maxVal);\n                    res.Add(list);\n                    continue;\n                }\n            }\n            if (idx > 0) {\n                minVal = arr[idx - 1];\n            }\n            IList<int> list2 = new List<int>();\n            list2.Add(minVal);\n            list2.Add(maxVal);\n            res.Add(list2);\n        }\n        return res;\n    }\n\n    public void DFS(TreeNode root, IList<int> arr) {\n        if (root == null) {\n            return;\n        }    \n        DFS(root.left, arr);\n        arr.Add(root.val);\n        DFS(root.right, arr);\n    }\n\n    public int BinarySearch(IList<int> arr, int target) {\n        int low = 0, high = arr.Count;\n        while (low < high) {\n            int mid = low + (high - low) / 2;\n            if (arr[mid] >= target) {\n                high = mid;\n            } else {\n                low = mid + 1;\n            }\n        }\n        return low;\n    }\n}\n```\n\n```C [sol1-C]\nint count(struct TreeNode* root) {\n    if (!root) {\n        return 0;\n    }\n    return 1 + count(root->left) + count(root->right);\n}\n\nvoid dfs(struct TreeNode* root, int *arr, int *pos) {\n    if (!root) {\n        return;\n    }\n    dfs(root->left, arr, pos);\n    arr[*pos] = root->val;\n    (*pos)++;\n    dfs(root->right, arr, pos);\n}\n\nint binarySearch(const int *arr, int arrSize, int target) {\n    int lo = 0, hi = arrSize - 1;\n    int ret = arrSize;\n    while (lo <= hi) {\n        int mid = (lo + hi) >> 1;\n        if (arr[mid] >= target) {\n            ret = mid;\n            hi = mid - 1;\n        } else {\n            lo = mid + 1;\n        }\n    }\n    return ret;\n}\n\nint** closestNodes(struct TreeNode* root, int* queries, int queriesSize, int* returnSize, int** returnColumnSizes) {\n    int tot = count(root);\n    int *arr = (int *)malloc(sizeof(int) * tot);\n    int pos = 0;\n    dfs(root, arr, &pos);\n\n    int **res = (int **)malloc(sizeof(int *) * queriesSize);\n    *returnColumnSizes = (int *)malloc(sizeof(int) * queriesSize);\n    for (int i = 0; i < queriesSize; i++) {\n        res[i] = (int *)malloc(sizeof(int) * 2);\n        (*returnColumnSizes)[i] = 2;\n\n        int val = queries[i];\n        int maxVal = -1, minVal = -1;\n        int index = binarySearch(arr, tot,  val);\n        if (index != tot) {\n            maxVal = arr[index];\n            if (arr[index] == val) {\n                minVal = arr[index];\n                res[i][0] = minVal;\n                res[i][1] = maxVal;\n                continue;\n            }\n        }\n        if (index != 0) {\n            minVal = arr[index - 1];\n        }\n        res[i][0] = minVal;\n        res[i][1] = maxVal;\n    }\n    *returnSize = queriesSize;\n    return res;\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def closestNodes(self, root: Optional[TreeNode], queries: List[int]) -> List[List[int]]:\n        arr = []\n        def dfs(root):\n            if root is None:\n                return\n            dfs(root.left)\n            arr.append(root.val)\n            dfs(root.right)\n        \n        dfs(root)\n        res = []\n        for val in  queries:\n            maxVal, minVal = -1, -1\n            index = bisect_left(arr, val)\n            if index != len(arr):\n                maxVal = arr[index]\n                if arr[index] == val:\n                    minVal = arr[index]\n                    res.append([minVal, maxVal])\n                    continue\n            if index != 0:\n                minVal = arr[index - 1]\n            res.append([minVal, maxVal])\n        return res\n```\n\n```Go [sol1-Go]\nfunc closestNodes(root *TreeNode, queries []int) [][]int {\n    arr := []int{}\n    var dfs func(*TreeNode)\n    dfs = func(root *TreeNode) {\n        if root == nil {\n            return\n        }\n        dfs(root.Left)\n        arr = append(arr, root.Val)\n        dfs(root.Right)\n    }\n    \n    dfs(root)\n    res := make([][]int, len(queries))\n    for i, val := range queries {\n        maxVal, minVal := -1, -1\n        index := sort.SearchInts(arr, val)\n        if index < len(arr) {\n            maxVal = arr[index]\n            if arr[index] == val {\n                minVal = arr[index]\n                res[i] = []int{minVal, maxVal}\n                continue\n            }\n        }\n        if index != 0 {\n            minVal = arr[index - 1]\n        }\n        res[i] = []int{minVal, maxVal}\n    }\n    return res\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar binarySearch = function(arr, target) {\n    let lo = 0, hi = arr.length - 1;\n    let ret = arr.length;\n    while (lo <= hi) {\n        let mid = (lo + hi) >> 1;\n        if (arr[mid] >= target) {\n            ret = mid;\n            hi = mid - 1;\n        } else {\n            lo = mid + 1;\n        }\n    }\n    return ret;\n}   \n\nvar closestNodes = function(root, queries) {\n    const arr = new Array();\n    const dfs = function(root) {\n        if (!root) {\n            return;\n        }\n        dfs(root.left);\n        arr.push(root.val);\n        dfs(root.right);\n    }\n    dfs(root);\n    \n    const res = new Array();\n    for (const val of queries) {\n        let maxVal = -1, minVal = -1;\n        let index = binarySearch(arr, val);\n        if (index != arr.length) {\n            maxVal = arr[index];\n            if (arr[index] == val) {\n                minVal = arr[index];\n                res.push([minVal, maxVal]);\n                continue;\n            }\n        }\n        if (index != 0) {\n            minVal = arr[index - 1];\n        }\n        res.push([minVal, maxVal]);\n    }\n    return res;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nconst binarySearch = (arr: number[], target: number): number => {\n    let lo: number = 0, hi: number = arr.length - 1;\n    let ret: number = arr.length;\n    while (lo <= hi) {\n        let mid: number = (lo + hi) >> 1;\n        if (arr[mid] >= target) {\n            ret = mid;\n            hi = mid - 1;\n        } else {\n            lo = mid + 1;\n        }\n    }\n    return ret;\n}\n\nfunction closestNodes(root: TreeNode | null, queries: number[]): number[][] {\n    const arr: number[] = [];\n    const dfs = (node: TreeNode | undefined): void => {\n        if (!node) {\n            return;\n        }\n        dfs(node.left);\n        arr.push(node.val);\n        dfs(node.right);\n    }\n    dfs(root);\n    const res: number[][] = [];\n    for (const val of queries) {\n        let maxVal: number = -1, minVal: number = -1;\n        let index: number = binarySearch(arr, val);\n        if (index !== arr.length) {\n            maxVal = arr[index];\n\n            if (arr[index] === val) {\n                minVal = arr[index];\n                res.push([minVal, maxVal]);\n                continue;\n            }\n        }\n        if (index !== 0) {\n            minVal = arr[index - 1];\n        }\n        res.push([minVal, maxVal]);\n    }\n\n    return res;\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n + q \\log n)$，其中 $n$ 表示给定二叉搜索树中节点的数目，$q$ 表示给定的查询数组的长度。遍历整个二叉树需要的时间为 $O(n)$，每次查询时二分查找需要的时间为 $O(\\log n)$，一共需要 $q$ 次二分查找，因此总的时间复杂度为 $O(n + q \\log n)$。\n\n- 空间复杂度：$O(n)$，其中 $n$ 表示给定二叉搜索树中节点的数目。查询时，需要用数组保存二叉树中所有节点的值，需要的空间为 $O(n)$。",
+            "slateValue": "",
+            "slug": "er-cha-sou-suo-shu-zui-jin-jie-dian-cha-vp6p2",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "fmWD2B",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 15,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Tree",
+                    "nameTranslated": "树",
+                    "slug": "tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Depth-First Search",
+                    "nameTranslated": "深度优先搜索",
+                    "slug": "depth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search Tree",
+                    "nameTranslated": "二叉搜索树",
+                    "slug": "binary-search-tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Tree",
+                    "nameTranslated": "二叉树",
+                    "slug": "binary-tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2024-02-19T02:23:33.225449+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：二分查找 思路与算法 根据题意要求给定查询的值 $\\textit{queries}_i$，需要在二叉搜索中找到 $\\textit{min}_i, \\textit{max}_i$： + $\\textit{min}_i$ 是树中小于等于 $\\textit{queries}_i$ 的最大值。如果不存在这样的值，则使用",
+            "topic": {
+                "id": 2645284,
+                "subscribed": false,
+                "commentCount": 60,
+                "viewCount": 658,
+                "post": {
+                    "id": 4880443,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 27,
+            "isEditorsPick": false,
+            "hitCount": 13746,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "closest-nodes-queries-in-a-binary-search-tree",
+                "questionFrontendId": "2476"
+            },
+            "next": {
+                "slug": "zhong-xu-bian-li-er-fen-cha-zhao-pythonj-4ic0",
+                "title": "中序遍历+二分查找（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

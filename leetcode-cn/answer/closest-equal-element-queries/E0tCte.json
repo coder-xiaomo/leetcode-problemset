@@ -1,0 +1,144 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "E0tCte",
+            "title": "距离最小相等元素查询",
+            "content": "#### 方法一：哈希表 + 二分查找\n\n首先需要明确的一点是，与元素 $x$ 的 **元素值** 相等的最近元素，一定是从元素 $x$ 出发，向左或向右找到的第一个 **元素值** 与 $x$ 相等的元素。\n\n那么对于原数组中的元素，我们可以预处理出每个元素在原数组中的位置，使用一个哈希表来存储，键为元素值，值为一个数组，存储某个 **元素值** 在原数组中对应的位置。\n\n其次，容易发现，对于一个元素值，在它对应的位置数组中，第一个位置左边没有相邻元素，最后一个位置右边没有相邻元素，这样的话需要进行边界判断，不方便计算最小距离。考虑到数组是循环的，那么我们可以在位置数组的开头添加一个元素，值为最后一个位置减去数组长度，在位置数组的末尾添加一个元素，值为第一个位置加上数组长度，这样就可以保证每个位置都有相邻元素，就不需要进行边界的判断了。\n\n对于每个查询，我们可以通过哈希表找到在查询位置处 **元素值** 对应的位置数组，然后使用二分查找找到当前查询位置在位置数组中的索引，计算这个索引与前后索引对应位置的距离，取最小值即可。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<int> solveQueries(vector<int>& nums, vector<int>& queries) {\n        int n = nums.size();\n        unordered_map<int, vector<int>> numsPos;\n        for (int i = 0; i < n; i++) {\n            numsPos[nums[i]].push_back(i);\n        }\n        for (auto& [_, pos] : numsPos) {\n            int x = pos[0];\n            pos.insert(pos.begin(), pos.back() - n);\n            pos.push_back(x + n);\n        }\n        int m = queries.size();\n        for (int i = 0; i < m; i++) {\n            int x = nums[queries[i]];\n            if (numsPos[x].size() == 3) {\n                queries[i] = -1;\n                continue;\n            }\n            int pos = lower_bound(numsPos[x].begin(), numsPos[x].end(), queries[i]) - numsPos[x].begin();\n            queries[i] = min(numsPos[x][pos + 1] - numsPos[x][pos], numsPos[x][pos] - numsPos[x][pos - 1]);\n        }\n        return queries;\n    }\n};\n```\n\n```Go [sol1-Go]\nfunc solveQueries(nums []int, queries []int) []int {\n    n := len(nums)\n    numsPos := make(map[int][]int)\n\n    for i := 0; i < n; i++ {\n        numsPos[nums[i]] = append(numsPos[nums[i]], i)\n    }\n\n    for k, pos := range numsPos {\n        x := pos[0]\n        pos = append([]int{pos[len(pos)-1] - n}, pos...)\n        pos = append(pos, x+n)\n        numsPos[k] = pos\n    }\n\n    for i := 0; i < len(queries); i++ {\n        x := nums[queries[i]]\n        posList := numsPos[x]\n        if (len(posList) == 3) {\n            queries[i] = -1\n            continue\n        }\n        pos := sort.SearchInts(posList, queries[i])\n        queries[i] = min(posList[pos+1]-posList[pos], posList[pos]-posList[pos-1])\n    }\n\n    return queries\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def solveQueries(self, nums: List[int], queries: List[int]) -> List[int]:\n        n = len(nums)\n        nums_pos = defaultdict(list)\n\n        for i in range(n):\n            nums_pos[nums[i]].append(i)\n\n        for pos in nums_pos.values():\n            x = pos[0]\n            pos.insert(0, pos[-1] - n)\n            pos.append(x + n)\n\n        for i in range(len(queries)):\n            x = nums[queries[i]]\n            pos_list = nums_pos[x]\n            if len(pos_list) == 3:\n                queries[i] = -1\n                continue\n            pos = bisect.bisect_left(pos_list, queries[i])\n            queries[i] = min(pos_list[pos + 1] - pos_list[pos], pos_list[pos] - pos_list[pos - 1])\n\n        return queries\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public List<Integer> solveQueries(int[] nums, int[] queries) {\n        int n = nums.length;\n        HashMap<Integer, ArrayList<Integer>> numsPos = new HashMap<>();\n        for (int i = 0; i < n; i++) {\n            numsPos.computeIfAbsent(nums[i], k -> new ArrayList<>()).add(i);\n        }\n        for (ArrayList<Integer> pos : numsPos.values()) {\n            int x = pos.get(0);\n            int last = pos.get(pos.size() - 1);\n            pos.add(0, last - n);\n            pos.add(x + n);\n        }\n        List<Integer> result = new ArrayList<>();\n        for (int q : queries) {\n            int x = nums[q];\n            ArrayList<Integer> posList = numsPos.get(x);\n            \n            if (posList.size() == 3) {\n                result.add(-1);\n                continue;\n            }\n            \n            int idx = Collections.binarySearch(posList, q);\n            if (idx < 0) idx = -idx - 1;\n            \n            int dist = Math.min(posList.get(idx + 1) - posList.get(idx), \n                               posList.get(idx) - posList.get(idx - 1));\n            result.add(dist);\n        }\n        return result;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int[] SolveQueries(int[] nums, int[] queries) {\n        int n = nums.Length;\n        Dictionary<int, List<int>> numsPos = new Dictionary<int, List<int>>();\n\n        for (int i = 0; i < n; i++) {\n            if (!numsPos.ContainsKey(nums[i])) {\n                numsPos[nums[i]] = new List<int>();\n            }\n            numsPos[nums[i]].Add(i);\n        }\n\n        foreach (var pos in numsPos.Values.ToList()) {\n            int x = pos[0];\n            pos.Insert(0, pos[pos.Count - 1] - n);\n            pos.Add(x + n);\n        }\n\n        for (int i = 0; i < queries.Length; i++) {\n            int x = nums[queries[i]];\n            List<int> posList = numsPos[x];\n            if (posList.Count == 3) {\n                queries[i] = -1;\n                continue;\n            }\n            int pos = posList.BinarySearch(queries[i]);\n            if (pos < 0) {\n                pos = ~pos;\n            }\n            queries[i] = Math.Min(posList[pos + 1] - posList[pos], posList[pos] - posList[pos - 1]);\n        }\n\n        return queries;\n    }\n}\n```\n\n```C [sol1-C]\ntypedef struct {\n    int key;\n    int* pos;\n    int size;\n    int capacity;\n    UT_hash_handle hh;\n} PosEntry;\n\nPosEntry* findOrCreate(PosEntry** map, int key) {\n    PosEntry* entry = NULL;\n    HASH_FIND_INT(*map, &key, entry);\n    if (entry == NULL) {\n        entry = (PosEntry*)malloc(sizeof(PosEntry));\n        entry->key = key;\n        entry->pos = (int*)malloc(16 * sizeof(int));\n        entry->size = 0;\n        entry->capacity = 16;\n        HASH_ADD_INT(*map, key, entry);\n    }\n    return entry;\n}\n\nvoid addPos(PosEntry* entry, int val) {\n    if (entry->size >= entry->capacity) {\n        entry->capacity *= 2;\n        entry->pos = (int*)realloc(entry->pos, entry->capacity * sizeof(int));\n    }\n    entry->pos[entry->size++] = val;\n}\n\nvoid insertFront(PosEntry* entry, int val) {\n    if (entry->size >= entry->capacity) {\n        entry->capacity *= 2;\n        entry->pos = (int*)realloc(entry->pos, entry->capacity * sizeof(int));\n    }\n    memmove(entry->pos + 1, entry->pos, entry->size * sizeof(int));\n    entry->pos[0] = val;\n    entry->size++;\n}\n\nint lowerBound(int* arr, int size, int target) {\n    int lo = 0, hi = size;\n    while (lo < hi) {\n        int mid = lo + (hi - lo) / 2;\n        if (arr[mid] < target) {\n            lo = mid + 1;\n        } else {\n            hi = mid;\n        }\n    }\n    return lo;\n}\n\nint minInt(int a, int b) {\n    return a < b ? a : b;\n}\n\nint* solveQueries(int* nums, int numsSize, int* queries, int queriesSize, int* returnSize) {\n    int n = numsSize;\n    PosEntry* map = NULL;\n\n    for (int i = 0; i < n; i++) {\n        PosEntry* entry = findOrCreate(&map, nums[i]);\n        addPos(entry, i);\n    }\n\n    PosEntry* entry, *tmp;\n    HASH_ITER(hh, map, entry, tmp) {\n        int x = entry->pos[0];\n        int last = entry->pos[entry->size - 1];\n        insertFront(entry, last - n);\n        addPos(entry, x + n);\n    }\n\n    int* result = (int*)malloc(queriesSize * sizeof(int));\n    *returnSize = queriesSize;\n\n    for (int i = 0; i < queriesSize; i++) {\n        int q = queries[i];\n        int x = nums[q];\n        PosEntry* entry = findOrCreate(&map, x);\n\n        if (entry->size == 3) {\n            result[i] = -1;\n            continue;\n        }\n\n        int idx = lowerBound(entry->pos, entry->size, q);\n        result[i] = minInt(entry->pos[idx + 1] - entry->pos[idx],\n                          entry->pos[idx] - entry->pos[idx - 1]);\n    }\n\n    HASH_ITER(hh, map, entry, tmp) {\n        free(entry->pos);\n        HASH_DEL(map, entry);\n        free(entry);\n    }\n\n    return result;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nfunction solveQueries(nums, queries) {\n    const n = nums.length;\n    const numsPos = new Map();\n\n    for (let i = 0; i < n; i++) {\n        if (!numsPos.has(nums[i])) {\n            numsPos.set(nums[i], []);\n        }\n        numsPos.get(nums[i]).push(i);\n    }\n\n    for (const [key, pos] of numsPos) {\n        const x = pos[0];\n        pos.unshift(pos[pos.length - 1] - n);\n        pos.push(x + n);\n    }\n\n    for (let i = 0; i < queries.length; i++) {\n        const x = nums[queries[i]];\n        const posList = numsPos.get(x);\n        if (posList.length === 3) {\n            queries[i] = -1;\n            continue;\n        }\n        const pos = binarySearch(posList, queries[i]);\n        queries[i] = Math.min(posList[pos + 1] - posList[pos], posList[pos] - posList[pos - 1]);\n    }\n\n    return queries;\n}\n\nfunction binarySearch(arr, target) {\n    let left = 0, right = arr.length;\n    while (left < right) {\n        const mid = Math.floor((left + right) / 2);\n        if (arr[mid] < target) {\n            left = mid + 1;\n        } else {\n            right = mid;\n        }\n    }\n    return left;\n}\n```\n\n```TypeScript [sol1-TypeScript]\nfunction solveQueries(nums: number[], queries: number[]): number[] {\n    const n = nums.length;\n    const numsPos = new Map<number, number[]>();\n\n    for (let i = 0; i < n; i++) {\n        if (!numsPos.has(nums[i])) {\n            numsPos.set(nums[i], []);\n        }\n        numsPos.get(nums[i])!.push(i);\n    }\n\n    for (const [key, pos] of numsPos) {\n        const x = pos[0];\n        pos.unshift(pos[pos.length - 1] - n);\n        pos.push(x + n);\n    }\n\n    for (let i = 0; i < queries.length; i++) {\n        const x = nums[queries[i]];\n        const posList = numsPos.get(x)!;\n        if (posList.length === 3) {\n            queries[i] = -1;\n            continue;\n        }\n        const pos = binarySearch(posList, queries[i]);\n        queries[i] = Math.min(posList[pos + 1] - posList[pos], posList[pos] - posList[pos - 1]);\n    }\n\n    return queries;\n}\n\nfunction binarySearch(arr: number[], target: number): number {\n    let left = 0, right = arr.length;\n    while (left < right) {\n        const mid = Math.floor((left + right) / 2);\n        if (arr[mid] < target) {\n            left = mid + 1;\n        } else {\n            right = mid;\n        }\n    }\n    return left;\n}\n```\n\n```Rust [sol1-Rust]\nuse std::collections::HashMap;\n\nimpl Solution {\n    pub fn solve_queries(nums: Vec<i32>, queries: Vec<i32>) -> Vec<i32> {\n        let n = nums.len() as i32;\n\n        let mut nums_pos: HashMap<i32, Vec<i32>> = HashMap::new();\n        for i in 0..n {\n            nums_pos.entry(nums[i as usize]).or_insert(Vec::new()).push(i);\n        }\n        \n        for (_, pos) in nums_pos.iter_mut() {\n            let x = pos[0];\n            let last = *pos.last().unwrap();\n            pos.insert(0, last - n);\n            pos.push(x + n);\n        }\n        \n        queries\n            .iter()\n            .map(|&q| {\n                let x = nums[q as usize];\n                let pos_list = nums_pos.get(&x).unwrap();\n                \n                if pos_list.len() == 3 {\n                    return -1;\n                }\n                let idx = pos_list.partition_point(|&v| v < q);\n                (pos_list[idx + 1] - pos_list[idx]).min(pos_list[idx] - pos_list[idx - 1])\n            })\n            .collect()\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n + m \\log k)$，其中 $n$ 是数组 $\\textit{nums}$ 的长度，$m$ 是查询数组 $\\textit{queries}$ 的长度，$k$ 是某个元素值在数组中出现的次数（最坏情况 $k = O(n)$）；遍历 $\\textit{nums}$ 数组，需要 $O(n)$ 时间；处理查询：对于每个查询，使用二分查找需要 $O(\\log k)$ 时间，$m$ 个查询总共需要 $O(m \\log k)$ 时间。\n\n- 空间复杂度：$O(n)$，其中 $n$ 是数组 $\\textit{nums}$ 的长度。哈希表 $\\textit{numsPos}$ 存储所有元素的位置，最坏情况下每个元素值都不同，需要 $O(n)$ 空间。\n\n#### 方法二：预处理左右最近元素位置 + 哈希表\n\n在方法二中，我们可以预处理出每个位置左边和右边最近的 **值相等** 元素的位置，使用两个数组来存储，分别为 $\\textit{left}$ 和 $\\textit{right}$，其中 $\\textit{left}[i]$ 表示位置 $i$ 左边最近的 **值相等** 元素的位置，$\\textit{right}[i]$ 表示位置 $i$ 右边最近的 **值相等** 元素的位置。\n\n预处理的过程中，我们可以使用一个哈希表来存储每个元素最后一次出现的位置，遍历两次数组，第一次从左到右遍历（从 $-n$ 到 $n-1$），更新 $\\textit{left}$ 数组，第二次从右到左遍历（从 $2n-1$ 到 $0$），更新 $\\textit{right}$ 数组。\n\n在进行查询的时候，对于查询位置 $i$，首先找到这个位置的元素值 $x$，首先判断当前查询位置与左边最近的 **值相等** 的元素位置的距离是否等于数组长度，如果相等的话说明这个元素只在数组中出现了一次，那么当前查询的值为 $-1$，否则的话计算查询位置与左右最近的 **值相等** 元素位置的距离，取最小值即可。\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    vector<int> solveQueries(vector<int>& nums, vector<int>& queries) {\n        int n = nums.size();\n        vector<int> left(n), right(n);\n        unordered_map<int, int> pos;\n        for (int i = -n; i < n; i++) {\n            if (i >= 0) {\n                left[i] = pos[nums[i]];\n            }\n            pos[nums[(i + n) % n]] = i;\n        }\n        pos.clear();\n        for (int i = 2 * n - 1; i >= 0; i--) {\n            if (i < n) {\n                right[i] = pos[nums[i]];\n            }\n            pos[nums[i % n]] = i;\n        }\n        int m = queries.size();\n        for (int i = 0; i < m; i++) {\n            int x = queries[i];\n            queries[i] = (x - left[x] == n) ? -1 : min(x - left[x], right[x] - x);\n        }\n        return queries;\n    }\n};\n```\n\n```Go [sol2-Go]\nfunc solveQueries(nums []int, queries []int) []int {\n    n := len(nums)\n    left := make([]int, n)\n    right := make([]int, n)\n    pos := make(map[int]int)\n\n    for i := -n; i < n; i++ {\n        if i >= 0 {\n            left[i] = pos[nums[i]]\n        }\n        pos[nums[(i+n)%n]] = i\n    }\n\n    pos = make(map[int]int)\n    for i := 2 * n - 1; i >= 0; i-- {\n        if i < n {\n            right[i] = pos[nums[i]]\n        }\n        pos[nums[i%n]] = i\n    }\n\n    for i := 0; i < len(queries); i++ {\n        x := queries[i]\n        if x-left[x] == n {\n            queries[i] = -1\n        } else {\n            queries[i] = min(x-left[x], right[x]-x)\n        }\n    }\n\n    return queries\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def solveQueries(self, nums: List[int], queries: List[int]) -> List[int]:\n        n = len(nums)\n        left = [0] * n\n        right = [0] * n\n        pos = {}\n\n        for i in range(-n, n):\n            if i >= 0:\n                left[i] = pos.get(nums[i], -n)\n            pos[nums[(i + n) % n]] = i\n\n        pos.clear()\n        for i in range(2 * n - 1, -1, -1):\n            if i < n:\n                right[i] = pos.get(nums[i], 2 * n)\n            pos[nums[i % n]] = i\n\n        for i in range(len(queries)):\n            x = queries[i]\n            if x - left[x] == n:\n                queries[i] = -1\n            else:\n                queries[i] = min(x - left[x], right[x] - x)\n\n        return queries\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public List<Integer> solveQueries(int[] nums, int[] queries) {\n        int n = nums.length;\n        int[] left = new int[n];\n        int[] right = new int[n];\n        \n        HashMap<Integer, Integer> pos = new HashMap<>();\n        for (int i = -n; i < n; i++) {\n            if (i >= 0) {\n                left[i] = pos.getOrDefault(nums[i], i - n);\n            }\n            pos.put(nums[((i % n) + n) % n], i);\n        }\n        \n        pos.clear();\n        for (int i = 2 * n - 1; i >= 0; i--) {\n            if (i < n) {\n                right[i] = pos.getOrDefault(nums[i], i + n);\n            }\n            pos.put(nums[i % n], i);\n        }\n        \n        List<Integer> result = new ArrayList<>();\n        for (int i = 0; i < queries.length; i++) {\n            int x = queries[i];\n            if (x - left[x] == n) {\n                result.add(-1);\n            } else {\n                result.add(Math.min(x - left[x], right[x] - x));\n            }\n        }\n        return result;\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    public int[] SolveQueries(int[] nums, int[] queries) {\n        int n = nums.Length;\n        int[] left = new int[n];\n        int[] right = new int[n];\n        Dictionary<int, int> pos = new Dictionary<int, int>();\n\n        for (int i = -n; i < n; i++) {\n            if (i >= 0) {\n                left[i] = pos.ContainsKey(nums[i]) ? pos[nums[i]] : -n;\n            }\n            pos[nums[(i + n) % n]] = i;\n        }\n\n        pos.Clear();\n        for (int i = 2 * n - 1; i >= 0; i--) {\n            if (i < n) {\n                right[i] = pos.ContainsKey(nums[i]) ? pos[nums[i]] : 2 * n;\n            }\n            pos[nums[i % n]] = i;\n        }\n\n        for (int i = 0; i < queries.Length; i++) {\n            int x = queries[i];\n            if (x - left[x] == n) {\n                queries[i] = -1;\n            } else {\n                queries[i] = Math.Min(x - left[x], right[x] - x);\n            }\n        }\n\n        return queries;\n    }\n}\n```\n\n```C [sol2-C]\ntypedef struct {\n    int key;\n    int value;\n    UT_hash_handle hh;\n} HashItem;\n\nHashItem* hashFindItem(HashItem** table, int key) {\n    HashItem* item = NULL;\n    HASH_FIND_INT(*table, &key, item);\n    return item;\n}\n\nvoid hashAddOrUpdateItem(HashItem** table, int key, int value) {\n    HashItem* item = hashFindItem(table, key);\n    if (item == NULL) {\n        item = (HashItem*)malloc(sizeof(HashItem));\n        item->key = key;\n        HASH_ADD_INT(*table, key, item);\n    }\n    item->value = value;\n}\n\nint hashGetItem(HashItem** table, int key, int defaultValue) {\n    HashItem* item = hashFindItem(table, key);\n    return item == NULL ? defaultValue : item->value;\n}\n\nint minInt(int a, int b) {\n    return a < b ? a : b;\n}\n\nint* solveQueries(int* nums, int numsSize, int* queries, int queriesSize, int* returnSize) {\n    int n = numsSize;\n    int* left = (int*)malloc(sizeof(int) * n);\n    int* right = (int*)malloc(sizeof(int) * n);\n    HashItem* pos = NULL;\n\n    for (int i = -n; i < n; i++) {\n        if (i >= 0) {\n            left[i] = hashGetItem(&pos, nums[i], -n);\n        }\n        hashAddOrUpdateItem(&pos, nums[(i + n) % n], i);\n    }\n\n    HashItem *current, *tmp;\n    HASH_ITER(hh, pos, current, tmp) {\n        HASH_DEL(pos, current);\n        free(current);\n    }\n    for (int i = 2 * n - 1; i >= 0; i--) {\n        if (i < n) {\n            right[i] = hashGetItem(&pos, nums[i], 2 * n);\n        }\n        hashAddOrUpdateItem(&pos, nums[i % n], i);\n    }\n\n    for (int i = 0; i < queriesSize; i++) {\n        int x = queries[i];\n        if (x - left[x] == n) {\n            queries[i] = -1;\n        } else {\n            queries[i] = minInt(x - left[x], right[x] - x);\n        }\n    }\n\n    *returnSize = queriesSize;\n\n    HASH_ITER(hh, pos, current, tmp) {\n        HASH_DEL(pos, current);\n        free(current);\n    }\n    free(left);\n    free(right);\n\n    return queries;\n}\n```\n\n```JavaScript [sol2-JavaScript]\nfunction solveQueries(nums, queries) {\n    const n = nums.length;\n    const left = new Array(n);\n    const right = new Array(n);\n    const pos = new Map();\n\n    for (let i = -n; i < n; i++) {\n        if (i >= 0) {\n            left[i] = pos.has(nums[i]) ? pos.get(nums[i]) : -n;\n        }\n        pos.set(nums[(i + n) % n], i);\n    }\n\n    pos.clear();\n    for (let i = 2 * n - 1; i >= 0; i--) {\n        if (i < n) {\n            right[i] = pos.has(nums[i]) ? pos.get(nums[i]) : 2 * n;\n        }\n        pos.set(nums[i % n], i);\n    }\n\n    for (let i = 0; i < queries.length; i++) {\n        const x = queries[i];\n        if (x - left[x] === n) {\n            queries[i] = -1;\n        } else {\n            queries[i] = Math.min(x - left[x], right[x] - x);\n        }\n    }\n\n    return queries;\n}\n```\n\n```TypeScript [sol2-TypeScript]\nfunction solveQueries(nums: number[], queries: number[]): number[] {\n    const n = nums.length;\n    const left = new Array<number>(n);\n    const right = new Array<number>(n);\n    const pos = new Map<number, number>();\n\n    for (let i = -n; i < n; i++) {\n        if (i >= 0) {\n            left[i] = pos.has(nums[i]) ? pos.get(nums[i])! : -n;\n        }\n        pos.set(nums[(i + n) % n], i);\n    }\n\n    pos.clear();\n    for (let i = 2 * n - 1; i >= 0; i--) {\n        if (i < n) {\n            right[i] = pos.has(nums[i]) ? pos.get(nums[i])! : 2 * n;\n        }\n        pos.set(nums[i % n], i);\n    }\n\n    for (let i = 0; i < queries.length; i++) {\n        const x = queries[i];\n        if (x - left[x] === n) {\n            queries[i] = -1;\n        } else {\n            queries[i] = Math.min(x - left[x], right[x] - x);\n        }\n    }\n\n    return queries;\n}\n```\n\n```Rust [sol2-Rust]\nuse std::collections::HashMap;\n\nimpl Solution {\n    pub fn solve_queries(nums: Vec<i32>, queries: Vec<i32>) -> Vec<i32> {\n        let n = nums.len() as i32;\n        let nu = n as usize;\n        let mut left = vec![0i32; nu];\n        let mut right = vec![0i32; nu];\n        let mut pos: HashMap<i32, i32> = HashMap::new();\n        for i in -n..n {\n            if i >= 0 {\n                let idx = i as usize;\n                left[idx] = *pos.get(&nums[idx]).unwrap_or(&(i - n));\n            }\n            let wrap = ((i % n + n) % n) as usize;\n            pos.insert(nums[wrap], i);\n        }\n        \n        pos.clear();\n        for i in (0..2 * n).rev() {\n            if i < n {\n                let idx = i as usize;\n                right[idx] = *pos.get(&nums[idx]).unwrap_or(&(i + n));\n            }\n            let wrap = (i % n) as usize;\n            pos.insert(nums[wrap], i);\n        }\n        \n        queries\n            .iter()\n            .map(|&q| {\n                let x = q as usize;\n                let xi = q;\n                if xi - left[x] == n {\n                    -1\n                } else {\n                    (xi - left[x]).min(right[x] - xi)\n                }\n            })\n            .collect()\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n + m)$，其中 $n$ 是数组 $\\textit{nums}$ 的长度，$m$ 是查询数组 $\\textit{queries}$ 的长度。预处理 $\\textit{left}$ 数组需要 $(n)$ 时间；对于每个查询，只需 $O(1)$ 时间计算距离，$m$ 个查询总共需要 $O(m)$ 时间。\n\n- 空间复杂度：$O(n)$，其中 $n$ 是数组 $\\textit{nums}$ 的长度。$\\textit{left}$ 数组：存储每个位置左边最近相等元素的位置，需要 $O(n)$ 空间；$\\textit{right}$ 数组：存储每个位置右边最近相等元素的位置，需要 $O(n)$ 空间；哈希表 $\\textit{pos}$：存储元素值到位置的映射，最坏情况下需要 $O(n)$ 空间。",
+            "slateValue": "",
+            "slug": "ju-chi-zui-xiao-xiang-deng-yuan-su-cha-x-vdfj",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "E0tCte",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 4,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2026-04-09T02:05:45.688977+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：哈希表 + 二分查找 首先需要明确的一点是，与元素 [latex] 的 元素值 相等的最近元素，一定是从元素 [latex] 出发，向左或向右找到的第一个 元素值 与 [latex] 相等的元素。 那么对于原数组中的元素，我们可以预处理出每个元素在原数组中的位置，使用一个哈希表来存储，键为元素值，值为一个数组，",
+            "topic": {
+                "id": 3947852,
+                "subscribed": false,
+                "commentCount": 10,
+                "viewCount": 10,
+                "post": {
+                    "id": 7195908,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 11,
+            "isEditorsPick": false,
+            "hitCount": 4407,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "closest-equal-element-queries",
+                "questionFrontendId": "3488"
+            },
+            "next": {
+                "slug": "er-fen-cha-zhao-jian-ji-xie-fa-pythonjav-516v",
+                "title": "两种方法：二分查找 / 预处理（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

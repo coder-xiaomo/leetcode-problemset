@@ -1,0 +1,114 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "CmEahn",
+            "title": "允许重复选择元素的组合",
+            "content": "#### 方法一：搜索回溯\n\n**思路与算法**\n\n对于这类寻找所有可行解的题，我们都可以尝试用「搜索回溯」的方法来解决。\n\n回到本题，我们定义递归函数 $\\textit{dfs}(\\textit{target}, \\textit{combine}, \\textit{idx})$ 表示当前在 $\\textit{candidates}$ 数组的第 $\\textit{idx}$ 位，还剩 $\\textit{target}$ 要组合，已经组合的列表为 $\\textit{combine}$。递归的终止条件为 $\\textit{target} \\le 0$ 或者 $\\textit{candidates}$ 数组被全部用完。那么在当前的函数中，每次我们可以选择跳过不用第 $\\textit{idx}$ 个数，即执行 $\\textit{dfs}(\\textit{target}, \\textit{combine}, \\textit{idx} + 1)$。也可以选择使用第 $\\textit{idx}$ 个数，即执行 $\\textit{dfs}(\\textit{target} - \\textit{candidates}[\\textit{idx}], \\textit{combine}, \\textit{idx})$，注意到每个数字可以被无限制重复选取，因此搜索的下标仍为 $\\textit{idx}$。\n\n更形象化地说，如果我们将整个搜索过程用一个树来表达，即如下图呈现，每次的搜索都会延伸出两个分叉，直到递归的终止条件，这样我们就能不重复且不遗漏地找到所有可行解：\n\n![fig1](https://assets.leetcode.cn/solution-static/jianzhi_II_081/fig1.png)\n\n当然，搜索回溯的过程一定存在一些优秀的剪枝方法来使得程序运行得更快，而这里只给出了最朴素不含剪枝的写法，因此欢迎各位读者在评论区分享自己的见解。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    void dfs(vector<int>& candidates, int target, vector<vector<int>>& ans, vector<int>& combine, int idx) {\n        if (idx == candidates.size()) {\n            return;\n        }\n        if (target == 0) {\n            ans.emplace_back(combine);\n            return;\n        }\n        // 直接跳过\n        dfs(candidates, target, ans, combine, idx + 1);\n        // 选择当前数\n        if (target - candidates[idx] >= 0) {\n            combine.emplace_back(candidates[idx]);\n            dfs(candidates, target - candidates[idx], ans, combine, idx);\n            combine.pop_back();\n        }\n    }\n\n    vector<vector<int>> combinationSum(vector<int>& candidates, int target) {\n        vector<vector<int>> ans;\n        vector<int> combine;\n        dfs(candidates, target, ans, combine, 0);\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public List<List<Integer>> combinationSum(int[] candidates, int target) {\n        List<List<Integer>> ans = new ArrayList<List<Integer>>();\n        List<Integer> combine = new ArrayList<Integer>();\n        dfs(candidates, target, ans, combine, 0);\n        return ans;\n    }\n\n    public void dfs(int[] candidates, int target, List<List<Integer>> ans, List<Integer> combine, int idx) {\n        if (idx == candidates.length) {\n            return;\n        }\n        if (target == 0) {\n            ans.add(new ArrayList<Integer>(combine));\n            return;\n        }\n        // 直接跳过\n        dfs(candidates, target, ans, combine, idx + 1);\n        // 选择当前数\n        if (target - candidates[idx] >= 0) {\n            combine.add(candidates[idx]);\n            dfs(candidates, target - candidates[idx], ans, combine, idx);\n            combine.remove(combine.size() - 1);\n        }\n    }\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar combinationSum = function(candidates, target) {\n    const ans = [];\n    const dfs = (target, combine, idx) => {\n        if (idx === candidates.length) {\n            return;\n        }\n        if (target === 0) {\n            ans.push(combine);\n            return;\n        }\n        // 直接跳过\n        dfs(target, combine, idx + 1);\n        // 选择当前数\n        if (target - candidates[idx] >= 0) {\n            dfs(target - candidates[idx], [...combine, candidates[idx]], idx);\n        }\n    }\n\n    dfs(target, [], 0);\n    return ans;\n};\n```\n\n```C [sol1-C]\nint candidatesSize_tmp;\n\nint ansSize;\n\nint combineSize;\n\nint* ansColumnSize;\n\nvoid dfs(int* candidates, int target, int** ans, int* combine, int idx) {\n    if (idx == candidatesSize_tmp) {\n        return;\n    }\n    if (target == 0) {\n        int* tmp = malloc(sizeof(int) * combineSize);\n        for (int i = 0; i < combineSize; ++i) {\n            tmp[i] = combine[i];\n        }\n        ans[ansSize] = tmp;\n        ansColumnSize[ansSize++] = combineSize;\n        return;\n    }\n    // 直接跳过\n    dfs(candidates, target, ans, combine, idx + 1);\n    // 选择当前数\n    if (target - candidates[idx] >= 0) {\n        combine[combineSize++] = candidates[idx];\n        dfs(candidates, target - candidates[idx], ans, combine, idx);\n        combineSize--;\n    }\n}\n\nint** combinationSum(int* candidates, int candidatesSize, int target, int* returnSize, int** returnColumnSizes) {\n    candidatesSize_tmp = candidatesSize;\n    ansSize = combineSize = 0;\n    int** ans = malloc(sizeof(int*) * 1001);\n    ansColumnSize = malloc(sizeof(int) * 1001);\n    int combine[2001];\n    dfs(candidates, target, ans, combine, 0);\n    *returnSize = ansSize;\n    *returnColumnSizes = ansColumnSize;\n    return ans;\n}\n```\n\n```Golang [sol1-Golang]\nfunc combinationSum(candidates []int, target int) (ans [][]int) {\n\tcomb := []int{}\n\tvar dfs func(target, idx int)\n\tdfs = func(target, idx int) {\n\t\tif idx == len(candidates) {\n\t\t\treturn\n\t\t}\n\t\tif target == 0 {\n\t\t\tans = append(ans, append([]int(nil), comb...))\n\t\t\treturn\n\t\t}\n\t\t// 直接跳过\n\t\tdfs(target, idx+1)\n\t\t// 选择当前数\n\t\tif target-candidates[idx] >= 0 {\n\t\t\tcomb = append(comb, candidates[idx])\n\t\t\tdfs(target-candidates[idx], idx)\n\t\t\tcomb = comb[:len(comb)-1]\n\t\t}\n\t}\n\tdfs(target, 0)\n\treturn\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(S)$，其中 $S$ 为所有可行解的长度之和。从分析给出的搜索树我们可以看出时间复杂度取决于搜索树所有叶子节点的深度之和，即所有可行解的长度之和。在这题中，我们很难给出一个比较紧的上界，我们知道 $O(n \\times 2^n)$ 是一个比较松的上界，即在这份代码中，$n$ 个位置每次考虑选或者不选，如果符合条件，就加入答案的时间代价。但是实际运行的时候，因为不可能所有的解都满足条件，递归的时候我们还会用 $\\textit{target} - \\textit{candidates}[\\textit{idx}] \\ge 0$ 进行剪枝，所以实际运行情况是远远小于这个上界的。\n\n- 空间复杂度：$O(\\textit{target})$。除答案数组外，空间复杂度取决于递归的栈深度，在最差情况下需要递归 $O(\\textit{target})$ 层。",
+            "slateValue": "",
+            "slug": "yun-xu-zhong-fu-xuan-ze-yuan-su-de-zu-he-gvs0",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "CmEahn",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 10,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Backtracking",
+                    "nameTranslated": "回溯",
+                    "slug": "backtracking",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-04-08T06:59:28.604425+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：搜索回溯 思路与算法 对于这类寻找所有可行解的题，我们都可以尝试用「搜索回溯」的方法来解决。 回到本题，我们定义递归函数 $\\textit{dfs}(\\textit{target}, \\textit{combine}, \\textit{idx})$ 表示当前在 $\\textit{candidates}$ 数组的",
+            "topic": {
+                "id": 1404271,
+                "subscribed": false,
+                "commentCount": 19,
+                "viewCount": 4640,
+                "post": {
+                    "id": 2898032,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 32,
+            "isEditorsPick": false,
+            "hitCount": 14683,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "Ygoe9J",
+                "questionFrontendId": "LCR 081"
+            },
+            "next": {
+                "slug": "san-chong-fang-fa-xuan-huo-bu-xuan-mei-j-ccwr",
+                "title": "三种方法：选或不选/枚举选哪个/完全背包预处理+可行性剪枝（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

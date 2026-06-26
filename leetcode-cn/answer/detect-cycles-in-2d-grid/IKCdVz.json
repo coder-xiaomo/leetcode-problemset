@@ -1,0 +1,144 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "IKCdVz",
+            "title": "二维网格图中探测环",
+            "content": "#### 前言\n\n对于大小为 $m \\times n$ 的网格数组 $\\textit{grid}$，如果我们将其中的每个位置看成一个节点，任意两个上下左右相邻且值相同的节点之间有一条无向边，那么 $\\textit{grid}$ 中的一个环就对应着我们构造出的图中的一个环。因此，我们只需要判断图中是否有环即可。\n\n常用的判断无向图中是否有环的方法有深度优先搜索和广度优先搜索，但这里我们会介绍一种基于并查集的判断方法。\n\n#### 方法一：并查集\n\n**思路与算法**\n\n使用并查集判断无向图中是否有环的方法非常简洁且直观：\n\n- 对于图中的任意一条边 $(x, y)$，我们将 $x$ 和 $y$ 对应的集合合并。如果 $x$ 和 $y$ 已经属于同一集合，那么说明 $x$ 和 $y$ 已经连通，在边 $(x, y)$ 的帮助下，图中会形成一个环。\n\n这样一来，我们只要遍历图中的每一条边并进行上述的操作即可。具体的方法是，我们遍历数组 $\\textit{grid}$ 中的每一个位置，如果该位置与其上方或左侧的值相同，那么就有了一条边，并将这两个位置进行合并。这样的方法可以保证每一条边的两个节点只会被合并一次。\n\n由于并查集是一维的数据结构，而数组 $\\textit{grid}$ 是二维的。因此对于数组中的每个位置 $(i, j)$，我们可以用 $i \\times n + j$ 将其映射至一维空间中：\n\n- $(i, j)$ 上方的位置对应着 $(i - 1) \\times n + j$；\n\n- $(i, j)$ 左侧的位置对应着 $i \\times n + j - 1$。\n\n**代码**\n\n```C++ [sol1-C++]\nclass UnionFind {\npublic:\n    vector<int> parent;\n    vector<int> size;\n    int n;\n    int setCount;\n    \npublic:\n    UnionFind(int _n): n(_n), setCount(_n), parent(_n), size(_n, 1) {\n        iota(parent.begin(), parent.end(), 0);\n    }\n    \n    int findset(int x) {\n        return parent[x] == x ? x : parent[x] = findset(parent[x]);\n    }\n    \n    void unite(int x, int y) {\n        if (size[x] < size[y]) {\n            swap(x, y);\n        }\n        parent[y] = x;\n        size[x] += size[y];\n        --setCount;\n    }\n    \n    bool findAndUnite(int x, int y) {\n        int parentX = findset(x);\n        int parentY = findset(y);\n        if (parentX != parentY) {\n            unite(parentX, parentY);\n            return true;\n        }\n        return false;\n    }\n};\n\nclass Solution {\npublic:\n    bool containsCycle(vector<vector<char>>& grid) {\n        int m = grid.size();\n        int n = grid[0].size();\n        UnionFind uf(m * n);\n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j) {\n                if (i > 0 && grid[i][j] == grid[i - 1][j]) {\n                    if (!uf.findAndUnite(i * n + j, (i - 1) * n + j)) {\n                        return true;\n                    }\n                }\n                if (j > 0 && grid[i][j] == grid[i][j - 1]) {\n                    if (!uf.findAndUnite(i * n + j, i * n + j - 1)) {\n                        return true;\n                    }\n                }\n            }\n        }\n        return false;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public boolean containsCycle(char[][] grid) {\n        int m = grid.length;\n        int n = grid[0].length;\n        UnionFind uf = new UnionFind(m * n);\n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j) {\n                if (i > 0 && grid[i][j] == grid[i - 1][j]) {\n                    if (!uf.findAndUnite(i * n + j, (i - 1) * n + j)) {\n                        return true;\n                    }\n                }\n                if (j > 0 && grid[i][j] == grid[i][j - 1]) {\n                    if (!uf.findAndUnite(i * n + j, i * n + j - 1)) {\n                        return true;\n                    }\n                }\n            }\n        }\n        return false;\n    }\n}\n\nclass UnionFind {\n    int[] parent;\n    int[] size;\n    int n;\n    int setCount;\n\n    public UnionFind(int n) {\n        parent = new int[n];\n        for (int i = 0; i < n; ++i) {\n            parent[i] = i;\n        }\n        size = new int[n];\n        Arrays.fill(size, 1);\n        this.n = n;\n        setCount = n;\n    }\n\n    public int findset(int x) {\n        return parent[x] == x ? x : (parent[x] = findset(parent[x]));\n    }\n\n    public void unite(int x, int y) {\n        if (size[x] < size[y]) {\n            int temp = x;\n            x = y;\n            y = temp;\n        }\n        parent[y] = x;\n        size[x] += size[y];\n        --setCount;\n    }\n\n    public boolean findAndUnite(int x, int y) {\n        int parentX = findset(x);\n        int parentY = findset(y);\n        if (parentX != parentY) {\n            unite(parentX, parentY);\n            return true;\n        }\n        return false;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass UnionFind:\n    def __init__(self, n: int):\n        self.n = n\n        self.setCount = n\n        self.parent = list(range(n))\n        self.size = [1] * n\n    \n    def findset(self, x: int) -> int:\n        if self.parent[x] == x:\n            return x\n        self.parent[x] = self.findset(self.parent[x])\n        return self.parent[x]\n    \n    def unite(self, x: int, y: int):\n        if self.size[x] < self.size[y]:\n            x, y = y, x\n        self.parent[y] = x\n        self.size[x] += self.size[y]\n        self.setCount -= 1\n    \n    def findAndUnite(self, x: int, y: int) -> bool:\n        parentX, parentY = self.findset(x), self.findset(y)\n        if parentX != parentY:\n            self.unite(parentX, parentY)\n            return True\n        return False\n\nclass Solution:\n    def containsCycle(self, grid: List[List[str]]) -> bool:\n        m, n = len(grid), len(grid[0])\n        uf = UnionFind(m * n)\n        for i in range(m):\n            for j in range(n):\n                if i > 0 and grid[i][j] == grid[i - 1][j]:\n                    if not uf.findAndUnite(i * n + j, (i - 1) * n + j):\n                        return True\n                if j > 0 and grid[i][j] == grid[i][j - 1]:\n                    if not uf.findAndUnite(i * n + j, i * n + j - 1):\n                        return True\n        return False\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public bool ContainsCycle(char[][] grid) {\n        int m = grid.Length;\n        int n = grid[0].Length;\n        UnionFind uf = new UnionFind(m * n);\n        \n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j) {\n                if (i > 0 && grid[i][j] == grid[i - 1][j]) {\n                    if (!uf.FindAndUnite(i * n + j, (i - 1) * n + j)) {\n                        return true;\n                    }\n                }\n                if (j > 0 && grid[i][j] == grid[i][j - 1]) {\n                    if (!uf.FindAndUnite(i * n + j, i * n + j - 1)) {\n                        return true;\n                    }\n                }\n            }\n        }\n        return false;\n    }\n}\n\npublic class UnionFind {\n    private int[] parent;\n    private int[] size;\n    private int setCount;\n\n    public UnionFind(int n) {\n        parent = new int[n];\n        size = new int[n];\n        setCount = n;\n        \n        for (int i = 0; i < n; ++i) {\n            parent[i] = i;\n            size[i] = 1;\n        }\n    }\n\n    public int FindSet(int x) {\n        return parent[x] == x ? x : (parent[x] = FindSet(parent[x]));\n    }\n\n    private void Unite(int x, int y) {\n        if (size[x] < size[y]) {\n            int temp = x;\n            x = y;\n            y = temp;\n        }\n        parent[y] = x;\n        size[x] += size[y];\n        --setCount;\n    }\n\n    public bool FindAndUnite(int x, int y) {\n        int parentX = FindSet(x);\n        int parentY = FindSet(y);\n        if (parentX != parentY) {\n            Unite(parentX, parentY);\n            return true;\n        }\n        return false;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc containsCycle(grid [][]byte) bool {\n    m, n := len(grid), len(grid[0])\n    uf := NewUnionFind(m * n)\n    \n    for i := 0; i < m; i++ {\n        for j := 0; j < n; j++ {\n            if i > 0 && grid[i][j] == grid[i - 1][j] {\n                if !uf.FindAndUnite(i * n + j, (i - 1) * n + j) {\n                    return true\n                }\n            }\n            if j > 0 && grid[i][j] == grid[i][j - 1] {\n                if !uf.FindAndUnite(i * n + j, i * n + j - 1) {\n                    return true\n                }\n            }\n        }\n    }\n    return false\n}\n\ntype UnionFind struct {\n    parent []int\n    size   []int\n}\n\nfunc NewUnionFind(n int) *UnionFind {\n    parent := make([]int, n)\n    size := make([]int, n)\n    for i := 0; i < n; i++ {\n        parent[i] = i\n        size[i] = 1\n    }\n    return &UnionFind{parent: parent, size: size}\n}\n\nfunc (uf *UnionFind) FindSet(x int) int {\n    if uf.parent[x] != x {\n        uf.parent[x] = uf.FindSet(uf.parent[x])\n    }\n    return uf.parent[x]\n}\n\nfunc (uf *UnionFind) Unite(x, y int) {\n    if uf.size[x] < uf.size[y] {\n        x, y = y, x\n    }\n    uf.parent[y] = x\n    uf.size[x] += uf.size[y]\n}\n\nfunc (uf *UnionFind) FindAndUnite(x, y int) bool {\n    parentX := uf.FindSet(x)\n    parentY := uf.FindSet(y)\n    if parentX != parentY {\n        uf.Unite(parentX, parentY)\n        return true\n    }\n    return false\n}\n```\n\n```C [sol1-C]\ntypedef struct {\n    int* parent;\n    int* size;\n} UnionFind;\n\nUnionFind* createUnionFind(int n) {\n    UnionFind* uf = (UnionFind*)malloc(sizeof(UnionFind));\n    uf->parent = (int*)malloc(n * sizeof(int));\n    uf->size = (int*)malloc(n * sizeof(int));\n    \n    for (int i = 0; i < n; i++) {\n        uf->parent[i] = i;\n        uf->size[i] = 1;\n    }\n    return uf;\n}\n\nint findSet(UnionFind* uf, int x) {\n    if (uf->parent[x] != x) {\n        uf->parent[x] = findSet(uf, uf->parent[x]);\n    }\n    return uf->parent[x];\n}\n\nvoid unite(UnionFind* uf, int x, int y) {\n    if (uf->size[x] < uf->size[y]) {\n        int temp = x;\n        x = y;\n        y = temp;\n    }\n    uf->parent[y] = x;\n    uf->size[x] += uf->size[y];\n}\n\nbool findAndUnite(UnionFind* uf, int x, int y) {\n    int parentX = findSet(uf, x);\n    int parentY = findSet(uf, y);\n    if (parentX != parentY) {\n        unite(uf, parentX, parentY);\n        return true;\n    }\n    return false;\n}\n\nvoid freeUnionFind(UnionFind* uf) {\n    free(uf->parent);\n    free(uf->size);\n    free(uf);\n}\n\nbool containsCycle(char** grid, int gridSize, int* gridColSize) {\n    int m = gridSize;\n    int n = gridColSize[0];\n    UnionFind* uf = createUnionFind(m * n);\n    \n    for (int i = 0; i < m; ++i) {\n        for (int j = 0; j < n; ++j) {\n            if (i > 0 && grid[i][j] == grid[i - 1][j]) {\n                if (!findAndUnite(uf, i * n + j, (i - 1) * n + j)) {\n                    freeUnionFind(uf);\n                    return true;\n                }\n            }\n            if (j > 0 && grid[i][j] == grid[i][j - 1]) {\n                if (!findAndUnite(uf, i * n + j, i * n + j - 1)) {\n                    freeUnionFind(uf);\n                    return true;\n                }\n            }\n        }\n    }\n    freeUnionFind(uf);\n    return false;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar containsCycle = function(grid) {\n    const m = grid.length;\n    const n = grid[0].length;\n    const uf = new UnionFind(m * n);\n    \n    for (let i = 0; i < m; ++i) {\n        for (let j = 0; j < n; ++j) {\n            if (i > 0 && grid[i][j] === grid[i - 1][j]) {\n                if (!uf.findAndUnite(i * n + j, (i - 1) * n + j)) {\n                    return true;\n                }\n            }\n            if (j > 0 && grid[i][j] === grid[i][j - 1]) {\n                if (!uf.findAndUnite(i * n + j, i * n + j - 1)) {\n                    return true;\n                }\n            }\n        }\n    }\n    return false;\n};\n\n\nclass UnionFind {\n    constructor(n) {\n        this.parent = new Array(n);\n        this.size = new Array(n).fill(1);\n        for (let i = 0; i < n; ++i) {\n            this.parent[i] = i;\n        }\n    }\n\n    findSet(x) {\n        if (this.parent[x] !== x) {\n            this.parent[x] = this.findSet(this.parent[x]);\n        }\n        return this.parent[x];\n    }\n\n    unite(x, y) {\n        if (this.size[x] < this.size[y]) {\n            [x, y] = [y, x];\n        }\n        this.parent[y] = x;\n        this.size[x] += this.size[y];\n    }\n\n    findAndUnite(x, y) {\n        const parentX = this.findSet(x);\n        const parentY = this.findSet(y);\n        if (parentX !== parentY) {\n            this.unite(parentX, parentY);\n            return true;\n        }\n        return false;\n    }\n}\n```\n\n```TypeScript [sol1-TypeScript]\nfunction containsCycle(grid: string[][]): boolean {\n    const m = grid.length;\n    const n = grid[0].length;\n    const uf = new UnionFind(m * n);\n    \n    for (let i = 0; i < m; ++i) {\n        for (let j = 0; j < n; ++j) {\n            if (i > 0 && grid[i][j] === grid[i - 1][j]) {\n                if (!uf.findAndUnite(i * n + j, (i - 1) * n + j)) {\n                    return true;\n                }\n            }\n            if (j > 0 && grid[i][j] === grid[i][j - 1]) {\n                if (!uf.findAndUnite(i * n + j, i * n + j - 1)) {\n                    return true;\n                }\n            }\n        }\n    }\n    return false;\n};\n\nclass UnionFind {\n    private parent: number[];\n    private size: number[];\n\n    constructor(n: number) {\n        this.parent = new Array(n);\n        this.size = new Array(n).fill(1);\n        for (let i = 0; i < n; ++i) {\n            this.parent[i] = i;\n        }\n    }\n\n    private findSet(x: number): number {\n        if (this.parent[x] !== x) {\n            this.parent[x] = this.findSet(this.parent[x]);\n        }\n        return this.parent[x];\n    }\n\n    private unite(x: number, y: number): void {\n        if (this.size[x] < this.size[y]) {\n            [x, y] = [y, x];\n        }\n        this.parent[y] = x;\n        this.size[x] += this.size[y];\n    }\n\n    findAndUnite(x: number, y: number): boolean {\n        const parentX = this.findSet(x);\n        const parentY = this.findSet(y);\n        if (parentX !== parentY) {\n            this.unite(parentX, parentY);\n            return true;\n        }\n        return false;\n    }\n}\n```\n\n```Rust [sol1-Rust]\nstruct UnionFind {\n    parent: Vec<usize>,\n    size: Vec<usize>,\n}\n\nimpl UnionFind {\n    fn new(n: usize) -> Self {\n        let parent = (0..n).collect();\n        let size = vec![1; n];\n        UnionFind { parent, size }\n    }\n\n    fn find_set(&mut self, x: usize) -> usize {\n        if self.parent[x] != x {\n            self.parent[x] = self.find_set(self.parent[x]);\n        }\n        self.parent[x]\n    }\n\n    fn unite(&mut self, x: usize, y: usize) {\n        let (mut root_x, mut root_y) = (x, y);\n        if self.size[root_x] < self.size[root_y] {\n            std::mem::swap(&mut root_x, &mut root_y);\n        }\n        self.parent[root_y] = root_x;\n        self.size[root_x] += self.size[root_y];\n    }\n\n    fn find_and_unite(&mut self, x: usize, y: usize) -> bool {\n        let root_x = self.find_set(x);\n        let root_y = self.find_set(y);\n        if root_x != root_y {\n            self.unite(root_x, root_y);\n            true\n        } else {\n            false\n        }\n    }\n}\n\nimpl Solution {\n    pub fn contains_cycle(grid: Vec<Vec<char>>) -> bool {\n        let m = grid.len();\n        let n = grid[0].len();\n        let mut uf = UnionFind::new(m * n);\n        \n        for i in 0..m {\n            for j in 0..n {\n                if i > 0 && grid[i][j] == grid[i - 1][j] {\n                    let cell1 = i * n + j;\n                    let cell2 = (i - 1) * n + j;\n                    if !uf.find_and_unite(cell1, cell2) {\n                        return true;\n                    }\n                }\n                if j > 0 && grid[i][j] == grid[i][j - 1] {\n                    let cell1 = i * n + j;\n                    let cell2 = i * n + j - 1;\n                    if !uf.find_and_unite(cell1, cell2) {\n                        return true;\n                    }\n                }\n            }\n        }\n        false\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(mn \\cdot \\alpha(mn))$。上述代码中的并查集使用了路径压缩（path compression）以及按秩合并（union by size/rank）优化，单次合并操作的均摊时间复杂度为 $\\alpha(mn)$。每一个位置最多进行两次合并操作，因此总时间复杂度为 $O(mn \\cdot \\alpha(mn))$。\n\n- 空间复杂度：$O(mn)$，即为并查集使用的空间。",
+            "slateValue": "",
+            "slug": "er-wei-wang-ge-tu-zhong-tan-ce-huan-by-leetcode-so",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "IKCdVz",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 17,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Depth-First Search",
+                    "nameTranslated": "深度优先搜索",
+                    "slug": "depth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Breadth-First Search",
+                    "nameTranslated": "广度优先搜索",
+                    "slug": "breadth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Union Find",
+                    "nameTranslated": "并查集",
+                    "slug": "union-find",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-09-10T14:34:54.246183+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "前言 对于大小为 [latex] 的网格数组 [latex]，如果我们将其中的每个位置看成一个节点，任意两个上下左右相邻且值相同的节点之间有一条无向边，那么 [latex] 中的一个环就对应着我们构造出的图中的一个环。因此，我们只需要判断图中是否有环即可。 常用的判断无向图中是否有环的方法有深度优先搜索和广度优先搜索，",
+            "topic": {
+                "id": 409096,
+                "subscribed": false,
+                "commentCount": 25,
+                "viewCount": 3846,
+                "post": {
+                    "id": 995253,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 41,
+            "isEditorsPick": false,
+            "hitCount": 13061,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "detect-cycles-in-2d-grid",
+                "questionFrontendId": "1559"
+            },
+            "next": {
+                "slug": "wang-ge-tu-dfspythonjavacgo-by-endlessch-dbxw",
+                "title": "网格图 DFS（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

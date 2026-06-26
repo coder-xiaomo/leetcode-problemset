@@ -1,0 +1,102 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "VOIKII",
+            "title": "括号",
+            "content": "#### 方法一：暴力法\n\n**思路**\n\n我们可以生成所有 $2^{2n}$ 个 $\\text{`('}$ 和 $\\text{`)'}$ 字符构成的序列，然后我们检查每一个是否有效即可。\n\n**算法**\n\n为了生成所有序列，我们可以使用递归。长度为 $n$ 的序列就是在长度为 $n - 1$ 的序列前加一个 $\\text{`('}$ 或 $\\text{`)'}$。\n\n为了检查序列是否有效，我们遍历这个序列，并使用一个变量 $\\textit{balance}$ 表示左括号的数量减去右括号的数量。如果在遍历过程中 $\\textit{balance}$ 的值小于零，或者结束时 $\\textit{balance}$ 的值不为零，那么该序列就是无效的，否则它是有效的。\n\n```Java [sol1-Java]\nclass Solution {\n    public List<String> generateParenthesis(int n) {\n        List<String> combinations = new ArrayList<String>();\n        generateAll(new char[2 * n], 0, combinations);\n        return combinations;\n    }\n\n    public void generateAll(char[] current, int pos, List<String> result) {\n        if (pos == current.length) {\n            if (valid(current)) {\n                result.add(new String(current));\n            }\n        } else {\n            current[pos] = '(';\n            generateAll(current, pos + 1, result);\n            current[pos] = ')';\n            generateAll(current, pos + 1, result);\n        }\n    }\n\n    public boolean valid(char[] current) {\n        int balance = 0;\n        for (char c: current) {\n            if (c == '(') {\n                ++balance;\n            } else {\n                --balance;\n            }\n            if (balance < 0) {\n                return false;\n            }\n        }\n        return balance == 0;\n    }\n}\n```\n```Python [sol1-Python3]\nclass Solution:\n    def generateParenthesis(self, n: int) -> List[str]:\n        def generate(A):\n            if len(A) == 2*n:\n                if valid(A):\n                    ans.append(\"\".join(A))\n            else:\n                A.append('(')\n                generate(A)\n                A.pop()\n                A.append(')')\n                generate(A)\n                A.pop()\n\n        def valid(A):\n            bal = 0\n            for c in A:\n                if c == '(': bal += 1\n                else: bal -= 1\n                if bal < 0: return False\n            return bal == 0\n\n        ans = []\n        generate([])\n        return ans\n```\n```C++ [sol1-C++]\nclass Solution {\n    bool valid(const string& str) {\n        int balance = 0;\n        for (char c : str) {\n            if (c == '(') {\n                ++balance;\n            } else {\n                --balance;\n            }\n            if (balance < 0) {\n                return false;\n            }\n        }\n        return balance == 0;\n    }\n\n    void generate_all(string& current, int n, vector<string>& result) {\n        if (n == current.size()) {\n            if (valid(current)) {\n                result.push_back(current);\n            }\n            return;\n        }\n        current += '(';\n        generate_all(current, n, result);\n        current.pop_back();\n        current += ')';\n        generate_all(current, n, result);\n        current.pop_back();\n    }\npublic:\n    vector<string> generateParenthesis(int n) {\n        vector<string> result;\n        string current;\n        generate_all(current, n * 2, result);\n        return result;\n    }\n};\n```\n\n**复杂度分析**\n\n* 时间复杂度：$O(2^{2n}n)$，对于 $2^{2n}$ 个序列中的每一个，我们用于建立和验证该序列的复杂度为 $O(n)$。\n\n* 空间复杂度：$O(n)$，除了答案数组之外，我们所需要的空间取决于递归栈的深度，每一层递归函数需要 $O(1)$ 的空间，最多递归 $2n$ 层，因此空间复杂度为 $O(n)$。\n\n#### 方法二：回溯法\n\n**思路和算法**\n\n方法一还有改进的余地：我们可以只在序列仍然保持有效时才添加 $\\text{`('}$ 或 $\\text{`)'}$，而不是像 [方法一](#方法一：暴力法) 那样每次添加。我们可以通过跟踪到目前为止放置的左括号和右括号的数目来做到这一点，\n\n如果左括号数量不大于 $n$，我们可以放一个左括号。如果右括号数量小于左括号的数量，我们可以放一个右括号。\n\n```Java [sol2-Java]\nclass Solution {\n    public List<String> generateParenthesis(int n) {\n        List<String> ans = new ArrayList<String>();\n        backtrack(ans, new StringBuilder(), 0, 0, n);\n        return ans;\n    }\n\n    public void backtrack(List<String> ans, StringBuilder cur, int open, int close, int max) {\n        if (cur.length() == max * 2) {\n            ans.add(cur.toString());\n            return;\n        }\n        if (open < max) {\n            cur.append('(');\n            backtrack(ans, cur, open + 1, close, max);\n            cur.deleteCharAt(cur.length() - 1);\n        }\n        if (close < open) {\n            cur.append(')');\n            backtrack(ans, cur, open, close + 1, max);\n            cur.deleteCharAt(cur.length() - 1);\n        }\n    }\n}\n```\n```Python [sol2-Python3]\nclass Solution:\n    def generateParenthesis(self, n: int) -> List[str]:\n        ans = []\n        def backtrack(S, left, right):\n            if len(S) == 2 * n:\n                ans.append(''.join(S))\n                return\n            if left < n:\n                S.append('(')\n                backtrack(S, left+1, right)\n                S.pop()\n            if right < left:\n                S.append(')')\n                backtrack(S, left, right+1)\n                S.pop()\n\n        backtrack([], 0, 0)\n        return ans\n```\n```C++ [sol2-C++]\nclass Solution {\n    void backtrack(vector<string>& ans, string& cur, int open, int close, int n) {\n        if (cur.size() == n * 2) {\n            ans.push_back(cur);\n            return;\n        }\n        if (open < n) {\n            cur.push_back('(');\n            backtrack(ans, cur, open + 1, close, n);\n            cur.pop_back();\n        }\n        if (close < open) {\n            cur.push_back(')');\n            backtrack(ans, cur, open, close + 1, n);\n            cur.pop_back();\n        }\n    }\npublic:\n    vector<string> generateParenthesis(int n) {\n        vector<string> result;\n        string current;\n        backtrack(result, current, 0, 0, n);\n        return result;\n    }\n};\n```\n\n**复杂度分析**\n\n我们的复杂度分析依赖于理解 $\\textit{generateParenthesis}(n)$ 中有多少个元素。这个分析超出了本文的范畴，但事实证明这是第 $n$ 个卡特兰数 $\\dfrac{1}{n+1}\\dbinom{2n}{n}$，这是由 $\\dfrac{4^n}{n\\sqrt{n}}$ 渐近界定的。\n\n* 时间复杂度：$O(\\dfrac{4^n}{\\sqrt{n}})$，在回溯过程中，每个答案需要 $O(n)$ 的时间复制到答案数组中。\n\n* 空间复杂度：$O(n)$，除了答案数组之外，我们所需要的空间取决于递归栈的深度，每一层递归函数需要 $O(1)$ 的空间，最多递归 $2n$ 层，因此空间复杂度为 $O(n)$。\n\n\n#### 方法三：按括号序列的长度递归\n\n**思路与算法**\n\n任何一个括号序列都一定是由 $\\text{`('}$ 开头，并且第一个 $\\text{`('}$ 一定有一个唯一与之对应的 $\\text{`)'}$。这样一来，每一个括号序列可以用 $(a)b$ 来表示，其中 $a$ 与 $b$ 分别是一个合法的括号序列（可以为空）。\n\n那么，要生成所有长度为 $2n$ 的括号序列，我们定义一个函数 $\\textit{generate}(n)$ 来返回所有可能的括号序列。那么在函数 $\\textit{generate}(n)$ 的过程中：\n\n- 我们需要枚举与第一个 $\\text{`('}$ 对应的 $\\text{`)'}$ 的位置 $2i + 1$；\n- 递归调用 $\\textit{generate}(i)$ 即可计算 $a$ 的所有可能性；\n- 递归调用 $\\textit{generate}(n - i - 1)$ 即可计算 $b$ 的所有可能性；\n- 遍历 $a$ 与 $b$ 的所有可能性并拼接，即可得到所有长度为 $2n$ 的括号序列。\n\n为了节省计算时间，我们在每次 $\\textit{generate}(i)$ 函数返回之前，把返回值存储起来，下次再调用 $\\textit{generate}(i)$ 时可以直接返回，不需要再递归计算。\n\n```Java [sol3-Java]\nclass Solution {\n    ArrayList[] cache = new ArrayList[100];\n\n    public List<String> generate(int n) {\n        if (cache[n] != null) {\n            return cache[n];\n        }\n        ArrayList<String> ans = new ArrayList<String>();\n        if (n == 0) {\n            ans.add(\"\");\n        } else {\n            for (int c = 0; c < n; ++c) {\n                for (String left: generate(c)) {\n                    for (String right: generate(n - 1 - c)) {\n                        ans.add(\"(\" + left + \")\" + right);\n                    }\n                }\n            }\n        }\n        cache[n] = ans;\n        return ans;\n    }\n\n    public List<String> generateParenthesis(int n) {\n        return generate(n);\n    }\n}\n```\n```Python [sol3-Python3]\nclass Solution:\n    @lru_cache(None)\n    def generateParenthesis(self, n: int) -> List[str]:\n        if n == 0:\n            return ['']\n        ans = []\n        for c in range(n):\n            for left in self.generateParenthesis(c):\n                for right in self.generateParenthesis(n-1-c):\n                    ans.append('({}){}'.format(left, right))\n        return ans\n```\n```C++ [sol3-C++]\nclass Solution {\n    shared_ptr<vector<string>> cache[100] = {nullptr};\npublic:\n    shared_ptr<vector<string>> generate(int n) {\n        if (cache[n] != nullptr)\n            return cache[n];\n        if (n == 0) {\n            cache[0] = shared_ptr<vector<string>>(new vector<string>{\"\"});\n        } else {\n            auto result = shared_ptr<vector<string>>(new vector<string>);\n            for (int i = 0; i != n; ++i) {\n                auto lefts = generate(i);\n                auto rights = generate(n - i - 1);\n                for (const string& left : *lefts)\n                    for (const string& right : *rights)\n                        result -> push_back(\"(\" + left + \")\" + right);\n            }\n            cache[n] = result;\n        }\n        return cache[n];\n    }\n    vector<string> generateParenthesis(int n) {\n        return *generate(n);\n    }\n};\n```\n\n**复杂度分析**\n\n* 时间复杂度：$O(\\dfrac{4^n}{\\sqrt{n}})$，该分析与 [方法二](#方法二：回溯法) 类似。\n\n* 空间复杂度：$O(\\dfrac{4^n}{\\sqrt{n}})$，此方法除答案数组外，中间过程中会存储与答案数组同样数量级的临时数组，是我们所需要的空间复杂度。",
+            "slateValue": "",
+            "slug": "gua-hao-by-leetcode-solution-bjdw",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "VOIKII",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 7,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Backtracking",
+                    "nameTranslated": "回溯",
+                    "slug": "backtracking",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-09-01T01:47:17.725607+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：暴力法 思路 我们可以生成所有 $2^{2n}$ 个 $\\text{('}$ 和 $\\text{)'}$ 字符构成的序列，然后我们检查每一个是否有效即可。 算法 为了生成所有序列，我们可以使用递归。长度为 $n$ 的序列就是在长度为 $n - 1$ 的序列前加一个 $\\text{('}$ 或 $\\text{)'",
+            "topic": {
+                "id": 1790726,
+                "subscribed": false,
+                "commentCount": 5,
+                "viewCount": 1219,
+                "post": {
+                    "id": 3523111,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 25,
+            "isEditorsPick": false,
+            "hitCount": 6624,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "bracket-lcci",
+                "questionFrontendId": "面试题 08.09"
+            },
+            "next": {
+                "slug": "hui-su-bu-hui-xie-tao-lu-zai-ci-pythonja-kfk3",
+                "title": "回溯不会写？套路在此！（Python/Java/C++/Go/JS）"
+            },
+            "prev": null
+        }
+    }
+}

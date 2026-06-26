@@ -1,0 +1,116 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "fpZMv3",
+            "title": "子数组最小乘积的最大值",
+            "content": "#### 方法一：单调栈\n\n**提示 $1$**\n\n「最小乘积」的定义为「最小值」乘以「和」，由于「和」较难进行枚举，我们可以考虑枚举「最小值」。\n\n**提示 $2$**\n\n我们可以枚举数组中的每个元素 $\\textit{nums}_i$ 作为最小值。\n\n由于数组中的元素均为正数，那么我们选择的包含 $\\textit{nums}_i$ 的子数组是越长越好的。\n\n**提示 $2$ 解释**\n\n我们选择子数组的限制只有一点，那就是「$\\textit{nums}_i$ 必须是子数组中的最小值」。那么我们应当找到：\n\n- 在 $\\textit{nums}_i$「之前」且严格小于 $\\textit{nums}_i$ 的元素，并且它离 $\\textit{nums}_i$ 最近，该元素的下标记为 $\\textit{left}_i$；\n\n- 在 $\\textit{nums}_i$「之后」且严格小于 $\\textit{nums}_i$ 的元素，并且它离 $\\textit{nums}_i$ 最近，该元素的下标记为 $\\textit{right}_i$。\n\n如果不存在这样的元素，那么对应的 $\\textit{left}_i = -1$ 或 $\\textit{right}_i = n$，其中 $n$ 是数组 $\\textit{nums}$ 的长度。\n\n此时，闭区间 $[\\textit{left}_i+1, \\textit{right}_i-1]$ 即为包含 $\\textit{nums}_i$ 作为最小值且最长的子数组。\n\n**提示 $3$**\n\n我们可以使用单调栈来找出提示 $2$ 中每一个 $\\textit{nums}_i$ 对应的 $\\textit{left}_i$ 以及 $\\textit{right}_i$。如果读者对「单调栈」不熟悉，或者不了解如何使用单调栈来求出这些值，可以先去尝试下面的两道题目：\n\n- [496. 下一个更大元素 I](https://leetcode.cn/problems/next-greater-element-i/)\n- [503. 下一个更大元素 II](https://leetcode.cn/problems/next-greater-element-ii/)\n\n**提示 $4$**\n\n最终的答案即为\n\n$$\n\\max_{i=0}^{n-1} \\left( \\textit{nums}_i \\times  \\sum_{j=\\textit{left}_i+1}^{\\textit{right}_i-1} \\textit{nums}_j \\right)\n$$\n\n其中的求和项可以通过预处理 $\\textit{nums}_j$ 的前缀和数组来快速求出。\n\n**细节**\n\n下面的代码部分与上面的叙述有一些小差异：\n\n- 代码中的数组 $\\textit{left}$ 和 $\\textit{right}$ 存放的是所有的 $\\textit{left}_i+1$ 以及 $\\textit{right}_i-1$，这样做的目的是在使用前缀和时的代码更加易读；\n\n- 我们可以使用两次单调栈分别求出严格遵守定义的 $\\textit{left}_i$ 和 $\\textit{right}_i$。而下面的代码中只使用了一次单调栈，其中 $\\textit{left}_i$ 是严格遵守定义的，而 $\\textit{right}_i$ 是「在 $\\textit{nums}_i$ 之后且**小于等于** $\\textit{nums}_i$ 并且离 $\\textit{nums}_i$ 最近」的元素下标。\n    这样的修改对答案是不会造成影响的：在严格遵守定义的条件下，答案对应的子数组中，每一个最小的元素都对应着正确的答案；而在 $\\textit{right}_i$ 不严格遵守定义的条件下，答案对应的子数组中，只有最后一次出现的最小的元素对应着正确的答案。\n    由于我们需要求出的是「最大值」，因此只要有一个位置对应着正确的答案，就是没有问题的。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\nprivate:\n    using LL = long long;\n    static constexpr int mod = 1000000007;\n\npublic:\n    int maxSumMinProduct(vector<int>& nums) {\n        int n = nums.size();\n        // 数组 left 初始化为 0，数组 right 初始化为 n-1\n        // 设置为元素不存在时的特殊值\n        vector<int> left(n), right(n, n - 1);\n        // 单调栈\n        stack<int> s;\n        for (int i = 0; i < n; ++i) {\n            while (!s.empty() && nums[s.top()] >= nums[i]) {\n                // 这里的 right 是非严格定义的，right[i] 是右侧最近的小于等于 nums[i] 的元素下标\n                right[s.top()] = i - 1;\n                s.pop();\n            }\n            if (!s.empty()) {\n                // 这里的 left 是严格定义的，left[i] 是左侧最近的严格小于 nums[i] 的元素下标\n                left[i] = s.top() + 1;\n            }\n            s.push(i);\n        }\n        \n        // 前缀和\n        vector<LL> pre(n + 1);\n        for (int i = 1; i <= n; ++i) {\n            pre[i] = pre[i - 1] + nums[i - 1];\n        }\n        \n        LL best = 0;\n        for (int i = 0; i < n; ++i) {\n            best = max(best, (pre[right[i] + 1] - pre[left[i]]) * nums[i]);\n        }\n        return best % mod;\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def maxSumMinProduct(self, nums: List[int]) -> int:\n        mod = 10**9 + 7\n\n        n = len(nums)\n        # 数组 left 初始化为 0，数组 right 初始化为 n-1\n        # 设置为元素不存在时的特殊值\n        left, right = [0] * n, [n - 1] * n\n        # 单调栈\n        s = list()\n        for i, num in enumerate(nums):\n            while s and nums[s[-1]] >= num:\n                # 这里的 right 是非严格定义的，right[i] 是右侧最近的小于等于 nums[i] 的元素下标\n                right[s[-1]] = i - 1\n                s.pop()\n            if s:\n                # 这里的 left 是严格定义的，left[i] 是左侧最近的严格小于 nums[i] 的元素下标\n                left[i] = s[-1] + 1\n            s.append(i)\n        \n        # 前缀和\n        pre = [0]\n        for i, num in enumerate(nums):\n            pre.append(pre[-1] + num)\n        \n        best = max((pre[right[i] + 1] - pre[left[i]]) * num for i, num in enumerate(nums))\n        return best % mod\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是数组 $\\textit{nums}$ 的长度。计算数组 $\\textit{left}$ 和 $\\textit{right}$、前缀和以及答案都需要 $O(n)$ 的时间。\n\n- 空间复杂度：$O(n)$，即为单调栈和前缀和数组需要使用的空间。",
+            "slateValue": "",
+            "slug": "zi-shu-zu-zui-xiao-cheng-ji-de-zui-da-zh-rq8r",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "fpZMv3",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 21,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "CONFUSED"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Stack",
+                    "nameTranslated": "栈",
+                    "slug": "stack",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Ordered Set",
+                    "nameTranslated": "有序集合",
+                    "slug": "ordered-set",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Prefix Sum",
+                    "nameTranslated": "前缀和",
+                    "slug": "prefix-sum",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Monotonic Stack",
+                    "nameTranslated": "单调栈",
+                    "slug": "monotonic-stack",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2021-05-09T05:49:02.860134+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：单调栈 提示 $1$ 「最小乘积」的定义为「最小值」乘以「和」，由于「和」较难进行枚举，我们可以考虑枚举「最小值」。 提示 $2$ 我们可以枚举数组中的每个元素 $\\textit{nums}_i$ 作为最小值。 由于数组中的元素均为正数，那么我们选择的包含 $\\textit{nums}_i$ 的子数组是越长越好",
+            "topic": {
+                "id": 766091,
+                "subscribed": false,
+                "commentCount": 28,
+                "viewCount": 7437,
+                "post": {
+                    "id": 1696718,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 48,
+            "isEditorsPick": false,
+            "hitCount": 17202,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "maximum-subarray-min-product",
+                "questionFrontendId": "1856"
+            },
+            "next": {
+                "slug": "qian-zhui-he-gong-xian-fa-shi-li-xiang-j-edz8",
+                "title": "前缀和+贡献法-示例详解"
+            },
+            "prev": null
+        }
+    }
+}

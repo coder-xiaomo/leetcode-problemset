@@ -1,0 +1,134 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "mt9Rng",
+            "title": "得到连续 K 个 1 的最少相邻交换次数",
+            "content": "#### 方法一：贪心 + 前缀和\n\n**思路**\n\n设数组 $\\textit{nums}$ 的长度为 $n$，其中共有 $m$ 个 $1$，它们在数组 $\\textit{nums}$ 中的下标分别为 $p_0, p_1, \\dots, p_{m-1}$。假设经过若干次交换后，数组 $\\textit{nums}$ 中形成的 $k$ 个连续的 $1$ 的下标为 $q, q+1, \\dots, q+k-1$。根据贪心的思想，要想交换次数最少，必须满足以下两个条件：\n- 这 $k$ 个连续的 $1$ 的起始下标在 $p$ 数组中是连续的，即下标为 $p_i, p_{i+1}, \\dots, p_{i+k-1}$。\n- $k$ 个 $1$ 的起始下标和结尾下标是按顺序对应的，即下标为 $p_i$ 的 $1$ 交换到 $q$，下标为 $p_{i+k-1}$ 的 $1$ 交换到 $q+k-1$，中间的元素也需要按照顺序。\n\n根据这两个条件，我们可以得到交换次数的公式为 $\\sum\\limits_{j=i}^{k+i-1}|p_j-(q+j-i)|=\\sum\\limits_{j=i}^{k+i-1}|(p_j-j)-(q-i)|$。设 $p_j-j = g_j$, $q-i = r$。原式化为 $\\sum\\limits_{j=i}^{k+i-1}|g_j-r|$。因为 $p_j$ 是严格单调递增的，因此可以保证 $g_j$ 单调非减。为了使该式取得最小值，$r$ 需取数列 $g_i, g_{i+1}, \\dots, g_{i+k-1}$ 的中位数，即 $r = g_{i+k/2} = g_{\\textit{mid}}$，这里的除法为整数除法。原公式化为$\\sum\\limits_{j=i}^{\\textit{mid}-1}r-g_j + \\sum\\limits_{j=\\textit{mid}+1}^{k+i-1}g_j-r = r\\times(1-(k\\mod2))+\\sum\\limits_{j=\\textit{mid}+1}^{k+i-1}g_j - \\sum\\limits_{j=i}^{\\textit{mid}-1}g_j$。通过遍历所有的 $i$，计算出交换次数的最小值。计算时，后两项可以通过前缀和得到。\n\n**代码**\n\n```Python [sol1-Python3]\nclass Solution:\n    def minMoves(self, nums: List[int], k: int) -> int:\n        g, preSum = [], [0]\n        for i, num in enumerate(nums):\n            if num == 1:\n                g.append(i - len(g))\n                preSum.append(preSum[-1] + g[-1])\n        m, res = len(g), inf\n        for i in range(m - k + 1):\n            mid = i + k // 2\n            r = g[mid]\n            res = min(res, (1 - k % 2) * r + (preSum[i + k] - preSum[mid + 1]) - (preSum[mid] - preSum[i]))\n        return res\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int minMoves(int[] nums, int k) {\n        List<Integer> g = new ArrayList<Integer>();\n        List<Integer> preSum = new ArrayList<Integer>();\n        preSum.add(0);\n        for (int i = 0; i < nums.length; i++) {\n            if (nums[i] == 1) {\n                g.add(i - g.size());\n                preSum.add(preSum.get(preSum.size() - 1) + g.get(g.size() - 1));\n            }\n        }\n        int m = g.size(), res = Integer.MAX_VALUE;\n        for (int i = 0; i <= m - k; i++) {\n            int mid = i + k / 2;\n            int r = g.get(mid);\n            res = Math.min(res, (1 - k % 2) * r + (preSum.get(i + k) - preSum.get(mid + 1)) - (preSum.get(mid) - preSum.get(i)));\n        }\n        return res;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MinMoves(int[] nums, int k) {\n        IList<int> g = new List<int>();\n        IList<int> preSum = new List<int>();\n        preSum.Add(0);\n        for (int i = 0; i < nums.Length; i++) {\n            if (nums[i] == 1) {\n                g.Add(i - g.Count);\n                preSum.Add(preSum[preSum.Count - 1] + g[g.Count - 1]);\n            }\n        }\n        int m = g.Count, res = int.MaxValue;\n        for (int i = 0; i <= m - k; i++) {\n            int mid = i + k / 2;\n            int r = g[mid];\n            res = Math.Min(res, (1 - k % 2) * r + (preSum[i + k] - preSum[mid + 1]) - (preSum[mid] - preSum[i]));\n        }\n        return res;\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int minMoves(vector<int>& nums, int k) {\n        vector<int> g;\n        vector<int> preSum(1, 0);\n        for (int i = 0; i < nums.size(); i++) {\n            if (nums[i] == 1) {\n                g.emplace_back(i - g.size());\n                preSum.emplace_back(preSum.back() + g.back());\n            }\n        }\n        int m = g.size(), res = INT_MAX;\n        for (int i = 0; i <= m - k; i++) {\n            int mid = i + k / 2;\n            res = min(res, (1 - k % 2) * g[mid] +  \\\n                           (preSum[i + k] - preSum[mid + 1]) - \\\n                           (preSum[mid] - preSum[i]));\n        }\n        return res;\n    }\n};\n```\n\n```C [sol1-C]\nstatic inline int min(int a, int b) {\n    return a < b ? a : b;\n}\n\nint minMoves(int* nums, int numsSize, int k) {\n    int g[numsSize], preSum[numsSize + 1];\n    int gSize = 0, preSumSize = 0;\n    preSum[preSumSize++] = 0;\n    for (int i = 0; i < numsSize; i++) {\n        if (nums[i] == 1) {\n            g[gSize++] = i - gSize;\n            preSum[preSumSize++] = preSum[preSumSize - 1] + g[gSize - 1];\n        }\n    }\n    int m = gSize, res = INT_MAX;\n    for (int i = 0; i <= m - k; i++) {\n        int mid = i + k / 2;\n        res = min(res, (1 - k % 2) * g[mid] +  \\\n                        (preSum[i + k] - preSum[mid + 1]) - \\\n                        (preSum[mid] - preSum[i]));\n    }\n    return res;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar minMoves = function(nums, k) {\n    const g = [];\n    const preSum = [];\n    preSum.push(0);\n    for (let i = 0; i < nums.length; i++) {\n        if (nums[i] === 1) {\n            g.push(i - g.length);\n            preSum.push(preSum[preSum.length - 1] + g[g.length - 1]);\n        }\n    }\n    let m = g.length, res = Number.MAX_VALUE;\n    for (let i = 0; i <= m - k; i++) {\n        let mid = i + Math.floor(k / 2);\n        let r = g[mid];\n        res = Math.min(res, (1 - k % 2) * r + (preSum[i + k] - preSum[mid + 1]) - (preSum[mid] - preSum[i]));\n    }\n    return res;\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是数组 $\\textit{nums}$ 的长度。\n\n- 空间复杂度：$O(n)$。",
+            "slateValue": "",
+            "slug": "de-dao-lian-xu-k-ge-1-de-zui-shao-xiang-mk5ws",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "mt9Rng",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 17,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Greedy",
+                    "nameTranslated": "贪心",
+                    "slug": "greedy",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Prefix Sum",
+                    "nameTranslated": "前缀和",
+                    "slug": "prefix-sum",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-12-17T11:41:07.568040+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：贪心 + 前缀和 思路 设数组 $\\textit{nums}$ 的长度为 $n$，其中共有 $m$ 个 $1$，它们在数组 $\\textit{nums}$ 中的下标分别为 $p_0, p_1, \\dots, p_{m-1}$。假设经过若干次交换后，数组 $\\textit{nums}$ 中形成的 $k$ 个连续的",
+            "topic": {
+                "id": 2024008,
+                "subscribed": false,
+                "commentCount": 38,
+                "viewCount": 5635,
+                "post": {
+                    "id": 3889540,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 41,
+            "isEditorsPick": false,
+            "hitCount": 11902,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "minimum-adjacent-swaps-for-k-consecutive-ones",
+                "questionFrontendId": "1703"
+            },
+            "next": {
+                "slug": "tu-jie-zhuan-huan-cheng-zhong-wei-shu-ta-iz4v",
+                "title": "【图解】转换成中位数贪心+空间优化（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

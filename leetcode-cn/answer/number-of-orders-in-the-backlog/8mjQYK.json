@@ -1,0 +1,124 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "8mjQYK",
+            "title": "积压订单中的订单总数",
+            "content": "#### 方法一：优先队列模拟\n\n根据题意，需要遍历数组 $\\textit{orders}$ 中的订单并依次处理。对于遍历到的每个订单，需要找到类型相反的积压订单，如果可以匹配则执行这两笔订单并将积压订单删除，否则将当前订单添加到积压订单中。\n\n由于寻找已有的积压订单时，需要寻找价格最高的采购订单或者价格最低的销售订单，因此可以使用两个优先队列分别存储积压的采购订单和积压的销售订单，两个优先队列称为采购订单优先队列和销售订单优先队列，分别满足队首元素是价格最高的采购订单和价格最低的销售订单。\n\n遍历数组 $\\textit{orders}$，对于 $\\textit{order} = [\\textit{price}, \\textit{amount}, \\textit{orderType}]$，执行如下操作。\n\n- 如果 $\\textit{orderType} = 0$，则表示 $\\textit{amount}$ 个价格为 $\\textit{price}$ 的采购订单，需要将这些采购订单和积压的销售订单匹配并执行。当销售订单优先队列中存在价格小于等于 $\\textit{price}$ 的销售订单时，将当前采购订单和积压的销售订单匹配并执行，直到当前采购订单全部匹配执行、积压的销售订单全部匹配执行或者剩余积压的销售订单的价格都大于 $\\textit{price}$。如果还有剩余的当前采购订单尚未匹配执行，则将剩余的采购订单添加到采购订单优先队列中。\n\n- 如果 $\\textit{orderType} = 1$，则表示 $\\textit{amount}$ 个价格为 $\\textit{price}$ 的销售订单，需要将这些销售订单和积压的采购订单匹配并执行。当采购订单优先队列中存在价格大于等于 $\\textit{price}$ 的采购订单时，将当前销售订单和积压的采购订单匹配并执行，直到当前销售订单全部匹配执行、积压的采购订单全部匹配执行或者剩余积压的采购订单的价格都小于 $\\textit{price}$。如果还有剩余的当前销售订单尚未匹配执行，则将剩余的销售订单添加到销售订单优先队列中。\n\n遍历数组 $\\textit{orders}$ 之后，两个优先队列中剩余的元素表示输入所有订单之后的积压订单，计算两个优先队列中剩余的订单总数并返回。\n\n```Python [sol1-Python3]\nclass Solution:\n    def getNumberOfBacklogOrders(self, orders: List[List[int]]) -> int:\n        MOD = 10 ** 9 + 7\n        buyOrders, sellOrders = [], []\n        for price, amount, type in orders:\n            if type == 0:\n                while amount and sellOrders and sellOrders[0][0] <= price:\n                    if sellOrders[0][1] > amount:\n                        sellOrders[0][1] -= amount\n                        amount = 0\n                        break\n                    amount -= heappop(sellOrders)[1]\n                if amount:\n                    heappush(buyOrders, [-price, amount])\n            else:\n                while amount and buyOrders and -buyOrders[0][0] >= price:\n                    if buyOrders[0][1] > amount:\n                        buyOrders[0][1] -= amount\n                        amount = 0\n                        break\n                    amount -= heappop(buyOrders)[1]\n                if amount:\n                    heappush(sellOrders, [price, amount])\n        return (sum(x for _, x in buyOrders) + sum(x for _, x in sellOrders)) % MOD\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int getNumberOfBacklogOrders(int[][] orders) {\n        final int MOD = 1000000007;\n        PriorityQueue<int[]> buyOrders = new PriorityQueue<int[]>((a, b) -> b[0] - a[0]);\n        PriorityQueue<int[]> sellOrders = new PriorityQueue<int[]>((a, b) -> a[0] - b[0]);\n        for (int[] order : orders) {\n            int price = order[0], amount = order[1], orderType = order[2];\n            if (orderType == 0) {\n                while (amount > 0 && !sellOrders.isEmpty() && sellOrders.peek()[0] <= price) {\n                    int[] sellOrder = sellOrders.poll();\n                    int sellAmount = Math.min(amount, sellOrder[1]);\n                    amount -= sellAmount;\n                    sellOrder[1] -= sellAmount;\n                    if (sellOrder[1] > 0) {\n                        sellOrders.offer(sellOrder);\n                    }\n                }\n                if (amount > 0) {\n                    buyOrders.offer(new int[]{price, amount});\n                }\n            } else {\n                while (amount > 0 && !buyOrders.isEmpty() && buyOrders.peek()[0] >= price) {\n                    int[] buyOrder = buyOrders.poll();\n                    int buyAmount = Math.min(amount, buyOrder[1]);\n                    amount -= buyAmount;\n                    buyOrder[1] -= buyAmount;\n                    if (buyOrder[1] > 0) {\n                        buyOrders.offer(buyOrder);\n                    }\n                }\n                if (amount > 0) {\n                    sellOrders.offer(new int[]{price, amount});\n                }\n            }\n        }\n        int total = 0;\n        for (PriorityQueue<int[]> pq : Arrays.asList(buyOrders, sellOrders)) {\n            while (!pq.isEmpty()) {\n                int[] order = pq.poll();\n                total = (total + order[1]) % MOD;\n            }\n        }\n        return total;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int GetNumberOfBacklogOrders(int[][] orders) {\n        const int MOD = 1000000007;\n        PriorityQueue<int[], int> buyOrders = new PriorityQueue<int[], int>();\n        PriorityQueue<int[], int> sellOrders = new PriorityQueue<int[], int>();\n        foreach (int[] order in orders) {\n            int price = order[0], amount = order[1], orderType = order[2];\n            if (orderType == 0) {\n                while (amount > 0 && sellOrders.Count > 0 && sellOrders.Peek()[0] <= price) {\n                    int[] sellOrder = sellOrders.Dequeue();\n                    int sellAmount = Math.Min(amount, sellOrder[1]);\n                    amount -= sellAmount;\n                    sellOrder[1] -= sellAmount;\n                    if (sellOrder[1] > 0) {\n                        sellOrders.Enqueue(sellOrder, sellOrder[0]);\n                    }\n                }\n                if (amount > 0) {\n                    buyOrders.Enqueue(new int[]{price, amount}, -price);\n                }\n            } else {\n                while (amount > 0 && buyOrders.Count > 0 && buyOrders.Peek()[0] >= price) {\n                    int[] buyOrder = buyOrders.Dequeue();\n                    int buyAmount = Math.Min(amount, buyOrder[1]);\n                    amount -= buyAmount;\n                    buyOrder[1] -= buyAmount;\n                    if (buyOrder[1] > 0) {\n                        buyOrders.Enqueue(buyOrder, -buyOrder[0]);\n                    }\n                }\n                if (amount > 0) {\n                    sellOrders.Enqueue(new int[]{price, amount}, price);\n                }\n            }\n        }\n        int total = 0;\n        foreach (PriorityQueue<int[], int> pq in new PriorityQueue<int[], int>[]{buyOrders, sellOrders}) {\n            while (pq.Count > 0) {\n                int[] order = pq.Dequeue();\n                total = (total + order[1]) % MOD;\n            }\n        }\n        return total;\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int getNumberOfBacklogOrders(vector<vector<int>>& orders) {\n        const int MOD = 1000000007;\n        priority_queue<pair<int, int>, vector<pair<int, int>>, less<pair<int, int>>> buyOrders;\n        priority_queue<pair<int, int>, vector<pair<int, int>>, greater<pair<int, int>>> sellOrders;\n        for (auto &&order : orders) {\n            int price = order[0], amount = order[1], orderType = order[2];\n            if (orderType == 0) {\n                while (amount > 0 && !sellOrders.empty() && sellOrders.top().first <= price) {\n                    auto sellOrder = sellOrders.top();\n                    sellOrders.pop();\n                    int sellAmount = min(amount, sellOrder.second);\n                    amount -= sellAmount;\n                    sellOrder.second -= sellAmount;\n                    if (sellOrder.second > 0) {\n                        sellOrders.push(sellOrder);\n                    }\n                }\n                if (amount > 0) {\n                    buyOrders.emplace(price, amount);\n                }\n            } else {\n                while (amount > 0 && !buyOrders.empty() && buyOrders.top().first >= price) {\n                    auto buyOrder = buyOrders.top();\n                    buyOrders.pop();\n                    int buyAmount = min(amount, buyOrder.second);\n                    amount -= buyAmount;\n                    buyOrder.second -= buyAmount;\n                    if (buyOrder.second > 0) {\n                        buyOrders.push(buyOrder);\n                    }\n                }\n                if (amount > 0) {\n                    sellOrders.emplace(price, amount);\n                }\n            }\n        }\n        int total = 0;\n        while (!buyOrders.empty()) {\n            total = (total + buyOrders.top().second) % MOD;\n            buyOrders.pop();\n        }\n        while (!sellOrders.empty()) {\n            total = (total + sellOrders.top().second) % MOD;\n            sellOrders.pop();\n        }\n        return total;\n    }\n};\n```\n\n```go [sol1-Golang]\nfunc getNumberOfBacklogOrders(orders [][]int) (ans int) {\n\tbuyOrders, sellOrders := hp{}, hp2{}\n\tfor _, o := range orders {\n\t\tprice, amount := o[0], o[1]\n\t\tif o[2] == 0 {\n\t\t\tfor amount > 0 && len(sellOrders) > 0 && sellOrders[0].price <= price {\n\t\t\t\tif sellOrders[0].left > amount {\n\t\t\t\t\tsellOrders[0].left -= amount\n\t\t\t\t\tamount = 0\n\t\t\t\t\tbreak\n\t\t\t\t}\n\t\t\t\tamount -= heap.Pop(&sellOrders).(pair).left\n\t\t\t}\n\t\t\tif amount > 0 {\n\t\t\t\theap.Push(&buyOrders, pair{price, amount})\n\t\t\t}\n\t\t} else {\n\t\t\tfor amount > 0 && len(buyOrders) > 0 && buyOrders[0].price >= price {\n\t\t\t\tif buyOrders[0].left > amount {\n\t\t\t\t\tbuyOrders[0].left -= amount\n\t\t\t\t\tamount = 0\n\t\t\t\t\tbreak\n\t\t\t\t}\n\t\t\t\tamount -= heap.Pop(&buyOrders).(pair).left\n\t\t\t}\n\t\t\tif amount > 0 {\n\t\t\t\theap.Push(&sellOrders, pair{price, amount})\n\t\t\t}\n\t\t}\n\t}\n\tfor _, p := range buyOrders {\n\t\tans += p.left\n\t}\n\tfor _, p := range sellOrders {\n\t\tans += p.left\n\t}\n\treturn ans % (1e9 + 7)\n}\n\ntype pair struct{ price, left int }\ntype hp []pair\nfunc (h hp) Len() int            { return len(h) }\nfunc (h hp) Less(i, j int) bool  { return h[i].price > h[j].price }\nfunc (h hp) Swap(i, j int)       { h[i], h[j] = h[j], h[i] }\nfunc (h *hp) Push(v interface{}) { *h = append(*h, v.(pair)) }\nfunc (h *hp) Pop() interface{}   { a := *h; v := a[len(a)-1]; *h = a[:len(a)-1]; return v }\n\ntype hp2 []pair\nfunc (h hp2) Len() int            { return len(h) }\nfunc (h hp2) Less(i, j int) bool  { return h[i].price < h[j].price }\nfunc (h hp2) Swap(i, j int)       { h[i], h[j] = h[j], h[i] }\nfunc (h *hp2) Push(v interface{}) { *h = append(*h, v.(pair)) }\nfunc (h *hp2) Pop() interface{}   { a := *h; v := a[len(a)-1]; *h = a[:len(a)-1]; return v }\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log n)$，其中 $n$ 是数组 $\\textit{orders}$ 的长度。需要遍历数组 $\\textit{orders}$ 一次，对于每个元素处理优先队列的时间是 $O(\\log n)$，共需要 $O(n \\log n)$ 的时间，遍历结束之后计算剩余的积压订单总数需要 $O(n \\log n)$ 的时间。\n\n- 空间复杂度：$O(n)$，其中 $n$ 是数组 $\\textit{orders}$ 的长度。优先队列需要 $O(n)$ 的空间。",
+            "slateValue": "",
+            "slug": "ji-ya-ding-dan-zhong-de-ding-dan-zong-sh-6g22",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "8mjQYK",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 27,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Simulation",
+                    "nameTranslated": "模拟",
+                    "slug": "simulation",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Heap (Priority Queue)",
+                    "nameTranslated": "堆（优先队列）",
+                    "slug": "heap-priority-queue",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2023-01-01T02:45:47.025165+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：优先队列模拟 根据题意，需要遍历数组 $\\textit{orders}$ 中的订单并依次处理。对于遍历到的每个订单，需要找到类型相反的积压订单，如果可以匹配则执行这两笔订单并将积压订单删除，否则将当前订单添加到积压订单中。 由于寻找已有的积压订单时，需要寻找价格最高的采购订单或者价格最低的销售订单，因此可以使用",
+            "topic": {
+                "id": 2039856,
+                "subscribed": false,
+                "commentCount": 72,
+                "viewCount": 701,
+                "post": {
+                    "id": 3915541,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 22,
+            "isEditorsPick": false,
+            "hitCount": 13896,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "number-of-orders-in-the-backlog",
+                "questionFrontendId": "1801"
+            },
+            "next": {
+                "slug": "by-lcbin-vf1s",
+                "title": "[Python3/Java/C++/Go] 一题一解：优先队列（大小根堆） + 模拟"
+            },
+            "prev": null
+        }
+    }
+}

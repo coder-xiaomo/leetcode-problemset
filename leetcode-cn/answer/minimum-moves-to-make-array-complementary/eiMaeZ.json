@@ -1,0 +1,150 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "eiMaeZ",
+            "title": "使数组互补的最少操作次数",
+            "content": "#### 方法一：差分\n\n**思路与算法**\n\n考虑 $\\textit{nums}$ 中任意符合题意的数对 $(a,b)$，其中 $a$ 是两者中的较小值，$b$ 是两者中的较大值。假设此时我们的目标是将所有的 $(a,b)$ 之和修改到 $c$，易得 $c$ 的取值范围是 $[2, 2 \\times \\textit{limit}]$，根据 $c$ 的取值不同，某个数对 $(a,b)$ 需要的最小修改次数有如下五种情况：\n\n- 当 $2 \\le c \\lt a + 1$ 时：需要操作 $2$ 次。即使将较大的数 $b$ 变为极小值 $1$，新的数对和 $a + 1$ 依然大于 $c$，因此必须将 $a$ 和 $b$ 同时修改。\n\n- 当 $a + 1 \\le c \\lt a + b$ 时：需要操作 $1$ 次。只需将较大的数 $b$ 减小到 $c - a$ 即可，修改后的 $c - a$ 必然落在合法范围 $1 \\le c - a \\le \\textit{limit}$ 内。\n\n- 当 $c = a + b$ 时：此时无需修改。\n\n- 当 $a + b \\lt c \\le b + \\textit{limit}$ 时：需要操作 $1$ 次。只需将较小的数 $a$ 增大到 $c - b$ 即可，修改后的 $c - b$ 必然落在合法范围 $1 \\le c - b \\le \\textit{limit}$ 内。\n\n- 当 $b + \\textit{limit} \\lt c \\le 2 \\times \\textit{limit}$ 时：需要操作 $2$ 次。即使将较小的数 $a$ 变为极大值 $\\textit{limit}$，新的数对和 $b + \\textit{limit}$ 依然小于 $c$，因此必须将 $a$ 和 $b$ 同时修改。\n\n观察以上五种情况，可以发现对于给定的数对 $(a,b)$ 和修改目标 $c$，其需要的操作次数在 $[2, 2 \\times \\textit{limit}]$ 的**各个连续子区间上是一定的**，且分界点可以直接计算。这意味着每对数在不同目标值 $c$ 下需要操作数可以使用**差分数组**来维护，其前缀和就是当前目标 $c$ 下的总操作次数。维护该操作次数并取最小值即可。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int minMoves(vector<int>& nums, int limit) {\n        int n = nums.size();\n        vector<int> diff(2 * limit + 2, 0);\n\n        for (int i = 0; i < n / 2; ++i) {\n            int a = min(nums[i], nums[n - 1 - i]);\n            int b = max(nums[i], nums[n - 1 - i]);\n\n            diff[2] += 2;\n            diff[a + 1] -= 1;\n            diff[a + b] -= 1;\n            diff[a + b + 1] += 1;\n            diff[b + limit + 1] += 1;\n        }\n\n        int min_ops = n;\n        int current_ops = 0;\n\n        for (int c = 2; c <= 2 * limit; ++c) {\n            current_ops += diff[c];\n            min_ops = min(min_ops, current_ops);\n        }\n\n        return min_ops;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int minMoves(int[] nums, int limit) {\n        int n = nums.length;\n        int[] diff = new int[2 * limit + 2];\n\n        for (int i = 0; i < n / 2; i++) {\n            int a = Math.min(nums[i], nums[n - 1 - i]);\n            int b = Math.max(nums[i], nums[n - 1 - i]);\n\n            diff[2] += 2;\n            diff[a + 1] -= 1;\n            diff[a + b] -= 1;\n            diff[a + b + 1] += 1;\n            diff[b + limit + 1] += 1;\n        }\n\n        int minOps = n;\n        int currentOps = 0;\n\n        for (int c = 2; c <= 2 * limit; c++) {\n            currentOps += diff[c];\n            minOps = Math.min(minOps, currentOps);\n        }\n\n        return minOps;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MinMoves(int[] nums, int limit) {\n        int n = nums.Length;\n        int[] diff = new int[2 * limit + 2];\n\n        for (int i = 0; i < n / 2; i++) {\n            int a = Math.Min(nums[i], nums[n - 1 - i]);\n            int b = Math.Max(nums[i], nums[n - 1 - i]);\n\n            diff[2] += 2;\n            diff[a + 1] -= 1;\n            diff[a + b] -= 1;\n            diff[a + b + 1] += 1;\n            diff[b + limit + 1] += 1;\n        }\n\n        int minOps = n;\n        int currentOps = 0;\n\n        for (int c = 2; c <= 2 * limit; c++) {\n            currentOps += diff[c];\n            minOps = Math.Min(minOps, currentOps);\n        }\n\n        return minOps;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc minMoves(nums []int, limit int) int {\n    n := len(nums)\n    diff := make([]int, 2*limit+2)\n\n    for i := 0; i < n/2; i++ {\n        a := min(nums[i], nums[n-1-i])\n        b := max(nums[i], nums[n-1-i])\n\n        diff[2] += 2\n        diff[a+1] -= 1\n        diff[a+b] -= 1\n        diff[a+b+1] += 1\n        diff[b+limit+1] += 1\n    }\n\n    minOps := n\n    currentOps := 0\n\n    for c := 2; c <= 2*limit; c++ {\n        currentOps += diff[c]\n        minOps = min(minOps, currentOps)\n    }\n\n    return minOps\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def minMoves(self, nums: List[int], limit: int) -> int:\n        n = len(nums)\n        diff = [0] * (2 * limit + 2)\n\n        for i in range(n // 2):\n            a = min(nums[i], nums[n - 1 - i])\n            b = max(nums[i], nums[n - 1 - i])\n\n            diff[2] += 2\n            diff[a + 1] -= 1\n            diff[a + b] -= 1\n            diff[a + b + 1] += 1\n            diff[b + limit + 1] += 1\n\n        min_ops = n\n        current_ops = 0\n\n        for c in range(2, 2 * limit + 1):\n            current_ops += diff[c]\n            if current_ops < min_ops:\n                min_ops = current_ops\n\n        return min_ops\n\n```\n\n```C [sol1-C]\nint minMoves(int* nums, int numsSize, int limit) {\n    int n = numsSize;\n    int* diff = (int*)calloc(2 * limit + 2, sizeof(int));\n    \n    for (int i = 0; i < n / 2; i++) {\n        int a = fmin(nums[i], nums[n - 1 - i]);\n        int b = fmax(nums[i], nums[n - 1 - i]);\n        \n        diff[2] += 2;\n        diff[a + 1] -= 1;\n        diff[a + b] -= 1;\n        diff[a + b + 1] += 1;\n        diff[b + limit + 1] += 1;\n    }\n    \n    int minOps = n;\n    int currentOps = 0;\n    \n    for (int c = 2; c <= 2 * limit; c++) {\n        currentOps += diff[c];\n        if (currentOps < minOps) {\n            minOps = currentOps;\n        }\n    }\n    \n    free(diff);\n    return minOps;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar minMoves = function (nums, limit) {\n    const n = nums.length;\n    const diff = new Array(2 * limit + 2).fill(0);\n\n    for (let i = 0; i < n / 2; i++) {\n        const a = Math.min(nums[i], nums[n - 1 - i]);\n        const b = Math.max(nums[i], nums[n - 1 - i]);\n\n        diff[2] += 2;\n        diff[a + 1] -= 1;\n        diff[a + b] -= 1;\n        diff[a + b + 1] += 1;\n        diff[b + limit + 1] += 1;\n    }\n\n    let minOps = n;\n    let currentOps = 0;\n\n    for (let c = 2; c <= 2 * limit; c++) {\n        currentOps += diff[c];\n        minOps = Math.min(minOps, currentOps);\n    }\n\n    return minOps;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction minMoves(nums: number[], limit: number): number {\n    const n = nums.length;\n    const diff = new Array(2 * limit + 2).fill(0);\n\n    for (let i = 0; i < n / 2; i++) {\n        const a = Math.min(nums[i], nums[n - 1 - i]);\n        const b = Math.max(nums[i], nums[n - 1 - i]);\n\n        diff[2] += 2;\n        diff[a + 1] -= 1;\n        diff[a + b] -= 1;\n        diff[a + b + 1] += 1;\n        diff[b + limit + 1] += 1;\n    }\n\n    let minOps = n;\n    let currentOps = 0;\n\n    for (let c = 2; c <= 2 * limit; c++) {\n        currentOps += diff[c];\n        minOps = Math.min(minOps, currentOps);\n    }\n\n    return minOps;\n};\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn min_moves(nums: Vec<i32>, limit: i32) -> i32 {\n        let n = nums.len();\n        let mut diff = vec![0; (2 * limit + 2) as usize];\n\n        for i in 0..n / 2 {\n            let a = nums[i].min(nums[n - 1 - i]);\n            let b = nums[i].max(nums[n - 1 - i]);\n\n            diff[2] += 2;\n            diff[(a + 1) as usize] -= 1;\n            diff[(a + b) as usize] -= 1;\n            diff[(a + b + 1) as usize] += 1;\n            diff[(b + limit + 1) as usize] += 1;\n        }\n\n        let mut min_ops = n as i32;\n        let mut current_ops = 0;\n\n        for c in 2..=(2 * limit) as usize {\n            current_ops += diff[c];\n            min_ops = min_ops.min(current_ops);\n        }\n\n        min_ops\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n + L)$，其中 $n$ 是 $\\textit{nums}$ 的长度，$L$ 代表 $\\textit{limit}$。遍历 $\\dfrac{n}{2}$ 对元素计算差分数组需要 $O(n)$，枚举可能的数对和取值需要 $O(L)$。\n\n- 空间复杂度：$O(L)$。差分数组 $\\textit{diff}$ 需要 $O(L)$ 的空间。\n\n#### 方法二：二分查找\n\n**思路与算法**\n\n方法一使用的差分思路不是那么好想，让我们从朴素做法开始：遍历所有可能的数对和取值 $c$，其范围是 $[2, 2 \\times \\textit{limit}]$；对于每个可能的取值，我们遍历所有数对，计算其最小操作次数并累计后得到总操作次数并更新全局最优解，此时的时间复杂度是 $O(n \\times \\textit{limit})$，其中 $n$ 是 $\\textit{nums}$ 的长度。\n\n考虑优化此方法，虽然 $c$ 的最优值最终会偏向中部，但是局部上并不具有单调性质，因此只能考虑优化统计操作次数的方法。那么还是假定对于一个给定的数对 $(a,b)$ 与 $c$，其中 $a$ 是两者的较小值，$b$ 是两者的较大值，可以这样考虑需要的操作次数：\n\n- 对于所有的数对，先假设它们需要操作一次，其和才能变为目标值 $c$。\n\n- 对于所有和已经是 $a + b$ 的数对，由于不需要额外操作，因此要在最后统计的次数中减去这样的数对的数量。\n\n- 对于所有较小值大于 $c - 1$ 或较大值小于 $c - \\textit{limit}$ 的数对，需要 $2$ 次操作才能变为目标值 $c$，因此要在最后统计的次数中加上这样的数对的数量。\n\n即，可以把当前需要的操作次数描述为如下公式，其中 $\\textit{count}$ 表示满足条件的数对的数目：\n\n$$ \\textit{currentOps} = \\frac{n}{2} - \\textit{count}(a + b = c) + \\textit{count}(a \\gt c - 1) + \\textit{count}(b < c - \\textit{limit}) $$\n\n下面考虑如何在可接受的时间内计算 $\\text{count}(a + b = c)$、$\\text{count}(a \\gt c - 1)$、$\\text{count}(b < c - \\textit{limit})$ 这三个量。\n\n对于 $\\textit{count}(a + b = c)$，只需要使用哈希表预先统计好各个数对和的出现次数，即可在后续枚举 $c$ 时以 $O(1)$ 的时间复杂度直接获取。\n\n对于 $\\textit{count}(a \\gt c - 1)$，因为这样的 $(a,b)$ 不可能满足 $a + b = c$，故可以直接提取所有数对中的较小值并排序，然后利用二分查找定位目标 $c$ 在该数组中的位置，即可在 $O(\\log n)$ 的时间内得到这样的数对数量。\n\n对于 $\\textit{count}(b < c - \\textit{limit})$ 同理，提取所有数对中的较大值并排序，然后利用二分查找定位 $c - \\textit{limit}$ 即可。\n\n按上述方式优化计算给定目标值下的总操作次数即可。较方法一而言，该方法慢了一个 $O(\\log n)$ 的量级，但仍足够通过此题。\n\n**代码**\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    int minMoves(vector<int>& nums, int limit) {\n        int n = nums.size();\n        unordered_map<int, int> sum_count;\n        vector<int> min_arr, max_arr;\n        min_arr.reserve(n / 2);\n        max_arr.reserve(n / 2);\n\n        for (int i = 0; i < n / 2; ++i) {\n            int a = std::min(nums[i], nums[n - 1 - i]);\n            int b = std::max(nums[i], nums[n - 1 - i]);\n\n            sum_count[a + b]++;\n            min_arr.push_back(a);\n            max_arr.push_back(b);\n        }\n\n        std::sort(min_arr.begin(), min_arr.end());\n        std::sort(max_arr.begin(), max_arr.end());\n\n        int min_ops = n;\n\n        for (int c = 2; c <= 2 * limit; ++c) {\n            int add_left =\n                n / 2 - (lower_bound(min_arr.begin(), min_arr.end(), c) -\n                         min_arr.begin());\n            int add_right =\n                lower_bound(max_arr.begin(), max_arr.end(), c - limit) -\n                max_arr.begin();\n\n            int current_ops = n / 2 + add_left + add_right - sum_count[c];\n            min_ops = min(min_ops, current_ops);\n        }\n\n        return min_ops;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public int minMoves(int[] nums, int limit) {\n        int n = nums.length;\n        Map<Integer, Integer> sumCount = new HashMap<>();\n        int[] minArr = new int[n / 2];\n        int[] maxArr = new int[n / 2];\n\n        for (int i = 0; i < n / 2; i++) {\n            int a = Math.min(nums[i], nums[n - 1 - i]);\n            int b = Math.max(nums[i], nums[n - 1 - i]);\n\n            sumCount.merge(a + b, 1, Integer::sum);\n            minArr[i] = a;\n            maxArr[i] = b;\n        }\n\n        Arrays.sort(minArr);\n        Arrays.sort(maxArr);\n\n        int minOps = n;\n\n        for (int c = 2; c <= 2 * limit; c++) {\n            int addLeft = n / 2 - lowerBound(minArr, c);\n            int addRight = lowerBound(maxArr, c - limit);\n\n            int currentOps = n / 2 + addLeft + addRight - sumCount.getOrDefault(c, 0);\n            minOps = Math.min(minOps, currentOps);\n        }\n\n        return minOps;\n    }\n\n    private int lowerBound(int[] arr, int target) {\n        int left = 0, right = arr.length;\n        while (left < right) {\n            int mid = (left + right) >>> 1;\n            if (arr[mid] >= target) {\n                right = mid;\n            } else {\n                left = mid + 1;\n            }\n        }\n        return left;\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    public int MinMoves(int[] nums, int limit) {\n        int n = nums.Length;\n        var sumCount = new Dictionary<int, int>();\n        var minArr = new int[n / 2];\n        var maxArr = new int[n / 2];\n\n        for (int i = 0; i < n / 2; i++) {\n            int a = Math.Min(nums[i], nums[n - 1 - i]);\n            int b = Math.Max(nums[i], nums[n - 1 - i]);\n\n            int sum = a + b;\n            sumCount[sum] = sumCount.GetValueOrDefault(sum) + 1;\n\n            minArr[i] = a;\n            maxArr[i] = b;\n        }\n\n        Array.Sort(minArr);\n        Array.Sort(maxArr);\n\n        int LowerBound(int[] arr, int target) {\n            int left = 0, right = arr.Length;\n            while (left < right) {\n                int mid = left + ((right - left) >>> 1);\n                if (arr[mid] >= target) {\n                    right = mid;\n                } else {\n                    left = mid + 1;\n                }\n            }\n            return left;\n        }\n\n        int minOps = n;\n\n        for (int c = 2; c <= 2 * limit; c++) {\n            int addLeft = n / 2 - LowerBound(minArr, c);\n            int addRight = LowerBound(maxArr, c - limit);\n\n            int currentOps = n / 2 + addLeft + addRight - sumCount.GetValueOrDefault(c);\n            minOps = Math.Min(minOps, currentOps);\n        }\n\n        return minOps;\n    }\n}\n```\n\n```Go [sol2-Go]\nfunc minMoves(nums []int, limit int) int {\n    n := len(nums)\n    sumCount := make(map[int]int)\n    minArr := make([]int, n/2)\n    maxArr := make([]int, n/2)\n\n    for i := 0; i < n/2; i++ {\n        a := min(nums[i], nums[n-1-i])\n        b := max(nums[i], nums[n-1-i])\n\n        sumCount[a+b]++\n        minArr[i] = a\n        maxArr[i] = b\n    }\n\n    sort.Ints(minArr)\n    sort.Ints(maxArr)\n    minOps := n\n\n    for c := 2; c <= 2*limit; c++ {\n        addLeft := n/2 - lowerBound(minArr, c)\n        addRight := lowerBound(maxArr, c-limit)\n\n        currentOps := n/2 + addLeft + addRight - sumCount[c]\n        minOps = min(minOps, currentOps)\n    }\n\n    return minOps\n}\n\nfunc lowerBound(arr []int, target int) int {\n    left, right := 0, len(arr)\n    for left < right {\n        mid := (left + right) / 2\n        if arr[mid] >= target {\n            right = mid\n        } else {\n            left = mid + 1\n        }\n    }\n    return left\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def minMoves(self, nums: List[int], limit: int) -> int:\n        n = len(nums)\n        sum_count = Counter()\n        min_arr = []\n        max_arr = []\n\n        for i in range(n // 2):\n            a = min(nums[i], nums[n - 1 - i])\n            b = max(nums[i], nums[n - 1 - i])\n\n            sum_count[a + b] += 1\n            min_arr.append(a)\n            max_arr.append(b)\n\n        min_arr.sort()\n        max_arr.sort()\n\n        min_ops = n\n\n        for c in range(2, 2 * limit + 1):\n            add_left = n // 2 - bisect_left(min_arr, c)\n            add_right = bisect_left(max_arr, c - limit)\n\n            current_ops = n // 2 + add_left + add_right - sum_count[c]\n            min_ops = min(min_ops, current_ops)\n\n        return min_ops\n```\n\n```C [sol2-C]\ntypedef struct {\n    int key;\n    int val;\n    UT_hash_handle hh;\n} HashItem;\n\nHashItem *hashFindItem(HashItem **obj, int key) {\n    HashItem *pEntry = NULL;\n    HASH_FIND_INT(*obj, &key, pEntry);\n    return pEntry;\n}\n\nbool hashAddItem(HashItem **obj, int key, int val) {\n    if (hashFindItem(obj, key)) {\n        return false;\n    }\n    HashItem *pEntry = (HashItem *)malloc(sizeof(HashItem));\n    pEntry->key = key;\n    pEntry->val = val;\n    HASH_ADD_INT(*obj, key, pEntry);\n    return true;\n}\n\nbool hashSetItem(HashItem **obj, int key, int val) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        hashAddItem(obj, key, val);\n    } else {\n        pEntry->val = val;\n    }\n    return true;\n}\n\nint hashGetItem(HashItem **obj, int key, int defaultVal) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        return defaultVal;\n    }\n    return pEntry->val;\n}\n\nvoid hashFree(HashItem **obj) {\n    HashItem *curr = NULL, *tmp = NULL;\n    HASH_ITER(hh, *obj, curr, tmp) {\n        HASH_DEL(*obj, curr);  \n        free(curr);\n    }\n}\n\nint compare(const void* a, const void* b) {\n    return (*(int*)a - *(int*)b);\n}\n\nint lowerBound(int* arr, int size, int target) {\n    int left = 0, right = size;\n    while (left < right) {\n        int mid = left + (right - left) / 2;\n        if (arr[mid] >= target) {\n            right = mid;\n        } else {\n            left = mid + 1;\n        }\n    }\n    return left;\n}\n\nint minMoves(int* nums, int numsSize, int limit) {\n    int n = numsSize;\n    int half = n / 2;\n    \n    HashItem* sumCount = NULL;\n    int* minArr = (int*)malloc(half * sizeof(int));\n    int* maxArr = (int*)malloc(half * sizeof(int));\n\n    for (int i = 0; i < half; i++) {\n        int a = fmin(nums[i], nums[n - 1 - i]);\n        int b = fmax(nums[i], nums[n - 1 - i]);\n\n        int sum = a + b;\n        int currentCount = hashGetItem(&sumCount, sum, 0);\n        hashSetItem(&sumCount, sum, currentCount + 1);\n        \n        minArr[i] = a;\n        maxArr[i] = b;\n    }\n\n    qsort(minArr, half, sizeof(int), compare);\n    qsort(maxArr, half, sizeof(int), compare);\n\n    int minOps = n;\n\n    for (int c = 2; c <= 2 * limit; c++) {\n        int addLeft = half - lowerBound(minArr, half, c);\n        int addRight = lowerBound(maxArr, half, c - limit);\n\n        int currentOps = half + addLeft + addRight - hashGetItem(&sumCount, c, 0);\n        if (currentOps < minOps) {\n            minOps = currentOps;\n        }\n    }\n\n    free(minArr);\n    free(maxArr);\n    hashFree(&sumCount);\n    \n    return minOps;\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar minMoves = function (nums, limit) {\n    const n = nums.length;\n    const sumCount = new Map();\n    const minArr = [];\n    const maxArr = [];\n\n    for (let i = 0; i < n / 2; i++) {\n        const a = Math.min(nums[i], nums[n - 1 - i]);\n        const b = Math.max(nums[i], nums[n - 1 - i]);\n\n        const sum = a + b;\n        sumCount.set(sum, (sumCount.get(sum) ?? 0) + 1);\n\n        minArr.push(a);\n        maxArr.push(b);\n    }\n\n    minArr.sort((x, y) => x - y);\n    maxArr.sort((x, y) => x - y);\n\n    const lowerBound = (arr, target) => {\n        let left = 0, right = arr.length;\n        while (left < right) {\n            const mid = left + ((right - left) >>> 1);\n            if (arr[mid] >= target) {\n                right = mid;\n            } else {\n                left = mid + 1;\n            }\n        }\n        return left;\n    };\n\n    let minOps = n;\n\n    for (let c = 2; c <= 2 * limit; c++) {\n        const addLeft = n / 2 - lowerBound(minArr, c);\n        const addRight = lowerBound(maxArr, c - limit);\n\n        const currentOps = n / 2 + addLeft + addRight - (sumCount.get(c) ?? 0);\n        minOps = Math.min(minOps, currentOps);\n    }\n\n    return minOps;\n};\n```\n\n```TypeScript [sol2-TypeScript]\nfunction minMoves(nums: number[], limit: number): number {\n    const n = nums.length;\n\n    const sumCount = new Map<number, number>();\n    const minArr: number[] = [];\n    const maxArr: number[] = [];\n\n    for (let i = 0; i < n / 2; i++) {\n        const a = Math.min(nums[i], nums[n - 1 - i]);\n        const b = Math.max(nums[i], nums[n - 1 - i]);\n\n        const sum = a + b;\n        sumCount.set(sum, (sumCount.get(sum) ?? 0) + 1);\n\n        minArr.push(a);\n        maxArr.push(b);\n    }\n\n    minArr.sort((x, y) => x - y);\n    maxArr.sort((x, y) => x - y);\n\n    const lowerBound = (arr: number[], target: number): number => {\n        let left = 0, right = arr.length;\n        while (left < right) {\n            const mid = left + Math.floor((right - left) >>> 1);\n            if (arr[mid] >= target) {\n                right = mid;\n            } else {\n                left = mid + 1;\n            }\n        }\n        return left;\n    };\n\n    let minOps = n;\n\n    for (let c = 2; c <= 2 * limit; c++) {\n        const addLeft = n / 2 - lowerBound(minArr, c);\n        const addRight = lowerBound(maxArr, c - limit);\n\n        const currentOps = n / 2 + addLeft + addRight - (sumCount.get(c) ?? 0);\n        minOps = Math.min(minOps, currentOps);\n    }\n\n    return minOps;\n};\n```\n\n```Rust [sol2-Rust]\nuse std::collections::HashMap;\n\nimpl Solution {\n    pub fn min_moves(nums: Vec<i32>, limit: i32) -> i32 {\n        let n = nums.len();\n        let mut sum_count = HashMap::new();\n        let mut min_arr = Vec::with_capacity(n / 2);\n        let mut max_arr = Vec::with_capacity(n / 2);\n\n        for i in 0..n / 2 {\n            let a = nums[i].min(nums[n - 1 - i]);\n            let b = nums[i].max(nums[n - 1 - i]);\n\n            *sum_count.entry(a + b).or_insert(0) += 1;\n            min_arr.push(a);\n            max_arr.push(b);\n        }\n\n        min_arr.sort_unstable();\n        max_arr.sort_unstable();\n\n        let mut min_ops = n;\n\n        for c in 2..=2 * limit {\n            let add_left = n / 2 - min_arr.partition_point(|&x| x < c);\n            let add_right = max_arr.partition_point(|&x| x < c - limit);\n\n            let current_ops = n / 2 + add_left + add_right - sum_count.get(&c).unwrap_or(&0);\n            min_ops = min_ops.min(current_ops);\n        }\n\n        min_ops as i32\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log n + L \\log n)$，其中 $n$ 是 $\\textit{nums}$ 的长度，$L$ 代表 $\\textit{limit}$。获取 $\\textit{nums}$ 中的每对元素并计数需要 $O(n)$；对 $\\textit{minArr}$ 和 $\\textit{maxArr}$ 排序需要 $O(n \\log n)$；后续求解答案时，枚举可能的数对和取值需要 $O(L)$，循环内部进行二分查找与哈希表查询共需要 $O(\\log n)$，故这部分时间复杂度是 $O(L \\log n)$。\n\n- 空间复杂度：$O(n)$，$\\textit{minArr}$、$\\textit{maxArr}$ 和计数用的哈希表需要 $O(n)$ 的辅助空间。",
+            "slateValue": "",
+            "slug": "shi-shu-zu-hu-bu-de-zui-shao-cao-zuo-ci-fhvrb",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "eiMaeZ",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 13,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Prefix Sum",
+                    "nameTranslated": "前缀和",
+                    "slug": "prefix-sum",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2026-05-06T02:24:33.468421+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：差分 思路与算法 考虑 [latex] 中任意符合题意的数对 [latex]，其中 [latex] 是两者中的较小值，[latex] 是两者中的较大值。假设此时我们的目标是将所有的 [latex] 之和修改到 [latex]，易得 [latex] 的取值范围是 [latex]，根据 [latex] 的取值不同，",
+            "topic": {
+                "id": 3963827,
+                "subscribed": false,
+                "commentCount": 8,
+                "viewCount": 14,
+                "post": {
+                    "id": 7224504,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 24,
+            "isEditorsPick": false,
+            "hitCount": 5072,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "minimum-moves-to-make-array-complementary",
+                "questionFrontendId": "1674"
+            },
+            "next": {
+                "slug": "chai-fen-shu-zu-pythonjavacgo-by-endless-efiv",
+                "title": "差分数组（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

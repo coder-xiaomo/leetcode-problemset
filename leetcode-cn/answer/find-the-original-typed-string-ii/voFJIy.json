@@ -1,0 +1,144 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "voFJIy",
+            "title": "找到初始输入字符串 II",
+            "content": "#### 方法一：动态规划 + 前缀和优化\n\n**思路与算法**\n\n要想求出长度至少为 $k$ 的结果，我们可以首先求出任意长度的结果，再减去长度为 $1, 2, \\cdots, k-1$ 的结果。\n\n对于任意长度的结果，我们可以使用乘法原理计算得出：如果一个字符在字符串 $\\textit{word}$ 中连续出现了 $p$ 次，那么 Alice 实际上想输入它的次数为 $1, 2, \\cdots, p$，那么就有 $p$ 种可能。将所有的 $p$ 相乘即可得到任意长度的结果。\n\n> 例如字符串 $\\textit{word}$ 为 $\\text{abbcccaa}$，那么 $p$ 依次为 $[1, 2, 3, 2]$，任意长度的结果即为 $1 \\times 2 \\times 3 \\times 2 = 12$ 个。\n\n对于长度小于等于 $k-1$ 的结果，我们可以使用动态规划进行计算。我们首先将上面所有的 $p$ 记录在频次数组 $\\textit{freq}$ 中，随后记 $f(i, j)$ 表示考虑用 $\\textit{freq}$ 中下标小于等于 $i$ 的部分构造字符串，并且构造的字符串长度等于 $j$ 的方案数。在进行状态转移时，我们可以枚举 $\\textit{freq}[i]$ 对应的字符使用的次数，范围即为 $1, 2, \\cdots, \\textit{freq}[i]$。如果使用了 $j'$ 次，那么 $\\textit{freq}$ 中 下标严格小于 $i$ 的部分应该构造出长度等于 $j - j'$ 的字符串。这样我们就得到了状态转移方程：\n\n$$\nf(i, j) = \\sum_{j'=1}^{\\textit{freq}[i]} f(i-1, j-j')\n$$\n\n初始条件是 $f(-1, 0) = 1$，表示空字符串有一种方案。\n\n当 $\\textit{freq}$ 本身的长度大于等于 $k$ 时，我们可以不用进行上述的动态规划计算，这是因为 $\\textit{freq}$ 中每一项都对应至少一个字符，那么构造出的字符串长度一定不会小于 $k-1$。因此，上述动态规划的时间复杂度为 $O(k^3)$，其中枚举 $i, j, j'$ 分别都需要 $O(k)$ 的时间，在 $k=2000$ 是会超出时间限制，我们需要进一步进行优化。\n\n可以发现状态转移方程中的求和部分，它的下标 $j-j'$ 是连续的，因此我们可以在计算出所有的 $f(i-1, \\cdots)$ 之后，求出它的前缀和数组 $g(i-1, \\cdots)$，其中：\n\n$$\ng(i-1, j) = \\sum_{j'=0}^j f(i-1, j')\n$$\n\n这样一来，我们可以在 $O(1)$ 的时间直接求出 $f(i, j)$，即为：\n\n$$\nf(i, j) = g(i-1, j-1) - g(i-1, j-\\textit{freq}[i]-1)\n$$\n\n时间复杂度降低为 $O(k^2)$ 可以通过。\n\n另一个可以使用的空间优化为，由于 $f(i, j)$ 只会从 $f(i-1, \\cdots)$（或者说 $g(i-1, \\cdots)$）得到，那么我们可以使用两个一维数组，代替整个 $f$ 进行状态转移，空间复杂度可以从 $O(k^2)$ 减少至 $O(k)$。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int possibleStringCount(string word, int k) {\n        int n = word.size(), cnt = 1;\n        vector<int> freq;\n        for (int i = 1; i < n; ++i) {\n            if (word[i] == word[i - 1]) {\n                ++cnt;\n            }\n            else {\n                freq.push_back(cnt);\n                cnt = 1;\n            }\n        }\n        freq.push_back(cnt);\n\n        int ans = 1;\n        for (int o: freq) {\n            ans = static_cast<long long>(ans) * o % mod;\n        }\n\n        if (freq.size() >= k) {\n            return ans;\n        }\n\n        vector<int> f(k), g(k, 1);\n        f[0] = 1;\n        for (int i = 0; i < freq.size(); ++i) {\n            vector<int> f_new(k);\n            for (int j = 1; j < k; ++j) {\n                f_new[j] = g[j - 1];\n                if (j - freq[i] - 1 >= 0) {\n                    f_new[j] = (f_new[j] - g[j - freq[i] - 1] + mod) % mod;\n                }\n            }\n            vector<int> g_new(k);\n            g_new[0] = f_new[0];\n            for (int j = 1; j < k; ++j) {\n                g_new[j] = (g_new[j - 1] + f_new[j]) % mod;\n            }\n            f = move(f_new);\n            g = move(g_new);\n        }\n        return (ans - g[k - 1] + mod) % mod;\n    }\n\nprivate:\n    static const int mod = 1000000007;\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def possibleStringCount(self, word: str, k: int) -> int:\n        mod = 10**9 + 7\n        n, cnt = len(word), 1\n        freq = list()\n\n        for i in range(1, n):\n            if word[i] == word[i - 1]:\n                cnt += 1\n            else:\n                freq.append(cnt)\n                cnt = 1\n        freq.append(cnt)\n\n        ans = 1\n        for o in freq:\n            ans = ans * o % mod\n\n        if len(freq) >= k:\n            return ans\n\n        f, g = [1] + [0] * (k - 1), [1] * k\n        for i in range(len(freq)):\n            f_new = [0] * k\n            for j in range(1, k):\n                f_new[j] = g[j - 1]\n                if j - freq[i] - 1 >= 0:\n                    f_new[j] = (f_new[j] - g[j - freq[i] - 1]) % mod\n            g_new = [f_new[0]] + [0] * (k - 1)\n            for j in range(1, k):\n                g_new[j] = (g_new[j - 1] + f_new[j]) % mod\n            f, g = f_new, g_new\n        return (ans - g[k - 1]) % mod\n```\n\n```Java [sol1-Java]\nclass Solution {\n    private static final int mod = 1000000007;\n\n    public int possibleStringCount(String word, int k) {\n        int n = word.length();\n        int cnt = 1;\n        List<Integer> freq = new ArrayList<>();\n        for (int i = 1; i < n; ++i) {\n            if (word.charAt(i) == word.charAt(i - 1)) {\n                ++cnt;\n            } else {\n                freq.add(cnt);\n                cnt = 1;\n            }\n        }\n        freq.add(cnt);\n\n        long ans = 1;\n        for (int o : freq) {\n            ans = ans * o % mod;\n        }\n        if (freq.size() >= k) {\n            return (int) ans;\n        }\n\n        int[] f = new int[k];\n        int[] g = new int[k];\n        f[0] = 1;\n        Arrays.fill(g, 1);\n        for (int i = 0; i < freq.size(); ++i) {\n            int[] f_new = new int[k];\n            for (int j = 1; j < k; ++j) {\n                f_new[j] = g[j - 1];\n                if (j - freq.get(i) - 1 >= 0) {\n                    f_new[j] = (f_new[j] - g[j - freq.get(i) - 1] + mod) % mod;\n                }\n            }\n            int[] g_new = new int[k];\n            g_new[0] = f_new[0];\n            for (int j = 1; j < k; ++j) {\n                g_new[j] = (g_new[j - 1] + f_new[j]) % mod;\n            }\n            f = f_new;\n            g = g_new;\n        }\n\n        return (int) ((ans - g[k - 1] + mod) % mod);\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    private const int mod = 1000000007;\n\n    public int PossibleStringCount(string word, int k) {\n        int n = word.Length;\n        int cnt = 1;\n        List<int> freq = new List<int>();\n\n        for (int i = 1; i < n; ++i) {\n            if (word[i] == word[i - 1]) {\n                ++cnt;\n            } else {\n                freq.Add(cnt);\n                cnt = 1;\n            }\n        }\n        freq.Add(cnt);\n        long ans = 1;\n        foreach (int o in freq) {\n            ans = ans * o % mod;\n        }\n        if (freq.Count >= k) {\n            return (int) ans;\n        }\n\n        int[] f = new int[k];\n        int[] g = new int[k];\n        f[0] = 1;\n        Array.Fill(g, 1);\n        for (int i = 0; i < freq.Count; ++i) {\n            int[] f_new = new int[k];\n            for (int j = 1; j < k; ++j) {\n                f_new[j] = g[j - 1];\n                if (j - freq[i] - 1 >= 0) {\n                    f_new[j] = (f_new[j] - g[j - freq[i] - 1] + mod) % mod;\n                }\n            }\n\n            int[] g_new = new int[k];\n            g_new[0] = f_new[0];\n            for (int j = 1; j < k; ++j) {\n                g_new[j] = (g_new[j - 1] + f_new[j]) % mod;\n            }\n\n            f = f_new;\n            g = g_new;\n        }\n\n        return (int) ((ans - g[k - 1] + mod) % mod);\n    }\n}\n```\n\n```Go [sol1-Go]\nconst mod = 1000000007\n\nfunc possibleStringCount(word string, k int) int {\n    n := len(word)\n    cnt := 1\n    var freq []int\n\n    for i := 1; i < n; i++ {\n        if word[i] == word[i-1] {\n            cnt++\n        } else {\n            freq = append(freq, cnt)\n            cnt = 1\n        }\n    }\n    freq = append(freq, cnt)\n\n    ans := 1\n    for _, o := range freq {\n        ans = ans * o % mod\n    }\n\n    if len(freq) >= k {\n        return ans\n    }\n\n    f := make([]int, k)\n    g := make([]int, k)\n    f[0] = 1\n    for i := range g {\n        g[i] = 1\n    }\n\n    for i := 0; i < len(freq); i++ {\n        f_new := make([]int, k)\n        for j := 1; j < k; j++ {\n            f_new[j] = g[j-1]\n            if j - freq[i] - 1 >= 0 {\n                f_new[j] = (f_new[j] - g[j - freq[i] - 1] + mod) % mod\n            }\n        }\n        g_new := make([]int, k)\n        g_new[0] = f_new[0]\n        for j := 1; j < k; j++ {\n            g_new[j] = (g_new[j-1] + f_new[j]) % mod\n        }\n        f, g = f_new, g_new\n    }\n\n    return (ans - g[k-1] + mod) % mod\n}\n```\n\n```C [sol1-C]\n#define MOD 1000000007\n\nint possibleStringCount(char* word, int k) {\n    int n = strlen(word);\n    int cnt = 1;\n    int freq[n];\n    memset(freq, 0, sizeof(int) * n);\n    int freqSize = 0;\n    for (int i = 1; i < n; ++i) {\n        if (word[i] == word[i - 1]) {\n            ++cnt;\n        } else {\n            freq[freqSize++] = cnt;\n            cnt = 1;\n        }\n    }\n    freq[freqSize++] = cnt;\n\n    long ans = 1;\n    for (int i = 0; i < freqSize; ++i) {\n        ans = ans * freq[i] % MOD;\n    }\n\n    if (freqSize >= k) {\n        return (int)ans;\n    }\n\n    int f[k], g[k], f_new[k], g_new[k];\n    f[0] = 1;\n    for (int i = 0; i < k; ++i) {\n        g[i] = 1;\n    }\n    for (int i = 0; i < freqSize; ++i) {\n        memset(f_new, 0, sizeof(int) * k);\n        for (int j = 1; j < k; ++j) {\n            f_new[j] = g[j - 1];\n            if (j - freq[i] - 1 >= 0) {\n                f_new[j] = (f_new[j] - g[j - freq[i] - 1] + MOD) % MOD;\n            }\n        }\n        memset(g_new, 0, sizeof(int) * k);\n        g_new[0] = f_new[0];\n        for (int j = 1; j < k; ++j) {\n            g_new[j] = (g_new[j - 1] + f_new[j]) % MOD;\n        }\n        memcpy(f, f_new, sizeof(int) * k);\n        memcpy(g, g_new, sizeof(int) * k);\n    }\n\n    int result = (ans - g[k - 1] + MOD) % MOD;\n    return result;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar possibleStringCount = function(word, k) {\n    const mod = 1000000007;\n    const n = word.length;\n    let cnt = 1;\n    const freq = [];\n\n    for (let i = 1; i < n; ++i) {\n        if (word[i] === word[i - 1]) {\n            ++cnt;\n        } else {\n            freq.push(cnt);\n            cnt = 1;\n        }\n    }\n    freq.push(cnt);\n\n    let ans = 1;\n    for (const o of freq) {\n        ans = ans * o % mod;\n    }\n\n    if (freq.length >= k) {\n        return ans;\n    }\n\n    let f = new Array(k).fill(0);\n    let g = new Array(k).fill(1);\n    f[0] = 1;\n\n    for (let i = 0; i < freq.length; ++i) {\n        const f_new = new Array(k).fill(0);\n        for (let j = 1; j < k; ++j) {\n            f_new[j] = g[j - 1];\n            if (j - freq[i] - 1 >= 0) {\n                f_new[j] = (f_new[j] - g[j - freq[i] - 1] + mod) % mod;\n            }\n        }\n        const g_new = new Array(k).fill(0);\n        g_new[0] = f_new[0];\n        for (let j = 1; j < k; ++j) {\n            g_new[j] = (g_new[j - 1] + f_new[j]) % mod;\n        }\n        f = f_new;\n        g = g_new;\n    }\n    return (ans - g[k - 1] + mod) % mod;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction possibleStringCount(word: string, k: number): number {\n    const mod: number = 1000000007;\n    const n = word.length;\n    let cnt = 1;\n    const freq: number[] = [];\n\n    for (let i = 1; i < n; ++i) {\n        if (word[i] === word[i - 1]) {\n            ++cnt;\n        } else {\n            freq.push(cnt);\n            cnt = 1;\n        }\n    }\n    freq.push(cnt);\n\n    let ans = 1;\n    for (const o of freq) {\n        ans = ans * o % mod;\n    }\n\n    if (freq.length >= k) {\n        return ans;\n    }\n\n    let f: number[] = new Array(k).fill(0);\n    let g: number[] = new Array(k).fill(1);\n    f[0] = 1;\n    for (let i = 0; i < freq.length; ++i) {\n        const f_new: number[] = new Array(k).fill(0);\n        for (let j = 1; j < k; ++j) {\n            f_new[j] = g[j - 1];\n            if (j - freq[i] - 1 >= 0) {\n                f_new[j] = (f_new[j] - g[j - freq[i] - 1] + mod) % mod;\n            }\n        }\n        const g_new: number[] = new Array(k).fill(0);\n        g_new[0] = f_new[0];\n        for (let j = 1; j < k; ++j) {\n            g_new[j] = (g_new[j - 1] + f_new[j]) % mod;\n        }\n        f = f_new;\n        g = g_new;\n    }\n\n    return (ans - g[k - 1] + mod) % mod;\n};\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn possible_string_count(word: String, k: i32) -> i32 {\n        const MOD: i64 = 1_000_000_007;\n        let n = word.len();\n        let mut cnt = 1;\n        let mut freq: Vec<i32> = Vec::new();\n        let word_chars: Vec<char> = word.chars().collect();\n\n        for i in 1..n {\n            if word_chars[i] == word_chars[i - 1] {\n                cnt += 1;\n            } else {\n                freq.push(cnt);\n                cnt = 1;\n            }\n        }\n        freq.push(cnt);\n\n        let mut ans: i64 = 1;\n        for &o in &freq {\n            ans = ans * o as i64 % MOD;\n        }\n\n        if freq.len() >= k as usize {\n            return ans as i32;\n        }\n\n        let k_usize = k as usize;\n        let mut f = vec![0; k_usize];\n        let mut g = vec![1; k_usize];\n        f[0] = 1;\n\n        for &num in &freq {\n            let mut f_new = vec![0; k_usize];\n            for j in 1..k_usize {\n                f_new[j] = g[j - 1];\n                if j as i32 - num - 1 >= 0 {\n                    f_new[j] = (f_new[j] - g[j - num as usize - 1] + MOD) % MOD;\n                }\n            }\n            let mut g_new = vec![0; k_usize];\n            g_new[0] = f_new[0];\n            for j in 1..k_usize {\n                g_new[j] = (g_new[j - 1] + f_new[j]) % MOD;\n            }\n            f = f_new;\n            g = g_new;\n        }\n\n        ((ans - g[k_usize - 1] as i64 + MOD) % MOD) as i32\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n + k^2)$，其中 $n$ 是字符串 $\\textit{words}$ 的长度。\n\n- 空间复杂度：$O(k)$。",
+            "slateValue": "",
+            "slug": "zhao-dao-chu-shi-shu-ru-zi-fu-chuan-ii-b-ldyv",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "voFJIy",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 6,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Prefix Sum",
+                    "nameTranslated": "前缀和",
+                    "slug": "prefix-sum",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2025-06-23T01:34:36.531835+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 + 前缀和优化 思路与算法 要想求出长度至少为 [latex] 的结果，我们可以首先求出任意长度的结果，再减去长度为 [latex] 的结果。 对于任意长度的结果，我们可以使用乘法原理计算得出：如果一个字符在字符串 [latex] 中连续出现了 [latex] 次，那么 Alice 实际上想输入它的次",
+            "topic": {
+                "id": 3706277,
+                "subscribed": false,
+                "commentCount": 19,
+                "viewCount": 42,
+                "post": {
+                    "id": 6768673,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 26,
+            "isEditorsPick": false,
+            "hitCount": 8034,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "find-the-original-typed-string-ii",
+                "questionFrontendId": "3333"
+            },
+            "next": {
+                "slug": "zheng-nan-ze-fan-qian-zhui-he-you-hua-dp-5mi9",
+                "title": "前缀和优化多重背包（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

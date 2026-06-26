@@ -1,0 +1,136 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "4jqXls",
+            "title": "单词之和",
+            "content": "#### 方法一：暴力扫描\n\n**思路与算法**\n\n我们将所有的 $\\texttt{key-val}$ 键值进行存储，每次需要搜索给定的前缀 $\\textit{prefix}$ 时，我们依次搜索所有的键值。如果键值包含给定的前缀，则我们将其 $\\textit{val}$ 进行相加，返回所有符合要求的 $\\textit{val}$ 的和。\n\n**代码**\n\n```C++ [sol1-C++]\nclass MapSum {\npublic:\n    MapSum() {\n\n    }\n    \n    void insert(string key, int val) {\n        cnt[key] = val;\n    }\n    \n    int sum(string prefix) {\n        int res = 0;\n        for (auto & [key,val] : cnt) {\n            if (key.substr(0, prefix.size()) == prefix) {\n                res += val;\n            }\n        }\n        return res;\n    }\nprivate:\n    unordered_map<string, int> cnt;\n};\n```\n\n```Java [sol1-Java]\nclass MapSum {\n    Map<String, Integer> map;\n\n    public MapSum() {\n        map = new HashMap<>();\n    }\n    \n    public void insert(String key, int val) {\n        map.put(key,val);\n    }\n    \n    public int sum(String prefix) {\n        int res = 0;\n        for (String s : map.keySet()) {\n            if (s.startsWith(prefix)) {\n                res += map.get(s);\n            }\n        }\n        return res;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class MapSum {\n    Dictionary<string, int> dictionary;\n\n    public MapSum() {\n        dictionary = new Dictionary<string, int>();\n    }\n    \n    public void Insert(string key, int val) {\n        if (dictionary.ContainsKey(key)) {\n            dictionary[key] = val;\n        } else {\n            dictionary.Add(key, val);\n        }\n    }\n    \n    public int Sum(string prefix) {\n        int res = 0;\n        foreach (KeyValuePair<string, int> pair in dictionary) {\n            if (pair.Key.StartsWith(prefix)) {\n                res += pair.Value;\n            }\n        }\n        return res;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass MapSum:\n    def __init__(self):\n        self.map = {}\n\n    def insert(self, key: str, val: int) -> None:\n        self.map[key] = val\n\n    def sum(self, prefix: str) -> int:\n        res = 0\n        for key,val in self.map.items():\n            if key.startswith(prefix):\n                res += val\n        return res\n```\n\n```JavaScript [sol1-JavaScript]\nvar MapSum = function() {\n    this.map = new Map();\n\n};\n\nMapSum.prototype.insert = function(key, val) {\n    this.map.set(key, val);\n};\n\nMapSum.prototype.sum = function(prefix) {\n    let res = 0;\n    for (const s of this.map.keys()) {\n        if (s.startsWith(prefix)) {\n            res += this.map.get(s);\n        }\n    }\n    return res;\n};\n```\n\n```go [sol1-Golang]\ntype MapSum map[string]int\n\nfunc Constructor() MapSum {\n    return MapSum{}\n}\n\nfunc (m MapSum) Insert(key string, val int) {\n    m[key] = val\n}\n\nfunc (m MapSum) Sum(prefix string) (sum int) {\n    for s, v := range m {\n        if strings.HasPrefix(s, prefix) {\n            sum += v\n        }\n    }\n    return\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$\\texttt{insert}$ 操作时间复杂度为 $O(1)$。$\\texttt{sum}$ 操作时间复杂度为 $O(NM)$，其中 $N$ 是插入的 $\\textit{key}$ 的数目，$M$ 是给定前缀 $\\textit{prefix}$ 的长度。\n\n- 空间复杂度：$O(NM)$，其中 $N$ 是插入的 $\\textit{key}$ 的数目，$M$ 是字符串 $\\textit{key}$ 的最大长度。\n\n#### 方法二：前缀哈希映射\n\n**思路与算法**\n\n我们可以用哈希表存储所有可能前缀的值。当我们得到一个新的 $\\texttt{key-val}$ 键值，我们将 $\\textit{key}$ 的每个前缀 $\\textit{prefix}[i]$ 都在哈希表中进行存储，我们需要更新每个前缀 $\\textit{prefix}[i]$ 对应的值。我们计算出它对应的值的增加为 $\\textit{delta}$，计算方式如下：\n+ 如果键 $\\textit{key}$ 不存在，则此时 $\\textit{delta}$ 等于 $\\textit{val}$。\n+ 如果键 $\\textit{key}$ 存在，则此时键 $\\textit{key}$ 对应得前缀的值都增加 $\\textit{val} - \\textit{map}[\\textit{key}]$，其中 $\\textit{map}[\\textit{key}]$ 表示键 $\\textit{key}$ 当前对应的值。\n+ 我们在完成前缀的值改写后，同时要更新键 $\\textit{key}$ 对应的值为 $\\textit{val}$。\n\n求 $\\texttt{sum}$ 时,我们直接利用哈希表查找给定的前缀对应的值即可。\n\n**代码**\n\n```C++ [sol2-C++]\nclass MapSum {\npublic:\n    MapSum() {\n\n    }\n    \n    void insert(string key, int val) {\n        int delta = val;\n        if (map.count(key)) {\n            delta -= map[key];\n        }\n        map[key] = val;\n        for (int i = 1; i <= key.size(); ++i) {\n            prefixmap[key.substr(0, i)] += delta;\n        }\n    }\n    \n    int sum(string prefix) {\n        return prefixmap[prefix];\n    }\nprivate:\n    unordered_map<string, int> map;\n    unordered_map<string, int> prefixmap;\n};\n```\n\n```Java [sol2-Java]\nclass MapSum {\n    Map<String, Integer> map;\n    Map<String, Integer> prefixmap;\n\n    public MapSum() {\n        map = new HashMap<>();\n        prefixmap = new HashMap<>();\n    }\n    \n    public void insert(String key, int val) {\n        int delta = val - map.getOrDefault(key, 0);\n        map.put(key, val);\n        for (int i = 1; i <= key.length(); ++i) {\n            String currprefix = key.substring(0, i);\n            prefixmap.put(currprefix, prefixmap.getOrDefault(currprefix, 0) + delta);\n        }\n    }\n    \n    public int sum(String prefix) {\n        return prefixmap.getOrDefault(prefix, 0);\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class MapSum {\n    Dictionary<string, int> dictionary;\n    Dictionary<string, int> prefixDictionary;\n\n    public MapSum() {\n        dictionary = new Dictionary<string, int>();\n        prefixDictionary = new Dictionary<string, int>();\n    }\n    \n    public void Insert(string key, int val) {\n        int delta = val;\n        if (dictionary.ContainsKey(key)) {\n            delta -= dictionary[key];\n            dictionary[key] = val;\n        } else {\n            dictionary.Add(key, val);\n        }\n        for (int i = 1; i <= key.Length; ++i) {\n            string currprefix = key.Substring(0, i);\n            if (prefixDictionary.ContainsKey(currprefix)) {\n                prefixDictionary[currprefix] += delta;\n            } else {\n                prefixDictionary.Add(currprefix, delta);\n            }\n        }\n    }\n    \n    public int Sum(string prefix) {\n        return prefixDictionary.ContainsKey(prefix) ? prefixDictionary[prefix] : 0;\n    }\n}\n```\n\n```Python [sol2-Python3]\nclass MapSum:\n    def __init__(self):\n        self.map = {}\n        self.prefixmap = {}\n\n    def insert(self, key: str, val: int) -> None:\n        delta = val\n        if key in self.map:\n            delta -= self.map[key]\n        self.map[key] = val\n        for i in range(len(key)):\n            currprefix = key[0:i+1]\n            if currprefix in self.prefixmap:\n                self.prefixmap[currprefix] += delta\n            else:\n                self.prefixmap[currprefix] = delta\n\n    def sum(self, prefix: str) -> int:\n        if prefix in self.prefixmap:\n            return self.prefixmap[prefix]\n        else:\n            return 0\n```\n\n```JavaScript [sol2-JavaScript]\nvar MapSum = function() {\n    this.map = new Map();\n    this.prefixmap = new Map();\n\n};\n\nMapSum.prototype.insert = function(key, val) {\n    const delta = val - (this.map.get(key) || 0);\n    this.map.set(key, val);\n    for (let i = 1; i <= key.length; ++i) {\n        const currprefix = key.substring(0, i);\n        this.prefixmap.set(currprefix, (this.prefixmap.get(currprefix) || 0) + delta);\n    }\n};\n\nMapSum.prototype.sum = function(prefix) {\n    return this.prefixmap.get(prefix) || 0;\n};\n```\n\n```go [sol2-Golang]\ntype MapSum struct {\n    m, pre map[string]int\n}\n\nfunc Constructor() MapSum {\n    return MapSum{map[string]int{}, map[string]int{}}\n}\n\nfunc (m *MapSum) Insert(key string, val int) {\n    delta := val\n    if m.m[key] > 0 {\n        delta -= m.m[key]\n    }\n    m.m[key] = val\n    for i := range key {\n        m.pre[key[:i+1]] += delta\n    }\n}\n\nfunc (m *MapSum) Sum(prefix string) int {\n    return m.pre[prefix]\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$\\texttt{insert}$ 操作时间复杂度为 $O(N^2)$，其中 $N$ 是插入的字符串 $\\textit{key}$ 的长度，我们需要把字符串的所有前缀都在哈希表中插入一次。$\\texttt{sum}$ 操作时间复杂度为 $O(1)$。\n\n- 空间复杂度：$O(MN)$，其中 $M$ 表示 $\\texttt{key-val}$ 键值的数目，$N$ 表示字符串 $\\textit{key}$ 的最大长度，由于我们需要用哈希表存储所有的 $\\textit{key}$ 的前缀，每个字符串 $\\textit{key}$ 最多有 $N$ 个前缀，因此空间复杂度为$O(MN)$。\n\n#### 方法三：字典树\n\n**思路与算法**\n\n由于我们要处理前缀，自然而然联想到可以用 $\\textit{Trie}$（前缀树）来处理此问题。处理方法跟方法二的原理一样，我们直接在前缀对应的 $\\textit{Trie}$ 的每个节点存储该前缀对应的值。\n+ $\\texttt{insert}$ 操作：原理与方法二一样，我们首先求出前缀对应的值的改变 $\\textit{delta}$，我们直接在 $\\textit{Trie}$ 节点上更新键 $\\textit{key}$ 的每个前缀对应的值。\n+ $\\texttt{sum}$ 操作: 我们直接在前缀树上搜索该给定的前缀对应的值即可，如果给定的前缀不在前缀树中，则返回 $0$。\n当然在实际中我们也可以在 $\\textit{Trie}$ 的节点只存储键 $\\textit{key}$ 对应的 $\\textit{val}$, 每次求 $\\texttt{sum}$ 时利用 $\\textit{DFS}$ 或者 $\\textit{BFS}$ 遍历前缀树的子树即可。\n\n**代码**\n\n```C++ [sol3-C++]\nstruct TrieNode {\n    int val;\n    TrieNode * next[26];\n    TrieNode() {\n        this->val = 0;\n        for (int i = 0; i < 26; ++i) {\n            this->next[i] = nullptr;\n        }\n    }\n};\n\nclass MapSum {\npublic:\n    MapSum() {\n        this->root = new TrieNode();\n    }\n    \n    void insert(string key, int val) {\n        int delta = val;\n        if (cnt.count(key)) {\n            delta -= cnt[key];\n        }\n        cnt[key] = val;\n        TrieNode * node = root;\n        for (auto c : key) {\n            if (node->next[c - 'a'] == nullptr) {\n                node->next[c - 'a'] = new TrieNode();\n            }\n            node = node->next[c - 'a'];\n            node->val += delta;\n        }\n    }\n    \n    int sum(string prefix) {\n        TrieNode * node = root;\n        for (auto c : prefix) {\n            if (node->next[c - 'a'] == nullptr) {\n                return 0;\n            } else {\n                node = node->next[c - 'a'];\n            }\n        }\n        return node->val;\n    }\nprivate:\n    TrieNode * root;\n    unordered_map<string, int> cnt;\n};\n```\n\n```Java [sol3-Java]\nclass MapSum {\n    class TrieNode {\n        int val = 0;\n        TrieNode[] next = new TrieNode[26];\n    }\n\n    TrieNode root;\n    Map<String, Integer> map;\n\n    public MapSum() {\n        root = new TrieNode();\n        map = new HashMap<>();\n    }\n    \n    public void insert(String key, int val) {        \n        int delta = val - map.getOrDefault(key, 0);\n        map.put(key, val);\n        TrieNode node = root;\n        for (char c : key.toCharArray()) {\n            if (node.next[c - 'a'] == null) {\n                node.next[c - 'a'] = new TrieNode();\n            }\n            node = node.next[c - 'a'];\n            node.val += delta;\n        }\n    }\n    \n    public int sum(String prefix) {\n        TrieNode node = root;\n        for (char c : prefix.toCharArray()) {\n            if (node.next[c - 'a'] == null) {\n                return 0;\n            }\n            node = node.next[c - 'a'];\n        }\n        return node.val;\n    }\n}\n```\n\n```C# [sol3-C#]\npublic class MapSum {\n    class TrieNode {\n        public int val = 0;\n        public TrieNode[] next = new TrieNode[26];\n    }\n\n    TrieNode root;\n    Dictionary<string, int> dictionary;\n\n    public MapSum() {\n        root = new TrieNode();\n        dictionary = new Dictionary<string, int>();\n    }\n    \n    public void Insert(string key, int val) {\n        int delta = val;\n        if (dictionary.ContainsKey(key)) {\n            delta -= dictionary[key];\n            dictionary[key] = val;\n        } else {\n            dictionary.Add(key, val);\n        }\n        TrieNode node = root;\n        foreach (char c in key) {\n            if (node.next[c - 'a'] == null) {\n                node.next[c - 'a'] = new TrieNode();\n            }\n            node = node.next[c - 'a'];\n            node.val += delta;\n        }\n    }\n    \n    public int Sum(string prefix) {\n        TrieNode node = root;\n        foreach (char c in prefix) {\n            if (node.next[c - 'a'] == null) {\n                return 0;\n            }\n            node = node.next[c - 'a'];\n        }\n        return node.val;\n    }\n}\n```\n\n```Python [sol3-Python3]\nclass TrieNode:\n    def __init__(self):\n        self.val = 0\n        self.next = [None for _ in range(26)]\n\nclass MapSum:\n    def __init__(self):\n        self.root = TrieNode()\n        self.map = {}\n\n    def insert(self, key: str, val: int) -> None:\n        delta = val\n        if key in self.map:\n            delta -= self.map[key]\n        self.map[key] = val\n        node = self.root\n        for c in key:\n            if node.next[ord(c) - ord('a')] is None:\n                node.next[ord(c) - ord('a')] = TrieNode()\n            node = node.next[ord(c) - ord('a')]\n            node.val += delta\n\n    def sum(self, prefix: str) -> int:\n        node = self.root\n        for c in prefix:\n            if node.next[ord(c) - ord('a')] is None:\n                return 0            \n            node = node.next[ord(c) - ord('a')]\n        return node.val\n```\n\n```JavaScript [sol3-JavaScript]\nclass TrieNode {\n    constructor() {\n        this.val = 0;\n        this.next = new Array(26).fill(0);\n    }\n}\n\nvar MapSum = function() {\n    this.root = new TrieNode();\n    this.map = new Map();\n\n};\n\nMapSum.prototype.insert = function(key, val) {\n    const delta = val - (this.map.get(key) || 0);\n    this.map.set(key, val);\n    let node = this.root;\n    for (const c of key) {\n        if (node.next[c.charCodeAt() - 'a'.charCodeAt()] === 0) {\n            node.next[c.charCodeAt() - 'a'.charCodeAt()] = new TrieNode();\n        }\n        node = node.next[c.charCodeAt() - 'a'.charCodeAt()];\n        node.val += delta;\n    }\n};\n\nMapSum.prototype.sum = function(prefix) {\n    let node = this.root;\n    for (const c of prefix) {\n        if (node.next[c.charCodeAt() - 'a'.charCodeAt()] === 0) {\n            return 0;\n        }\n        node = node.next[c.charCodeAt() - 'a'.charCodeAt()];\n    }\n    return node.val;\n};\n```\n\n```go [sol3-Golang]\ntype TrieNode struct {\n    children [26]*TrieNode\n    val      int\n}\n\ntype MapSum struct {\n    root *TrieNode\n    cnt  map[string]int\n}\n\nfunc Constructor() MapSum {\n    return MapSum{&TrieNode{}, map[string]int{}}\n}\n\nfunc (m *MapSum) Insert(key string, val int) {\n    delta := val\n    if m.cnt[key] > 0 {\n        delta -= m.cnt[key]\n    }\n    m.cnt[key] = val\n    node := m.root\n    for _, ch := range key {\n        ch -= 'a'\n        if node.children[ch] == nil {\n            node.children[ch] = &TrieNode{}\n        }\n        node = node.children[ch]\n        node.val += delta\n    }\n}\n\nfunc (m *MapSum) Sum(prefix string) int {\n    node := m.root\n    for _, ch := range prefix {\n        ch -= 'a'\n        if node.children[ch] == nil {\n            return 0\n        }\n        node = node.children[ch]\n    }\n    return node.val\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$\\texttt{insert}$ 操作时间复杂度为 $O(N)$，其中 $N$ 是插入的字符串 $\\textit{key}$ 的长度。$\\texttt{sum}$ 操作时间复杂度为 $O(N)$，其中 $O(N)$ 为给定的查询字符的长度，需要在前缀树中搜索给定的前缀。\n\n- 空间复杂度：$O(CNM)$，其中 $M$ 表示 $\\texttt{key-val}$ 键值的数目，$N$ 表示字符串 $\\textit{key}$ 的最大长度，$C$ 为常数。",
+            "slateValue": "",
+            "slug": "dan-ci-zhi-he-by-leetcode-solution-8vyo",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "4jqXls",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 12,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Design",
+                    "nameTranslated": "设计",
+                    "slug": "design",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Trie",
+                    "nameTranslated": "字典树",
+                    "slug": "trie",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-04-07T09:54:03.210515+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：暴力扫描 思路与算法 我们将所有的 $\\texttt{key-val}$ 键值进行存储，每次需要搜索给定的前缀 $\\textit{prefix}$ 时，我们依次搜索所有的键值。如果键值包含给定的前缀，则我们将其 $\\textit{val}$ 进行相加，返回所有符合要求的 $\\textit{val}$ 的和。 代",
+            "topic": {
+                "id": 1401989,
+                "subscribed": false,
+                "commentCount": 24,
+                "viewCount": 3362,
+                "post": {
+                    "id": 2893986,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 8,
+            "isEditorsPick": false,
+            "hitCount": 8243,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "z1R5dt",
+                "questionFrontendId": "LCR 066"
+            },
+            "next": {
+                "slug": "triemo-ban-by-himymben-dq7o",
+                "title": "Trie模板"
+            },
+            "prev": null
+        }
+    }
+}

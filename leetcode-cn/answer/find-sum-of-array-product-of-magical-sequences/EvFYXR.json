@@ -1,0 +1,162 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "EvFYXR",
+            "title": "魔法序列的数组乘积之和",
+            "content": "#### 方法一：动态规划\n\n令数组 $\\textit{nums}$ 的长度为 $n$。根据题意，我们依次从 $0$ 到 $n - 1$ 分别取若干个数（即 $\\textit{nums}$ 的下标）组成序列 $\\textit{seq}$，假设取值等于 $t$ 的元素有 $r_t$ 个，那么有 $\\sum^{n - 1}_{t=0}r_t = m$，并且这些序列排列数为：\n\n$$\\frac{m!}{\\prod^{n-1}_{t=0}r_t!}$$\n\n这些序列对应的数组乘积和为：\n\n$$\\frac{m!}{\\prod^{n-1}_{t=0}r_t!} \\times \\prod^{n-1}_{t=0}\\textit{nums}[t]^{r_t} = m! \\times \\prod^{n-1}_{t=0}\\frac{\\textit{nums}[t]^{r_t}}{r_t!}$$\n\n对于数字集合 $X$，我们定义 $\\textit{mask}(X) = \\sum_{x \\in X}2^x$。根据上述计算公式，我们模拟取数过程，假设从 $0$ 取到 $i$，总共取了 $j$ 个数，并且已取到的数集合对应的 $\\textit{mask}$ 为 $p$，令 $f(i, j, p)$ 为所有的取数方案对应的 $\\prod^{i}_{t=0}\\frac{\\textit{nums}[t]^{r_t}}{r_t!}$ 的和。当取到数 $i + 1$ 时，并且取数数目为 $r_{i+1}$，那么 $f(i, j, p)$ 对 $f(i + 1, j + r_{i+1}, p + 2^{i+1}\\times r_{i+1})$ 的贡献为：\n\n$$\nf(i, j, p) \\times \\frac{\\textit{nums}[i + 1]^{r_{i + 1}}}{r_{i + 1}!} \n$$\n\n当我们取到数 $i+1$ 时，不会影响到已取到的数集合的 $T$ 函数值的低 $i$ 位，因此我们可以将 $p$ 拆分成低 $i$ 位和后面的二进制位，令低 $i$ 位的置位为 $q$ 个，类似上面的贡献公式 $(i, j, p, q)$ 对 $f(i + 1, j + r_{i + 1}, \\lfloor \\frac{p}{2} \\rfloor + r_{i + 1}, q + (p \\bmod 2))$ 为：\n\n$$\nf(i, j, p, q) \\times \\frac{\\textit{nums}[i + 1]^{r_{i + 1}}}{r_{i + 1}!} \n$$\n\n对于递推式 $f(i, j, p, q)$，当 $i = 0$ 时，显然也有 $q = 0$，那么初始时：\n\n$$f(0, j, j, 0) = \\frac{\\textit{nums}[0]^{j}}{j!}$$\n\n利用初始值和递推式，我们求解所有的 $f(i, j, p, q)$ 的取值，那么所有魔法序列的数组乘积的总和为：\n\n$$\n\\sum_{b_p + q = k} (m! \\times f(n-1, m, p, q))\n$$\n\n其中 $b_p$ 表示 $p$ 的置位数。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    long long quickmul(long long x, long long y, long long mod) {\n        long long res = 1, cur = x % mod;\n        while(y) {\n            if(y & 1) {\n                res = res * cur % mod;\n            }\n            y >>= 1;\n            cur = cur * cur % mod;\n        }\n        return res;\n    };\n\n    int magicalSum(int m, int k, vector<int>& nums) {\n        int n = nums.size();\n        const long long mod = 1e9 + 7;\n        vector<long long> fac(m + 1, 1);\n        for (int i = 1; i <= m; i++) {\n            fac[i] = fac[i - 1] * i % mod;\n        }\n        vector<long long> ifac(m + 1, 1);\n        for (int i = 2; i <= m; i++) {\n            ifac[i] = quickmul(i, mod - 2, mod);\n        }\n        for (int i = 2; i <= m; i++) {\n            ifac[i] = ifac[i - 1] * ifac[i] % mod;\n        }\n        vector numsPower(n, vector<long long>(m + 1, 1));\n        for (int i = 0; i < n; i++) {\n            for (int j = 1; j <= m; j++) {\n                numsPower[i][j] = numsPower[i][j - 1] * nums[i] % mod;\n            }\n        }\n\n        vector f(n, vector(m + 1, vector(m * 2 + 1, vector<long long>(k + 1, 0))));\n        for (int j = 0; j <= m; j++) {\n            f[0][j][j][0] = numsPower[0][j] * ifac[j] % mod;\n        }\n        for (int i = 0; i + 1 < n; i++) {\n            for (int j = 0; j <= m; j++) {\n                for (int p = 0; p <= m * 2; p++) {\n                    for (int q = 0; q <= k; q++) {\n                        int q2 = p % 2 + q;\n                        if (q2 > k) {\n                            break;\n                        }\n                        for (int r = 0; r + j <= m; r++) {\n                            int p2 = p / 2 + r;\n                            f[i + 1][j + r][p2][q2] += f[i][j][p][q] * numsPower[i + 1][r] % mod * ifac[r] % mod;\n                            f[i + 1][j + r][p2][q2] %= mod;\n                        }\n                    }\n                }\n            }\n        }\n        long long res = 0;\n        for (int p = 0; p <= m * 2; p++) {\n            for (int q = 0; q <= k; q++) {\n                if (__builtin_popcount(p) + q == k) {\n                    res = (res + f[n - 1][m][p][q] * fac[m] % mod) % mod;\n                }\n            }\n        }\n        return res;\n    }\n};\n```\n\n```Go [sol1-Go]\nfunc quickmul(x, y, mod int64) int64 {\n    res, cur := int64(1), x % mod\n    for y > 0 {\n        if y & 1 == 1 {\n            res = res * cur % mod\n        }\n        y >>= 1\n        cur = cur * cur % mod\n    }\n    return res\n}\n\nfunc magicalSum(m int, k int, nums []int) int {\n    mod := int64(1000000007)\n    fac := make([]int64, m + 1)\n    fac[0] = 1\n    for i := 1; i <= m; i++ {\n        fac[i] = fac[i - 1] * int64(i) % mod\n    }\n    ifac := make([]int64, m+1)\n    ifac[0] = 1\n    ifac[1] = 1\n    for i := 2; i <= m; i++ {\n        ifac[i] = quickmul(int64(i), mod - 2, mod)\n    }\n    for i := 2; i <= m; i++ {\n        ifac[i] = ifac[i - 1] * ifac[i] % mod\n    }\n\n    numsPower := make([][]int64, len(nums))\n    for i := range nums {\n        numsPower[i] = make([]int64, m + 1)\n        numsPower[i][0] = 1\n        for j := 1; j <= m; j++ {\n            numsPower[i][j] = numsPower[i][j - 1] * int64(nums[i]) % mod\n        }\n    }\n\n    f := make([][][][]int64, len(nums))\n    for i := range nums {\n        f[i] = make([][][]int64, m+1)\n        for j := 0; j <= m; j++ {\n            f[i][j] = make([][]int64, m * 2 + 1)\n            for p := 0; p <= m * 2; p++ {\n                f[i][j][p] = make([]int64, k + 1)\n            }\n        }\n    }\n\n    for j := 0; j <= m; j++ {\n        f[0][j][j][0] = numsPower[0][j] * ifac[j] % mod\n    }\n    for i := 0; i + 1 < len(nums); i++ {\n        for j := 0; j <= m; j++ {\n            for p := 0; p <= m * 2; p++ {\n                for q := 0; q <= k; q++ {\n                    q2 := p % 2 + q\n                    if q2 > k {\n                        break\n                    }\n                    for r := 0; r + j <= m; r++ {\n                        p2 := p / 2 + r\n                        f[i + 1][j + r][p2][q2] += f[i][j][p][q] * numsPower[i + 1][r] % mod * ifac[r] % mod\n                        f[i + 1][j + r][p2][q2] %= mod\n                    }\n                }\n            }\n        }\n    }\n\n    res := int64(0)\n    for p := 0; p <= m * 2; p++ {\n        for q := 0; q <= k; q++ {\n            if bits.OnesCount(uint(p)) + q == k {\n                res = (res + f[len(nums) - 1][m][p][q] * fac[m] % mod) % mod\n            }\n        }\n    }\n    return int(res)\n}\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public long quickmul(long x, long y, long mod) {\n        long res = 1, cur = x % mod;\n        while (y > 0) {\n            if ((y & 1) == 1) {\n                res = res * cur % mod;\n            }\n            y >>= 1;\n            cur = cur * cur % mod;\n        }\n        return res;\n    }\n\n    public int magicalSum(int m, int k, int[] nums) {\n        int n = nums.length;\n        long mod = 1000000007;\n        long[] fac = new long[m + 1];\n        fac[0] = 1;\n        for (int i = 1; i <= m; i++) {\n            fac[i] = fac[i - 1] * i % mod;\n        }\n        long[] ifac = new long[m + 1];\n        ifac[0] = 1;\n        ifac[1] = 1;\n        for (int i = 2; i <= m; i++) {\n            ifac[i] = quickmul(i, mod - 2, mod);\n        }\n        for (int i = 2; i <= m; i++) {\n            ifac[i] = ifac[i - 1] * ifac[i] % mod;\n        }\n        long[][] numsPower = new long[n][m + 1];\n        for (int i = 0; i < n; i++) {\n            numsPower[i][0] = 1;\n            for (int j = 1; j <= m; j++) {\n                numsPower[i][j] = numsPower[i][j - 1] * nums[i] % mod;\n            }\n        }\n        long[][][][] f = new long[n][m + 1][m * 2 + 1][k + 1];\n        for (int j = 0; j <= m; j++) {\n            f[0][j][j][0] = numsPower[0][j] * ifac[j] % mod;\n        }\n        for (int i = 0; i + 1 < n; i++) {\n            for (int j = 0; j <= m; j++) {\n                for (int p = 0; p <= m * 2; p++) {\n                    for (int q = 0; q <= k; q++) {\n                        int q2 = p % 2 + q;\n                        if (q2 > k) {\n                            break;\n                        }\n                        for (int r = 0; r + j <= m; r++) {\n                            int p2 = p / 2 + r;\n                            f[i + 1][j + r][p2][q2] += f[i][j][p][q] * numsPower[i + 1][r] % mod * ifac[r] % mod;\n                            f[i + 1][j + r][p2][q2] %= mod;\n                        }\n                    }\n                }\n            }\n        }\n        long res = 0;\n        for (int p = 0; p <= m * 2; p++) {\n            for (int q = 0; q <= k; q++) {\n                if (Integer.bitCount(p) + q == k) {\n                    res = (res + f[n - 1][m][p][q] * fac[m] % mod) % mod;\n                }\n            }\n        }\n        return (int) res;\n    }\n}\n```\n\n```C [sol1-C]\nlong long quickmul(long long x, long long y, long long mod) {\n    long long res = 1, cur = x % mod;\n    while (y) {\n        if (y & 1) {\n            res = res * cur % mod;\n        }\n        y >>= 1;\n        cur = cur * cur % mod;\n    }\n    return res;\n}\n\nint magicalSum(int m, int k, int* nums, int numsSize) {\n    const long long mod = 1000000007;\n    long long* fac = (long long*)malloc((m + 1) * sizeof(long long));\n    long long* ifac = (long long*)malloc((m + 1) * sizeof(long long));\n    fac[0] = 1;\n    for (int i = 1; i <= m; i++) {\n        fac[i] = fac[i - 1] * i % mod;\n    }\n    ifac[0] = 1;\n    ifac[1] = 1;\n    for (int i = 2; i <= m; i++) {\n        ifac[i] = quickmul(i, mod - 2, mod);\n    }\n    for (int i = 2; i <= m; i++) {\n        ifac[i] = ifac[i - 1] * ifac[i] % mod;\n    }\n\n    long long** numsPower = (long long**)malloc(numsSize * sizeof(long long*));\n    for (int i = 0; i < numsSize; i++) {\n        numsPower[i] = (long long*)malloc((m + 1) * sizeof(long long));\n        numsPower[i][0] = 1;\n        for (int j = 1; j <= m; j++) {\n            numsPower[i][j] = numsPower[i][j - 1] * nums[i] % mod;\n        }\n    }\n\n    long long**** f = (long long****)malloc(numsSize * sizeof(long long***));\n    for (int i = 0; i < numsSize; i++) {\n        f[i] = (long long***)malloc((m + 1) * sizeof(long long**));\n        for (int j = 0; j <= m; j++) {\n            f[i][j] = (long long**)malloc((m * 2 + 1) * sizeof(long long*));\n            for (int p = 0; p <= m * 2; p++) {\n                f[i][j][p] = (long long*)calloc((k + 1), sizeof(long long));\n            }\n        }\n    }\n\n    for (int j = 0; j <= m; j++) {\n        f[0][j][j][0] = numsPower[0][j] * ifac[j] % mod;\n    }\n    for (int i = 0; i + 1 < numsSize; i++) {\n        for (int j = 0; j <= m; j++) {\n            for (int p = 0; p <= m * 2; p++) {\n                for (int q = 0; q <= k; q++) {\n                    int q2 = p % 2 + q;\n                    if (q2 > k) {\n                        break;\n                    }\n                    for (int r = 0; r + j <= m; r++) {\n                        int p2 = p / 2 + r;\n                        f[i + 1][j + r][p2][q2] += f[i][j][p][q] * numsPower[i + 1][r] % mod * ifac[r] % mod;\n                        f[i + 1][j + r][p2][q2] %= mod;\n                    }\n                }\n            }\n        }\n    }\n\n    long long res = 0;\n    for (int p = 0; p <= m * 2; p++) {\n        for (int q = 0; q <= k; q++) {\n            int bitcount = __builtin_popcount(p);\n            if (bitcount + q == k) {\n                res = (res + f[numsSize - 1][m][p][q] * fac[m] % mod) % mod;\n            }\n        }\n    }\n    return (int)res;\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MagicalSum(int m, int k, int[] nums) {\n        int n = nums.Length;\n        const long mod = 1000000007;\n        \n        long[] fac = new long[m + 1];\n        fac[0] = 1;\n        for (int i = 1; i <= m; i++) {\n            fac[i] = fac[i - 1] * i % mod;\n        }\n        \n        long[] ifac = new long[m + 1];\n        ifac[0] = 1;\n        ifac[1] = 1;\n        for (int i = 2; i <= m; i++) {\n            ifac[i] = QuickMul(i, mod - 2, mod);\n        }\n        for (int i = 2; i <= m; i++) {\n            ifac[i] = ifac[i - 1] * ifac[i] % mod;\n        }\n        \n        long[][] numsPower = new long[n][];\n        for (int i = 0; i < n; i++) {\n            numsPower[i] = new long[m + 1];\n            numsPower[i][0] = 1;\n            for (int j = 1; j <= m; j++) {\n                numsPower[i][j] = numsPower[i][j - 1] * nums[i] % mod;\n            }\n        }\n\n        long[][][][] f = new long[n][][][];\n        for (int i = 0; i < n; i++) {\n            f[i] = new long[m + 1][][];\n            for (int j = 0; j <= m; j++) {\n                f[i][j] = new long[m * 2 + 1][];\n                for (int p = 0; p <= m * 2; p++) {\n                    f[i][j][p] = new long[k + 1];\n                }\n            }\n        }\n        \n        for (int j = 0; j <= m; j++) {\n            f[0][j][j][0] = numsPower[0][j] * ifac[j] % mod;\n        }\n        \n        for (int i = 0; i + 1 < n; i++) {\n            for (int j = 0; j <= m; j++) {\n                for (int p = 0; p <= m * 2; p++) {\n                    for (int q = 0; q <= k; q++) {\n                        int q2 = (p % 2) + q;\n                        if (q2 > k) {\n                            break;\n                        }\n                        for (int r = 0; r + j <= m; r++) {\n                            int p2 = p / 2 + r;\n                            f[i + 1][j + r][p2][q2] += f[i][j][p][q] * numsPower[i + 1][r] % mod * ifac[r] % mod;\n                            f[i + 1][j + r][p2][q2] %= mod;\n                        }\n                    }\n                }\n            }\n        }\n        \n        long res = 0;\n        for (int p = 0; p <= m * 2; p++) {\n            for (int q = 0; q <= k; q++) {\n                if (BitOperations.PopCount((uint)p) + q == k) {\n                    res = (res + f[n - 1][m][p][q] * fac[m] % mod) % mod;\n                }\n            }\n        }\n        return (int)res;\n    }\n\n    private long QuickMul(long x, long y, long mod) {\n        long res = 1, cur = x % mod;\n        while (y > 0) {\n            if ((y & 1) == 1) {\n                res = res * cur % mod;\n            }\n            y >>= 1;\n            cur = cur * cur % mod;\n        }\n        return res;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def quickmul(self, x: int, y: int, mod: int) -> int:\n        res, cur = 1, x % mod\n        while y:\n            if y & 1:\n                res = res * cur % mod\n            y >>= 1\n            cur = cur * cur % mod\n        return res\n\n    def magicalSum(self, m: int, k: int, nums: List[int]) -> int:\n        n = len(nums)\n        mod = 10**9 + 7\n\n        fac = [1] * (m + 1)\n        for i in range(1, m + 1):\n            fac[i] = fac[i - 1] * i % mod\n \n        ifac = [1] * (m + 1)\n        for i in range(2, m + 1):\n            ifac[i] = self.quickmul(i, mod - 2, mod)\n        for i in range(2, m + 1):\n            ifac[i] = ifac[i - 1] * ifac[i] % mod\n            \n        numsPower = [[1] * (m + 1) for _ in range(n)]\n        for i in range(n):\n            for j in range(1, m + 1):\n                numsPower[i][j] = numsPower[i][j - 1] * nums[i] % mod\n\n        f = [[[[0] * (k + 1) for _ in range(m * 2 + 1)] \n              for _ in range(m + 1)] for _ in range(n)]\n        \n        for j in range(m + 1):\n            f[0][j][j][0] = numsPower[0][j] * ifac[j] % mod\n            \n        for i in range(n - 1):\n            for j in range(m + 1):\n                for p in range(m * 2 + 1):\n                    for q in range(k + 1):\n                        if f[i][j][p][q] == 0:\n                            continue\n                        q2 = (p % 2) + q\n                        if q2 > k:\n                            break\n                        for r in range(m - j + 1):\n                            p2 = (p // 2) + r\n                            if p2 > m * 2:\n                                continue\n                            f[i + 1][j + r][p2][q2] = (\n                                f[i + 1][j + r][p2][q2] + \n                                f[i][j][p][q] * numsPower[i + 1][r] % mod * ifac[r] % mod\n                            ) % mod\n        \n        res = 0\n        for p in range(m * 2 + 1):\n            for q in range(k + 1):\n                if bin(p).count('1') + q == k:\n                    res = (res + f[n - 1][m][p][q] * fac[m] % mod) % mod\n        return res\n```\n\n```JavaScript [sol1-JavaScript]\nvar magicalSum = function(m, k, nums) {\n    const n = nums.length;\n    const mod = 1000000007n;\n    \n    const fac = new Array(m + 1).fill(1n);\n    for (let i = 1; i <= m; i++) {\n        fac[i] = fac[i - 1] * BigInt(i) % mod;\n    }\n    \n    const ifac = new Array(m + 1).fill(1n);\n    for (let i = 2; i <= m; i++) {\n        ifac[i] = quickmul(BigInt(i), mod - 2n, mod);\n    }\n    for (let i = 2; i <= m; i++) {\n        ifac[i] = ifac[i - 1] * ifac[i] % mod;\n    }\n    \n    const numsPower = new Array(n);\n    for (let i = 0; i < n; i++) {\n        numsPower[i] = new Array(m + 1).fill(1n);\n        for (let j = 1; j <= m; j++) {\n            numsPower[i][j] = numsPower[i][j - 1] * BigInt(nums[i]) % mod;\n        }\n    }\n\n    const f = new Array(n);\n    for (let i = 0; i < n; i++) {\n        f[i] = new Array(m + 1);\n        for (let j = 0; j <= m; j++) {\n            f[i][j] = new Array(m * 2 + 1);\n            for (let p = 0; p <= m * 2; p++) {\n                f[i][j][p] = new Array(k + 1).fill(0n);\n            }\n        }\n    }\n    \n    for (let j = 0; j <= m; j++) {\n        f[0][j][j][0] = numsPower[0][j] * ifac[j] % mod;\n    }\n    \n    for (let i = 0; i + 1 < n; i++) {\n        for (let j = 0; j <= m; j++) {\n            for (let p = 0; p <= m * 2; p++) {\n                for (let q = 0; q <= k; q++) {\n                    if (f[i][j][p][q] === 0n) {\n                        continue;\n                    }\n                    const q2 = (p % 2) + q;\n                    if (q2 > k) {\n                        break;\n                    }\n                    for (let r = 0; r + j <= m; r++) {\n                        const p2 = Math.floor(p / 2) + r;\n                        if (p2 > m * 2) {\n                            continue;\n                        }\n                        f[i + 1][j + r][p2][q2] = \n                            (f[i + 1][j + r][p2][q2] + \n                                f[i][j][p][q] * numsPower[i + 1][r] % mod * ifac[r] % mod) % mod;\n                    }\n                }\n            }\n        }\n    }\n    \n    let res = 0n;\n    for (let p = 0; p <= m * 2; p++) {\n        for (let q = 0; q <= k; q++) {\n            if (popCount(p) + q === k) {\n                res = (res + f[n - 1][m][p][q] * fac[m] % mod) % mod;\n            }\n        }\n    }\n    return Number(res);\n};\n\nconst popCount = (x) => {\n    let count = 0;\n    while (x > 0) {\n        count += x & 1;\n        x >>= 1;\n    }\n    return count;\n}\n\nconst quickmul = (x, y, mod) => {\n    let res = 1n;\n    let cur = x % mod;\n    while (y > 0) {\n        if ((y & 1n) == 1n) {\n            res = res * cur % mod;\n        }\n        y >>= 1n;\n        cur = cur * cur % mod;\n    }\n    return res;\n}\n```\n\n```TypeScript [sol1-TypeScript]\nfunction magicalSum(m: number, k: number, nums: number[]): number {\n    const n = nums.length;\n    const mod = 1000000007n;\n    \n    const fac: bigint[] = new Array(m + 1).fill(1n);\n    for (let i = 1; i <= m; i++) {\n        fac[i] = fac[i - 1] * BigInt(i) % mod;\n    }\n    \n    const ifac: bigint[] = new Array(m + 1).fill(1n);\n    for (let i = 2; i <= m; i++) {\n        ifac[i] = quickmul(BigInt(i), mod - 2n, mod);\n    }\n    for (let i = 2; i <= m; i++) {\n        ifac[i] = ifac[i - 1] * ifac[i] % mod;\n    }\n    \n    const numsPower: bigint[][] = new Array(n);\n    for (let i = 0; i < n; i++) {\n        numsPower[i] = new Array(m + 1).fill(1n);\n        for (let j = 1; j <= m; j++) {\n            numsPower[i][j] = numsPower[i][j - 1] * BigInt(nums[i]) % mod;\n        }\n    }\n\n    const f: bigint[][][][] = new Array(n);\n    for (let i = 0; i < n; i++) {\n        f[i] = new Array(m + 1);\n        for (let j = 0; j <= m; j++) {\n            f[i][j] = new Array(m * 2 + 1);\n            for (let p = 0; p <= m * 2; p++) {\n                f[i][j][p] = new Array(k + 1).fill(0n);\n            }\n        }\n    }\n    \n    for (let j = 0; j <= m; j++) {\n        f[0][j][j][0] = numsPower[0][j] * ifac[j] % mod;\n    }\n    \n    for (let i = 0; i + 1 < n; i++) {\n        for (let j = 0; j <= m; j++) {\n            for (let p = 0; p <= m * 2; p++) {\n                for (let q = 0; q <= k; q++) {\n                    if (f[i][j][p][q] === 0n) {\n                        continue;\n                    }\n                    const q2 = (p % 2) + q;\n                    if (q2 > k) {\n                        break;\n                    }\n                    for (let r = 0; r + j <= m; r++) {\n                        const p2 = Math.floor(p / 2) + r;\n                        if (p2 > m * 2) {\n                            break;\n                        }\n                        f[i + 1][j + r][p2][q2] = \n                            (f[i + 1][j + r][p2][q2] + \n                                f[i][j][p][q] * numsPower[i + 1][r] % mod * ifac[r] % mod) % mod;\n                    }\n                }\n            }\n        }\n    }\n    \n    let res = 0n;\n    for (let p = 0; p <= m * 2; p++) {\n        for (let q = 0; q <= k; q++) {\n            if (bitCount(p) + q === k) {\n                res = (res + f[n - 1][m][p][q] * fac[m] % mod) % mod;\n            }\n        }\n    }\n    return Number(res);\n};\n\nfunction quickmul(x: bigint, y: bigint, mod: bigint): bigint {\n    let res = 1n;\n    let cur = x % mod;\n    while (y > 0n) {\n        if (y & 1n) {\n            res = res * cur % mod;\n        }\n        y >>= 1n;\n        cur = cur * cur % mod;\n    }\n    return res;\n}\n\nfunction bitCount(n: number): number {\n    let count = 0;\n    while (n > 0) {\n        count += n & 1;\n        n >>= 1;\n    }\n    return count;\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn magical_sum(m: i32, k: i32, nums: Vec<i32>) -> i32 {\n        let n = nums.len();\n        let m = m as usize;\n        let k = k as usize;\n        let mod_val = 1_000_000_007u64;\n        \n        fn quickmul(mut x: u64, mut y: u64, mod_val: u64) -> u64 {\n            let mut res = 1;\n            let mut cur = x % mod_val;\n            while y > 0 {\n                if y & 1 == 1 {\n                    res = res * cur % mod_val;\n                }\n                y >>= 1;\n                cur = cur * cur % mod_val;\n            }\n            res\n        }\n\n        let mut fac = vec![0u64; m + 1];\n        fac[0] = 1;\n        for i in 1..=m {\n            fac[i] = fac[i - 1] * i as u64 % mod_val;\n        }\n\n        let mut ifac = vec![0u64; m + 1];\n        ifac[0] = 1;\n        ifac[1] = 1;\n        for i in 2..=m {\n            ifac[i] = quickmul(i as u64, mod_val - 2, mod_val);\n        }\n        for i in 2..=m {\n            ifac[i] = ifac[i - 1] * ifac[i] % mod_val;\n        }\n\n        let mut nums_power = vec![vec![0u64; m + 1]; n];\n        for i in 0..n {\n            nums_power[i][0] = 1;\n            let num = nums[i] as u64 % mod_val;\n            for j in 1..=m {\n                nums_power[i][j] = nums_power[i][j - 1] * num % mod_val;\n            }\n        }\n\n        let mut f = vec![vec![vec![vec![0u64; k + 1]; m * 2 + 1]; m + 1]; n];\n        for j in 0..=m {\n            f[0][j][j][0] = nums_power[0][j] * ifac[j] % mod_val;\n        }\n\n        for i in 0..n - 1 {\n            for j in 0..=m {\n                for p in 0..=m * 2 {\n                    for q in 0..=k {\n                        let current = f[i][j][p][q];\n                        let q2 = (p % 2) as usize + q;\n                        if q2 > k {\n                            break;\n                        }\n                        \n                        for r in 0..=(m - j) {\n                            let p2 = (p / 2) as usize + r;\n                            let add_val = current * nums_power[i + 1][r] % mod_val * ifac[r] % mod_val;\n                            f[i + 1][j + r][p2][q2] = (f[i + 1][j + r][p2][q2] + add_val) % mod_val;\n                        }\n                    }\n                }\n            }\n        }\n\n        let mut res = 0u64;\n        for p in 0..=m * 2 {\n            for q in 0..=k {\n                if p.count_ones() as usize + q == k {\n                    res = (res + f[n - 1][m][p][q] * fac[m] % mod_val) % mod_val;\n                }\n            }\n        }\n\n        res as i32\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(nm^3k)$，其中 $n$ 是数组 $\\textit{nums}$ 的长度，$m$ 是序列 $\\textit{seq}$ 的长度，$k$ 是限制的置位数。$f(i, j, p, q)$，参数的取值为 $i \\lt n$，$j \\le m$，$p \\le 2m$，$q \\le k$。\n\n- 空间复杂度：$O(nm^2k)$。",
+            "slateValue": "",
+            "slug": "mo-fa-xu-lie-de-shu-zu-cheng-ji-zhi-he-b-54vt",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "EvFYXR",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 6,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Bit Manipulation",
+                    "nameTranslated": "位运算",
+                    "slug": "bit-manipulation",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Bitmask",
+                    "nameTranslated": "位掩码",
+                    "slug": "bitmask",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Combinatorics",
+                    "nameTranslated": "组合数学",
+                    "slug": "combinatorics",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2025-10-08T10:05:46.496060+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 令数组 [latex] 的长度为 [latex]。根据题意，我们依次从 [latex] 到 [latex] 分别取若干个数（即 [latex] 的下标）组成序列 [latex]，假设取值等于 [latex] 的元素有 [latex] 个，那么有 [latex]，并且这些序列排列数为： [latex] ",
+            "topic": {
+                "id": 3800541,
+                "subscribed": false,
+                "commentCount": 14,
+                "viewCount": 25,
+                "post": {
+                    "id": 6939059,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 16,
+            "isEditorsPick": false,
+            "hitCount": 4992,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "find-sum-of-array-product-of-magical-sequences",
+                "questionFrontendId": "3539"
+            },
+            "next": {
+                "slug": "duo-wei-dp-zu-he-shu-xue-by-endlesscheng-j6y8",
+                "title": "状态设计 + 多重集排列数 + 可行性剪枝（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "Xbl9a8",
+            "title": "频率跟踪器",
+            "content": "#### 方法一：哈希表\n\n**思路与算法**\n\n我们可以用一个哈希表 $\\textit{freq}$ 来追踪每个 $\\textit{number}$ 的出现频率，并利用另一个哈希表 $\\textit{freq\\_cnt}$ 来记录各个频率的出现次数。\n\n对于元素 $\\textit{number}$ 的添加或删除操作，流程如下：先调整 $\\textit{freq}[\\textit{number}]$ 在 $\\textit{freq\\_cnt}$ 中的计数（即先减少），随后更新 $\\textit{freq}[\\textit{number}]$（增加或减少其频率），最终在 $\\textit{freq\\_cnt}$ 中更新新的频率计数（即增加）。\n\n在具体实现上，鉴于所有数值范围限定在 $10^5$ 以内，数组足以作为哈希表的有效替代，既简化了代码，也提高了效率。\n\n**代码**\n\n```C++ [sol1-C++]\nclass FrequencyTracker {\npublic:\n    FrequencyTracker():freq(N), freq_cnt(N) {\n        \n    }\n\n    void add(int number) {\n        --freq_cnt[freq[number]];\n        ++freq[number];\n        ++freq_cnt[freq[number]];\n    }\n    \n    void deleteOne(int number) {\n        if (freq[number] == 0) {\n            return;\n        }\n        --freq_cnt[freq[number]];\n        --freq[number];\n        ++freq_cnt[freq[number]];\n    }\n    \n    bool hasFrequency(int frequency) {\n        return freq_cnt[frequency];\n    }\n\nprivate:\n    static constexpr int N = 100001;\n    vector<int> freq;\n    vector<int> freq_cnt;\n};\n```\n\n```Java [sol1-Java]\nclass FrequencyTracker {\n    private static final int N = 100001;\n    private int[] freq;\n    private int[] freqCnt;\n\n    public FrequencyTracker() {\n        freq = new int[N];\n        freqCnt = new int[N];\n    }\n\n    public void add(int number) {\n        --freqCnt[freq[number]];\n        ++freq[number];\n        ++freqCnt[freq[number]];\n    }\n\n    public void deleteOne(int number) {\n        if (freq[number] == 0) {\n            return;\n        }\n        --freqCnt[freq[number]];\n        --freq[number];\n        ++freqCnt[freq[number]];\n    }\n\n    public boolean hasFrequency(int frequency) {\n        return freqCnt[frequency] > 0;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class FrequencyTracker {\n    private const int N = 100001;\n    private int[] freq;\n    private int[] freqCnt;\n\n    public FrequencyTracker() {\n        freq = new int[N];\n        freqCnt = new int[N];\n    }\n\n    public void Add(int number) {\n        --freqCnt[freq[number]];\n        ++freq[number];\n        ++freqCnt[freq[number]];\n    }\n\n    public void DeleteOne(int number) {\n        if (freq[number] == 0) {\n            return;\n        }\n        --freqCnt[freq[number]];\n        --freq[number];\n        ++freqCnt[freq[number]];\n    }\n\n    public bool HasFrequency(int frequency) {\n        return freqCnt[frequency] > 0;\n    }\n}\n```\n\n```C [sol1-C]\ntypedef struct {\n    int key;\n    int val;\n    UT_hash_handle hh;\n} HashItem; \n\nHashItem *hashFindItem(HashItem **obj, int key) {\n    HashItem *pEntry = NULL;\n    HASH_FIND_INT(*obj, &key, pEntry);\n    return pEntry;\n}\n\nbool hashAddItem(HashItem **obj, int key, int val) {\n    if (hashFindItem(obj, key)) {\n        return false;\n    }\n    HashItem *pEntry = (HashItem *)malloc(sizeof(HashItem));\n    pEntry->key = key;\n    pEntry->val = val;\n    HASH_ADD_INT(*obj, key, pEntry);\n    return true;\n}\n\nbool hashSetItem(HashItem **obj, int key, int val) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        hashAddItem(obj, key, val);\n    } else {\n        pEntry->val = val;\n    }\n    return true;\n}\n\nint hashGetItem(HashItem **obj, int key, int defaultVal) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        return defaultVal;\n    }\n    return pEntry->val;\n}\n\nvoid hashFree(HashItem **obj) {\n    HashItem *curr = NULL, *tmp = NULL;\n    HASH_ITER(hh, *obj, curr, tmp) {\n        HASH_DEL(*obj, curr);  \n        free(curr);\n    }\n}\n\ntypedef struct {\n    HashItem *freq;\n    HashItem *freq_cnt;\n} FrequencyTracker;\n\n\nFrequencyTracker* frequencyTrackerCreate() {\n    FrequencyTracker *obj = (FrequencyTracker *)malloc(sizeof(FrequencyTracker));\n    obj->freq = NULL;\n    obj->freq_cnt = NULL;\n    return obj;\n}\n\nvoid frequencyTrackerAdd(FrequencyTracker* obj, int number) {\n    int prev = hashGetItem(&obj->freq, number, 0);\n    hashSetItem(&obj->freq_cnt, prev, hashGetItem(&obj->freq_cnt, prev, 0) - 1);\n    hashSetItem(&obj->freq, number, prev + 1);\n    hashSetItem(&obj->freq_cnt, prev + 1, hashGetItem(&obj->freq_cnt, prev + 1, 0) + 1);\n}\n\nvoid frequencyTrackerDeleteOne(FrequencyTracker* obj, int number) {\n    int prev = hashGetItem(&obj->freq, number, 0);\n    if (prev == 0) {\n        return;\n    }\n    hashSetItem(&obj->freq_cnt, prev, hashGetItem(&obj->freq_cnt, prev, 0) - 1);\n    hashSetItem(&obj->freq, number, prev - 1);\n    hashSetItem(&obj->freq_cnt, prev - 1, hashGetItem(&obj->freq_cnt, prev - 1, 0) + 1);\n}\n\nbool frequencyTrackerHasFrequency(FrequencyTracker* obj, int frequency) {    \n    return hashGetItem(&obj->freq_cnt, frequency, 0) > 0;\n}\n\nvoid frequencyTrackerFree(FrequencyTracker* obj) {\n    hashFree(&obj->freq);\n    hashFree(&obj->freq_cnt);\n    free(obj);\n}\n```\n\n```Python [sol1-Python3]\nclass FrequencyTracker:\n    def __init__(self):\n        self.freq = Counter()\n        self.freq_cnt = Counter()\n\n    def add(self, number: int) -> None:\n        self.freq_cnt[self.freq[number]] -= 1\n        self.freq[number] += 1\n        self.freq_cnt[self.freq[number]] += 1\n\n    def deleteOne(self, number: int) -> None:\n        if self.freq[number] == 0:\n            return\n        self.freq_cnt[self.freq[number]] -= 1\n        self.freq[number] -= 1\n        self.freq_cnt[self.freq[number]] += 1\n\n    def hasFrequency(self, frequency: int) -> bool:\n        return self.freq_cnt[frequency] > 0\n```\n\n```Go [sol1-Go]\ntype FrequencyTracker struct {\n    freq map[int]int\n    freq_cnt map[int]int\n}\n\nfunc Constructor() FrequencyTracker {\n    return FrequencyTracker{map[int]int{}, map[int]int{}}\n}\n\nfunc (this *FrequencyTracker) Add(number int)  {\n    (*this).freq_cnt[(*this).freq[number]]--\n    (*this).freq[number]++\n    (*this).freq_cnt[(*this).freq[number]]++\n}\n\nfunc (this *FrequencyTracker) DeleteOne(number int)  {\n    if (*this).freq[number] == 0 {\n        return\n    }\n    (*this).freq_cnt[(*this).freq[number]]--\n    (*this).freq[number]--\n    (*this).freq_cnt[(*this).freq[number]]++\n}\n\nfunc (this *FrequencyTracker) HasFrequency(frequency int) bool {\n    return (*this).freq_cnt[frequency] > 0\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar FrequencyTracker = function() {\n    this.freq = new Map();\n    this.freq_cnt = new Map();\n};\n\nFrequencyTracker.prototype.add = function(number) {\n    if (!this.freq.has(number)) {\n        this.freq.set(number, 0);\n        this.freq_cnt.set(0, (this.freq_cnt.get(0) || 0) + 1);\n    }\n    const prev = this.freq.get(number);\n    this.freq_cnt.set(prev, (this.freq_cnt.get(prev) || 0) - 1);\n    this.freq.set(number, prev + 1);\n    this.freq_cnt.set(prev + 1, (this.freq_cnt.get(prev + 1) || 0) + 1);\n};\n\nFrequencyTracker.prototype.deleteOne = function(number) {\n    if (!this.freq.has(number) || this.freq.get(number) === 0) {\n        return;\n    }\n    let prev = this.freq.get(number);\n    this.freq_cnt.set(prev, (this.freq_cnt.get(prev) || 0) - 1);\n    this.freq.set(number, prev - 1);\n    this.freq_cnt.set(prev - 1, (this.freq_cnt.get(prev - 1) || 0) + 1);\n};\n\nFrequencyTracker.prototype.hasFrequency = function(frequency) {\n    return this.freq_cnt.get(frequency) > 0;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nclass FrequencyTracker {\n    private freq: Map<number, number>;\n    private freq_cnt: Map<number, number>;\n\n    constructor() {\n        this.freq = new Map<number, number>();\n        this.freq_cnt = new Map<number, number>();\n    }\n\n    add(number: number): void {\n        if (!this.freq.has(number)) {\n            this.freq.set(number, 0);\n            this.freq_cnt.set(0, (this.freq_cnt.get(0) || 0) + 1);\n        }\n        const prev = this.freq.get(number)!;\n        this.freq_cnt.set(prev, (this.freq_cnt.get(prev) || 0) - 1);\n        this.freq.set(number, prev + 1);\n        this.freq_cnt.set(prev + 1, (this.freq_cnt.get(prev + 1) || 0) + 1);\n    }\n\n    deleteOne(number: number): void {\n        if (!this.freq.has(number) || this.freq.get(number)! === 0) {\n            return;\n        }\n        const prev = this.freq.get(number)!;\n        this.freq_cnt.set(prev, (this.freq_cnt.get(prev) || 0) - 1);\n        this.freq.set(number, prev - 1);\n        this.freq_cnt.set(prev - 1, (this.freq_cnt.get(prev - 1) || 0) + 1);\n    }\n\n    hasFrequency(frequency: number): boolean {\n        return (this.freq_cnt.get(frequency) || 0) > 0;\n    }\n}\n```\n\n```Rust [sol1-Rust]\nuse std::collections::HashMap;\n\nstruct FrequencyTracker {\n    freq: HashMap<i32, i32>,\n    freq_cnt: HashMap<i32, i32>,\n}\n\nimpl FrequencyTracker {\n    fn new() -> Self {\n        FrequencyTracker {\n            freq: HashMap::new(),\n            freq_cnt: HashMap::new(),\n        }\n    }\n    \n    fn add(&mut self, number: i32) {\n        let prev = *self.freq.get(&number).unwrap_or(&0);\n        *self.freq_cnt.entry(prev).or_insert(0) -= 1;\n        *self.freq.entry(number).or_insert(0) += 1;\n        *self.freq_cnt.entry(prev + 1).or_insert(0) += 1;\n    }\n    \n    fn delete_one(&mut self, number: i32) {\n        if self.freq.get(&number).unwrap_or(&0) == &0 {\n            return;\n        }\n        let prev = *self.freq.get(&number).unwrap();\n        *self.freq_cnt.entry(prev).or_insert(0) -= 1;\n        *self.freq.entry(number).or_insert(0) -= 1;\n        *self.freq_cnt.entry(prev - 1).or_insert(0) += 1;\n    }\n    \n    fn has_frequency(&self, frequency: i32) -> bool {\n        self.freq_cnt.get(&frequency).unwrap_or(&0) > &0\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(q)$，其中 $q$ 为查询的次数。所有单次操作的复杂度均为 $O(1)$。\n\n- 空间复杂度：$O(m)$，其中 $m$ 是值域范围，在本题中等于 $10^5$。",
+            "slateValue": "",
+            "slug": "pin-lu-gen-zong-qi-by-leetcode-solution-3d04",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "Xbl9a8",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 9,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Design",
+                    "nameTranslated": "设计",
+                    "slug": "design",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2024-03-11T02:39:56.746603+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：哈希表 思路与算法 我们可以用一个哈希表 $\\textit{freq}$ 来追踪每个 $\\textit{number}$ 的出现频率，并利用另一个哈希表 $\\textit{freq_cnt}$ 来记录各个频率的出现次数。 对于元素 $\\textit{number}$ 的添加或删除操作，流程如下：先调整 $\\te",
+            "topic": {
+                "id": 2679864,
+                "subscribed": false,
+                "commentCount": 58,
+                "viewCount": 796,
+                "post": {
+                    "id": 4930548,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 25,
+            "isEditorsPick": false,
+            "hitCount": 12967,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "frequency-tracker",
+                "questionFrontendId": "2671"
+            },
+            "next": {
+                "slug": "shuang-ha-xi-biao-o1-zuo-fa-pythonjavacg-jo68",
+                "title": "双哈希表，简洁写法（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

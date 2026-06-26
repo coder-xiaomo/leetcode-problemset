@@ -1,0 +1,144 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "8xnDyw",
+            "title": "统计趣味子数组的数目",
+            "content": "#### 方法一：前缀和\n\n**思路与算法**\n\n根据题意可知，给定数组 $\\textit{nums}$ 以及整数 $\\textit{modulo}$ 和整数 $k$，如果子数组 $\\textit{nums}[l..r]$ 中的元素 $x$ 满足 $x \\bmod \\textit{modulo} = k$ 出现的次数为$\\textit{cnt}$， 如果 $\\textit{cnt} \\bmod \\textit{modulo} = k$，次数子数组 $\\textit{nums}[l..r]$ 则为**趣味子数组**。\n\n由于需要统计数组区间中特殊元素出现的次数，此时我们可以考虑使用前缀和。我们设 $\\textit{sum}[i]$ 表示数组 $\\textit{nums}$ 索引从 $0$ 到 $i$ 中出现满足 $x \\bmod \\textit{modulo} = k$特殊元素的数目，此时子数组 $\\textit{nums}[l..r]$ 中出现的特殊元素的数目即为 $\\textit{sum}[r] - \\textit{sum}[l-1]$。根据题意可知此时若要满足：\n\n$$\n(\\textit{sum}[r] - \\textit{sum}[l-1]) \\bmod \\textit{modulo} = k\n$$\n\n将上述等式变换即得：\n\n$$\n(\\textit{sum}[r]  - k +  \\textit{modulo}) \\bmod \\textit{modulo} = \\textit{sum}[l-1] \\bmod \\textit{modulo}\n$$\n\n根据上式可以知道，对于索引 $r$，如果存在索引 $l$ 且 $l \\le r$，满足 $(\\textit{sum}[r]  - k + \\textit{modulo}) \\bmod \\textit{modulo} = \\textit{sum}[l-1] \\bmod \\textit{modulo}$ 时，此时子数组 $\\textit{nums}[l..r]$ 即为**趣味子数组**。\n\n我们用哈希表 $\\textit{cnt}$ 存储当前已遍历的前缀中 $\\textit{sum}[i] \\bmod \\textit{modulo}$ 的数目，每次从小到大枚举索引 $r$，此时期望可以快速找到以 $r$ 为右边届的**趣味子数组**的数目，即找到满足条件的左边界 $l$ 的数目。根据上述推论可知，此时只需要在哈希表 $\\textit{cnt}$ 中找到等于 $(\\textit{sum}[r]  - k + \\textit{modulo}) \\bmod \\textit{modulo}$ 的数目，即为满足条件的左边界的数目，将其累加到结果中，最后返回总的累加结果即可。为了优化计算，此时特殊元素的前缀和可以用单个变量 $\\textit{prefix}$ 表示即可。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    long long countInterestingSubarrays(vector<int>& nums, int modulo, int k) {\n        int n = nums.size();\n        unordered_map<int, int> cnt;\n        long long res = 0;\n        int prefix = 0;\n        cnt[0] = 1;\n        for (int i = 0; i < n; i++) {\n            prefix += nums[i] % modulo == k;\n            res += cnt[(prefix - k + modulo) % modulo];\n            cnt[prefix % modulo]++;\n        }\n        return res;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public long countInterestingSubarrays(List<Integer> nums, int modulo, int k) {\n        int n = nums.size();\n        HashMap<Integer, Integer> cnt = new HashMap<>();\n        long res = 0;\n        int prefix = 0;\n        cnt.put(0, 1);\n        for (int i = 0; i < n; i++) {\n            prefix += nums.get(i) % modulo == k ? 1 : 0;\n            res += cnt.getOrDefault((prefix - k + modulo) % modulo, 0);\n            cnt.put(prefix % modulo, cnt.getOrDefault(prefix % modulo, 0) + 1);\n        }\n        return res;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public long CountInterestingSubarrays(IList<int> nums, int modulo, int k) {\n        int n = nums.Count;\n        Dictionary<int, int> cnt = new Dictionary<int, int>();\n        long res = 0;\n        int prefix = 0;\n        cnt[0] = 1;\n        for (int i = 0; i < n; i++) {\n            prefix += nums[i] % modulo == k ? 1 : 0;\n            res += cnt.ContainsKey((prefix - k + modulo) % modulo) ? cnt[(prefix - k + modulo) % modulo] : 0;\n            if (cnt.ContainsKey(prefix % modulo)) {\n                cnt[prefix % modulo]++;\n            } else {\n                cnt[prefix % modulo] = 1;\n            }\n        }\n        return res;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc countInterestingSubarrays(nums []int, modulo int, k int) int64 {\n    n := len(nums)\n    cnt := make(map[int]int)\n    var res int64 = 0\n    var prefix int = 0\n    cnt[0] = 1\n    for i := 0; i < n; i++ {\n        if nums[i] % modulo == k {\n            prefix++\n        }\n        res += int64(cnt[(prefix - k + modulo) %modulo])\n        cnt[prefix % modulo]++\n    }\n    return res\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def countInterestingSubarrays(self, nums: List[int], modulo: int, k: int) -> int:\n        n = len(nums)\n        cnt = Counter([0])\n        res = 0\n        prefix = 0\n        for i in range(n):\n            prefix += 1 if nums[i] % modulo == k else 0\n            res += cnt[(prefix - k + modulo) % modulo]\n            cnt[prefix % modulo] += 1\n        return res\n```\n\n```C [sol1-C]\ntypedef struct {\n    int key;\n    int val;\n    UT_hash_handle hh;\n} HashItem; \n\nHashItem *hashFindItem(HashItem **obj, int key) {\n    HashItem *pEntry = NULL;\n    HASH_FIND_INT(*obj, &key, pEntry);\n    return pEntry;\n}\n\nbool hashAddItem(HashItem **obj, int key, int val) {\n    if (hashFindItem(obj, key)) {\n        return false;\n    }\n    HashItem *pEntry = (HashItem *)malloc(sizeof(HashItem));\n    pEntry->key = key;\n    pEntry->val = val;\n    HASH_ADD_INT(*obj, key, pEntry);\n    return true;\n}\n\nbool hashSetItem(HashItem **obj, int key, int val) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        hashAddItem(obj, key, val);\n    } else {\n        pEntry->val = val;\n    }\n    return true;\n}\n\nint hashGetItem(HashItem **obj, int key, int defaultVal) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        return defaultVal;\n    }\n    return pEntry->val;\n}\n\nvoid hashFree(HashItem **obj) {\n    HashItem *curr = NULL, *tmp = NULL;\n    HASH_ITER(hh, *obj, curr, tmp) {\n        HASH_DEL(*obj, curr);  \n        free(curr);\n    }\n}\n\nlong long countInterestingSubarrays(int* nums, int numsSize, int modulo, int k) {\n    HashItem *cnt = NULL;\n    long long res = 0;\n    int prefix = 0;\n    hashAddItem(&cnt, 0, 1);\n    for (int i = 0; i < numsSize; i++) {\n        prefix += nums[i] % modulo == k;\n        res += hashGetItem(&cnt, (prefix - k + modulo) % modulo, 0);\n        hashSetItem(&cnt, prefix % modulo, hashGetItem(&cnt, prefix % modulo, 0) + 1);\n    }\n    hashFree(&cnt);\n    return res;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar countInterestingSubarrays = function(nums, modulo, k) {\n    let n = nums.length;\n    let cnt = new Map();\n    let res = 0;\n    let prefix = 0;\n    cnt.set(0, 1);\n    for (let i = 0; i < n; i++) {\n        prefix += nums[i] % modulo === k ? 1 : 0;\n        res += (cnt.get((prefix - k + modulo) % modulo) || 0);\n        cnt.set(prefix % modulo, (cnt.get(prefix % modulo) || 0) + 1);\n    }\n    return res;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction countInterestingSubarrays(nums: number[], modulo: number, k: number): number {\n    let n = nums.length;\n    let cnt = new Map<number, number>();\n    let res = 0;\n    let prefix = 0;\n    cnt.set(0, 1);\n    for (let i = 0; i < n; i++) {\n        prefix += nums[i] % modulo === k ? 1 : 0;\n        res += (cnt.get((prefix - k + modulo) % modulo) || 0);\n        cnt.set(prefix % modulo, (cnt.get(prefix % modulo) || 0) + 1);\n    }\n    return res;\n};\n```\n\n```Rust [sol1-Rust]\nuse std::collections::HashMap;\n\nimpl Solution {\n    pub fn count_interesting_subarrays(nums: Vec<i32>, modulo: i32, k: i32) -> i64 {\n        let n = nums.len();\n        let mut cnt: HashMap<i32, i32> = HashMap::new();\n        let mut res: i64 = 0;\n        let mut prefix: i32 = 0;\n        *cnt.entry(0).or_insert(0) += 1;\n        for i in 0..n {\n            if nums[i] % modulo == k {\n                prefix += 1;\n            }\n            res += *cnt.get(&((prefix - k + modulo) % modulo)).unwrap_or(&0) as i64;\n            *cnt.entry(prefix % modulo).or_insert(0) += 1;\n        }\n        res\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 表示给定数组 $\\textit{nums}$的长度。只需遍历一遍数组即可，需要的时间为 $O(n)$。\n\n- 空间复杂度：$O(\\min(n, \\textit{modulo}))$，其中 $n$ 表示给定数组 $\\textit{nums}$的长度，$\\textit{modulo}$ 表示给定的数字。需要用哈希表保存数组中每个元素对 $\\textit{modulo}$ 取模的结果出现的次数，最多存在 $O(\\min(n, \\textit{modulo}))$ 种不同的取模结果，因此需要的空间即为 $O(\\min(n, \\textit{modulo}))$。",
+            "slateValue": "",
+            "slug": "tong-ji-qu-wei-zi-shu-zu-de-shu-mu-by-le-968z",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "8xnDyw",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 11,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Prefix Sum",
+                    "nameTranslated": "前缀和",
+                    "slug": "prefix-sum",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2025-04-10T13:03:57.164651+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：前缀和 思路与算法 根据题意可知，给定数组 [latex] 以及整数 [latex] 和整数 [latex]，如果子数组 [latex] 中的元素 [latex] 满足 [latex] 出现的次数为[latex]， 如果 [latex]，次数子数组 [latex] 则为趣味子数组。 由于需要统计数组区间中特殊元",
+            "topic": {
+                "id": 3647292,
+                "subscribed": false,
+                "commentCount": 30,
+                "viewCount": 101,
+                "post": {
+                    "id": 6657889,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 41,
+            "isEditorsPick": false,
+            "hitCount": 8476,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "count-of-interesting-subarrays",
+                "questionFrontendId": "2845"
+            },
+            "next": {
+                "slug": "qian-zhui-he-ha-xi-biao-fu-ti-dan-by-end-74bb",
+                "title": "前缀和，枚举右维护左（Python/Java/C++/C/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

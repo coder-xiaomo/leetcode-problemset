@@ -1,0 +1,128 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "XyGGRS",
+            "title": "环路检测",
+            "content": "#### 方法一：哈希表\n\n**思路与算法**\n\n一个非常直观的思路是：我们遍历链表中的每个节点，并将它记录下来；一旦遇到了此前遍历过的节点，就可以判定链表中存在环。借助哈希表可以很方便地实现。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    ListNode *detectCycle(ListNode *head) {\n        unordered_set<ListNode *> visited;\n        while (head != nullptr) {\n            if (visited.count(head)) {\n                return head;\n            }\n            visited.insert(head);\n            head = head->next;\n        }\n        return nullptr;\n    }\n};\n```\n\n```Java [sol1-Java]\npublic class Solution {\n    public ListNode detectCycle(ListNode head) {\n        ListNode pos = head;\n        Set<ListNode> visited = new HashSet<ListNode>();\n        while (pos != null) {\n            if (visited.contains(pos)) {\n                return pos;\n            } else {\n                visited.add(pos);\n            }\n            pos = pos.next;\n        }\n        return null;\n    }\n}\n```\n\n```C [sol1-C]\nstruct hashTable {\n    struct ListNode* key;\n    UT_hash_handle hh;\n};\n\nstruct hashTable* hashtable;\n\nstruct hashTable* find(struct ListNode* ikey) {\n    struct hashTable* tmp;\n    HASH_FIND_PTR(hashtable, &ikey, tmp);\n    return tmp;\n}\n\nvoid insert(struct ListNode* ikey) {\n    struct hashTable* tmp = malloc(sizeof(struct hashTable));\n    tmp->key = ikey;\n    HASH_ADD_PTR(hashtable, key, tmp);\n}\n\nstruct ListNode* detectCycle(struct ListNode* head) {\n    hashtable = NULL;\n    while (head != NULL) {\n        if (find(head) != NULL) {\n            return head;\n        }\n        insert(head);\n        head = head->next;\n    }\n    return false;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar detectCycle = function(head) {\n    const visited = new Set();\n    while (head !== null) {\n        if (visited.has(head)) {\n            return head;\n        }\n        visited.add(head);\n        head = head.next;\n    }\n    return null;\n};\n```\n\n```Golang [sol1-Golang]\nfunc detectCycle(head *ListNode) *ListNode {\n    seen := map[*ListNode]struct{}{}\n    for head != nil {\n        if _, ok := seen[head]; ok {\n            return head\n        }\n        seen[head] = struct{}{}\n        head = head.Next\n    }\n    return nil\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(N)$，其中 $N$ 为链表中节点的数目。我们恰好需要访问链表中的每一个节点。\n\n- 空间复杂度：$O(N)$，其中 $N$ 为链表中节点的数目。我们需要将链表中的每个节点都保存在哈希表当中。\n\n\n#### 方法二：快慢指针 \n\n**思路与算法**\n\n我们使用两个指针，$\\textit{fast}$ 与 $\\textit{slow}$。它们起始都位于链表的头部。随后，$\\textit{slow}$ 指针每次向后移动一个位置，而 $\\textit{fast}$ 指针向后移动两个位置。如果链表中存在环，则 $\\textit{fast}$ 指针最终将再次与 $\\textit{slow}$ 指针在环中相遇。\n\n如下图所示，设链表中环外部分的长度为 $a$。$\\textit{slow}$ 指针进入环后，又走了 $b$ 的距离与 $\\textit{fast}$ 相遇。此时，$\\textit{fast}$ 指针已经走完了环的 $n$ 圈，因此它走过的总距离为 $a+n(b+c)+b=a+(n+1)b+nc$。\n\n![fig1](https://assets.leetcode.cn/solution-static/jindian_02.08/jindian_02.08.png){:width=\"80%\"}\n\n\n根据题意，任意时刻，$\\textit{fast}$ 指针走过的距离都为 $\\textit{slow}$ 指针的 $2$ 倍。因此，我们有\n\n$$\na+(n+1)b+nc=2(a+b) \\implies a=c+(n-1)(b+c)\n$$\n\n有了 $a=c+(n-1)(b+c)$ 的等量关系，我们会发现：从相遇点到入环点的距离加上 $n-1$ 圈的环长，恰好等于从链表头部到入环点的距离。\n\n因此，当发现 $\\textit{slow}$ 与 $\\textit{fast}$ 相遇时，我们再额外使用一个指针 $\\textit{ptr}$。起始，它指向链表头部；随后，它和 $\\textit{slow}$ 每次向后移动一个位置。最终，它们会在入环点相遇。\n\n**代码**\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    ListNode *detectCycle(ListNode *head) {\n        ListNode *slow = head, *fast = head;\n        while (fast != nullptr) {\n            slow = slow->next;\n            if (fast->next == nullptr) {\n                return nullptr;\n            }\n            fast = fast->next->next;\n            if (fast == slow) {\n                ListNode *ptr = head;\n                while (ptr != slow) {\n                    ptr = ptr->next;\n                    slow = slow->next;\n                }\n                return ptr;\n            }\n        }\n        return nullptr;\n    }\n};\n```\n\n```Java [sol2-Java]\npublic class Solution {\n    public ListNode detectCycle(ListNode head) {\n        if (head == null) {\n            return null;\n        }\n        ListNode slow = head, fast = head;\n        while (fast != null) {\n            slow = slow.next;\n            if (fast.next != null) {\n                fast = fast.next.next;\n            } else {\n                return null;\n            }\n            if (fast == slow) {\n                ListNode ptr = head;\n                while (ptr != slow) {\n                    ptr = ptr.next;\n                    slow = slow.next;\n                }\n                return ptr;\n            }\n        }\n        return null;\n    }\n}\n```\n\n```C [sol2-C]\nstruct ListNode* detectCycle(struct ListNode* head) {\n    struct ListNode *slow = head, *fast = head;\n    while (fast != NULL) {\n        slow = slow->next;\n        if (fast->next == NULL) {\n            return NULL;\n        }\n        fast = fast->next->next;\n        if (fast == slow) {\n            struct ListNode* ptr = head;\n            while (ptr != slow) {\n                ptr = ptr->next;\n                slow = slow->next;\n            }\n            return ptr;\n        }\n    }\n    return NULL;\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar detectCycle = function(head) {\n    if (head === null) {\n        return null;\n    }\n    let slow = head, fast = head;\n    while (fast !== null) {\n        slow = slow.next;\n        if (fast.next !== null) {\n            fast = fast.next.next;\n        } else {\n            return null;\n        }\n        if (fast === slow) {\n            let ptr = head;\n            while (ptr !== slow) {\n                ptr = ptr.next;\n                slow = slow.next;\n            }\n            return ptr;\n        }\n    }\n    return null;\n};\n```\n\n```Golang [sol2-Golang]\nfunc detectCycle(head *ListNode) *ListNode {\n    slow, fast := head, head\n    for fast != nil {\n        slow = slow.Next\n        if fast.Next == nil {\n            return nil\n        }\n        fast = fast.Next.Next\n        if fast == slow {\n            p := head\n            for p != slow {\n                p = p.Next\n                slow = slow.Next\n            }\n            return p\n        }\n    }\n    return nil\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(N)$，其中 $N$ 为链表中节点的数目。在最初判断快慢指针是否相遇时，$\\textit{slow}$ 指针走过的距离不会超过链表的总长度；随后寻找入环点时，走过的距离也不会超过链表的总长度。因此，总的执行时间为 $O(N)+O(N)=O(N)$。\n\n- 空间复杂度：$O(1)$。我们只使用了 $\\textit{slow}, \\textit{fast}, \\textit{ptr}$ 三个指针。",
+            "slateValue": "",
+            "slug": "huan-lu-jian-ce-by-leetcode-solution-s2la",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "XyGGRS",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 48,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 3,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Linked List",
+                    "nameTranslated": "链表",
+                    "slug": "linked-list",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Two Pointers",
+                    "nameTranslated": "双指针",
+                    "slug": "two-pointers",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-12-22T15:15:00.307831+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：哈希表 思路与算法 一个非常直观的思路是：我们遍历链表中的每个节点，并将它记录下来；一旦遇到了此前遍历过的节点，就可以判定链表中存在环。借助哈希表可以很方便地实现。 代码 C++ [sol1-C++] class Solution { public:     ListNode *detectCycle(List",
+            "topic": {
+                "id": 531787,
+                "subscribed": false,
+                "commentCount": 78,
+                "viewCount": 17321,
+                "post": {
+                    "id": 1248426,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 130,
+            "isEditorsPick": false,
+            "hitCount": 34064,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "linked-list-cycle-lcci",
+                "questionFrontendId": "面试题 02.08"
+            },
+            "next": {
+                "slug": "jian-yi-dan-yan-jin-de-tu-shi-tui-dao-by-btav",
+                "title": "快慢指针，简易但严谨的图示推导，(C++ / Java / Python / Kotlin)"
+            },
+            "prev": null
+        }
+    }
+}

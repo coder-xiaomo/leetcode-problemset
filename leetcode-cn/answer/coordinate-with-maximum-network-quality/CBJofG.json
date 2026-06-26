@@ -1,0 +1,126 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "CBJofG",
+            "title": "网络信号最好的坐标",
+            "content": "#### 方法一：枚举\n\n首先遍历所有的信号塔，获得所有信号塔的 $x$ 坐标和 $y$ 坐标的最大值，分别记为 $\\textit{xMax}$ 和 $\\textit{yMax}$。\n\n在计算结果坐标 $(c_x, c_y)$ 之前，首先考虑 $c_x$ 和 $c_y$ 的取值范围。\n\n假设坐标 $(x_1, y_1)$ 满足 $x_1 > \\textit{xMax}$ 或 $y_1 > \\textit{yMax}$，考虑坐标 $(x_2, y_2)$，其中 $x_2 = \\min(x_1, \\textit{xMax})$，$y_2 = \\min(y_1, \\textit{yMax})$，则对于任意一个信号塔，该信号塔到坐标 $(x_2, y_2)$ 的距离一定小于等于到坐标 $(x_1, y_1)$ 的距离。由于一个信号塔在一个坐标的信号强度随着距离的增加而减少或不变，因此坐标 $(x_1, y_1)$ 处和坐标 $(x_2, y_2)$ 处的网络信号相比，一定是坐标 $(x_2, y_2)$ 处的网络信号更好或者两个坐标处的网络信号相同。由于题目要求返回字典序最小的网络信号最好的坐标，坐标 $(x_2, y_2)$ 的字典序一定小于坐标 $(x_1, y_1)$，因此坐标 $(x_1, y_1)$ 不可能是结果坐标。结果坐标一定满足 $c_x \\le \\textit{xMax}$ 且 $c_y \\le \\textit{yMax}$。\n\n假设坐标 $(x_3, y_3)$ 满足 $x_3 < 0$ 或 $y_3 < 0$，考虑坐标 $(x_4, y_4)$，其中 $x_4 = \\max(x_3, 0)$，$y_4 = \\max(y_3, 0)$，则对于任意一个信号塔，由于信号塔的坐标非负，因此该信号塔到坐标 $(x_4, y_4)$ 的距离一定小于等于到坐标 $(x_3, y_3)$ 的距离。由于一个信号塔在一个坐标的信号强度随着距离的增加而减少或不变，因此坐标 $(x_3, y_3)$ 处和坐标 $(x_4, y_4)$ 处的网络信号相比，一定是坐标 $(x_4, y_4)$ 处的网络信号更好或者两个坐标处的网络信号相同。\n\n根据题目要求，如果有多个网络信号最好的坐标，则返回网络信号最好的**非负**坐标，此时 $c_x \\ge 0$ 且 $c_y \\ge 0$。如果只有一个网络信号最好的坐标，则根据上述分析可知，同样有 $c_x \\ge 0$ 且 $c_y \\ge 0$。\n\n因此结果坐标 $(c_x, c_y)$ 满足 $0 \\le c_x \\le \\textit{xMax}$ 且 $0 \\le c_y \\le \\textit{yMax}$，只需要在 $0 \\le x \\le \\textit{xMax}$ 且 $0 \\le y \\le \\textit{yMax}$ 的范围中遍历每一个坐标，计算该坐标处接收到的所有网络信号塔的信号强度之和，即该坐标的网络信号。遍历全部坐标之后，即可得到网络信号最好的坐标。\n\n为了确保结果坐标是字典序最小的网络信号最好的坐标，遍历时应分别将 $x$ 和 $y$ 从小到大遍历，只有当一个坐标的网络信号严格大于最好信号时才更新结果坐标。\n\n特别地，当一个网络信号塔与当前坐标的距离大于阈值 $\\textit{radius}$ 时，该网络信号塔的信号不能到达当前信号，只有当距离不超过阈值 $\\textit{radius}$ 时才计算信号强度。\n\n```Python [sol1-Python3]\nclass Solution:\n    def bestCoordinate(self, towers: List[List[int]], radius: int) -> List[int]:\n        x_max = max(t[0] for t in towers)\n        y_max = max(t[1] for t in towers)\n        cx = cy = max_quality = 0\n        for x in range(x_max + 1):\n            for y in range(y_max + 1):\n                quality = 0\n                for tx, ty, q in towers:\n                    d = (x - tx) ** 2 + (y - ty) ** 2\n                    if d <= radius ** 2:\n                        quality += int(q / (1 + d ** 0.5))\n                if quality > max_quality:\n                    cx, cy, max_quality = x, y, quality\n        return [cx, cy]\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int[] bestCoordinate(int[][] towers, int radius) {\n        int xMax = Integer.MIN_VALUE, yMax = Integer.MIN_VALUE;\n        for (int[] tower : towers) {\n            int x = tower[0], y = tower[1];\n            xMax = Math.max(xMax, x);\n            yMax = Math.max(yMax, y);\n        }\n        int cx = 0, cy = 0;\n        int maxQuality = 0;\n        for (int x = 0; x <= xMax; x++) {\n            for (int y = 0; y <= yMax; y++) {\n                int[] coordinate = {x, y};\n                int quality = 0;\n                for (int[] tower : towers) {\n                    int squaredDistance = getSquaredDistance(coordinate, tower);\n                    if (squaredDistance <= radius * radius) {\n                        double distance = Math.sqrt(squaredDistance);\n                        quality += (int) Math.floor(tower[2] / (1 + distance));\n                    }\n                }\n                if (quality > maxQuality) {\n                    cx = x;\n                    cy = y;\n                    maxQuality = quality;\n                }\n            }\n        }\n        return new int[]{cx, cy};\n    }\n\n    public int getSquaredDistance(int[] coordinate, int[] tower) {\n        return (tower[0] - coordinate[0]) * (tower[0] - coordinate[0]) + (tower[1] - coordinate[1]) * (tower[1] - coordinate[1]);\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int[] BestCoordinate(int[][] towers, int radius) {\n        int xMax = int.MinValue, yMax = int.MinValue;\n        foreach (int[] tower in towers) {\n            int x = tower[0], y = tower[1];\n            xMax = Math.Max(xMax, x);\n            yMax = Math.Max(yMax, y);\n        }\n        int cx = 0, cy = 0;\n        int maxQuality = 0;\n        for (int x = 0; x <= xMax; x++) {\n            for (int y = 0; y <= yMax; y++) {\n                int[] coordinate = {x, y};\n                int quality = 0;\n                foreach (int[] tower in towers) {\n                    int squaredDistance = GetSquaredDistance(coordinate, tower);\n                    if (squaredDistance <= radius * radius) {\n                        double distance = Math.Sqrt(squaredDistance);\n                        quality += (int) Math.Floor(tower[2] / (1 + distance));\n                    }\n                }\n                if (quality > maxQuality) {\n                    cx = x;\n                    cy = y;\n                    maxQuality = quality;\n                }\n            }\n        }\n        return new int[]{cx, cy};\n    }\n\n    public int GetSquaredDistance(int[] coordinate, int[] tower) {\n        return (tower[0] - coordinate[0]) * (tower[0] - coordinate[0]) + (tower[1] - coordinate[1]) * (tower[1] - coordinate[1]);\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<int> bestCoordinate(vector<vector<int>>& towers, int radius) {\n        int xMax = INT_MIN, yMax = INT_MIN;\n        for (auto &&tower : towers) {\n            int x = tower[0], y = tower[1];\n            xMax = max(xMax, x);\n            yMax = max(yMax, y);\n        }\n        int cx = 0, cy = 0;\n        int maxQuality = 0;\n        for (int x = 0; x <= xMax; x++) {\n            for (int y = 0; y <= yMax; y++) {\n                vector<int> coordinate = {x, y};\n                int quality = 0;\n                for (auto &&tower : towers) {\n                    int squaredDistance = getSquaredDistance(coordinate, tower);\n                    if (squaredDistance <= radius * radius) {\n                        double distance = sqrt((double)squaredDistance);\n                        quality += floor((double)tower[2] / (1 + distance));\n                    }\n                }\n                if (quality > maxQuality) {\n                    cx = x;\n                    cy = y;\n                    maxQuality = quality;\n                }\n            }\n        }\n        return {cx, cy};\n    }\n\n    int getSquaredDistance(const vector<int> &coordinate, const vector<int> &tower) {\n        return (tower[0] - coordinate[0]) * (tower[0] - coordinate[0]) + (tower[1] - coordinate[1]) * (tower[1] - coordinate[1]);\n    }\n};\n```\n\n```C [sol1-C]\n#define MAX(a, b) ((a) > (b) ? (a) : (b))\n\nint getSquaredDistance(const int *coordinate, const int *tower) {\n    return (tower[0] - coordinate[0]) * (tower[0] - coordinate[0]) + \\\n           (tower[1] - coordinate[1]) * (tower[1] - coordinate[1]);\n}\n\nint* bestCoordinate(int** towers, int towersSize, int* towersColSize, int radius, int* returnSize) {\n    int xMax = INT_MIN, yMax = INT_MIN;\n    for (int i = 0; i < towersSize; i++) {\n        int x = towers[i][0], y = towers[i][1];\n        xMax = MAX(xMax, x);\n        yMax = MAX(yMax, y);\n    }\n    int cx = 0, cy = 0;\n    int maxQuality = 0;\n    for (int x = 0; x <= xMax; x++) {\n        for (int y = 0; y <= yMax; y++) {\n            int coordinate[2] = {x, y};\n            int quality = 0;\n            for (int i = 0; i < towersSize; i++) {\n                int squaredDistance = getSquaredDistance(coordinate, towers[i]);\n                if (squaredDistance <= radius * radius) {\n                    double distance = sqrt((double)squaredDistance);\n                    quality += floor((double)towers[i][2] / (1 + distance));\n                }\n            }\n            if (quality > maxQuality) {\n                cx = x;\n                cy = y;\n                maxQuality = quality;\n            }\n        }\n    }\n    int *ans = (int *)malloc(sizeof(int) * 2);\n    ans[0] = cx, ans[1] = cy;\n    *returnSize = 2;\n    return ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar bestCoordinate = function(towers, radius) {\n    let xMax = Number.MIN_VALUE, yMax = -Number.MAX_VALUE;\n    for (const tower of towers) {\n        let x = tower[0], y = tower[1];\n        xMax = Math.max(xMax, x);\n        yMax = Math.max(yMax, y);\n    }\n    let cx = 0, cy = 0;\n    let maxQuality = 0;\n    for (let x = 0; x <= xMax; x++) {\n        for (let y = 0; y <= yMax; y++) {\n            const coordinate = [x, y];\n            let quality = 0;\n            for (const tower of towers) {\n                const squaredDistance = getSquaredDistance(coordinate, tower);\n                if (squaredDistance <= radius * radius) {\n                    const distance = Math.sqrt(squaredDistance);\n                    quality += Math.floor(tower[2] / (1 + distance));\n                }\n            }\n            if (quality > maxQuality) {\n                cx = x;\n                cy = y;\n                maxQuality = quality;\n            }\n        }\n    }\n    return [cx, cy];\n}\n\nconst getSquaredDistance = (coordinate, tower) => {\n    return (tower[0] - coordinate[0]) * (tower[0] - coordinate[0]) + (tower[1] - coordinate[1]) * (tower[1] - coordinate[1]);\n};\n```\n\n```go [sol1-Golang]\nfunc bestCoordinate(towers [][]int, radius int) []int {\n    var xMax, yMax, cx, cy, maxQuality int\n    for _, t := range towers {\n        xMax = max(xMax, t[0])\n        yMax = max(yMax, t[1])\n    }\n    for x := 0; x <= xMax; x++ {\n        for y := 0; y <= yMax; y++ {\n            quality := 0\n            for _, t := range towers {\n                d := (x-t[0])*(x-t[0]) + (y-t[1])*(y-t[1])\n                if d <= radius*radius {\n                    quality += int(float64(t[2]) / (1 + math.Sqrt(float64(d))))\n                }\n            }\n            if quality > maxQuality {\n                cx, cy, maxQuality = x, y, quality\n            }\n        }\n    }\n    return []int{cx, cy}\n}\n\nfunc max(a, b int) int {\n    if b > a {\n        return b\n    }\n    return a\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(R_x \\times R_y \\times n)$，其中 $R_x$ 和 $R_y$ 分别是网络信号塔的 $x$ 坐标和 $y$ 坐标的最大值，$n$ 是网络信号塔的数量。\n  这道题中，每个网络信号塔的 $x$ 坐标和 $y$ 坐标的取值范围都是从 $0$ 到 $50$，因此 $R_x$ 和 $R_y$ 都不超过 $50$。\n  时间复杂度主要取决于遍历范围内的所有坐标。需要遍历 $R_x \\times R_y$ 个坐标，对于每个坐标，计算该坐标的网络信号需要遍历所有的网络信号塔，时间复杂度是 $O(n)$。\n  因此时间复杂度是 $O(R_x \\times R_y \\times n)$。\n\n- 空间复杂度：$O(1)$。只需要使用常量的额外空间。",
+            "slateValue": "",
+            "slug": "wang-luo-xin-hao-zui-hao-de-zuo-biao-by-7x1qm",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "CBJofG",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 28,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Enumeration",
+                    "nameTranslated": "枚举",
+                    "slug": "enumeration",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-11-01T01:46:23.303420+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：枚举 首先遍历所有的信号塔，获得所有信号塔的 $x$ 坐标和 $y$ 坐标的最大值，分别记为 $\\textit{xMax}$ 和 $\\textit{yMax}$。 在计算结果坐标 $(c_x, c_y)$ 之前，首先考虑 $c_x$ 和 $c_y$ 的取值范围。 假设坐标 $(x_1, y_1)$ 满足 $x_",
+            "topic": {
+                "id": 1940863,
+                "subscribed": false,
+                "commentCount": 92,
+                "viewCount": 14035,
+                "post": {
+                    "id": 3758336,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 16,
+            "isEditorsPick": false,
+            "hitCount": 23742,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "coordinate-with-maximum-network-quality",
+                "questionFrontendId": "1620"
+            },
+            "next": {
+                "slug": "by-ac_oier-xtx3",
+                "title": "【宫水三叶】简单模拟题"
+            },
+            "prev": null
+        }
+    }
+}

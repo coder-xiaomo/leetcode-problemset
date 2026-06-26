@@ -1,0 +1,142 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "3R3Rk2",
+            "title": "规定时间内到达终点的最小花费",
+            "content": "#### 方法一：动态规划\n\n**思路与算法**\n\n我们用 $f[t][i]$ 表示**使用恰好** $t$ 分钟到达城市 $i$ 需要的**最少**通行费总和。\n\n在状态转移时，我们考虑最后一次通行是从城市 $j$ 到达城市 $i$ 的，那么有状态转移方程：\n\n$$\nf[t][i] = \\min_{(j, i) \\in E} \\big\\{ f[t-\\textit{cost}(j, i)][j] + \\textit{passingFees}[i] \\big\\}\n$$\n\n其中 $(j, i) \\in E$ 表示城市 $j$ 与 $i$ 存在一条道路，$\\textit{cost}(j, i)$ 表示这条道路的耗费时间。\n\n最终的答案即为 $f[1][n-1], f[2][n-1], \\cdots, f[\\textit{maxTime}][n-1]$ 中的最小值。\n\n**细节**\n\n初始状态为 $f[0][0] = \\textit{passingFees}[0]$，即我们一开始位于 $0$ 号城市，需要交 $\\textit{passingFees}[0]$ 的通行费。\n\n由于我们的状态转移方程中的目标的最小值，因此对于其它的状态，我们可以在一开始赋予它们一个极大值 $\\infty$。如果最终的答案为 $\\infty$，说明无法在 $\\textit{maxTime}$ 及以内完成旅行，返回 $-1$。\n\n此外，本题中的道路是以数组 $\\textit{edges}$ 的形式给定的，在动态规划的过程中，如果我们使用两重循环枚举 $t$ 和 $i$，就不能利用 $\\textit{edges}$，而需要使用额外的数据结构存储以 $i$ 为端点的所有道路。一种合理的解决方法是，我们使用一重循环枚举 $t$，另一重循环枚举 $\\textit{edges}$ 中的每一条边 $(i, j, \\textit{cost})$，通过这条边更新 $f[t][i]$ 以及 $f[t][j]$ 的值。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\nprivate:\n    // 极大值\n    static constexpr int INFTY = INT_MAX / 2;\n\npublic:\n    int minCost(int maxTime, vector<vector<int>>& edges, vector<int>& passingFees) {\n        int n = passingFees.size();\n        vector<vector<int>> f(maxTime + 1, vector<int>(n, INFTY));\n        f[0][0] = passingFees[0];\n        for (int t = 1; t <= maxTime; ++t) {\n            for (const auto& edge: edges) {\n                int i = edge[0], j = edge[1], cost = edge[2];\n                if (cost <= t) {\n                    f[t][i] = min(f[t][i], f[t - cost][j] + passingFees[i]);\n                    f[t][j] = min(f[t][j], f[t - cost][i] + passingFees[j]);\n                }\n            }\n        }\n\n        int ans = INFTY;\n        for (int t = 1; t <= maxTime; ++t) {\n            ans = min(ans, f[t][n - 1]);\n        }\n        return ans == INFTY ? -1 : ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int minCost(int maxTime, int[][] edges, int[] passingFees) {\n        int n = passingFees.length;\n        int[][] f = new int[maxTime + 1][n];\n        for (int i = 0; i <= maxTime; i++) {\n            Arrays.fill(f[i], Integer.MAX_VALUE);\n        }\n        f[0][0] = passingFees[0];\n        for (int t = 1; t <= maxTime; t++) {\n            for (int[] edge : edges) {\n                int i = edge[0], j = edge[1], cost = edge[2];\n                if (cost <= t) {\n                    if (f[t - cost][j] != Integer.MAX_VALUE) {\n                        f[t][i] = Math.min(f[t][i], f[t - cost][j] + passingFees[i]);\n                    }\n                    if (f[t - cost][i] != Integer.MAX_VALUE) {\n                        f[t][j] = Math.min(f[t][j], f[t - cost][i] + passingFees[j]);\n                    }\n                }\n            }\n        }\n        int ans = Integer.MAX_VALUE;\n        for (int t = 1; t <= maxTime; t++) {\n            ans = Math.min(ans, f[t][n - 1]);\n        }\n        return ans == Integer.MAX_VALUE ? -1 : ans;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MinCost(int maxTime, int[][] edges, int[] passingFees) {\n        int n = passingFees.Length;\n        int[,] f = new int[maxTime + 1, n];\n        for (int i = 0; i <= maxTime; i++) {\n            for (int j = 0; j < n; j++) {\n                f[i, j] = int.MaxValue;\n            }\n        }\n        f[0, 0] = passingFees[0];\n        for (int t = 1; t <= maxTime; t++) {\n            foreach (var edge in edges) {\n                int i = edge[0], j = edge[1], cost = edge[2];\n                if (cost <= t) {\n                    if (f[t - cost, j] != int.MaxValue) {\n                        f[t, i] = Math.Min(f[t, i], f[t - cost, j] + passingFees[i]);\n                    }\n                    if (f[t - cost, i] != int.MaxValue) {\n                        f[t, j] = Math.Min(f[t, j], f[t - cost, i] + passingFees[j]);\n                    }\n                }\n            }\n        }\n        \n        int ans = int.MaxValue;\n        for (int t = 1; t <= maxTime; t++) {\n            ans = Math.Min(ans, f[t, n - 1]);\n        }\n        return ans == int.MaxValue ? -1 : ans;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc minCost(maxTime int, edges [][]int, passingFees []int) int {\n     n := len(passingFees)\n    f := make([][]int, maxTime+1)\n    for i := range f {\n        f[i] = make([]int, n)\n        for j := range f[i] {\n            f[i][j] = math.MaxInt32\n        }\n    }\n    f[0][0] = passingFees[0]\n    for t := 1; t <= maxTime; t++ {\n        for _, edge := range edges {\n            i, j, cost := edge[0], edge[1], edge[2]\n            if cost <= t {\n                if f[t-cost][j] != math.MaxInt32 {\n                    f[t][i] = min(f[t][i], f[t - cost][j] + passingFees[i])\n                }\n                if f[t-cost][i] != math.MaxInt32 {\n                    f[t][j] = min(f[t][j], f[t - cost][i] + passingFees[j])\n                }\n            }\n        }\n    }\n\n    ans := math.MaxInt32\n    for t := 1; t <= maxTime; t++ {\n        ans = min(ans, f[t][n - 1])\n    }\n    if ans == math.MaxInt32 {\n        return -1\n    }\n    return ans\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def minCost(self, maxTime: int, edges: List[List[int]], passingFees: List[int]) -> int:\n        n = len(passingFees)\n        f = [[float(\"inf\")] * n for _ in range(maxTime + 1)]\n        f[0][0] = passingFees[0]\n        for t in range(1, maxTime + 1):\n            for i, j, cost in edges:\n                if cost <= t:\n                    f[t][i] = min(f[t][i], f[t - cost][j] + passingFees[i])\n                    f[t][j] = min(f[t][j], f[t - cost][i] + passingFees[j])\n\n        ans = min(f[t][n - 1] for t in range(1, maxTime + 1))\n        return -1 if ans == float(\"inf\") else ans\n```\n\n```C [sol1-C]\nint minCost(int maxTime, int** edges, int edgesSize, int* edgesColSize, int* passingFees, int passingFeesSize) {\n    int n = passingFeesSize;\n    int f[maxTime + 1][n];\n    for (int i = 0; i <= maxTime; i++) {\n        for (int j = 0; j < n; j++) {\n            f[i][j] = INT_MAX;\n        }\n    }\n    f[0][0] = passingFees[0];\n    for (int t = 1; t <= maxTime; t++) {\n        for (int k = 0; k < edgesSize; k++) {\n            int i = edges[k][0], j = edges[k][1], cost = edges[k][2];\n            if (cost <= t) {\n                if (f[t - cost][j] != INT_MAX) {\n                    f[t][i] = fmin(f[t][i], f[t - cost][j] + passingFees[i]);\n                }\n                if (f[t - cost][i] != INT_MAX) {\n                    f[t][j] = fmin(f[t][j], f[t - cost][i] + passingFees[j]);\n                }\n            }\n        }\n    }\n\n    int ans = INT_MAX;\n    for (int t = 1; t <= maxTime; t++) {\n        ans = fmin(ans, f[t][n - 1]);\n    }\n    return ans == INT_MAX ? -1 : ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar minCost = function(maxTime, edges, passingFees) {\n    const n = passingFees.length;\n    const f = Array.from({ length: maxTime + 1 }, () => Array(n).fill(Infinity));\n    f[0][0] = passingFees[0];\n    for (let t = 1; t <= maxTime; t++) {\n        for (const [i, j, cost] of edges) {\n            if (cost <= t) {\n                if (f[t - cost][j] !== Infinity) {\n                    f[t][i] = Math.min(f[t][i], f[t - cost][j] + passingFees[i]);\n                }\n                if (f[t - cost][i] !== Infinity) {\n                    f[t][j] = Math.min(f[t][j], f[t - cost][i] + passingFees[j]);\n                }\n            }\n        }\n    }\n\n    let ans = Infinity;\n    for (let t = 1; t <= maxTime; t++) {\n        ans = Math.min(ans, f[t][n - 1]);\n    }\n    return ans === Infinity ? -1 : ans;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction minCost(maxTime: number, edges: number[][], passingFees: number[]): number {\n    const n = passingFees.length;\n    const f: number[][] = Array.from({ length: maxTime + 1 }, () => Array(n).fill(Infinity));\n    f[0][0] = passingFees[0];\n\n    for (let t = 1; t <= maxTime; t++) {\n        for (const [i, j, cost] of edges) {\n            if (cost <= t) {\n                if (f[t - cost][j] !== Infinity) {\n                    f[t][i] = Math.min(f[t][i], f[t - cost][j] + passingFees[i]);\n                }\n                if (f[t - cost][i] !== Infinity) {\n                    f[t][j] = Math.min(f[t][j], f[t - cost][i] + passingFees[j]);\n                }\n            }\n        }\n    }\n\n    let ans = Infinity;\n    for (let t = 1; t <= maxTime; t++) {\n        ans = Math.min(ans, f[t][n - 1]);\n    }\n    return ans === Infinity ? -1 : ans;\n};\n```\n\n```Rust [sol1-Rust]\nuse std::cmp::min;\n\nimpl Solution {\n    pub fn min_cost(max_time: i32, edges: Vec<Vec<i32>>, passing_fees: Vec<i32>) -> i32 {\n        let n = passing_fees.len();\n        let mut f = vec![vec![i32::MAX; n]; (max_time + 1) as usize];\n        f[0][0] = passing_fees[0];\n\n        for t in 1..=max_time {\n            for edge in &edges {\n                let (i, j, cost) = (edge[0] as usize, edge[1] as usize, edge[2]);\n                if cost <= t {\n                    if f[(t - cost) as usize][j] != i32::MAX {\n                        f[t as usize][i] = min(f[t as usize][i], f[(t - cost) as usize][j] + passing_fees[i]);\n                    }\n                    if f[(t - cost) as usize][i] != i32::MAX {\n                        f[t as usize][j] = min(f[t as usize][j], f[(t - cost) as usize][i] + passing_fees[j]);\n                    }\n                }\n            }\n        }\n\n        let mut ans = i32::MAX;\n        for t in 1..=max_time {\n            ans = min(ans, f[t as usize][n - 1]);\n        }\n        if ans == i32::MAX {\n            -1\n        } else {\n            ans\n        }\n    }\n}\n```\n\n```Cangjie [sol1-Cangjie]\nclass Solution {\n    func minCost(maxTime: Int64, edges: Array<Array<Int64>>, passingFees: Array<Int64>): Int64 {\n        let n = passingFees.size\n        let infinity = Int.Max >> 1\n        var f = Array<Array<Int64>>(maxTime + 1, {_ => Array<Int64>(n, item: infinity)})\n        f[0][0] = passingFees[0]\n        for (t in 1..= maxTime) {\n            for (edge in edges) {\n                let i = edge[0]\n                let j = edge[1]\n                let cost = edge[2]\n                if (cost <= t) {\n                    f[t][i] = min(f[t][i], f[t - cost][j] + passingFees[i])\n                    f[t][j] = min(f[t][j], f[t - cost][i] + passingFees[j])\n                }\n            }\n        }\n\n        var ans = infinity\n        for (t in 1..= maxTime) {\n            ans = min(ans, f[t][n - 1])\n        }\n        if (ans == infinity) {\n            return -1\n        }\n        return ans\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O((n+m) \\cdot \\textit{maxTimes})$，其中 $m$ 是数组 $\\textit{edges}$ 的长度。\n\n    - 我们需要 $O(n \\cdot \\textit{maxTimes})$ 的时间初始化数组 $f$；\n\n    - 动态规划需要的时间为 $O(m \\cdot \\textit{maxTimes})$。\n\n- 空间复杂度：$O(n \\cdot \\textit{maxTimes})$。",
+            "slateValue": "",
+            "slug": "gui-ding-shi-jian-nei-dao-da-zhong-dian-n3ews",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "3R3Rk2",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 44,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 3,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Graph",
+                    "nameTranslated": "图",
+                    "slug": "graph",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-07-11T06:07:11.897968+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 思路与算法 我们用 [latex] 表示使用恰好 [latex] 分钟到达城市 [latex] 需要的最少通行费总和。 在状态转移时，我们考虑最后一次通行是从城市 [latex] 到达城市 [latex] 的，那么有状态转移方程： [latex] 其中 [latex] 表示城市 [latex] 与 [",
+            "topic": {
+                "id": 869919,
+                "subscribed": false,
+                "commentCount": 63,
+                "viewCount": 5760,
+                "post": {
+                    "id": 1892526,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 75,
+            "isEditorsPick": false,
+            "hitCount": 21218,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "minimum-cost-to-reach-destination-in-time",
+                "questionFrontendId": "1928"
+            },
+            "next": {
+                "slug": "dan-yuan-zui-duan-lu-dijkstra-bellmanfor-dp88",
+                "title": "【单源最短路】Dijkstra & BellmanFord (DP)，模版+详细推导"
+            },
+            "prev": null
+        }
+    }
+}

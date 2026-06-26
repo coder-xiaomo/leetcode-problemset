@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "RQC40k",
+            "title": "三段式数组 II",
+            "content": "#### 方法一：分组循环\n\n**思路及解法**\n\n注意到题目要求我们找到所有三段式子数组中和最大的那一个，这个目标可以分为两步来进行：\n\n1. 找到满足 **三段式** 要求的子数组。\n2. 计算该子数组的和并记录最大值。\n\n对于第一步，考察 $\\textit{nums}$ 数组，我们可以使用[三段式数组 I](https://leetcode.cn/problems/trionic-array-i/description/)中判断边界合理性的方法来找到满足 **极大三段式** 要求的子数组。这里的极大是指该子数组不能再往左右延长。\n\n并且在逻辑上，假设我们找到了一个极大三段式子数组，其满足 **增减增** 的规律，那么下一个可能的三段式子数组中的第一个元素应该是当前这个极大三段式子数组中第三段的第一个元素。于是，利用分组循环的方式，能够在 $O(n)$ 时间复杂度内找到所有满足 **极大三段式** 要求的子数组。\n\n对于第二步，考察一个极大三段式子数组，容易想到第二段中的元素需要全部求和，并且第一段中倒数第二个元素以及第三段中第二个元素也需要计算到答案中，这样能够得到一个极小三段式子数组，这里的极小是指该子数组不能再从左右缩短。接下来就是在第一段中从右往左（从第一段中倒数第三个元素开始）计算累加最大值，在第三段中从左往右（从第三段中第三个元素开始）计算累加最大值，然后将这两个最大值累加到答案上即可。要注意的是如果这里的两个最大值小于零，那么就以 $0$ 进行累加，也就是不在极小三段式子数组的基础上增添元素。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    long long maxSumTrionic(vector<int>& nums) {\n        int n = nums.size();\n        int p, q, j;\n        long long max_sum, sum, res;\n        long long ans = LLONG_MIN;\n        for (int i = 0; i < n; i++) {\n            j = i + 1;\n            res = 0;\n            //第一段\n            for(; j < n && nums[j -1] < nums[j]; j++);\n            p = j - 1;\n            if (p == i) {\n                continue;\n            }\n            //第二段\n            res += nums[p] + nums[p - 1];\n            for(; j < n && nums[j - 1] > nums[j]; j++){\n                res += nums[j];\n            }\n            q = j - 1;\n            if (q == p || q == n - 1 || (nums[j] <= nums[q])) {\n                i = q;\n                continue;\n            }\n            //第三段\n            res += nums[q + 1];\n            //第三段求累加最大值\n            max_sum = 0;\n            sum = 0;\n            for (int k = q + 2; k < n && nums[k] > nums[k - 1]; k++) {\n                sum += nums[k];\n                max_sum = max(max_sum, sum);\n            }\n            res += max_sum;\n            //第一段求累加最大值\n            max_sum = 0;\n            sum = 0;\n            for (int k = p - 2; k >= i; k--) {\n                sum += nums[k];\n                max_sum = max(max_sum, sum);\n            }\n            res += max_sum;\n            //更新答案\n            ans = max(ans, res);\n            i = q - 1;\n        }\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public long maxSumTrionic(int[] nums) {\n        int n = nums.length;\n        long ans = Long.MIN_VALUE;\n        \n        for (int i = 0; i < n; i++) {\n            int j = i + 1;\n            long res = 0;\n            \n            // 第一段: 上升段\n            while (j < n && nums[j - 1] < nums[j]) {\n                j++;\n            }\n            int p = j - 1;\n            \n            if (p == i) {\n                continue;\n            }\n            \n            // 第二段: 下降段\n            res += nums[p] + nums[p - 1];\n            while (j < n && nums[j - 1] > nums[j]) {\n                res += nums[j];\n                j++;\n            }\n            int q = j - 1;\n            \n            if (q == p || q == n - 1 || (j < n && nums[j] <= nums[q])) {\n                i = q;\n                continue;\n            }\n            \n            // 第三段: 上升段\n            res += nums[q + 1];\n            \n            // 第三段求累加最大值\n            long maxSum = 0;\n            long sum = 0;\n            for (int k = q + 2; k < n && nums[k] > nums[k - 1]; k++) {\n                sum += nums[k];\n                maxSum = Math.max(maxSum, sum);\n            }\n            res += maxSum;\n            \n            // 第一段求累加最大值\n            maxSum = 0;\n            sum = 0;\n            for (int k = p - 2; k >= i; k--) {\n                sum += nums[k];\n                maxSum = Math.max(maxSum, sum);\n            }\n            res += maxSum;\n            \n            // 更新答案\n            ans = Math.max(ans, res);\n            i = q - 1;\n        }\n        \n        return ans;\n    }\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar maxSumTrionic = function(nums) {\n    const n = nums.length;\n    let ans = -Infinity;\n    \n    for (let i = 0; i < n; i++) {\n        let j = i + 1;\n        let res = 0;\n        \n        // 第一段: 上升段\n        while (j < n && nums[j - 1] < nums[j]) {\n            j++;\n        }\n        const p = j - 1;\n        \n        if (p === i) {\n            continue;\n        }\n        \n        // 第二段: 下降段\n        res += nums[p] + nums[p - 1];\n        while (j < n && nums[j - 1] > nums[j]) {\n            res += nums[j];\n            j++;\n        }\n        const q = j - 1;\n        \n        if (q === p || q === n - 1 || (j < n && nums[j] <= nums[q])) {\n            i = q;\n            continue;\n        }\n        \n        // 第三段: 上升段\n        res += nums[q + 1];\n        \n        // 第三段求累加最大值\n        let maxSum = 0;\n        let sum = 0;\n        for (let k = q + 2; k < n && nums[k] > nums[k - 1]; k++) {\n            sum += nums[k];\n            maxSum = Math.max(maxSum, sum);\n        }\n        res += maxSum;\n        \n        // 第一段求累加最大值\n        maxSum = 0;\n        sum = 0;\n        for (let k = p - 2; k >= i; k--) {\n            sum += nums[k];\n            maxSum = Math.max(maxSum, sum);\n        }\n        res += maxSum;\n        \n        // 更新答案\n        ans = Math.max(ans, res);\n        i = q - 1;\n    }\n    \n    return ans;\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def maxSumTrionic(self, nums: List[int]) -> int:\n        n = len(nums)\n        ans = float('-inf')\n        i = 0\n        \n        while i < n:\n            j = i + 1\n            res = 0\n            \n            # 第一段: 上升段\n            while j < n and nums[j - 1] < nums[j]:\n                j += 1\n            p = j - 1\n            \n            if p == i:  # 没有有效的上升段\n                i += 1\n                continue\n            \n            # 第二段: 下降段\n            res += nums[p] + nums[p - 1]\n            while j < n and nums[j - 1] > nums[j]:\n                res += nums[j]\n                j += 1\n            q = j - 1\n            \n            if q == p or q == n - 1 or (j < n and nums[j] <= nums[q]):\n                i = q\n                continue\n            \n            # 第三段: 上升段\n            res += nums[q + 1]\n            \n            # 第三段求累加最大值\n            max_sum = 0\n            curr_sum = 0\n            k = q + 2\n            while k < n and nums[k] > nums[k - 1]:\n                curr_sum += nums[k]\n                max_sum = max(max_sum, curr_sum)\n                k += 1\n            res += max_sum\n            \n            # 第一段求累加最大值\n            max_sum = 0\n            curr_sum = 0\n            for k in range(p - 2, i - 1, -1):\n                curr_sum += nums[k]\n                max_sum = max(max_sum, curr_sum)\n            res += max_sum\n            \n            # 更新答案\n            ans = max(ans, res)\n            i = q\n        \n        return ans\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public long MaxSumTrionic(int[] nums) {\n        int n = nums.Length;\n        int p, q, j;\n        long max_sum, sum, res;\n        long ans = long.MinValue;\n        for (int i = 0; i < n; i++) {\n            j = i + 1;\n            res = 0;\n            //第一段\n            for(; j < n && nums[j -1] < nums[j]; j++);\n            p = j - 1;\n            if (p == i) {\n                continue;\n            }\n            //第二段\n            res += nums[p] + nums[p - 1];\n            for(; j < n && nums[j - 1] > nums[j]; j++){\n                res += nums[j];\n            }\n            q = j - 1;\n            if (q == p || q == n - 1 || (nums[j] <= nums[q])) {\n                i = q;\n                continue;\n            }\n            //第三段\n            res += nums[q + 1];\n            //第三段求累加最大值\n            max_sum = 0;\n            sum = 0;\n            for (int k = q + 2; k < n && nums[k] > nums[k - 1]; k++) {\n                sum += nums[k];\n                max_sum = Math.Max(max_sum, sum);\n            }\n            res += max_sum;\n            //第一段求累加最大值\n            max_sum = 0;\n            sum = 0;\n            for (int k = p - 2; k >= i; k--) {\n                sum += nums[k];\n                max_sum = Math.Max(max_sum, sum);\n            }\n            res += max_sum;\n            //更新答案\n            ans = Math.Max(ans, res);\n            i = q - 1;\n        }\n        return ans;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc maxSumTrionic(nums []int) int64 {\n    n := len(nums)\n    var p, q, j int\n    var max_sum, sum, res int64\n    ans := int64(math.MinInt64)\n    for i := 0; i < n; i++ {\n        j = i + 1\n        res = 0\n        //第一段\n        for ; j < n && nums[j-1] < nums[j]; j++ {\n        }\n        p = j - 1\n        if p == i {\n            continue\n        }\n        //第二段\n        res += int64(nums[p] + nums[p-1])\n        for ; j < n && nums[j-1] > nums[j]; j++ {\n            res += int64(nums[j])\n        }\n        q = j - 1\n        if q == p || q == n-1 || (j < n && nums[j] <= nums[q]) {\n            i = q\n            continue\n        }\n        //第三段\n        res += int64(nums[q+1])\n        //第三段求累加最大值\n        max_sum = 0\n        sum = 0\n        for k := q + 2; k < n && nums[k] > nums[k-1]; k++ {\n            sum += int64(nums[k])\n            if sum > max_sum {\n                max_sum = sum\n            }\n        }\n        res += max_sum\n        //第一段求累加最大值\n        max_sum = 0\n        sum = 0\n        for k := p - 2; k >= i; k-- {\n            sum += int64(nums[k])\n            if sum > max_sum {\n                max_sum = sum\n            }\n        }\n        res += max_sum\n        //更新答案\n        if res > ans {\n            ans = res\n        }\n        i = q - 1\n    }\n    return ans\n}\n```\n\n```C [sol1-C]\nlong long maxSumTrionic(int* nums, int numsSize) {\n    int n = numsSize;\n    int p, q, j;\n    long long max_sum, sum, res;\n    long long ans = LLONG_MIN;\n    for (int i = 0; i < n; i++) {\n        j = i + 1;\n        res = 0;\n        //第一段\n        for(; j < n && nums[j -1] < nums[j]; j++);\n        p = j - 1;\n        if (p == i) {\n            continue;\n        }\n        //第二段\n        res += nums[p] + nums[p - 1];\n        for(; j < n && nums[j - 1] > nums[j]; j++){\n            res += nums[j];\n        }\n        q = j - 1;\n        if (q == p || q == n - 1 || (j < n && nums[j] <= nums[q])) {\n            i = q;\n            continue;\n        }\n        //第三段\n        res += nums[q + 1];\n        //第三段求累加最大值\n        max_sum = 0;\n        sum = 0;\n        for (int k = q + 2; k < n && nums[k] > nums[k - 1]; k++) {\n            sum += nums[k];\n            max_sum = fmaxl(max_sum, sum);\n        }\n        res += max_sum;\n        //第一段求累加最大值\n        max_sum = 0;\n        sum = 0;\n        for (int k = p - 2; k >= i; k--) {\n            sum += nums[k];\n            max_sum = fmaxl(max_sum, sum);\n        }\n        res += max_sum;\n        //更新答案\n        if (res > ans) {\n            ans = res;\n        }\n        i = q - 1;\n    }\n    return ans;\n}\n```\n\n```TypeScript [sol1-TypeScript]\nfunction maxSumTrionic(nums: number[]): number {\n    const n = nums.length;\n    let p: number, q: number, j: number;\n    let max_sum: number, sum: number, res: number;\n    let ans: number = -Infinity;\n    for (let i = 0; i < n; i++) {\n        j = i + 1;\n        res = 0;\n        //第一段\n        for(; j < n && nums[j -1] < nums[j]; j++);\n        p = j - 1;\n        if (p === i) {\n            continue;\n        }\n        //第二段\n        res += nums[p] + nums[p - 1];\n        for(; j < n && nums[j - 1] > nums[j]; j++){\n            res += nums[j];\n        }\n        q = j - 1;\n        if (q === p || q === n - 1 || (j < n && nums[j] <= nums[q])) {\n            i = q;\n            continue;\n        }\n        //第三段\n        res += nums[q + 1];\n        //第三段求累加最大值\n        max_sum = 0;\n        sum = 0;\n        for (let k = q + 2; k < n && nums[k] > nums[k - 1]; k++) {\n            sum += nums[k];\n            max_sum = Math.max(max_sum, sum);\n        }\n        res += max_sum;\n        //第一段求累加最大值\n        max_sum = 0;\n        sum = 0;\n        for (let k = p - 2; k >= i; k--) {\n            sum += nums[k];\n            max_sum = Math.max(max_sum, sum);\n        }\n        res += max_sum;\n        //更新答案\n        ans = Math.max(ans, res);\n        i = q - 1;\n    }\n    return ans;\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn max_sum_trionic(nums: Vec<i32>) -> i64 {\n        let n = nums.len();\n        let mut p: usize;\n        let mut q: usize;\n        let mut j: usize;\n        let mut max_sum: i64;\n        let mut sum: i64;\n        let mut res: i64;\n        let mut ans: i64 = i64::MIN;\n        let mut i = 0;\n        while i < n {\n            j = i + 1;\n            res = 0;\n            //第一段\n            while j < n && nums[j - 1] < nums[j] {\n                j += 1;\n            }\n            p = j - 1;\n            if p == i {\n                i += 1;\n                continue;\n            }\n            //第二段\n            res += (nums[p] + nums[p - 1]) as i64;\n            while j < n && nums[j - 1] > nums[j] {\n                res += nums[j] as i64;\n                j += 1;\n            }\n            q = j - 1;\n            if q == p || q == n - 1 || (j < n && nums[j] <= nums[q]) {\n                i = q;\n                continue;\n            }\n            //第三段\n            res += nums[q + 1] as i64;\n            //第三段求累加最大值\n            max_sum = 0;\n            sum = 0;\n            let mut k = q + 2;\n            while k < n && nums[k] > nums[k - 1] {\n                sum += nums[k] as i64;\n                if sum > max_sum {\n                    max_sum = sum;\n                }\n                k += 1;\n            }\n            res += max_sum;\n            //第一段求累加最大值\n            max_sum = 0;\n            sum = 0;\n            let mut k = p as isize - 2;\n            while k >= i as isize {\n                sum += nums[k as usize] as i64;\n                if sum > max_sum {\n                    max_sum = sum;\n                }\n                k -= 1;\n            }\n            res += max_sum;\n            //更新答案\n            if res > ans {\n                ans = res;\n            }\n            i = q - 1;\n        }\n        ans\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是 $\\textit{nums}$ 的长度。\n\n- 空间复杂度：$O(1)$。",
+            "slateValue": "",
+            "slug": "san-duan-shi-shu-zu-ii-by-leetcode-solut-3gz7",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "RQC40k",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 1,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2026-02-03T04:26:50.082956+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：分组循环 思路及解法 注意到题目要求我们找到所有三段式子数组中和最大的那一个，这个目标可以分为两步来进行： 找到满足 三段式 要求的子数组。 计算该子数组的和并记录最大值。 对于第一步，考察 [latex] 数组，我们可以使用三段式数组 I中判断边界合理性的方法来找到满足 极大三段式 要求的子数组。这里的极大是",
+            "topic": {
+                "id": 3895084,
+                "subscribed": false,
+                "commentCount": 5,
+                "viewCount": 15,
+                "post": {
+                    "id": 7104823,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 14,
+            "isEditorsPick": false,
+            "hitCount": 3962,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "trionic-array-ii",
+                "questionFrontendId": "3640"
+            },
+            "next": {
+                "slug": "fen-zu-xun-huan-on-shi-jian-o1-kong-jian-ewr5",
+                "title": "两种方法：分组循环 / 状态机 DP（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

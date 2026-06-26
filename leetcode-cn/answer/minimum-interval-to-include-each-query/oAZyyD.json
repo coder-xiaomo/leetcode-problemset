@@ -1,0 +1,114 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "oAZyyD",
+            "title": "包含每个查询的最小区间",
+            "content": "#### 方法一：离线算法 + 优先队列\n\n首先我们对问题进行分析，对于第 $j$ 个查询，可以遍历 $\\textit{intervals}$，找到满足 $\\textit{left}_i \\le \\textit{queries}_j \\le \\textit{right}_i$ 的长度最小区间 $i$ 的长度。以上思路对于每个查询，都需要重新遍历 $\\textit{intervals}$。\n\n如果查询是递增的，那么我们可以对 $\\textit{intervals}$ 按左端点 $\\textit{left}$ 从小到大进行排序，使用一个指针 $i$ 记录下一个要访问的区间 $\\textit{intervals}[i]$，初始时 $i = 0$，使用优先队列 $\\textit{pq}$ 保存区间（优先队列的比较 $\\textit{key}$ 为区间的长度，队首元素为长度最小的区间）。对于第 $j$ 个查询，我们执行以下步骤：\n\n1. 如果 $i$ 等于 $\\textit{intervals}$ 的长度或 $\\textit{left}_i \\gt \\textit{queries}[j]$，终止步骤；\n\n2. 将 $\\textit{intervals}[i]$ 添加到优先队列 $\\textit{pq}$，将 $i$ 的值加 $1$，继续执行步骤 $1$。\n\n此时所有符合 $\\textit{left} \\le \\textit{queries}_j \\le \\textit{right}$ 的区间都在 $\\textit{pq}$，我们不断地获取优先队列 $\\textit{pq}$ 的队首区间：\n\n+ 如果队首区间的右端点 $\\textit{right} \\lt \\textit{queries}[j]$，那么说明该区间不满足条件，从 $\\textit{pq}$ 中出队；\n\n+ 如果队首区间的右端点 $\\textit{right} \\ge \\textit{queries}[j]$，那么该区间为第 $j$ 个查询的最小区间，终止过程。\n\n对于第 $j + 1$ 个查询，因为查询是递增的，所以有 $\\textit{queries}[j + 1] \\ge \\textit{queries}[j]$，那么此时 $\\textit{pq}$ 中的区间都满足 $\\textit{left} \\le \\textit{queries}[j + 1]$。在第 $j$ 个查询中丢弃的区间有 $\\textit{right} \\lt \\textit{queries}[j] \\le \\textit{queries}[j + 1]$，因此丢弃的区间不满足第 $j + 1$ 个查询。同样在第 $j + 1$ 个查询执行与第 $j$ 个查询类似的步骤，将可能满足条件的区间加入优先队列 $\\textit{pq}$ 中，那么此时所有满足条件的区间都在优先队列 $\\textit{pq}$ 中，执行类似第 $j$ 个查询的出队操作。\n\n由以上分析，如果查询满足递增的条件，那么可以利用优先队列进行优化。题目一次性提供所有的查询，基于离线原理，我们对所有查询从小到大进行排序，然后执行以上算法。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<int> minInterval(vector<vector<int>>& intervals, vector<int>& queries) {\n        vector<int> qindex(queries.size());\n        iota(qindex.begin(), qindex.end(), 0);\n        sort(qindex.begin(), qindex.end(), [&](int i, int j) -> bool {\n            return queries[i] < queries[j];\n        });\n        sort(intervals.begin(), intervals.end(), [](const vector<int> &it1, const vector<int> &it2) -> bool {\n            return it1[0] < it2[0];\n        });\n        priority_queue<vector<int>> pq;\n        vector<int> res(queries.size(), -1);\n        int i = 0;\n        for (auto qi : qindex) {\n            while (i < intervals.size() && intervals[i][0] <= queries[qi]) {\n                int l = intervals[i][1] - intervals[i][0] + 1;\n                pq.push({-l, intervals[i][0], intervals[i][1]});\n                i++;\n            }\n            while (!pq.empty() && pq.top()[2] < queries[qi]) {\n                pq.pop();\n            }\n            if (!pq.empty()) {\n                res[qi] = -pq.top()[0];\n            }\n        }\n        return res;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int[] minInterval(int[][] intervals, int[] queries) {\n        Integer[] qindex = new Integer[queries.length];\n        for (int i = 0; i < queries.length; i++) {\n            qindex[i] = i;\n        }\n        Arrays.sort(qindex, (i, j) -> queries[i] - queries[j]);\n        Arrays.sort(intervals, (i, j) -> i[0] - j[0]);\n        PriorityQueue<int[]> pq = new PriorityQueue<int[]>((a, b) -> a[0] - b[0]);\n        int[] res = new int[queries.length];\n        Arrays.fill(res, -1);\n        int i = 0;\n        for (int qi : qindex) {\n            while (i < intervals.length && intervals[i][0] <= queries[qi]) {\n                pq.offer(new int[]{intervals[i][1] - intervals[i][0] + 1, intervals[i][0], intervals[i][1]});\n                i++;\n            }\n            while (!pq.isEmpty() && pq.peek()[2] < queries[qi]) {\n                pq.poll();\n            }\n            if (!pq.isEmpty()) {\n                res[qi] = pq.peek()[0];\n            }\n        }\n        return res;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int[] MinInterval(int[][] intervals, int[] queries) {\n        int[] qindex = new int[queries.Length];\n        for (int idx = 0; idx < queries.Length; idx++) {\n            qindex[idx] = idx;\n        }\n        Array.Sort(qindex, (i, j) => queries[i] - queries[j]);\n        Array.Sort(intervals, (i, j) => i[0] - j[0]);\n        PriorityQueue<int[], int> pq = new PriorityQueue<int[], int>();\n        int[] res = new int[queries.Length];\n        Array.Fill(res, -1);\n        int i = 0;\n        foreach (int qi in qindex) {\n            while (i < intervals.Length && intervals[i][0] <= queries[qi]) {\n                pq.Enqueue(new int[]{intervals[i][1] - intervals[i][0] + 1, intervals[i][0], intervals[i][1]}, intervals[i][1] - intervals[i][0] + 1);\n                i++;\n            }\n            while (pq.Count > 0 && pq.Peek()[2] < queries[qi]) {\n                pq.Dequeue();\n            }\n            if (pq.Count > 0) {\n                res[qi] = pq.Peek()[0];\n            }\n        }\n        return res;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def minInterval(self, intervals: List[List[int]], queries: List[int]) -> List[int]:\n        qindex = list(range(len(queries)))\n        qindex.sort(key=lambda i: queries[i])\n        intervals.sort(key=lambda i: i[0])\n        pq = []\n        res = [-1] * len(queries)\n        i = 0\n        for qi in qindex:\n            while i < len(intervals) and intervals[i][0] <= queries[qi]:\n                heappush(pq, (intervals[i][1] - intervals[i][0] + 1, intervals[i][0], intervals[i][1]))\n                i += 1\n            while pq and pq[0][2] < queries[qi]:\n                heappop(pq)\n            if pq:\n                res[qi] = pq[0][0]\n        return res\n```\n\n```Golang [sol1-Golang]\ntype PriorityQueue [][]int\n\nfunc (pq PriorityQueue) Len() int {\n    return len(pq)\n}\n\nfunc (pq PriorityQueue) Less(i, j int) bool {\n    return pq[i][0] < pq[j][0]\n}\n\nfunc (pq PriorityQueue) Swap(i, j int) {\n    pq[i], pq[j] = pq[j], pq[i]\n}\n\nfunc (pq *PriorityQueue) Push(x any) {\n    *pq = append(*pq, x.([]int))\n}\n\nfunc (pq *PriorityQueue) Pop() any {\n    n, old := len(*pq), *pq\n    x := old[n - 1]\n    *pq = old[0 : n-1]\n    return x\n}\n\nfunc (pq PriorityQueue) Top() []int {\n    return pq[0]\n}\n\nfunc minInterval(intervals [][]int, queries []int) []int {\n    qindex := make([]int, len(queries))\n    for i := 0; i < len(queries); i++ {\n        qindex[i] = i\n    }\n    sort.Slice(qindex, func(i, j int) bool {\n        return queries[qindex[i]] < queries[qindex[j]]\n    })\n    sort.Slice(intervals, func(i, j int) bool {\n        return intervals[i][0] < intervals[j][0]\n    })\n    pq := &PriorityQueue{}\n    res, i := make([]int, len(queries)), 0\n    for _, qi := range qindex {\n        for ; i < len(intervals) && intervals[i][0] <= queries[qi]; i++ {\n            heap.Push(pq, []int{intervals[i][1] - intervals[i][0] + 1, intervals[i][0], intervals[i][1]})\n        }\n        for pq.Len() > 0 && pq.Top()[2] < queries[qi] {\n            heap.Pop(pq)\n        }\n        if pq.Len() > 0 {\n            res[qi] = pq.Top()[0]\n        } else {\n            res[qi] = -1\n        }\n    }\n    return res\n}\n```\n\n**复杂度分析**\n\n+ 时间复杂度：$O(m \\log m + n \\log n)$，其中 $m$ 和 $n$ 分别为 $\\textit{intervals}$ 和 $\\textit{queries}$ 的长度。排序需要 $O(m \\log m + n \\log n)$，最多执行 $m$ 次入队和出队操作，需要 $O(m \\log m)$。\n\n+ 空间复杂度：$O(m + n)$。保存 $\\textit{qindex}$ 需要 $O(m)$，保存 $\\textit{pq}$ 需要 $O(n)$。",
+            "slateValue": "",
+            "slug": "bao-han-mei-ge-cha-xun-de-zui-xiao-qu-ji-e21j",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "oAZyyD",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 36,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Heap (Priority Queue)",
+                    "nameTranslated": "堆（优先队列）",
+                    "slug": "heap-priority-queue",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Golang",
+                    "nameTranslated": "",
+                    "slug": "golang-2",
+                    "tagType": "ADDITIONAL_TOPIC"
+                }
+            ],
+            "createdAt": "2021-05-02T09:45:47.133503+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：离线算法 + 优先队列 首先我们对问题进行分析，对于第 $j$ 个查询，可以遍历 $\\textit{intervals}$，找到满足 $\\textit{left}_i \\le \\textit{queries}_j \\le \\textit{right}_i$ 的长度最小区间 $i$ 的长度。以上思路对于每个查询，",
+            "topic": {
+                "id": 755628,
+                "subscribed": false,
+                "commentCount": 69,
+                "viewCount": 3630,
+                "post": {
+                    "id": 1676534,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 37,
+            "isEditorsPick": false,
+            "hitCount": 15312,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "minimum-interval-to-include-each-query",
+                "questionFrontendId": "1851"
+            },
+            "next": {
+                "slug": "an-qu-jian-chang-du-pai-xu-chi-xian-bing-6jzs",
+                "title": "按区间长度排序+离线询问+并查集"
+            },
+            "prev": null
+        }
+    }
+}

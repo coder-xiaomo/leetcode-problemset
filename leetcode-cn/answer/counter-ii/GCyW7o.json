@@ -1,0 +1,78 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "GCyW7o",
+            "title": "计数器 II",
+            "content": "[TOC]\n\n---\n# 解决方案\n\n## 概述\n本题旨在介绍 ***闭包*** 和 ***对象***。建议你首先阅读关于 [计数器](https://leetcode.cn/problems/counter/editorial/) 的题解，因为它包含了这里未讨论的闭包的基本信息。\n\n### JavaScript 对象\n在本质上，***对象*** 只是从字符串到其他值的映射。这些值可以是任何类型：字符串、函数、其他对象等。将映射到值的字符串称为 ***键*** 。\n\n```javascript\nconst object = {\n  \"num\": 1,\n  \"str\": \"Hello World\",\n  \"obj\": {\n    \"x\": 5\n  }\n};\n```\n\n有三种访问对象值的方式：\n\n1. ***点符号表示法***\n\n```js\nconst val = object.obj.x;\nconsole.log(val); // 5\n```\n\n2. ***方括号表示法***\n   当键不是有效的变量名时使用。例如 `\".123\"`\n\n```js\nconst val = object[\"obj\"][\"x\"];\nconsole.log(val); // 5\n```\n\n3. ***解构语法***\n   在一次访问多个值时非常有用。你可以在 [这里](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Destructuring_assignment) 了解更多关于语法的信息。\n\n```js\nconst { num, str } = object;\nconsole.log(num, str); // 1 \"Hello World\"\n```\n\n有关对象的更多信息，你可以点击 [这里](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Working_with_objects) 进行阅读。\n\n### 类和原型\n你也可以在 JavaScript 中定义 ***类***。类的构造函数返回一个对象，这个对象是该类的实例。\n\n```js\nclass Person {\n  constructor(name, age) {\n    this.name = name;\n    this.age = age;\n  }\n\n  greet() {\n    console.log(\"My name is\", this.name);\n  }\n}\n\nconst alice = new Person(\"Alice\", 25);\nalice.greet(); // 输出：\"My name is Alice\"\n```\n\nJavaScript 使用特殊对象 `prototypes` 来实现类。所有方法（在这个例子中是 `greet`）都是存储在对象的原型上的函数。\n\n为了更具体的说明，上面的操作可以使用以下代码实现：\n\n```js\nconst alice = {\n  name: \"Alice\",\n  age: 25,\n  __proto__: {\n    greet: function() {\n      console.log(\"My name is\", this.name);\n    }\n  }\n};\nalice.greet(); // 输出：\"My name is Alice\"\n```\n\n看到这段代码，你可能会想问：“为什么这里可以访问 `greet` 方法，即使它不是 `alice` 对象上的键？”\n\n原因是，访问对象上的键实际上比仅查看对象的键稍微复杂一点。实际上有一个算法会遍历 ***原型链***。首先，JavaScript 查看对象上的键。如果请求的键没有找到，它会查找原型对象的键。如果仍然没有找到，它会查看原型的原型，以此类推。这就是 JavaScript 中 ***继承*** 的实现方式！\n\n你可能还会想知道为什么 JavaScript 会有这种奇怪的原型概念。为什么不直接将函数存储在对象本身上呢？答案是效率。每次创建新的 `Person` 对象时，都会向对象添加 `age` 和 `name` 字段。然而，只会添加一个对原型对象的 ***引用***。因此，无论创建多少个 `Person` 实例还是类上有多少方法，都只会生成一个原型对象。\n\n你可以在 [这里](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes) 阅读更多关于类的内容。\n\n### 代理\nJavaScript中不经常使用但非常强大的功能之一是 ***代理***。它们允许你覆盖对象的默认行为。\n\n例如，使用代理来实现 `alice` 对象：\n\n```javascript\nconst alice = new Proxy({ name: \"Alice\", age: 25 }, {\n  get: (target, key) => {\n    if (key === 'greet') {\n      return () => console.log(\"My name is\", target.name);\n    } else {\n      return target[key];\n    }\n  },\n});\nalice.greet(); // 输出：\"My name is Alice\"\n```\n\n以下是一些代理的潜在实用案例示例：\n\n- 执行验证以确保不会将不良数据输入表单。\n\n```js\nconst validator = {\n  set: (obj, prop, value) => {\n    if (prop === \"age\") {\n      if (typeof value !== \"number\" || value < 0) {\n        throw new TypeError(\"Age must be a positive number\");\n      }\n    }\n    obj[prop] = value;\n  },\n};\n\nconst person = new Proxy({}, validator);\nperson.age = 25; // 正常工作\nperson.age = -5; // 抛出异常\n```\n\n- 创建每次访问键时都记录的日志。这是非常有用的开发者工具。\n\n```js\nconst object = {\n  \"num\": 1,\n  \"str\": \"Hello World\",\n  \"obj\": {\n    \"x\": 5\n  }\n};\nconst proxiedObject = new Proxy(object, {\n  get: (target, key) => {\n    console.log(\"Accessing\", key);\n    return target[key];\n  }\n});\nproxiedObject.num; // 打印: Accessing num\n```\n\n- 如果尝试写入只读值，则引发错误。\n\n```js\nconst READONLY_KEYS = ['name'];\n\nconst person = new Proxy({ name: \"Alice\", age: 25 }, {\n  set: (target, key, value) => {\n    if (READONLY_KEYS.includes(key)) {\n      throw Error(\"Cannot write to key\");\n    }\n    target[key] = value;\n    return true;\n  }\n});\nperson.name = \"Bob\"; // 抛出异常\n```\n\n- 通过写入到其代理来创建修改后的不可变对象的版本。这是使用流行的 [immer](https://immerjs.github.io/immer/) 库实现的。\n\n你可以在 [这里](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy) 阅读更多关于代理的内容。\n\n---\n\n#### 方法 1: 闭包\n我们可以声明一个变量 `currentCount` 并将其设置为 `init`。然后返回一个包含三个函数的对象，这些函数分别用于 `increment`、`decrement` 和 `reset` 来重置 `currentCount` 。\n\n代码实现：\n\n```js\nvar createCounter = function(init) {\n  let currentCount = init;\n  return {\n    increment: function() {\n       currentCount += 1;\n       return currentCount;\n    },\n    decrement: function() {\n       currentCount -= 1;\n       return currentCount;\n    },\n    reset: function() {\n       currentCount = init;\n       return currentCount;\n    },\n  }\n};\n```\n\n```ts\nvar createCounter = function(init: number) {\n  let currentCount = init;\n  return {\n    increment: function() {\n       currentCount += 1;\n       return currentCount;\n    },\n    decrement: function() {\n       currentCount -= 1;\n       return currentCount;\n    },\n    reset: function() {\n       currentCount = init;\n       return currentCount;\n    },\n  }\n};\n```\n\n---\n\n#### 方法 2: 使用缩短语法的闭包\n我们可以采用方法 1 中的概念，并缩短语法的几种方式。\n\n- 我们可以用前缀递增/递减语法替代 += 1 和 -= 1。这种语法允许你递增或递减一个数字，然后返回它。\n- 将 currentCount = init 和 return currentCount 合并成一行代码。在JavaScript中，将值赋给变量也会返回该值。\n- 在定义函数时，将函数语法切换为箭头语法。\n\n代码实现：\n\n```js\nvar createCounter = function(init) {\n  let currentCount = init;\n  return {\n    increment: () => ++currentCount,\n    decrement: () => --currentCount,\n    reset: () => (currentCount = init),\n  }\n};\n```\n\n```ts\nvar createCounter = function(init: number) {\n  let currentCount = init;\n  return {\n    increment: () => ++currentCount,\n    decrement: () => --currentCount,\n    reset: () => (currentCount = init),\n  }\n};\n```\n\n---\n\n#### 方法 3: 使用单独创建的函数的闭包\n你可以声明具有适当名称的函数，然后返回它们。这种方法突出了用于创建对象的语法糖。当值的名称与键的名称相同时，可以省略值。例如，你可以将 `let obj = { value: value };` 缩短为 `let obj = { value };`。\n\n```js\nvar createCounter = function(init) {\n  let currentCount = init;\n\n  function increment() {\n    return ++currentCount;\n  }\n\n  function decrement() {\n      return --currentCount;\n  }\n\n  function reset() {\n      return (currentCount = init);\n  }\n\n  return { increment, decrement, reset };\n};\n```\n\n```ts\nvar createCounter = function(init: number) {\n  let currentCount = init;\n\n  function increment() {\n    return ++currentCount;\n  }\n\n  function decrement() {\n      return --currentCount;\n  }\n\n  function reset() {\n      return (currentCount = init);\n  }\n\n  return { increment, decrement, reset };\n};\n```\n\n---\n\n#### 方法 4: 类\n我们可以定义一个 `Counter` 类，其中包括适当的方法，然后返回该类的新实例。\n\n```js\nclass Counter {\n  constructor(init) {\n    this.init = init;\n    this.currentCount = init;\n  }\n\n  increment() {\n    this.currentCount += 1;\n    return this.currentCount;\n  }\n\n  decrement() {\n    this.currentCount -= 1;\n    return this.currentCount;\n  }\n\n  reset() {\n    this.currentCount = this.init;\n    return this.currentCount;\n  }\n}\n\n\nvar createCounter = function(init) {\n  return new Counter(init);\n};\n```\n\n```ts\nclass Counter {\n  init: number;\n  currentCount: number;\n  constructor(init) {\n    this.init = init;\n    this.currentCount = init;\n  }\n\n  increment() {\n    this.currentCount += 1;\n    return this.currentCount;\n  }\n\n  decrement() {\n    this.currentCount -= 1;\n    return this.currentCount;\n  }\n\n  reset() {\n    this.currentCount = this.init;\n    return this.currentCount;\n  }\n}\n\n\nvar createCounter = function(init: number) {\n  return new Counter(init);\n};\n```\n\n---\n\n#### 方法 5: 使用代理的闭包\n与其返回一个普通对象，不如返回一个模拟具有方法的对象行为的代理 `Proxy`。我们可以通过监听所有属性访问（`get`）事件，并且如果请求的键与方法的名称匹配，就执行相应的逻辑来实现这一点。\n\n请注意，以下解决方案主要是为了演示目的而提供的。代理是一个非常强大的工具，应该在绝对需要的情况下再使用。\n\n```js\nvar createCounter = function(init) {\n  let currentCount = init;\n  return new Proxy({}, {\n    get: (target, key) => {\n      switch(key) {\n        case \"increment\":\n          return () => ++currentCount;\n        case \"decrement\":\n          return () => --currentCount;\n        case \"reset\":\n          return () => (currentCount = init);\n        default:\n          throw Error(\"Unexpected Method\")\n      }\n    },\n  });\n};\n```\n\n```ts\nvar createCounter = function(init: number) {\n  let currentCount = init;\n  return new Proxy({}, {\n    get: (target, key) => {\n      switch(key) {\n        case \"increment\":\n          return () => ++currentCount;\n        case \"decrement\":\n          return () => --currentCount;\n        case \"reset\":\n          return () => (currentCount = init);\n        default:\n          throw Error(\"Unexpected Method\")\n      }\n    },\n  });\n};\n```\n\n----\n\n希望这可以帮助你更好地理解 JavaScript 中的对象、闭包和代理的概念！",
+            "slateValue": "",
+            "slug": "ji-shu-qi-ii-by-leetcode-solution-ofuk",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "GCyW7o",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 13,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-10-18T03:32:25.356075+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "解决方案 概述 本题旨在介绍 闭包 和 对象。建议你首先阅读关于 计数器 的题解，因为它包含了这里未讨论的闭包的基本信息。 JavaScript 对象 在本质上，对象 只是从字符串到其他值的映射。这些值可以是任何类型：字符串、函数、其他对象等。将映射到值的字符串称为 键 。 javascript const objec",
+            "topic": {
+                "id": 2487703,
+                "subscribed": false,
+                "commentCount": 1,
+                "viewCount": 156,
+                "post": {
+                    "id": 4639905,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 18,
+            "isEditorsPick": false,
+            "hitCount": 5299,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "counter-ii",
+                "questionFrontendId": "2665"
+            },
+            "next": {
+                "slug": "2665-ji-shu-qi-ii-yong-yi-ge-bian-liang-oa6xu",
+                "title": "2665. 计数器 II。用一个变量存储初始值，然后返回一个对象，包含这个变量和三个函数"
+            },
+            "prev": null
+        }
+    }
+}

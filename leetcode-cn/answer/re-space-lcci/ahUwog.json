@@ -1,0 +1,128 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "ahUwog",
+            "title": "恢复空格",
+            "content": "#### 方法一：$\\text{Trie}$ + 动态规划\n\n**预备知识**\n\n- 字典树 $\\text{Trie}$\n\n**思路和算法**\n\n定义 $\\textit{dp}[i]$ 表示考虑前 $i$ 个字符最少的未识别的字符数量，从前往后计算 $\\textit{dp}$ 值。\n\n考虑转移方程，每次转移的时候我们考虑第 $j(j\\le i)$ 个到第 $i$ 个字符组成的子串 $\\textit{sentence}[j-1\\cdots i-1]$ （注意字符串下标从 $0$ 开始）是否能在词典中找到，如果能找到的话按照定义转移方程即为 \n\n$$\\textit{dp}[i]=\\min(\\textit{dp}[i],\\textit{dp}[j-1])$$\n\n否则没有找到的话我们可以复用 $\\textit{dp}[i-1]$ 的状态再加上当前未被识别的第 $i$ 个字符，因此此时 $\\textit{dp}$ 值为\n\n$$\\textit{dp}[i]=dp[i-1]+1$$\n\n最后问题化简成了转移的时候如何快速判断当前子串是否存在于词典中，与「[139. 单词拆分](https://leetcode.cn/problems/word-break/)」类似我们可以选择用哈希表来优化，但笔者实测下来速度很慢，因为用哈希表来实现本身有两个问题，一个是哈希表本身的常数很大，还有一个是我们在枚举子串是否在词典中的时候有些其实是没有必要的枚举。简单举例，如果我们有词典：`['aabc', 'babc', 'cbc']` ，但是我们在倒序枚举的时候检查 `dc` 这个子串没出现在词典中以后我们就没必要再接着往前枚举是否有合法的子串了，因为 `dc` 本身已经不是词典中「任意一个单词的后缀」，我们再接着枚举 `*dc` 或者 `**dc` 判断其是否在词典中都是无用功。\n\n因此最终笔者选择了用字典树 $\\text{Trie}$ 来优化查找，$\\text{Trie}$ 是一种最大程度利用多个字符串前缀信息的数据结构，它可以在 $O(w)$ 的时间复杂度内判断一个字符串是否是一个字符串集合中某个字符串的前缀，其中 $w$ 代表字符串的长度。这里具体实现不再展开，我们只讲怎么使用。上文提到了哈希表实现的时候会出现很多冗余的判断，最关键的一点就是当前枚举的子串已经不再是词典中「任意一个单词的后缀」，这点我们可以利用 $\\text{Trie}$ 来解决。\n\n我们将词典中所有的单词「反序」插入字典树中，然后每次转移的时候我们从当前的下标 $i$ 出发倒序遍历 $i-1,i-2,\\cdots,0$。在 $\\text{Trie}$ 上从根节点出发开始走，直到走到当前的字符 $\\textit{sentence}[j]$ 在 $\\text{Trie}$ 上没有相应的位置，说明 $\\textit{sentence}[j\\cdots i-1]$ 不存在在词典中，且它已经不是「任意一个单词的后缀」，此时我们直接跳出循环即可。否则，我们需要判断当前的子串是否是一个单词，这里我们直接在插入 $\\text{Trie}$ 的时候在单词末尾的节点打上一个 $\\textit{isEnd}$ 的标记即可，这样我们在走到某个节点的时候就可以判断是否是一个单词的末尾并根据状态转移方程更新我们的 $\\textit{dp}$ 值。\n\n具体实现以及示例的图画解析可以看下面：\n\n![fig1](https://assets.leetcode.cn/solution-static/jindian_17.13/jindian_17.13_fig1.gif)\n\n```C++ [sol1-C++]\nclass Trie {\npublic:\n    Trie* next[26] = {nullptr};\n    bool isEnd;\n    \n    Trie() {\n        isEnd = false;\n    }\n\n    void insert(string s) {\n        Trie* curPos = this;\n\n        for (int i = s.length() - 1; i >= 0; --i) {\n            int t = s[i] - 'a';\n            if (curPos->next[t] == nullptr) {\n                curPos->next[t] = new Trie();\n            }\n            curPos = curPos->next[t];\n        }\n        curPos->isEnd = true;\n    }\n};\n\nclass Solution {\npublic:\n    int respace(vector<string>& dictionary, string sentence) {\n        int n = sentence.length(), inf = 0x3f3f3f3f;\n\n        Trie* root = new Trie();\n        for (auto& word: dictionary) {\n            root->insert(word);\n        }\n\n        vector<int> dp(n + 1, inf);\n        dp[0] = 0;\n        for (int i = 1; i <= n; ++i) {\n            dp[i] = dp[i - 1] + 1;\n\n            Trie* curPos = root;\n            for (int j = i; j >= 1; --j) {\n                int t = sentence[j - 1] - 'a';\n                if (curPos->next[t] == nullptr) {\n                    break;\n                } else if (curPos->next[t]->isEnd) {\n                    dp[i] = min(dp[i], dp[j - 1]);\n                }\n                if (dp[i] == 0) {\n                    break;\n                }\n                curPos = curPos->next[t];\n            }\n        }\n        return dp[n];\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int respace(String[] dictionary, String sentence) {\n        int n = sentence.length();\n\n        Trie root = new Trie();\n        for (String word: dictionary) {\n            root.insert(word);\n        }\n\n        int[] dp = new int[n + 1];\n        Arrays.fill(dp, Integer.MAX_VALUE);\n        dp[0] = 0;\n        for (int i = 1; i <= n; ++i) {\n            dp[i] = dp[i - 1] + 1;\n\n            Trie curPos = root;\n            for (int j = i; j >= 1; --j) {\n                int t = sentence.charAt(j - 1) - 'a';\n                if (curPos.next[t] == null) {\n                    break;\n                } else if (curPos.next[t].isEnd) {\n                    dp[i] = Math.min(dp[i], dp[j - 1]);\n                }\n                if (dp[i] == 0) {\n                    break;\n                }\n                curPos = curPos.next[t];\n            }\n        }\n        return dp[n];\n    }\n}\n\nclass Trie {\n    public Trie[] next;\n    public boolean isEnd;\n    \n    public Trie() {\n        next = new Trie[26];\n        isEnd = false;\n    }\n\n    public void insert(String s) {\n        Trie curPos = this;\n\n        for (int i = s.length() - 1; i >= 0; --i) {\n            int t = s.charAt(i) - 'a';\n            if (curPos.next[t] == null) {\n                curPos.next[t] = new Trie();\n            }\n            curPos = curPos.next[t];\n        }\n        curPos.isEnd = true;\n    }\n}\n```\n\n```C [sol1-C]\ntypedef struct Trie {\n    struct Trie* next[26];\n    bool isEnd;\n} Trie;\n\nvoid init(Trie** p) {\n    *p = (Trie*)malloc(sizeof(Trie));\n    (*p)->isEnd = false;\n    memset((*p)->next, NULL, sizeof((*p)->next));\n}\n\nvoid insert(Trie* curPos, char* s) {\n    int len = strlen(s);\n    for (int i = len - 1; i >= 0; --i) {\n        int t = s[i] - 'a';\n        if (curPos->next[t] == NULL) {\n            init(&curPos->next[t]);\n        }\n        curPos = curPos->next[t];\n    }\n    curPos->isEnd = true;\n}\n\nint respace(char** dictionary, int dictionarySize, char* sentence) {\n    int n = strlen(sentence), inf = 0x3f3f3f3f;\n\n    Trie* root;\n    init(&root);\n    for (int i = 0; i < dictionarySize; i++) {\n        insert(root, dictionary[i]);\n    }\n    int dp[n + 1];\n    memset(dp, 0x3f, sizeof(dp));\n    dp[0] = 0;\n    for (int i = 1; i <= n; ++i) {\n        dp[i] = dp[i - 1] + 1;\n\n        Trie* curPos = root;\n        for (int j = i; j >= 1; --j) {\n            int t = sentence[j - 1] - 'a';\n            if (curPos->next[t] == NULL) {\n                break;\n            } else if (curPos->next[t]->isEnd) {\n                dp[i] = fmin(dp[i], dp[j - 1]);\n            }\n            if (dp[i] == 0) {\n                break;\n            }\n            curPos = curPos->next[t];\n        }\n    }\n    return dp[n];\n}\n```\n\n```golang [sol1-Golang]\nfunc respace(dictionary []string, sentence string) int {\n    n, inf := len(sentence), 0x3f3f3f3f\n    root := &Trie{next: [26]*Trie{}}\n    for _, word := range dictionary {\n        root.insert(word)\n    }\n    dp := make([]int, n + 1)\n    for i := 1; i < len(dp); i++ {\n        dp[i] = inf\n    }\n    for i := 1; i <= n; i++ {\n        dp[i] = dp[i-1] + 1\n        curPos := root\n        for j := i; j >= 1; j-- {\n            t := int(sentence[j-1] - 'a')\n            if curPos.next[t] == nil {\n                break\n            } else if curPos.next[t].isEnd {\n                dp[i] = min(dp[i], dp[j-1])\n            }\n            if dp[i] == 0 {\n                break\n            }\n            curPos = curPos.next[t]\n        }\n    }\n    return dp[n]\n}\n\ntype Trie struct {\n    next [26]*Trie\n    isEnd bool\n}\n\nfunc (this *Trie) insert(s string) {\n    curPos := this\n    for i := len(s) - 1; i >= 0; i-- {\n        t := int(s[i] - 'a')\n        if curPos.next[t] == nil {\n            curPos.next[t] = &Trie{next: [26]*Trie{}}\n        }\n        curPos = curPos.next[t]\n    }\n    curPos.isEnd = true\n}\n\nfunc min(x, y int) int {\n    if x < y {\n        return x\n    }\n    return y\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(|\\textit{dictionary}|+n^2)$，其中 $|\\textit{dictionary}|$ 代表词典中的总字符数，$n=\\textit{sentence}.\\textit{length}$。建字典树的时间复杂度取决于单词的总字符数，即 $|\\textit{dictionary}|$，因此时间复杂度为 $O(|\\textit{dictionary}|)$。$\\textit{dp}$ 数组一共有 $n+1$ 个状态，每个状态转移的时候最坏需要 $O(n)$ 的时间复杂度，因此时间复杂度为 $O(n^2)$。\n- 空间复杂度：$O(|\\textit{dictionary}| \\times S+n)$，其中 $S$ 代表字符集大小，这里为小写字母数，因此 $S=26$。我们可以这样考虑空间复杂度的渐进上界：对于字典树而言，如果节点个数为 $|node|$，字符集大小为 $S$，那么空间代价为 $O(|node| \\times S)$；因为这里的节点数一定小于词典中的总字符数，故 $O(|node| \\times S) = O(|dictionary| \\times S)$。$dp$ 数组的空间代价为 $O(n)$。\n\n\n#### 方法二：字符串哈希\n\n**预备知识**\n\n+ 字符串哈希：可参考「[1392. 最长快乐前缀的官方题解](https://leetcode.cn/problems/longest-happy-prefix/solution/zui-chang-kuai-le-qian-zhui-by-leetcode-solution/)」中的「背景知识」。\n\n**思路和算法**\n\n我们使用字典树的目的是查找某一个串 $s$ 是否在一个串的集合 $S$ 当中，并且当我们知道 $s$ 是否在 $S$ 中之后，可以快速的知道在 $s$ 后添加某一个新的字母得到的新串 $s'$ 是否在 $S$ 中，这个转移的过程是 $O(1)$ 的。这是我们采用字典树而放弃使用哈希表的一个理由，这些容器不能实现 $s$ 到 $s'$ 的 $O(1)$ 转移，但字典树可以。\n\n其实还有一种字符串哈希的方法也能实现 $O(1)$ 的转移，就是「预备知识」中提到的 $\\text{Rabin-Karp}$ 方法。我们用这种方法替换字典树，时间复杂度不变，空间复杂度可以优化到 $O(n + q)$，其中 $n$ 为 $\\textit{sentence}$ 中元素的个数，$q$ 为词典中单词的个数。\n\n代码如下。\n\n**代码**\n\n```cpp [sol2-C++]\nclass Solution {\npublic:\n    using LL = long long;\n\n    static constexpr LL P = (1LL << 31) - 1;\n    static constexpr LL BASE = 41;\n\n    LL getHash(const string &s) {\n        LL hashValue = 0;\n        for (int i = s.size() - 1; i >= 0; --i) {\n            hashValue = hashValue * BASE + s[i] - 'a' + 1;\n            hashValue = hashValue % P;\n        }\n        return hashValue;\n    }\n\n    int respace(vector<string>& dictionary, string sentence) {\n        unordered_set <LL> hashValues;\n        for (const auto &word: dictionary) {\n            hashValues.insert(getHash(word));\n        }\n\n        vector <int> f(sentence.size() + 1, sentence.size());\n\n        f[0] = 0;\n        for (int i = 1; i <= sentence.size(); ++i) {\n            f[i] = f[i - 1] + 1;\n            LL hashValue = 0;\n            for (int j = i; j >= 1; --j) {\n                int t = sentence[j - 1] - 'a' + 1;\n                hashValue = hashValue * BASE + t;\n                hashValue = hashValue % P;\n                if (hashValues.find(hashValue) != hashValues.end()) {\n                    f[i] = min(f[i], f[j - 1]);\n                }\n            }\n        }\n\n        return f[sentence.size()];\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    static final long P = Integer.MAX_VALUE;\n    static final long BASE = 41;\n\n    public int respace(String[] dictionary, String sentence) {\n        Set<Long> hashValues = new HashSet<Long>();\n        for (String word : dictionary) {\n            hashValues.add(getHash(word));\n        }\n\n        int[] f = new int[sentence.length() + 1];\n        Arrays.fill(f, sentence.length());\n\n        f[0] = 0;\n        for (int i = 1; i <= sentence.length(); ++i) {\n            f[i] = f[i - 1] + 1;\n            long hashValue = 0;\n            for (int j = i; j >= 1; --j) {\n                int t = sentence.charAt(j - 1) - 'a' + 1;\n                hashValue = (hashValue * BASE + t) % P;\n                if (hashValues.contains(hashValue)) {\n                    f[i] = Math.min(f[i], f[j - 1]);\n                }\n            }\n        }\n\n        return f[sentence.length()];\n    }\n\n    public long getHash(String s) {\n        long hashValue = 0;\n        for (int i = s.length() - 1; i >= 0; --i) {\n            hashValue = (hashValue * BASE + s.charAt(i) - 'a' + 1) % P;\n        }\n        return hashValue;\n    }\n}\n```\n\n```golang [sol2-Golang]\nconst (\n    P = math.MaxInt32\n    BASE = 41\n)\n\nfunc respace(dictionary []string, sentence string) int {\n    hashValues := map[int]bool{}\n    for _, word := range dictionary {\n        hashValues[getHash(word)] = true\n    }\n    f := make([]int, len(sentence) + 1)\n    for i := 1; i < len(f); i++ {\n        f[i] = len(sentence)\n    }\n    for i := 1; i <= len(sentence); i++ {\n        f[i] = f[i-1] + 1\n        hashValue := 0\n        for j := i; j >= 1; j-- {\n            t := int(sentence[j-1] - 'a') + 1\n            hashValue = (hashValue * BASE + t) % P\n            if hashValues[hashValue] {\n                f[i] = min(f[i], f[j-1])\n            }\n        }\n    }\n    return f[len(sentence)]\n}\n\nfunc getHash(s string) int {\n    hashValue := 0\n    for i := len(s) - 1; i >= 0; i-- {\n        hashValue = (hashValue * BASE + int(s[i] - 'a') + 1) % P\n    }\n    return hashValue\n}\n\nfunc min(x, y int) int {\n    if x < y {\n        return x\n    }\n    return y\n}\n```\n\n**复杂度分析**\n\n+ 时间复杂度：$O(|\\textit{dictionary}|+n^2)$，同方法一。\n+ 空间复杂度：$O(n + q)$，其中 $n$ 为 $\\textit{sentence}$ 中元素的个数，$q$ 为词典中单词的个数。",
+            "slateValue": "",
+            "slug": "hui-fu-kong-ge-by-leetcode-solution",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "ahUwog",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 98,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 3,
+                    "reactionType": "CONFUSED"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Trie",
+                    "nameTranslated": "字典树",
+                    "slug": "trie",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "字符串哈希",
+                    "nameTranslated": "",
+                    "slug": "zi-fu-chuan-ha-xi",
+                    "tagType": "ADDITIONAL_TOPIC"
+                }
+            ],
+            "createdAt": "2020-07-08T12:13:56.573798+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：$\\text{Trie}$ + 动态规划 预备知识 字典树 $\\text{Trie}$ 思路和算法 定义 $\\textit{dp}[i]$ 表示考虑前 $i$ 个字符最少的未识别的字符数量，从前往后计算 $\\textit{dp}$ 值。 考虑转移方程，每次转移的时候我们考虑第 $j(j\\le i)$ 个到第 $",
+            "topic": {
+                "id": 321776,
+                "subscribed": false,
+                "commentCount": 196,
+                "viewCount": 29585,
+                "post": {
+                    "id": 803992,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 160,
+            "isEditorsPick": false,
+            "hitCount": 49277,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "re-space-lcci",
+                "questionFrontendId": "面试题 17.13"
+            },
+            "next": {
+                "slug": "cong-bao-li-ru-shou-you-hua-yi-ji-triezi-dian-shu-",
+                "title": "从暴力入手，优化以及Trie字典树：思路详解+java"
+            },
+            "prev": null
+        }
+    }
+}

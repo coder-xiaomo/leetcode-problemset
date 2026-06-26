@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "Rzk4uv",
+            "title": "统计网格图中没有被保卫的格子数",
+            "content": "#### 方法一：广度优先搜索 + 存储每个格子的状态\n\n**思路与算法**\n\n为了方便操作，我们可以用二维数组 $\\textit{grid}$ 来表示网格图的状态。其中，警卫对应的状态值为 $-1$，墙对应的状态值为 $-2$，未被保卫的格子对应的状态值为 $0$，被保卫格子对应的状态值为正整数。二维数组的初始值均为 $0$，随后我们遍历 $\\textit{guards}$ 和 $\\textit{walls}$ 数组对应更新网格图。\n\n在恢复了网格图后，我们可以使用广度优先搜索维护每个格子的状态。由于视线是向特定方向的，因此在广度优先搜索的过程中，除了要维护格子的横纵坐标，还要维护当前的**视线方向**。我们用 $(i, j, k)$ 来表示广度优先搜索的状态，其中 $(i, j)$ 代表当前点的横纵坐标，$k$ 为 $[0, 3]$ 闭区间内的整数，分别代表右、上、左、下的视线方向。同样地，为了防止每个非警卫或墙的点被重复或遗漏，我们用 $4$ 个二进制位组成的正整数来表示该格子的状态，其中**从低到高的**第 $k$ 位为 $1$ 代表有指向第 $k$ 个方向的视线经过该点，反之则代表没有。\n\n我们用队列 $q$ 来进行广度优先搜索。首先，对于每个警卫点 $(i, j)$，由于警卫可以看到四个方向，因此我们需要将 $k$ 为 $[0, 3]$ 闭区间内对应的**四种状态** $(i, j, k)$ 全部加进队列。\n\n当遍历到 $(x, y, k)$ 时，我们首先计算沿着该视线方向的**下一个**坐标 $(n_x, n_y)$，如果该坐标不合法或为墙或警卫，则我们直接跳过该坐标；对于余下的情况，我们需要检查该坐标对应状态 $\\textit{grid}[i][j]$ 中从低到高的第 $k$ 位的数值。此时有两种情况：\n\n- 第 $k$ 位为 $1$，则说明该坐标及视线方向对应的状态 $(n_x, n_y, k)$ 已被遍历过，我们直接跳过即可；\n\n- 第 $k$ 位为 $0$，则说明该坐标及视线方向对应的状态 $(n_x, n_y, k)$ 未被遍历过，我们需要将该位置为 $1$，并将该状态加入队列 $q$ 的尾部。\n\n最终，当广度优先搜索完成时，一个格子未被保卫**当且仅当** $\\textit{grid}$ 中的对应状态值为 $0$。我们只需要遍历 $\\textit{grid}$，维护数值为 $0$ 的格子数量，并返回即可。\n\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int countUnguarded(int m, int n, vector<vector<int>>& guards, vector<vector<int>>& walls) {\n        vector<vector<int>> grid(m, vector<int> (n));   // 网格状态数组\n        queue<tuple<int, int, int>> q;   // 广度优先搜索队列\n        // 每个方向的单位向量\n        vector<int> dx = {1, 0, -1, 0};\n        vector<int> dy = {0, 1, 0, -1};\n        for (const auto& guard: guards) {\n            grid[guard[0]][guard[1]] = -1;\n            for (int k = 0; k < 4; ++k) {\n                // 将四个方向视线对应的状态均添加进搜索队列中\n                q.emplace(guard[0], guard[1], k);\n            }\n        }\n        for (const auto& wall: walls) {\n            grid[wall[0]][wall[1]] = -2;\n        }\n        while (!q.empty()) {\n            auto [x, y, k] = q.front();\n            q.pop();\n            int nx = x + dx[k];\n            int ny = y + dy[k];\n            if (nx >= 0 && nx < m && ny >= 0 && ny < n && grid[nx][ny] >= 0) {\n                // 沿着视线方向的下一个坐标合法，且不为警卫或墙\n                if ((grid[nx][ny] & (1 << k)) == 0) {\n                    // 对应状态未遍历过\n                    grid[nx][ny] |= (1 << k);\n                    q.emplace(nx, ny, k);\n                }\n            }\n        }\n        int res = 0;   // 未被保护格子数目\n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j) {\n                if (grid[i][j] == 0) {\n                    ++res;\n                }\n            }\n        }\n        return res;\n    }\n};\n```\n\n\n```Python [sol1-Python3]\nclass Solution:\n    def countUnguarded(self, m: int, n: int, guards: List[List[int]], walls: List[List[int]]) -> int:\n        grid = [[0] * n for  _ in range(m)]   # 网格状态数组\n        q = deque([])   # 广度优先搜索队列\n        # 每个方向的单位向量\n        dx = [1, 0, -1, 0]\n        dy = [0, 1, 0, -1]\n        for i, j in guards:\n            grid[i][j] = -1\n            for k in range(4):\n                # 将四个方向视线对应的状态均添加进搜索队列中\n                q.append((i, j, k))\n        for i, j in walls:\n            grid[i][j] = -2\n        while q:\n            x, y, k = q.popleft()\n            nx, ny = x + dx[k], y + dy[k]\n            if 0 <= nx < m and 0 <= ny < n and grid[nx][ny] >= 0:\n                # 沿着视线方向的下一个坐标合法，且不为警卫或墙\n                if grid[nx][ny] & (1 << k) == 0:\n                    # 对应状态未遍历过\n                    grid[nx][ny] |= (1 << k)\n                    q.append((nx, ny, k))\n        res = 0   # 未被保护格子数目\n        for i in range(m):\n            for j in range(n):\n                if grid[i][j] == 0:\n                    res += 1\n        return res\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int countUnguarded(int m, int n, int[][] guards, int[][] walls) {\n        int[][] grid = new int[m][n];   // 网格状态数组\n        Queue<int[]> q = new LinkedList<>();   // 广度优先搜索队列\n        // 每个方向的单位向量\n        int[] dx = {1, 0, -1, 0};\n        int[] dy = {0, 1, 0, -1};\n        for (int[] guard : guards) {\n            grid[guard[0]][guard[1]] = -1;\n            for (int k = 0; k < 4; ++k) {\n                // 将四个方向视线对应的状态均添加进搜索队列中\n                q.offer(new int[]{guard[0], guard[1], k});\n            }\n        }\n        for (int[] wall : walls) {\n            grid[wall[0]][wall[1]] = -2;\n        }\n        while (!q.isEmpty()) {\n            int[] curr = q.poll();\n            int x = curr[0], y = curr[1], k = curr[2];\n            int nx = x + dx[k];\n            int ny = y + dy[k];\n            if (nx >= 0 && nx < m && ny >= 0 && ny < n && grid[nx][ny] >= 0) {\n                // 沿着视线方向的下一个坐标合法，且不为警卫或墙\n                if ((grid[nx][ny] & (1 << k)) == 0) {\n                    // 对应状态未遍历过\n                    grid[nx][ny] |= (1 << k);\n                    q.offer(new int[]{nx, ny, k});\n                }\n            }\n        }\n        int res = 0;   // 未被保护格子数目\n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j) {\n                if (grid[i][j] == 0) {\n                    ++res;\n                }\n            }\n        }\n        return res;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int CountUnguarded(int m, int n, int[][] guards, int[][] walls) {\n        int[][] grid = new int[m][];   // 网格状态数组\n        for (int i = 0; i < m; ++i) {\n            grid[i] = new int[n];\n        }\n        Queue<Tuple<int, int, int>> q = new Queue<Tuple<int, int, int>>();   // 广度优先搜索队列\n        // 每个方向的单位向量\n        int[] dx = {1, 0, -1, 0};\n        int[] dy = {0, 1, 0, -1};\n        foreach (var guard in guards) {\n            grid[guard[0]][guard[1]] = -1;\n            for (int k = 0; k < 4; ++k) {\n                // 将四个方向视线对应的状态均添加进搜索队列中\n                q.Enqueue(Tuple.Create(guard[0], guard[1], k));\n            }\n        }\n        foreach (var wall in walls) {\n            grid[wall[0]][wall[1]] = -2;\n        }\n        while (q.Count > 0) {\n            var curr = q.Dequeue();\n            int x = curr.Item1, y = curr.Item2, k = curr.Item3;\n            int nx = x + dx[k];\n            int ny = y + dy[k];\n            if (nx >= 0 && nx < m && ny >= 0 && ny < n && grid[nx][ny] >= 0) {\n                // 沿着视线方向的下一个坐标合法，且不为警卫或墙\n                if ((grid[nx][ny] & (1 << k)) == 0) {\n                    // 对应状态未遍历过\n                    grid[nx][ny] |= (1 << k);\n                    q.Enqueue(Tuple.Create(nx, ny, k));\n                }\n            }\n        }\n        int res = 0;   // 未被保护格子数目\n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j) {\n                if (grid[i][j] == 0) {\n                    ++res;\n                }\n            }\n        }\n        return res;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc countUnguarded(m int, n int, guards [][]int, walls [][]int) int {\n\tgrid := make([][]int, m)   // 网格状态数组\n\tfor i := range grid {\n\t\tgrid[i] = make([]int, n)\n\t}\n\tq := [][3]int{}   // 广度优先搜索队列\n\t// 每个方向的单位向量\n\tdx := []int{1, 0, -1, 0}\n\tdy := []int{0, 1, 0, -1}\n\tfor _, guard := range guards {\n\t\tgrid[guard[0]][guard[1]] = -1\n\t\tfor k := 0; k < 4; k++ {\n\t\t\t// 将四个方向视线对应的状态均添加进搜索队列中\n\t\t\tq = append(q, [3]int{guard[0], guard[1], k})\n\t\t}\n\t}\n\tfor _, wall := range walls {\n\t\tgrid[wall[0]][wall[1]] = -2\n\t}\n\tfor len(q) > 0 {\n\t\tcurr := q[0]\n\t\tq = q[1:]\n\t\tx, y, k := curr[0], curr[1], curr[2]\n\t\tnx := x + dx[k]\n\t\tny := y + dy[k]\n\t\tif nx >= 0 && nx < m && ny >= 0 && ny < n && grid[nx][ny] >= 0 {\n\t\t\t// 沿着视线方向的下一个坐标合法，且不为警卫或墙\n\t\t\tif (grid[nx][ny] & (1 << k)) == 0 {\n\t\t\t\t// 对应状态未遍历过\n\t\t\t\tgrid[nx][ny] |= (1 << k)\n\t\t\t\tq = append(q, [3]int{nx, ny, k})\n\t\t\t}\n\t\t}\n\t}\n\tres := 0   // 未被保护格子数目\n\tfor i := 0; i < m; i++ {\n\t\tfor j := 0; j < n; j++ {\n\t\t\tif grid[i][j] == 0 {\n\t\t\t\tres++\n\t\t\t}\n\t\t}\n\t}\n\treturn res\n}\n```\n\n```C [sol1-C]\ntypedef struct {\n    int x, y, k;\n} Tuple;\n\nint countUnguarded(int m, int n, int** guards, int guardsSize, int* guardsColSize, int** walls, int wallsSize, int* wallsColSize) {\n    int** grid = (int**)malloc(m * sizeof(int*));   // 网格状态数组\n    for (int i = 0; i < m; i++) {\n        grid[i] = (int*)calloc(n, sizeof(int));\n    }\n    Tuple* q = (Tuple*)malloc(4 * m * n * sizeof(Tuple));   // 广度优先搜索队列\n    int front = 0, rear = 0;\n    // 每个方向的单位向量\n    int dx[] = {1, 0, -1, 0};\n    int dy[] = {0, 1, 0, -1};\n    for (int i = 0; i < guardsSize; i++) {\n        int x = guards[i][0], y = guards[i][1];\n        grid[x][y] = -1;\n        for (int k = 0; k < 4; k++) {\n            // 将四个方向视线对应的状态均添加进搜索队列中\n            q[rear++] = (Tuple){x, y, k};\n        }\n    }\n    for (int i = 0; i < wallsSize; i++) {\n        int x = walls[i][0], y = walls[i][1];\n        grid[x][y] = -2;\n    }\n    while (front < rear) {\n        Tuple curr = q[front++];\n        int x = curr.x, y = curr.y, k = curr.k;\n        int nx = x + dx[k];\n        int ny = y + dy[k];\n        if (nx >= 0 && nx < m && ny >= 0 && ny < n && grid[nx][ny] >= 0) {\n            // 沿着视线方向的下一个坐标合法，且不为警卫或墙\n            if ((grid[nx][ny] & (1 << k)) == 0) {\n                // 对应状态未遍历过\n                grid[nx][ny] |= (1 << k);\n                q[rear++] = (Tuple){nx, ny, k};\n            }\n        }\n    }\n    int res = 0;   // 未被保护格子数目\n    for (int i = 0; i < m; i++) {\n        for (int j = 0; j < n; j++) {\n            if (grid[i][j] == 0) {\n                res++;\n            }\n        }\n    }\n    for (int i = 0; i < m; i++) {\n        free(grid[i]);\n    }\n    free(grid);\n    free(q);\n    return res;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar countUnguarded = function(m, n, guards, walls) {\n    let grid = new Array(m).fill().map(() => new Array(n).fill(0));   // 网格状态数组\n    const q = new Queue();   // 广度优先搜索队列\n    // 每个方向的单位向量\n    const dx = [1, 0, -1, 0];\n    const dy = [0, 1, 0, -1];\n    for (let guard of guards) {\n        grid[guard[0]][guard[1]] = -1;\n        for (let k = 0; k < 4; ++k) {\n            // 将四个方向视线对应的状态均添加进搜索队列中\n            q.enqueue([guard[0], guard[1], k]);\n        }\n    }\n    for (let wall of walls) {\n        grid[wall[0]][wall[1]] = -2;\n    }\n    while (!q.isEmpty()) {\n        let [x, y, k] = q.dequeue();\n        let nx = x + dx[k];\n        let ny = y + dy[k];\n        if (nx >= 0 && nx < m && ny >= 0 && ny < n && grid[nx][ny] >= 0) {\n            // 沿着视线方向的下一个坐标合法，且不为警卫或墙\n            if ((grid[nx][ny] & (1 << k)) === 0) {\n                // 对应状态未遍历过\n                grid[nx][ny] |= (1 << k);\n                q.enqueue([nx, ny, k]);\n            }\n        }\n    }\n    let res = 0;   // 未被保护格子数目\n    for (let i = 0; i < m; ++i) {\n        for (let j = 0; j < n; ++j) {\n            if (grid[i][j] === 0) {\n                ++res;\n            }\n        }\n    }\n    return res;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction countUnguarded(m: number, n: number, guards: number[][], walls: number[][]): number {\n    let grid: number[][] = new Array(m).fill(0).map(() => new Array(n).fill(0));   // 网格状态数组\n    let q = new Queue<[number, number, number]>;   // 广度优先搜索队列\n    // 每个方向的单位向量\n    const dx = [1, 0, -1, 0];\n    const dy = [0, 1, 0, -1];\n    for (let guard of guards) {\n        grid[guard[0]][guard[1]] = -1;\n        for (let k = 0; k < 4; ++k) {\n            // 将四个方向视线对应的状态均添加进搜索队列中\n            q.enqueue([guard[0], guard[1], k]);\n        }\n    }\n    for (let wall of walls) {\n        grid[wall[0]][wall[1]] = -2;\n    }\n    while (!q.isEmpty()) {\n        let [x, y, k] = q.dequeue();\n        let nx = x + dx[k];\n        let ny = y + dy[k];\n        if (nx >= 0 && nx < m && ny >= 0 && ny < n && grid[nx][ny] >= 0) {\n            // 沿着视线方向的下一个坐标合法，且不为警卫或墙\n            if ((grid[nx][ny] & (1 << k)) === 0) {\n                // 对应状态未遍历过\n                grid[nx][ny] |= (1 << k);\n                q.enqueue([nx, ny, k]);\n            }\n        }\n    }\n    let res = 0;   // 未被保护格子数目\n    for (let i = 0; i < m; ++i) {\n        for (let j = 0; j < n; ++j) {\n            if (grid[i][j] === 0) {\n                ++res;\n            }\n        }\n    }\n    return res;\n}\n```\n\n```Rust [sol1-Rust]\nuse std::collections::VecDeque;\n\nimpl Solution {\n    pub fn count_unguarded(m: i32, n: i32, guards: Vec<Vec<i32>>, walls: Vec<Vec<i32>>) -> i32 {\n        let (m, n) = (m as usize, n as usize);\n        let mut grid = vec![vec![0; n]; m];   // 网格状态数组\n        let mut q = VecDeque::new();   // 广度优先搜索队列\n        // 每个方向的单位向量\n        let dx = [1, 0, -1, 0];\n        let dy = [0, 1, 0, -1];\n        for guard in guards {\n            let (x, y) = (guard[0] as usize, guard[1] as usize);\n            grid[x][y] = -1;\n            for k in 0..4 {\n                // 将四个方向视线对应的状态均添加进搜索队列中\n                q.push_back((x, y, k));\n            }\n        }\n        for wall in walls {\n            let (x, y) = (wall[0] as usize, wall[1] as usize);\n            grid[x][y] = -2;\n        }\n        while let Some((x, y, k)) = q.pop_front() {\n            let nx = x as i32 + dx[k];\n            let ny = y as i32 + dy[k];\n            if nx >= 0 && nx < m as i32 && ny >= 0 && ny < n as i32 {\n                let (nx, ny) = (nx as usize, ny as usize);\n                if grid[nx][ny] >= 0 {\n                    // 沿着视线方向的下一个坐标合法，且不为警卫或墙\n                    if (grid[nx][ny] & (1 << k)) == 0 {\n                        // 对应状态未遍历过\n                        grid[nx][ny] |= 1 << k;\n                        q.push_back((nx, ny, k));\n                    }\n                }\n            }\n        }\n        let mut res = 0;   // 未被保护格子数目\n        for i in 0..m {\n            for j in 0..n {\n                if grid[i][j] == 0 {\n                    res += 1;\n                }\n            }\n        }\n        res\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(mn)$，其中 $m$ 和 $n$ 分别为网格图的行数与列数。即为广度优先搜索的时间复杂度。\n\n- 空间复杂度：$O(mn)$，即为网格图数组的空间开销。",
+            "slateValue": "",
+            "slug": "tong-ji-wang-ge-tu-zhong-mei-you-bei-bao-ba6m",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "Rzk4uv",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 10,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Breadth-First Search",
+                    "nameTranslated": "广度优先搜索",
+                    "slug": "breadth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-05-11T06:10:01.024461+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：广度优先搜索 + 存储每个格子的状态 思路与算法 为了方便操作，我们可以用二维数组 [latex] 来表示网格图的状态。其中，警卫对应的状态值为 [latex]，墙对应的状态值为 [latex]，未被保卫的格子对应的状态值为 [latex]，被保卫格子对应的状态值为正整数。二维数组的初始值均为 [latex]，",
+            "topic": {
+                "id": 1486086,
+                "subscribed": false,
+                "commentCount": 23,
+                "viewCount": 812,
+                "post": {
+                    "id": 3043309,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 24,
+            "isEditorsPick": false,
+            "hitCount": 7822,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "count-unguarded-cells-in-the-grid",
+                "questionFrontendId": "2257"
+            },
+            "next": {
+                "slug": "mo-ni-by-endlesscheng-voye",
+                "title": "遍历警卫及其视线（Python/Java/C++/C/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,144 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "vt75fl",
+            "title": "执行交换操作后的最小汉明距离",
+            "content": "#### 方法一：哈希表 + 并查集\n\n对于 $\\textit{allowedSwaps}$ 中的每一对下标，不论这一对下标对应的元素是什么，都可以将元素进行交换，并且我们可以按照任意次序（$\\textit{allowedSwaps}$ 中的次序），进行任意次数的交换，那么可以使用并查集（使用路径压缩以及按秩合并进行优化）进行预处理来记录不同的集合，每一个集合代表了能够交换元素的所有下标。除此之外，我们还需要使用哈希表来记录每一个集合中各个元素的数量。\n\n然后我们只需要遍历 $\\textit{target}$ 数组，对于其中的每一个元素，其下标一定属于某一个集合，这个集合中如果存在对应于 $\\textit{target}$ 当前下标的元素，那么将这个元素的数量减一，否则汉明距离加一。遍历完 $\\textit{target}$ 数组后返回答案即可。\n\n```C++ [sol1-C++]\nclass Solution {\nprivate:\n    vector<int> fa;\n    vector<int> rank;\n    // 路径压缩\n    int find(int x) {\n        if (fa[x] != x) {\n            fa[x] = find(fa[x]);\n        }\n        return fa[x];\n    }\n    \n    void Union(int x, int y) {\n        x = find(x);\n        y = find(y);\n        if (x == y) return; \n        // 按秩合并\n        if (rank[x] < rank[y]) {\n            swap(x, y);\n        }\n        fa[y] = x;\n        if (rank[x] == rank[y]) {\n            rank[x]++;\n        }\n    }\n    \npublic:\n    int minimumHammingDistance(vector<int>& source, vector<int>& target, vector<vector<int>>& allowedSwaps) {\n        int n = source.size();\n        fa.resize(n);\n        rank.resize(n, 0); \n        for (int i = 0; i < n; i++) {\n            fa[i] = i;\n        }\n        for (auto& pair : allowedSwaps) {\n            Union(pair[0], pair[1]);\n        }\n        unordered_map<int, unordered_map<int, int>> sets;\n        for (int i = 0; i < n; i++) {\n            int f = find(i);\n            sets[f][source[i]]++;\n        }\n        int ans = 0;\n        for (int i = 0; i < n; i++) {\n            int f = find(i);\n            if (sets[f][target[i]] > 0) {\n                sets[f][target[i]]--;\n            } else {\n                ans++;\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```Go [sol1-Go]\ntype UnionFind struct {\n    fa   []int\n    rank []int\n}\n\nfunc NewUnionFind(n int) *UnionFind {\n    fa := make([]int, n)\n    rank := make([]int, n)\n    for i := 0; i < n; i++ {\n        fa[i] = i\n    }\n    return &UnionFind{fa: fa, rank: rank}\n}\n\nfunc (uf *UnionFind) find(x int) int {\n    if uf.fa[x] != x {\n        uf.fa[x] = uf.find(uf.fa[x])\n    }\n    return uf.fa[x]\n}\n\nfunc (uf *UnionFind) union(x, y int) {\n    x = uf.find(x)\n    y = uf.find(y)\n    if x == y {\n        return\n    }\n    if uf.rank[x] < uf.rank[y] {\n        x, y = y, x\n    }\n    uf.fa[y] = x\n    if uf.rank[x] == uf.rank[y] {\n        uf.rank[x]++\n    }\n}\n\nfunc minimumHammingDistance(source []int, target []int, allowedSwaps [][]int) int {\n    n := len(source)\n    uf := NewUnionFind(n)\n    for _, pair := range allowedSwaps {\n        uf.union(pair[0], pair[1])\n    }\n    \n    sets := make(map[int]map[int]int)\n    for i := 0; i < n; i++ {\n        f := uf.find(i)\n        if sets[f] == nil {\n            sets[f] = make(map[int]int)\n        }\n        sets[f][source[i]]++\n    }\n    \n    ans := 0\n    for i := 0; i < n; i++ {\n        f := uf.find(i)\n        if sets[f][target[i]] > 0 {\n            sets[f][target[i]]--\n        } else {\n            ans++\n        }\n    }\n    return ans\n}\n```\n\n```Python [sol1-Python3]\nclass UnionFind:\n    def __init__(self, n):\n        self.fa = list(range(n))\n        self.rank = [0] * n\n    \n    def find(self, x):\n        if self.fa[x] != x:\n            self.fa[x] = self.find(self.fa[x])\n        return self.fa[x]\n    \n    def union(self, x, y):\n        x = self.find(x)\n        y = self.find(y)\n        if x == y:\n            return\n        if self.rank[x] < self.rank[y]:\n            x, y = y, x\n        self.fa[y] = x\n        if self.rank[x] == self.rank[y]:\n            self.rank[x] += 1\n\nclass Solution:\n    def minimumHammingDistance(self, source: List[int], target: List[int], allowedSwaps: List[List[int]]) -> int:\n        n = len(source)\n        uf = UnionFind(n)\n        for a, b in allowedSwaps:\n            uf.union(a, b)\n        \n        sets = defaultdict(lambda: defaultdict(int))\n        for i in range(n):\n            f = uf.find(i)\n            sets[f][source[i]] += 1\n        \n        ans = 0\n        for i in range(n):\n            f = uf.find(i)\n            if sets[f][target[i]] > 0:\n                sets[f][target[i]] -= 1\n            else:\n                ans += 1\n        return ans\n```\n\n```Java [sol1-Java]\nclass Solution {\n    private int[] fa;\n    private int[] rank;\n    \n    private int find(int x) {\n        if (fa[x] != x) {\n            fa[x] = find(fa[x]);\n        }\n        return fa[x];\n    }\n    \n    private void union(int x, int y) {\n        x = find(x);\n        y = find(y);\n        if (x == y) return;\n        if (rank[x] < rank[y]) {\n            int temp = x;\n            x = y;\n            y = temp;\n        }\n        fa[y] = x;\n        if (rank[x] == rank[y]) {\n            rank[x]++;\n        }\n    }\n    \n    public int minimumHammingDistance(int[] source, int[] target, int[][] allowedSwaps) {\n        int n = source.length;\n        fa = new int[n];\n        rank = new int[n];\n        for (int i = 0; i < n; i++) {\n            fa[i] = i;\n        }\n        \n        for (int[] pair : allowedSwaps) {\n            union(pair[0], pair[1]);\n        }\n        \n        Map<Integer, Map<Integer, Integer>> sets = new HashMap<>();\n        for (int i = 0; i < n; i++) {\n            int f = find(i);\n            sets.putIfAbsent(f, new HashMap<>());\n            Map<Integer, Integer> cnt = sets.get(f);\n            cnt.put(source[i], cnt.getOrDefault(source[i], 0) + 1);\n        }\n        \n        int ans = 0;\n        for (int i = 0; i < n; i++) {\n            int f = find(i);\n            Map<Integer, Integer> cnt = sets.get(f);\n            if (cnt.getOrDefault(target[i], 0) > 0) {\n                cnt.put(target[i], cnt.get(target[i]) - 1);\n            } else {\n                ans++;\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    private int[] fa;\n    private int[] rank;\n    \n    private int Find(int x) {\n        if (fa[x] != x) {\n            fa[x] = Find(fa[x]);\n        }\n        return fa[x];\n    }\n    \n    private void Union(int x, int y) {\n        x = Find(x);\n        y = Find(y);\n        if (x == y) return;\n        if (rank[x] < rank[y]) {\n            int temp = x;\n            x = y;\n            y = temp;\n        }\n        fa[y] = x;\n        if (rank[x] == rank[y]) {\n            rank[x]++;\n        }\n    }\n    \n    public int MinimumHammingDistance(int[] source, int[] target, int[][] allowedSwaps) {\n        int n = source.Length;\n        fa = new int[n];\n        rank = new int[n];\n        for (int i = 0; i < n; i++) {\n            fa[i] = i;\n        }\n        \n        foreach (int[] pair in allowedSwaps) {\n            Union(pair[0], pair[1]);\n        }\n        \n        Dictionary<int, Dictionary<int, int>> sets = new Dictionary<int, Dictionary<int, int>>();\n        for (int i = 0; i < n; i++) {\n            int f = Find(i);\n            if (!sets.ContainsKey(f)) {\n                sets[f] = new Dictionary<int, int>();\n            }\n            if (!sets[f].ContainsKey(source[i])) {\n                sets[f][source[i]] = 0;\n            }\n            sets[f][source[i]]++;\n        }\n        \n        int ans = 0;\n        for (int i = 0; i < n; i++) {\n            int f = Find(i);\n            if (sets[f].ContainsKey(target[i]) && sets[f][target[i]] > 0) {\n                sets[f][target[i]]--;\n            } else {\n                ans++;\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```C [sol1-C]\ntypedef struct {\n    int key;\n    int value;\n    UT_hash_handle hh;\n} HashItem;\n\ntypedef struct {\n    int* fa;\n    int* rank;\n    int size;\n} UnionFind;\n\nUnionFind* createUnionFind(int n) {\n    UnionFind* uf = (UnionFind*)malloc(sizeof(UnionFind));\n    uf->fa = (int*)malloc(n * sizeof(int));\n    uf->rank = (int*)malloc(n * sizeof(int));\n    uf->size = n;\n    for (int i = 0; i < n; i++) {\n        uf->fa[i] = i;\n        uf->rank[i] = 0;\n    }\n    return uf;\n}\n\nint find(UnionFind* uf, int x) {\n    if (uf->fa[x] != x) {\n        uf->fa[x] = find(uf, uf->fa[x]);\n    }\n    return uf->fa[x];\n}\n\nvoid unionSet(UnionFind* uf, int x, int y) {\n    x = find(uf, x);\n    y = find(uf, y);\n    if (x == y) return;\n    if (uf->rank[x] < uf->rank[y]) {\n        int temp = x;\n        x = y;\n        y = temp;\n    }\n    uf->fa[y] = x;\n    if (uf->rank[x] == uf->rank[y]) {\n        uf->rank[x]++;\n    }\n}\n\nvoid freeUnionFind(UnionFind* uf) {\n    free(uf->fa);\n    free(uf->rank);\n    free(uf);\n}\n\nint minimumHammingDistance(int* source, int sourceSize, int* target, int targetSize, int** allowedSwaps, int allowedSwapsSize, int* allowedSwapsColSize) {\n    int n = sourceSize;\n    UnionFind* uf = createUnionFind(n);\n    \n    for (int i = 0; i < allowedSwapsSize; i++) {\n        unionSet(uf, allowedSwaps[i][0], allowedSwaps[i][1]);\n    }\n    \n    HashItem** sets = (HashItem**)calloc(n, sizeof(HashItem*));\n    for (int i = 0; i < n; i++) {\n        int f = find(uf, i);\n        HashItem* entry = NULL;\n        HASH_FIND_INT(sets[f], &source[i], entry);\n        if (entry == NULL) {\n            entry = (HashItem*)malloc(sizeof(HashItem));\n            entry->key = source[i];\n            entry->value = 1;\n            HASH_ADD_INT(sets[f], key, entry);\n        } else {\n            entry->value++;\n        }\n    }\n    \n    int ans = 0;\n    for (int i = 0; i < n; i++) {\n        int f = find(uf, i);\n        HashItem* entry = NULL;\n        HASH_FIND_INT(sets[f], &target[i], entry);\n        if (entry != NULL && entry->value > 0) {\n            entry->value--;\n        } else {\n            ans++;\n        }\n    }\n    \n    for (int i = 0; i < n; i++) {\n        HashItem* current, *tmp;\n        HASH_ITER(hh, sets[i], current, tmp) {\n            HASH_DEL(sets[i], current);\n            free(current);\n        }\n    }\n    free(sets);\n    freeUnionFind(uf);\n    \n    return ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nclass UnionFind {\n    constructor(n) {\n        this.fa = new Array(n);\n        this.rank = new Array(n).fill(0);\n        for (let i = 0; i < n; i++) {\n            this.fa[i] = i;\n        }\n    }\n    \n    find(x) {\n        if (this.fa[x] !== x) {\n            this.fa[x] = this.find(this.fa[x]);\n        }\n        return this.fa[x];\n    }\n    \n    union(x, y) {\n        x = this.find(x);\n        y = this.find(y);\n        if (x === y) return;\n        if (this.rank[x] < this.rank[y]) {\n            [x, y] = [y, x];\n        }\n        this.fa[y] = x;\n        if (this.rank[x] === this.rank[y]) {\n            this.rank[x]++;\n        }\n    }\n}\n\nvar minimumHammingDistance = function(source, target, allowedSwaps) {\n    const n = source.length;\n    const uf = new UnionFind(n);\n    \n    for (const [a, b] of allowedSwaps) {\n        uf.union(a, b);\n    }\n    \n    const sets = new Map();\n    for (let i = 0; i < n; i++) {\n        const f = uf.find(i);\n        if (!sets.has(f)) {\n            sets.set(f, new Map());\n        }\n        const cnt = sets.get(f);\n        cnt.set(source[i], (cnt.get(source[i]) || 0) + 1);\n    }\n    \n    let ans = 0;\n    for (let i = 0; i < n; i++) {\n        const f = uf.find(i);\n        const cnt = sets.get(f);\n        const count = cnt.get(target[i]) || 0;\n        if (count > 0) {\n            cnt.set(target[i], count - 1);\n        } else {\n            ans++;\n        }\n    }\n    return ans;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nclass UnionFind {\n    fa: number[];\n    rank: number[];\n    \n    constructor(n: number) {\n        this.fa = new Array(n);\n        this.rank = new Array(n).fill(0);\n        for (let i = 0; i < n; i++) {\n            this.fa[i] = i;\n        }\n    }\n    \n    find(x: number): number {\n        if (this.fa[x] !== x) {\n            this.fa[x] = this.find(this.fa[x]);\n        }\n        return this.fa[x];\n    }\n    \n    union(x: number, y: number): void {\n        x = this.find(x);\n        y = this.find(y);\n        if (x === y) return;\n        if (this.rank[x] < this.rank[y]) {\n            [x, y] = [y, x];\n        }\n        this.fa[y] = x;\n        if (this.rank[x] === this.rank[y]) {\n            this.rank[x]++;\n        }\n    }\n}\n\nfunction minimumHammingDistance(source: number[], target: number[], allowedSwaps: number[][]): number {\n    const n = source.length;\n    const uf = new UnionFind(n);\n    \n    for (const [a, b] of allowedSwaps) {\n        uf.union(a, b);\n    }\n    \n    const sets = new Map<number, Map<number, number>>();\n    for (let i = 0; i < n; i++) {\n        const f = uf.find(i);\n        if (!sets.has(f)) {\n            sets.set(f, new Map());\n        }\n        const cnt = sets.get(f)!;\n        cnt.set(source[i], (cnt.get(source[i]) || 0) + 1);\n    }\n    \n    let ans = 0;\n    for (let i = 0; i < n; i++) {\n        const f = uf.find(i);\n        const cnt = sets.get(f)!;\n        const count = cnt.get(target[i]) || 0;\n        if (count > 0) {\n            cnt.set(target[i], count - 1);\n        } else {\n            ans++;\n        }\n    }\n    return ans;\n}\n```\n\n```Rust [sol1-Rust]\nstruct UnionFind {\n    fa: Vec<usize>,\n    rank: Vec<usize>,\n}\n\nimpl UnionFind {\n    fn new(n: usize) -> Self {\n        UnionFind {\n            fa: (0..n).collect(),\n            rank: vec![0; n],\n        }\n    }\n    \n    fn find(&mut self, x: usize) -> usize {\n        if self.fa[x] != x {\n            self.fa[x] = self.find(self.fa[x]);\n        }\n        self.fa[x]\n    }\n    \n    fn union(&mut self, x: usize, y: usize) {\n        let mut x = self.find(x);\n        let mut y = self.find(y);\n        if x == y {\n            return;\n        }\n        if self.rank[x] < self.rank[y] {\n            std::mem::swap(&mut x, &mut y);\n        }\n        self.fa[y] = x;\n        if self.rank[x] == self.rank[y] {\n            self.rank[x] += 1;\n        }\n    }\n}\n\nuse std::collections::HashMap;\n\nimpl Solution {\n    pub fn minimum_hamming_distance(source: Vec<i32>, target: Vec<i32>, allowed_swaps: Vec<Vec<i32>>) -> i32 {\n        let n = source.len();\n        let mut uf = UnionFind::new(n);\n        \n        for swap in &allowed_swaps {\n            uf.union(swap[0] as usize, swap[1] as usize);\n        }\n        \n        let mut sets: HashMap<usize, HashMap<i32, i32>> = HashMap::new();\n        for i in 0..n {\n            let f = uf.find(i);\n            *sets.entry(f).or_insert_with(HashMap::new)\n                .entry(source[i]).or_insert(0) += 1;\n        }\n        \n        let mut ans = 0;\n        for i in 0..n {\n            let f = uf.find(i);\n            let cnt = sets.get_mut(&f).unwrap();\n            if let Some(v) = cnt.get_mut(&target[i]) {\n                if *v > 0 {\n                    *v -= 1;\n                    continue;\n                }\n            }\n            ans += 1;\n        }\n        ans\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n + m \\cdot \\alpha(n))$，其中 $n$ 是数组 $\\textit{source}$ 的长度，$m$ 是数组 $\\textit{allowedSwaps}$ 的长度，$\\alpha(n)$ 是反阿克曼函数。处理 $m$ 对交换关系，每次并查集操作需要 $O(\\alpha(n))$ 时间。\n\n- 空间复杂度：$O(n)$，其中 $n$ 是数组 $\\textit{source}$ 的长度。",
+            "slateValue": "",
+            "slug": "zhi-xing-jiao-huan-cao-zuo-hou-de-zui-xi-n5av",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "vt75fl",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 8,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Union Find",
+                    "nameTranslated": "并查集",
+                    "slug": "union-find",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2026-04-13T01:33:52.023107+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：哈希表 + 并查集 对于 [latex] 中的每一对下标，不论这一对下标对应的元素是什么，都可以将元素进行交换，并且我们可以按照任意次序（[latex] 中的次序），进行任意次数的交换，那么可以使用并查集（使用路径压缩以及按秩合并进行优化）进行预处理来记录不同的集合，每一个集合代表了能够交换元素的所有下标。除此",
+            "topic": {
+                "id": 3950418,
+                "subscribed": false,
+                "commentCount": 10,
+                "viewCount": 15,
+                "post": {
+                    "id": 7200480,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 15,
+            "isEditorsPick": false,
+            "hitCount": 5218,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "minimize-hamming-distance-after-swap-operations",
+                "questionFrontendId": "1722"
+            },
+            "next": {
+                "slug": "jian-tu-dfspythonjavacgo-by-endlesscheng-qmkq",
+                "title": "建图 + DFS（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

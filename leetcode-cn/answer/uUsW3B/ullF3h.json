@@ -1,0 +1,108 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "ullF3h",
+            "title": "含有 k 个元素的组合",
+            "content": "#### 方法一：递归实现组合型枚举\n\n**思路与算法**\n\n从 $n$ 个当中选 $k$ 个的所有方案对应的枚举是组合型枚举。在「方法一」中我们用递归来实现组合型枚举。\n\n首先我们先回忆一下如何用递归实现二进制枚举（子集枚举），假设我们需要找到一个长度为 $n$ 的序列 $a$ 的所有子序列，代码框架是这样的：\n\n```cpp [demo1-C++]\nvector<int> temp;\nvoid dfs(int cur, int n) {\n    if (cur == n + 1) {\n        // 记录答案\n        // ...\n        return;\n    }\n    // 考虑选择当前位置\n    temp.push_back(cur);\n    dfs(cur + 1, n, k);\n    temp.pop_back();\n    // 考虑不选择当前位置\n    dfs(cur + 1, n, k);\n}\n```\n\n上面的代码中，$\\textit{dfs}(\\textit{cur}, n)$ 参数表示当前位置是 $\\textit{cur}$，原序列总长度为 $n$。原序列的每个位置在答案序列种的状态有被选中和不被选中两种，我们用 $\\textit{temp}$ 数组存放已经被选出的数字。在进入 $\\textit{dfs}(\\textit{cur}, n)$ 之前 $[1, cur - 1]$ 位置的状态是确定的，而 $[\\textit{cur}, n]$ 内位置的状态是不确定的，$\\textit{dfs}(\\textit{cur}, n)$ 需要确定 $\\textit{cur}$ 位置的状态，然后求解子问题 $\\textit{dfs}(\\textit{cur} + 1, n)$。对于 $\\textit{cur}$ 位置，我们需要考虑 $a[\\textit{cur}]$ 取或者不取，如果取，我们需要把 $a[\\textit{cur}]$ 放入一个临时的答案数组中（即上面代码中的 $\\textit{temp}$），再执行 $\\textit{dfs}(\\textit{cur} + 1, n)$，执行结束后需要对 $\\textit{temp}$ 进行回溯；如果不取，则直接执行 $\\textit{dfs}(\\textit{cur} + 1, n)$。在整个递归调用的过程中，$\\textit{cur}$ 是从小到大递增的，当 $\\textit{cur}$ 增加到 $n + 1$ 的时候，记录答案并终止递归。可以看出二进制枚举的时间复杂度是 $O(2 ^ n)$。\n\n组合枚举的代码框架可以借鉴二进制枚举。例如我们需要在 $n$ 个元素选 $k$ 个，在 $\\textit{dfs}$ 的时候需要多传入一个参数 $k$，即 $\\textit{dfs}(\\textit{cur}, n, k)$。在每次进入这个 $\\textit{dfs}$ 函数时，我们都去判断当前 $\\textit{temp}$ 的长度是否为 $k$，如果为 $k$，就把 $\\textit{temp}$ 加入答案并直接返回，即：\n\n```cpp [demo2-C++]\nvector<int> temp;\nvoid dfs(int cur, int n) {\n    // 记录合法的答案\n    if (temp.size() == k) {\n        ans.push_back(temp);\n        return;\n    }\n    // cur == n + 1 的时候结束递归\n    if (cur == n + 1) {\n        return;\n    }\n    // 考虑选择当前位置\n    temp.push_back(cur);\n    dfs(cur + 1, n, k);\n    temp.pop_back();\n    // 考虑不选择当前位置\n    dfs(cur + 1, n, k);\n}\n```\n\n这个时候我们可以做一个剪枝，如果当前 $\\textit{temp}$ 的大小为 $s$，未确定状态的区间 $[\\textit{cur}, n]$ 的长度为 $t$，如果 $s + t < k$，那么即使 $t$ 个都被选中，也不可能构造出一个长度为 $k$ 的序列，故这种情况就没有必要继续向下递归，即我们可以在每次递归开始的时候做一次这样的判断：\n\n```cpp [demo3-C++]\nif (temp.size() + (n - cur + 1) < k) {\n    return;\n}\n```\n\n代码就变成了这样：\n\n```cpp [demo4-C++]\nvector<int> temp;\nvoid dfs(int cur, int n) {\n    // 剪枝：temp 长度加上区间 [cur, n] 的长度小于 k，不可能构造出长度为 k 的 temp\n    if (temp.size() + (n - cur + 1) < k) {\n        return;\n    }\n    // 记录合法的答案\n    if (temp.size() == k) {\n        ans.push_back(temp);\n        return;\n    }\n    // cur == n + 1 的时候结束递归\n    if (cur == n + 1) {\n        return;\n    }\n    // 考虑选择当前位置\n    temp.push_back(cur);\n    dfs(cur + 1, n, k);\n    temp.pop_back();\n    // 考虑不选择当前位置\n    dfs(cur + 1, n, k);\n}\n```\n\n至此，其实我们已经得到了一个时间复杂度为 $O({n \\choose k})$ 的组合枚举，由于每次记录答案的复杂度为 $O(k)$，故这里的时间复杂度为 $O({n \\choose k} \\times k)$，但是我们还可以进一步优化代码。在上面这份代码中有三个 $\\text{if}$ 判断，其实第三处的 $\\text{if}$ 是可以被删除的。因为：\n\n+ 首先，$\\textit{cur} = n + 1$ 的时候，一定不可能出现 $s > k$（$s$ 是前文中定义的 $\\textit{temp}$ 的大小），因为自始至终 $s$ 绝不可能大于 $k$，它等于 $k$ 的时候就会被第二处 $\\text{if}$ 记录答案并返回；\n+ 如果 $\\textit{cur} = n + 1$ 的时候 $s = k$，它也会被第二处 $\\text{if}$ 记录答案并返回；\n+ 如果 $\\textit{cur} = n + 1$ 的时候 $s < k$，一定会在 $\\textit{cur} < n + 1$ 的某个位置的时候发现 $s + t < k$，它也会被第一处 $\\text{if}$ 剪枝。\n\n因此，第三处 $\\text{if}$ 可以删除。最终我们得到了如下的代码。\n\n**代码**\n\n```cpp [sol1-C++]\nclass Solution {\npublic:\n    vector<int> temp;\n    vector<vector<int>> ans;\n\n    void dfs(int cur, int n, int k) {\n        // 剪枝：temp 长度加上区间 [cur, n] 的长度小于 k，不可能构造出长度为 k 的 temp\n        if (temp.size() + (n - cur + 1) < k) {\n            return;\n        }\n        // 记录合法的答案\n        if (temp.size() == k) {\n            ans.push_back(temp);\n            return;\n        }\n        // 考虑选择当前位置\n        temp.push_back(cur);\n        dfs(cur + 1, n, k);\n        temp.pop_back();\n        // 考虑不选择当前位置\n        dfs(cur + 1, n, k);\n    }\n\n    vector<vector<int>> combine(int n, int k) {\n        dfs(1, n, k);\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    List<Integer> temp = new ArrayList<Integer>();\n    List<List<Integer>> ans = new ArrayList<List<Integer>>();\n\n    public List<List<Integer>> combine(int n, int k) {\n        dfs(1, n, k);\n        return ans;\n    }\n\n    public void dfs(int cur, int n, int k) {\n        // 剪枝：temp 长度加上区间 [cur, n] 的长度小于 k，不可能构造出长度为 k 的 temp\n        if (temp.size() + (n - cur + 1) < k) {\n            return;\n        }\n        // 记录合法的答案\n        if (temp.size() == k) {\n            ans.add(new ArrayList<Integer>(temp));\n            return;\n        }\n        // 考虑选择当前位置\n        temp.add(cur);\n        dfs(cur + 1, n, k);\n        temp.remove(temp.size() - 1);\n        // 考虑不选择当前位置\n        dfs(cur + 1, n, k);\n    }\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar combine = function(n, k) {\n    const ans = [];\n    const dfs = (cur, n, k, temp) => {\n        // 剪枝：temp 长度加上区间 [cur, n] 的长度小于 k，不可能构造出长度为 k 的 temp\n        if (temp.length + (n - cur + 1) < k) {\n            return;\n        }\n        // 记录合法的答案\n        if (temp.length == k) {\n            ans.push(temp);\n            return;\n        }\n        // 考虑选择当前位置\n        dfs(cur + 1, n, k, [...temp, cur]);\n        // 考虑不选择当前位置\n        dfs(cur + 1, n, k, temp);\n    }\n    dfs(1, n, k, []);\n    return ans;\n};\n```\n\n```go [sol1-Golang]\nfunc combine(n int, k int) (ans [][]int) {\n\ttemp := []int{}\n\tvar dfs func(int)\n\tdfs = func(cur int) {\n\t\t// 剪枝：temp 长度加上区间 [cur, n] 的长度小于 k，不可能构造出长度为 k 的 temp\n\t\tif len(temp) + (n - cur + 1) < k {\n\t\t\treturn\n\t\t}\n\t\t// 记录合法的答案\n\t\tif len(temp) == k {\n\t\t\tcomb := make([]int, k)\n\t\t\tcopy(comb, temp)\n\t\t\tans = append(ans, comb)\n\t\t\treturn\n\t\t}\n\t\t// 考虑选择当前位置\n\t\ttemp = append(temp, cur)\n\t\tdfs(cur + 1)\n\t\ttemp = temp[:len(temp)-1]\n\t\t// 考虑不选择当前位置\n\t\tdfs(cur + 1)\n\t}\n\tdfs(1)\n\treturn\n}\n```\n\n```C [sol1-C]\nint* temp;\nint tempSize;\n\nint** ans;\nint ansSize;\n\nvoid dfs(int cur, int n, int k) {\n    // 剪枝：temp 长度加上区间 [cur, n] 的长度小于 k，不可能构造出长度为 k 的 temp\n    if (tempSize + (n - cur + 1) < k) {\n        return;\n    }\n    // 记录合法的答案\n    if (tempSize == k) {\n        int* tmp = malloc(sizeof(int) * k);\n        for (int i = 0; i < k; i++) {\n            tmp[i] = temp[i];\n        }\n        ans[ansSize++] = tmp;\n        return;\n    }\n    // 考虑选择当前位置\n    temp[tempSize++] = cur;\n    dfs(cur + 1, n, k);\n    tempSize--;\n    // 考虑不选择当前位置\n    dfs(cur + 1, n, k);\n}\n\nint** combine(int n, int k, int* returnSize, int** returnColumnSizes) {\n    temp = malloc(sizeof(int) * k);\n    ans = malloc(sizeof(int*) * 10001);\n    tempSize = ansSize = 0;\n    dfs(1, n, k);\n    *returnSize = ansSize;\n    *returnColumnSizes = malloc(sizeof(int) * ansSize);\n    for (int i = 0; i < ansSize; i++) {\n        (*returnColumnSizes)[i] = k;\n    }\n    return ans;\n}\n```\n\n**复杂度分析**\n\n+ 时间复杂度：$O({n \\choose k} \\times k)$，分析见「思路」部分。\n+ 空间复杂度：$O(n + k) = O(n)$，即递归使用栈空间的空间代价和临时数组 $\\textit{temp}$ 的空间代价。\n\n#### 方法二：非递归（字典序法）实现组合型枚举\n\n**思路与算法**\n\n**小贴士：这个方法理解起来比「方法一」复杂，建议读者遇到不理解的地方可以在草稿纸上举例模拟这个过程。**\n\n这里的非递归版不是简单的用栈模拟递归转化为非递归：我们希望通过合适的手段，消除递归栈带来的额外空间代价。\n\n假设我们把原序列中被选中的位置记为 $1$，不被选中的位置记为 $0$，对于每个方案都可以构造出一个二进制数。我们让原序列从大到小排列（即 $\\{ n, n - 1, \\cdots 1, 0 \\}$）。我们先看一看 $n = 4$，$k = 2$ 的例子：\n\n| 原序列中被选中的数 | 对应的二进制数 | 方案   |\n| ------------------ | -------------- | ------ |\n| $43[2][1]$         | $0011$         | $2, 1$ |\n| $4[3]2[1]$         | $0101$         | $3, 1$ |\n| $4[3][2]1$         | $0110$         | $3, 2$ |\n| $[4]32[1]$         | $1001$         | $4, 1$ |\n| $[4]3[2]1$         | $1010$         | $4, 2$ |\n| $[4][3]21$         | $1100$         | $4, 3$ |\n\n我们可以看出「对应的二进制数」一列包含了由 $k$ 个 $1$ 和 $n - k$ 个 $0$ 组成的所有二进制数，并且按照字典序排列。这给了我们一些启发，我们可以通过某种方法枚举，使得生成的序列是根据字典序递增的。我们可以考虑我们一个二进制数数字 $x$，它由 $k$ 个 $1$ 和 $n - k$ 个 $0$ 组成，**如何找到它的字典序中的下一个数字 ${next}(x)$**，这里分两种情况：\n\n+ 规则一：$x$ 的最低位为 $1$，这种情况下，如果末尾由 $t$ 个连续的 $1$，我们直接将倒数第 $t$ 位的 $1$ 和倒数第 $t + 1$ 位的 $0$ 替换，就可以得到 ${next}(x)$。如 $0011 \\rightarrow 0101$，$0101 \\rightarrow 0110$，$1001 \\rightarrow 1010$，$1001111 \\rightarrow 1010111$。\n+ 规则二：$x$ 的最低位为 $0$，这种情况下，末尾有 $t$ 个连续的 $0$，而这 $t$ 个连续的 $0$ 之前有 $m$ 个连续的 $1$，我们可以将倒数第 $t + m$ 位置的 $1$ 和倒数第 $t + m + 1$ 位的 $0$ 对换，然后把倒数第 $t + 1$ 位到倒数第 $t + m - 1$ 位的 $1$ 移动到最低位。如 $0110 \\rightarrow 1001$，$1010 \\rightarrow 1100$，$1011100 \\rightarrow 1100011$。\n\n至此，我们可以写出一个朴素的程序，用一个长度为 $n$ 的 $0/1$ 数组来表示选择方案对应的二进制数，初始状态下最低的 $k$ 位全部为 $1$，其余位置全部为 $0$，然后不断通过上述方案求 $next$，就可以构造出所有的方案。\n\n我们可以进一步优化实现，我们来看 $n = 5$，$k = 3$ 的例子，根据上面的策略我们可以得到这张表：\n\n| 二进制数 | 方案      |\n| -------- | --------- |\n| $00111$  | $3, 2, 1$ |\n| $01011$  | $4, 2, 1$ |\n| $01101$  | $4, 3, 1$ |\n| $01110$  | $4, 3, 2$ |\n| $10011$  | $5, 2, 1$ |\n| $10101$  | $5, 3, 1$ |\n| $10110$  | $5, 3, 2$ |\n| $11001$  | $5, 4, 1$ |\n| $11010$  | $5, 4, 2$ |\n| $11100$  | $5, 4, 3$ |\n\n在朴素的方法中我们通过二进制数来构造方案，而二进制数是需要通过迭代的方法来获取 $next$ 的。考虑不通过二进制数，直接在方案上变换来得到下一个方案。假设一个方案从低到高的 $k$ 个数分别是 $\\{ a_0, a_1, \\cdots, a_{k - 1} \\}$，我们可以从低位向高位找到第一个 $j$ 使得 $a_{j} + 1 \\neq a_{j + 1}$，我们知道出现在 $a$ 序列中的数字在二进制数中对应的位置一定是 $1$，即表示被选中，那么 $a_{j} + 1 \\neq a_{j + 1}$ 意味着 $a_j$ 和 $a_{j + 1}$ 对应的二进制位中间有 $0$，即这两个 $1$ 不连续。我们把 $a_j$ 对应的 $1$ 向高位推送，也就对应着 $a_j \\leftarrow a_j + 1$，而对于 $i \\in [0, j - 1]$ 内所有的 $a_i$ 把值恢复成 $i + 1$，即对应这 $j$ 个 $1$ 被移动到了二进制数的最低 $j$ 位。这似乎只考虑了上面的「规则二」。但是实际上**「规则一」是「规则二」在 $t = 0$ 时的特殊情况**，因此这么做和按照两条规则模拟是等价的。\n\n在实现的时候，我们可以用一个数组 $\\textit{temp}$ 来存放 $a$ 序列，一开始我们先把 $1$ 到 $k$ 按顺序存入这个数组，他们对应的下标是 $0$ 到 $k - 1$。为了计算的方便，我们需要在下标 $k$ 的位置放置一个哨兵 $n + 1$**（思考题：为什么是 $n + 1$ 呢？）**。然后对这个 $\\textit{temp}$ 序列按照这个规则进行变换，每次把前 $k$ 位（即除了最后一位哨兵）的元素形成的子数组加入答案。每次变换的时候，我们把第一个 $a_{j} + 1 \\neq a_{j + 1}$ 的 $j$ 找出，使 $a_j$ 自增 $1$，同时对 $i \\in [0, j - 1]$ 的 $a_i$ 重新置数。如此循环，直到 $\\textit{temp}$ 中的所有元素为 $n$ 内最大的 $k$ 个元素。\n\n回过头看这个思考题，它是为了我们判断退出条件服务的。我们如何判断枚举到了终止条件呢？其实不是直接通过 $\\textit{temp}$ 来判断的，我们会看每次找到的 $j$ 的位置，如果 $j = k$ 了，就说明 $[0, k - 1]$ 内的所有的数字是比第 $k$ 位小的最后 $k$ 个数字，这个时候我们找不到任何方案的字典序比当前方案大了，结束枚举。\n\n**代码**\n\n```cpp [sol2-C++]\nclass Solution {\npublic:\n    vector<int> temp;\n    vector<vector<int>> ans;\n\n    vector<vector<int>> combine(int n, int k) {\n        // 初始化\n        // 将 temp 中 [0, k - 1] 每个位置 i 设置为 i + 1，即 [0, k - 1] 存 [1, k]\n        // 末尾加一位 n + 1 作为哨兵\n        for (int i = 1; i <= k; ++i) {\n            temp.push_back(i);\n        }\n        temp.push_back(n + 1);\n        \n        int j = 0;\n        while (j < k) {\n            ans.emplace_back(temp.begin(), temp.begin() + k);\n            j = 0;\n            // 寻找第一个 temp[j] + 1 != temp[j + 1] 的位置 t\n            // 我们需要把 [0, t - 1] 区间内的每个位置重置成 [1, t]\n            while (j < k && temp[j] + 1 == temp[j + 1]) {\n                temp[j] = j + 1;\n                ++j;\n            }\n            // j 是第一个 temp[j] + 1 != temp[j + 1] 的位置\n            ++temp[j];\n        }\n        return ans;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    List<Integer> temp = new ArrayList<Integer>();\n    List<List<Integer>> ans = new ArrayList<List<Integer>>();\n\n    public List<List<Integer>> combine(int n, int k) {\n        List<Integer> temp = new ArrayList<Integer>();\n        List<List<Integer>> ans = new ArrayList<List<Integer>>();\n        // 初始化\n        // 将 temp 中 [0, k - 1] 每个位置 i 设置为 i + 1，即 [0, k - 1] 存 [1, k]\n        // 末尾加一位 n + 1 作为哨兵\n        for (int i = 1; i <= k; ++i) {\n            temp.add(i);\n        }\n        temp.add(n + 1);\n        \n        int j = 0;\n        while (j < k) {\n            ans.add(new ArrayList<Integer>(temp.subList(0, k)));\n            j = 0;\n            // 寻找第一个 temp[j] + 1 != temp[j + 1] 的位置 t\n            // 我们需要把 [0, t - 1] 区间内的每个位置重置成 [1, t]\n            while (j < k && temp.get(j) + 1 == temp.get(j + 1)) {\n                temp.set(j, j + 1);\n                ++j;\n            }\n            // j 是第一个 temp[j] + 1 != temp[j + 1] 的位置\n            temp.set(j, temp.get(j) + 1);\n        }\n        return ans;\n    }\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar combine = function(n, k) {\n    const temp = [];\n    const ans = [];\n    // 初始化\n    // 将 temp 中 [0, k - 1] 每个位置 i 设置为 i + 1，即 [0, k - 1] 存 [1, k]\n    // 末尾加一位 n + 1 作为哨兵\n    for (let i = 1; i <= k; ++i) {\n        temp.push(i);\n    }\n    temp.push(n + 1);\n    \n    let j = 0;\n    while (j < k) {\n        ans.push(temp.slice(0, k));\n        j = 0;\n        // 寻找第一个 temp[j] + 1 != temp[j + 1] 的位置 t\n        // 我们需要把 [0, t - 1] 区间内的每个位置重置成 [1, t]\n        while (j < k && temp[j] + 1 == temp[j + 1]) {\n            temp[j] = j + 1;\n            ++j;\n        }\n        // j 是第一个 temp[j] + 1 != temp[j + 1] 的位置\n        ++temp[j];\n    }\n    return ans;\n};\n```\n\n```go [sol2-Golang]\nfunc combine(n int, k int) (ans [][]int) {\n\t// 初始化\n\t// 将 temp 中 [0, k - 1] 每个位置 i 设置为 i + 1，即 [0, k - 1] 存 [1, k]\n\t// 末尾加一位 n + 1 作为哨兵\n\ttemp := []int{}\n\tfor i := 1; i <= k; i++ {\n\t\ttemp = append(temp, i)\n\t}\n\ttemp = append(temp, n+1)\n\n\tfor j := 0; j < k; {\n\t\tcomb := make([]int, k)\n\t\tcopy(comb, temp[:k])\n\t\tans = append(ans, comb)\n\t\t// 寻找第一个 temp[j] + 1 != temp[j + 1] 的位置 t\n\t\t// 我们需要把 [0, t - 1] 区间内的每个位置重置成 [1, t]\n\t\tfor j = 0; j < k && temp[j]+1 == temp[j+1]; j++ {\n\t\t\ttemp[j] = j + 1\n\t\t}\n\t\t// j 是第一个 temp[j] + 1 != temp[j + 1] 的位置\n\t\ttemp[j]++\n\t}\n\treturn\n}\n```\n\n```C [sol2-C]\nint** combine(int n, int k, int* returnSize, int** returnColumnSizes) {\n    int* temp = malloc(sizeof(int) * (k + 1));\n    int tempSize = 0;\n\n    int** ans = malloc(sizeof(int*) * 10001);\n    int ansSize = 0;\n\n    // 初始化\n    // 将 temp 中 [0, k - 1] 每个位置 i 设置为 i + 1，即 [0, k - 1] 存 [1, k]\n    // 末尾加一位 n + 1 作为哨兵\n    for (int i = 1; i <= k; ++i) {\n        temp[i - 1] = i;\n    }\n    temp[k] = n + 1;\n\n    int j = 0;\n    while (j < k) {\n        int* tmp = malloc(sizeof(int) * k);\n        for (int i = 0; i < k; i++) {\n            tmp[i] = temp[i];\n        }\n        ans[ansSize++] = tmp;\n        j = 0;\n        // 寻找第一个 temp[j] + 1 != temp[j + 1] 的位置 t\n        // 我们需要把 [0, t - 1] 区间内的每个位置重置成 [1, t]\n        while (j < k && temp[j] + 1 == temp[j + 1]) {\n            temp[j] = j + 1;\n            ++j;\n        }\n        // j 是第一个 temp[j] + 1 != temp[j + 1] 的位置\n        ++temp[j];\n    }\n    *returnSize = ansSize;\n    *returnColumnSizes = malloc(sizeof(int) * ansSize);\n    for (int i = 0; i < ansSize; i++) {\n        (*returnColumnSizes)[i] = k;\n    }\n    return ans;\n}\n```\n\n**复杂度分析**\n\n+ 时间复杂度：$O({n \\choose k} \\times k)$。外层循环的执行次数是 $n \\choose k$ 次，每次需要做一个 $O(k)$ 的添加答案和 $O(k)$ 的内层循环，故时间复杂度 $O({n \\choose k} \\times k)$。\n+ 空间复杂度：$O(k)$。即 $\\textit{temp}$ 的空间代价。",
+            "slateValue": "",
+            "slug": "han-you-k-ge-yuan-su-de-zu-he-by-leetcod-tyqe",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "ullF3h",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 8,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Backtracking",
+                    "nameTranslated": "回溯",
+                    "slug": "backtracking",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-04-11T03:52:15.118355+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：递归实现组合型枚举 思路与算法 从 $n$ 个当中选 $k$ 个的所有方案对应的枚举是组合型枚举。在「方法一」中我们用递归来实现组合型枚举。 首先我们先回忆一下如何用递归实现二进制枚举（子集枚举），假设我们需要找到一个长度为 $n$ 的序列 $a$ 的所有子序列，代码框架是这样的： cpp [demo1-C++",
+            "topic": {
+                "id": 1411895,
+                "subscribed": false,
+                "commentCount": 17,
+                "viewCount": 5181,
+                "post": {
+                    "id": 2911246,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 35,
+            "isEditorsPick": false,
+            "hitCount": 15192,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "uUsW3B",
+                "questionFrontendId": "LCR 080"
+            },
+            "next": {
+                "slug": "hui-su-bu-hui-xie-tao-lu-zai-ci-pythonja-6zca",
+                "title": "回溯不会写？套路在此！（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

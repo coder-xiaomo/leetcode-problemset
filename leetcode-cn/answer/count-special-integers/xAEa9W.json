@@ -1,0 +1,150 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "xAEa9W",
+            "title": "统计特殊整数",
+            "content": "#### 方法一：动态规划 + 组合数学\n\n**思路**\n\n要返回区间 [$1$, $n$] 之间的特殊整数的数目，即小于等于 $n$ 的特殊整数的数目。记 $n$ 十进制表示下位数为 $k$，我们考虑两种情况：\n- 位数小于 $k$ 的特殊整数。\n- 位数等于 $k$ 的特殊整数。\n\n对于位数小于 $k$ 的情况，分别计算位数为 $1$ 到 $k-1$ 的情况下特殊整数的数量。考虑位数为 $k_0$ $(k_0 \\lt k)$ 的情况。因为 $k_0 \\lt k$，所以任意放置数位上的数字，都能满足小于等于 $n$ 的条件。只需保证每一数位都互不相同。用组合数学的思路求解特殊整数的数量，从最高位开始考虑，可以有 $9$ 种选择（除 $0$ 外的任何整数），次高位也有 $9$ 种选择（除最高位外的任何整数），接下来的数位的选择则依次减少 $1$。把这些选择的可能性全部相乘则是位数为 $k_0$ 的特殊整数的数量。\n\n接下来考虑位数等于 $k$ 的特殊整数。相同位数的数字比较大小，是从最高位开始比较，若不同，则最高位大的数字大；若相同，则比较次高位。次高位的比较原则和最高位一样。因此，我们在计算小于等于 $n$ 的特殊整数时，也需要按照这个原则。函数 $\\textit{dp}(\\textit{mask}, \\textit{prefixSmaller})$ 用来计算以某些数字组合为前缀的特殊整数的数量。整数 $\\textit{mask}$ 即表示了前缀中使用过的数字，二进制表示下，从最低位开始，第 $i$ 为如果为 $1$ 则表示数字 $i$ 已经被使用过，在接下来的后缀中不能使用。布尔值 $\\textit{prefixSmaller}$ 表示当前的前缀是否小于 $n$ 的前缀，如果是，则接下来的数字可以任意选择。如果不是，即当前的前缀等于 $n$ 的前缀，则接下来的数字只能小于或者等于 $n$ 同数位的数字。最后调用 $\\textit{dp}(0, \\textit{false})$ 则为位数等于 $k$ 的特殊整数的数量。\n\n最后把这两部分相加即可。\n\n**代码**\n\n```Python [sol1-Python3]\nclass Solution:\n    def countSpecialNumbers(self, n: int) -> int:\n\n        @cache\n        def dp(mask: int, prefixSmaller: bool) -> int:\n            if mask.bit_count() == len(nStr):\n                return 1\n            res = 0\n            lowerBound = 1 if mask == 0 else 0\n            upperBound = 9 if prefixSmaller else int(nStr[mask.bit_count()])\n            for i in range(lowerBound, upperBound + 1):\n                if mask >> i & 1 == 0:\n                    res += dp(mask | 1 << i, prefixSmaller or i < upperBound)\n            return res\n\n        nStr = str(n)\n        res = 0\n        prod = 9\n        for i in range(len(nStr) - 1):\n            res += prod\n            prod *= 9 - i\n        res += dp(0, False)\n        dp.cache_clear()\n        return res\n```\n\n```Java [sol1-Java]\nclass Solution {\n    Map<Integer, Integer> memo = new HashMap<Integer, Integer>();\n\n    public int countSpecialNumbers(int n) {\n        String nStr = String.valueOf(n);\n        int res = 0;\n        int prod = 9;\n        for (int i = 0; i < nStr.length() - 1; i++) {\n            res += prod;\n            prod *= 9 - i;\n        }\n        res += dp(0, false, nStr);\n        return res;\n    }\n\n    public int dp(int mask, boolean prefixSmaller, String nStr) {\n        if (Integer.bitCount(mask) == nStr.length()) {\n            return 1;\n        }\n        int key = mask * 2 + (prefixSmaller ? 1 : 0);\n        if (!memo.containsKey(key)) {\n            int res = 0;\n            int lowerBound = mask == 0 ? 1 : 0;\n            int upperBound = prefixSmaller ? 9 : nStr.charAt(Integer.bitCount(mask)) - '0';\n            for (int i = lowerBound; i <= upperBound; i++) {\n                if (((mask >> i) & 1) == 0) {\n                    res += dp(mask | (1 << i), prefixSmaller || i < upperBound, nStr);\n                }\n            }\n            memo.put(key, res);\n        }\n        return memo.get(key);\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    Dictionary<int, int> memo = new Dictionary<int, int>();\n\n    public int CountSpecialNumbers(int n) {\n        string nStr = n.ToString();\n        int res = 0;\n        int prod = 9;\n        for (int i = 0; i < nStr.Length - 1; i++) {\n            res += prod;\n            prod *= 9 - i;\n        }\n        res += Dp(0, false, nStr);\n        return res;\n    }\n\n    public int Dp(int mask, bool prefixSmaller, string nStr) {\n        if (CountOnes(mask) == nStr.Length) {\n            return 1;\n        }\n        int key = mask * 2 + (prefixSmaller ? 1 : 0);\n        if (!memo.ContainsKey(key)) {\n            int res = 0;\n            int lowerBound = mask == 0 ? 1 : 0;\n            int upperBound = prefixSmaller ? 9 : nStr[CountOnes(mask)] - '0';\n            for (int i = lowerBound; i <= upperBound; i++) {\n                if (((mask >> i) & 1) == 0) {\n                    res += Dp(mask | (1 << i), prefixSmaller || i < upperBound, nStr);\n                }\n            }\n            memo[key] = res;\n        }\n        return memo[key];\n    }\n\n    public static int CountOnes(int number) {\n        int count = 0;\n        while (number > 0) {\n            count++;\n            number &= number - 1;\n        }\n        return count;\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    unordered_map<int, int> memo;\n    int countSpecialNumbers(int n) {\n        string nStr = to_string(n);\n        int res = 0;\n        int prod = 9;\n        for (int i = 0; i < nStr.size() - 1; i++) {\n            res += prod;\n            prod *= 9 - i;\n        }\n        res += dp(0, false, nStr);\n        return res;\n    }\n\n    int dp(int mask, bool prefixSmaller, const string &nStr) {\n        if (__builtin_popcount(mask) == nStr.size()) {\n            return 1;\n        }\n        int key = mask * 2 + (prefixSmaller ? 1 : 0);\n        if (!memo.count(key)) {\n            int res = 0;\n            int lowerBound = mask == 0 ? 1 : 0;\n            int upperBound = prefixSmaller ? 9 : nStr[__builtin_popcount(mask)] - '0';\n            for (int i = lowerBound; i <= upperBound; i++) {\n                if (((mask >> i) & 1) == 0) {\n                    res += dp(mask | (1 << i), prefixSmaller || i < upperBound, nStr);\n                }\n            }\n            memo[key] = res;\n        }\n        return memo[key];\n    }\n};\n```\n\n```Go [sol1-Go]\nfunc countSpecialNumbers(n int) int {\n    nStr := strconv.Itoa(n)\n\tmemo := make(map[int]int)\n\n\tvar dp func(int, bool, string) int\n\tdp = func(mask int, prefixSmaller bool, nStr string) int {\n\t\tif countOnes(mask) == len(nStr) {\n\t\t\treturn 1\n\t\t}\n\t\tkey := mask * 2\n        if prefixSmaller {\n            key++\n        }\n\t\tif _, exists := memo[key]; !exists {\n\t\t\tres, lowerBound := 0, 0\n\t\t\tif mask == 0 {\n\t\t\t\tlowerBound = 1\n\t\t\t}\n\t\t\tupperBound := 9\n\t\t\tif !prefixSmaller {\n\t\t\t\tupperBound = int(nStr[countOnes(mask)] - '0')\n\t\t\t}\n\t\t\tfor i := lowerBound; i <= upperBound; i++ {\n\t\t\t\tif (mask>>i) & 1 == 0 {\n\t\t\t\t\tres += dp(mask | (1 << i), prefixSmaller || i < upperBound, nStr)\n\t\t\t\t}\n\t\t\t}\n\t\t\tmemo[key] = res\n\t\t}\n\t\treturn memo[key]\n\t}\n\n\tres, prod := 0, 9\n\tfor i := 0; i < len(nStr)-1; i++ {\n\t\tres += prod\n\t\tprod *= 9 - i\n\t}\n\tres += dp(0, false, nStr)\n\treturn res\n}\n\nfunc countOnes(x int) int {\n\tcount := 0\n\tfor x > 0 {\n\t\tcount++\n\t\tx &= x - 1\n\t}\n\treturn count\n}\n\nfunc btoi(b bool) int {\n\tif b {\n\t\treturn 1\n\t}\n\treturn 0\n}\n```\n\n```C [sol1-C]\ntypedef struct {\n    int key;\n    int val;\n    UT_hash_handle hh;\n} HashItem; \n\nHashItem *hashFindItem(HashItem **obj, int key) {\n    HashItem *pEntry = NULL;\n    HASH_FIND_INT(*obj, &key, pEntry);\n    return pEntry;\n}\n\nbool hashAddItem(HashItem **obj, int key, int val) {\n    if (hashFindItem(obj, key)) {\n        return false;\n    }\n    HashItem *pEntry = (HashItem *)malloc(sizeof(HashItem));\n    pEntry->key = key;\n    pEntry->val = val;\n    HASH_ADD_INT(*obj, key, pEntry);\n    return true;\n}\n\nbool hashSetItem(HashItem **obj, int key, int val) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        hashAddItem(obj, key, val);\n    } else {\n        pEntry->val = val;\n    }\n    return true;\n}\n\nint hashGetItem(HashItem **obj, int key, int defaultVal) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        return defaultVal;\n    }\n    return pEntry->val;\n}\n\nvoid hashFree(HashItem **obj) {\n    HashItem *curr = NULL, *tmp = NULL;\n    HASH_ITER(hh, *obj, curr, tmp) {\n        HASH_DEL(*obj, curr);  \n        free(curr);\n    }\n}\n\nint dp(int mask, bool prefixSmaller, const char *nStr, HashItem **memo) {\n    if (__builtin_popcount(mask) == strlen(nStr)) {\n        return 1;\n    }\n    int key = mask * 2 + (prefixSmaller ? 1 : 0);\n    if (!hashFindItem(memo, key)) {\n        int res = 0;\n        int lowerBound = mask == 0 ? 1 : 0;\n        int upperBound = prefixSmaller ? 9 : nStr[__builtin_popcount(mask)] - '0';\n        for (int i = lowerBound; i <= upperBound; i++) {\n            if (((mask >> i) & 1) == 0) {\n                res += dp(mask | (1 << i), prefixSmaller || i < upperBound, nStr, memo);\n            }\n        }\n        hashAddItem(memo, key, res);\n    }\n    return hashGetItem(memo, key, 0);\n}\n\nint countSpecialNumbers(int n) {\n    char nStr[64];\n    sprintf(nStr, \"%d\", n);\n    int res = 0;\n    int prod = 9;\n    int len = strlen(nStr);\n    HashItem *memo = NULL;\n    for (int i = 0; i < len - 1; i++) {\n        res += prod;\n        prod *= 9 - i;\n    }\n    res += dp(0, false, nStr, &memo);\n    hashFree(&memo);\n    return res;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar countSpecialNumbers = function(n) {\n    const nStr = n.toString();\n    const memo = new Map();\n\n    const dp = (mask, prefixSmaller, nStr) => {\n        if (countOnes(mask) === nStr.length) {\n            return 1;\n        }\n        const key = mask * 2 + (prefixSmaller ? 1 : 0);\n        if (!memo.has(key)) {\n            let res = 0;\n            let lowerBound = mask === 0 ? 1 : 0;\n            let upperBound = prefixSmaller ? 9 : nStr[countOnes(mask)] - '0';\n            for (let i = lowerBound; i <= upperBound; i++) {\n                if (((mask >> i) & 1) === 0) {\n                    res += dp(mask | (1 << i), prefixSmaller || i < upperBound, nStr);\n                }\n            }\n            memo.set(key, res);\n        }\n        return memo.get(key);\n    };\n\n    let res = 0;\n    let prod = 9;\n    for (let i = 0; i < nStr.length - 1; i++) {\n        res += prod;\n        prod *= 9 - i;\n    }\n    res += dp(0, false, nStr);\n    return res;\n};\n\nconst countOnes = (x) => {\n  let count = 0;\n  while (x) {\n    count++;\n    x &= x - 1;\n  }\n  return count;\n}\n```\n\n```TypeScript [sol1-TypeScript]\nfunction countSpecialNumbers(n: number): number {\n    const nStr = n.toString();\n    const memo: Map<number, number> = new Map();\n\n    const dp = (mask: number, prefixSmaller: boolean, nStr: string): number => {\n        if (countOnes(mask) === nStr.length) {\n            return 1;\n        }\n        const key = mask * 2 + (prefixSmaller ? 1 : 0);\n        if (!memo.has(key)) {\n            let res = 0;\n            let lowerBound = mask === 0 ? 1 : 0;\n            let upperBound = prefixSmaller ? 9 : +nStr[countOnes(mask)];\n            for (let i = lowerBound; i <= upperBound; i++) {\n                if (((mask >> i) & 1) === 0) {\n                    res += dp(mask | (1 << i), prefixSmaller || i < upperBound, nStr);\n                }\n            }\n            memo.set(key, res);\n        }\n        return memo.get(key)!;\n    };\n\n    let res = 0;\n    let prod = 9;\n    for (let i = 0; i < nStr.length - 1; i++) {\n        res += prod;\n        prod *= 9 - i;\n    }\n    res += dp(0, false, nStr);\n    return res;\n};\n\nconst countOnes = (x) => {\n  let count = 0;\n  while (x) {\n    count++;\n    x &= x - 1;\n  }\n  return count;\n}\n```\n\n```Rust [sol1-Rust]\nuse std::collections::HashMap;\n\nimpl Solution {\n    pub fn count_special_numbers(n: i32) -> i32 {\n        let n_str = n.to_string();\n        let mut memo: HashMap<i32, i32> = HashMap::new();\n\n        fn dp(mask: i32, prefix_smaller: bool, n_str: &str, memo: &mut HashMap<i32, i32>) -> i32 {\n            if mask.count_ones() as usize == n_str.len() {\n                return 1;\n            }\n            let key = mask * 2 + if prefix_smaller { 1 } else { 0 };\n            if !memo.contains_key(&key) {\n                let mut res = 0;\n                let lower_bound = if mask == 0 { 1 } else { 0 };\n                let upper_bound = if prefix_smaller {\n                    9\n                } else {\n                    (n_str.chars().nth(mask.count_ones() as usize).unwrap() as i32) - ('0' as i32)\n                };\n                for i in lower_bound..=upper_bound {\n                    if (mask >> i) & 1 == 0 {\n                        res += dp(mask | (1 << i), prefix_smaller || i < upper_bound, n_str, memo);\n                    }\n                }\n                memo.insert(key, res);\n            }\n            *memo.get(&key).unwrap()\n        }\n\n        let mut res = 0;\n        let mut prod = 9;\n        for i in 0..(n_str.len() - 1) {\n            res += prod;\n            prod *= 9 - i as i32;\n        }\n        res += dp(0, false, &n_str, &mut memo);\n        res\n    }\n}\n```\n\n```Cangjie [sol1-Cangjie]\nclass Solution {\n    let memo:HashMap<Int64, Int64> = HashMap<Int64, Int64>()\n\n    func countSpecialNumbers(n: Int64): Int64 {\n        let nStr = \"${n}\"\n        var res = 0\n        var prod = 9\n        for(i in 0..nStr.size - 1){\n            res += prod\n            prod *= 9 - i\n        }\n        res += dp(0, false, nStr)\n        return res\n    }\n\n    func bitCount(num: Int64): Int64 {\n        var cnt = 0\n        var res = 0\n        while (num >> cnt > 0) {\n            if((num >> cnt & 1) == 1){\n                res++\n            }\n            cnt++\n        }\n        return res\n    }\n\n    func dp(mask:Int64, prefixSmaller:Bool, nStr:String): Int64 {\n        if (bitCount(mask) == nStr.size) {\n            return 1\n        }\n        let key = mask * 2 + if (prefixSmaller) {1} else {0}\n        if(!memo.contains(key)) {\n            var res = 0\n            let lowerBound:UInt8 = if (mask == 0) {1} else {0}\n            let zero:Byte = '0'\n            let upperBound:UInt8 = if (prefixSmaller) {9} else {nStr[bitCount(mask)]-zero}\n            for(i in lowerBound..=upperBound){\n                if (((mask >> i) & 1) == 0) {\n                    res += dp(mask | (1 << i), prefixSmaller || i < upperBound, nStr)\n                }\n            }\n            memo.put(key, res)\n        }\n        return memo.get(key).getOrThrow()\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(D\\times 2^D)$，其中 $D = 10$。$\\textit{mask}$ 最多有 $2^D$ 个状态，每个状态消耗 $O(D)$ 时间计算。 \n\n- 空间复杂度：$O(2^D)$。",
+            "slateValue": "",
+            "slug": "tong-ji-te-shu-zheng-shu-by-leetcode-sol-7qai",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "xAEa9W",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 18,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Combinatorics",
+                    "nameTranslated": "组合数学",
+                    "slug": "combinatorics",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Cangjie",
+                    "nameTranslated": "",
+                    "slug": "cangjie",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2024-09-14T01:23:53.190138+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 + 组合数学 思路 要返回区间 [[latex], [latex]] 之间的特殊整数的数目，即小于等于 [latex] 的特殊整数的数目。记 [latex] 十进制表示下位数为 [latex]，我们考虑两种情况： - 位数小于 [latex] 的特殊整数。 - 位数等于 [latex] 的特殊整数。 ",
+            "topic": {
+                "id": 2916434,
+                "subscribed": false,
+                "commentCount": 28,
+                "viewCount": 863,
+                "post": {
+                    "id": 5299275,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 67,
+            "isEditorsPick": false,
+            "hitCount": 13280,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "count-special-integers",
+                "questionFrontendId": "2376"
+            },
+            "next": {
+                "slug": "shu-wei-dp-mo-ban-by-endlesscheng-xtgx",
+                "title": "数位 DP 通用模板（Python/Java/C++/C/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

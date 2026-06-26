@@ -1,0 +1,156 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "bSTR59",
+            "title": "转换字符串的最小成本 II",
+            "content": "#### 方法一：字典树 + Floyd 算法 + 动态规划\n\n**思路与算法**\n\n我们需要得到字符串 $\\textit{source}$ 转换为 $\\textit{target}$ 的最小成本，但允许将字符串分割成 $\\textit{source}$ 若干个部分，每一部分进行若干次转换，并最后拼接得到 $\\textit{target}$。\n\n因此，这提示我们使用动态规划。记 $f[i]~(0 \\leq i < n)$ 表示将 $\\textit{source}$ 到下标 $i$ 为止的前缀部分转换为 $\\textit{target}$ 对应部分的最小成本，其中 $n$ 是字符串 $\\textit{source}$ 的长度。我们有两种状态转移：\n\n- 如果 $\\textit{source}[i] = \\textit{target}[i]$，那么无需进行转换，可以直接有：\n\n    $$\n    f[i] \\leftarrow f[i - 1]\n    $$\n\n- 此外，对于一般情况，我们取任意长度的后缀，记 $x = \\textit{source}[j+1..i]$（左开右闭）转换为 $y = \\textit{target}[j+1..i]$ 的最小成本为 $G(x, y)$，那么有：\n\n    $$\n    f[i] \\leftarrow f[j] + G(x, y)\n    $$\n\n在状态转移时，我们维护 $f[i]$ 的最小值，边界条件为 $f[-1] = 0$，最终的答案即为 $f[n - 1]$。\n\n接下来我们需要考虑怎么快速得到 $G(x, y)$，这里可以沿用「[2976. 转换字符串的最小成本 I](https://leetcode.cn/problems/minimum-cost-to-convert-string-i/)」中的 Floyd 算法：\n\n- 对于 $\\textit{original}$ 和 $\\textit{changed}$ 中的每一个字符串，我们赋予唯一的编号，最后一共可以得到 $p~(1 \\leq p \\leq 2m)$ 个编号，其中 $m$ 是数组 $\\textit{original}$ 的长度；\n\n- 我们将这 $p$ 个字符串看成图 $G$ 上的 $p$ 个节点。对于每一组 $(\\textit{original}[i], \\textit{changed}[i], \\textit{cost}[i])$，我们在 $G$ 中从 $\\textit{original}[i]$ 向 $\\textit{changed}[i]$ 建边，边权为 $\\textit{cost}[i]$；\n\n- 这样一来，当我们需要计算 $x = \\textit{source}[j+1..i]$（左开右闭）转换为 $y = \\textit{target}[j+1..i]$ 的最小成本时，首先判断 $x$ 和 $y$ 是否有对应的节点，如果有，那么最小成本即为图 $G$ 上对应节点之间的最短路径。\n\n在分配编号时，如果我们使用传统的哈希表，考虑到动态规划本身已经有 $O(n^2)$ 的时间复杂度，基于字符串的哈希表有需要 $O(n)$ 的时间进行单次操作，总时间复杂度为 $O(n^3)$，会超出时间限制。这里有两种可以优化的方法：\n\n- 使用字符串的滚动哈希，在 $O(1)$ 的时间计算出任意子字符串的哈希值，并根据哈希值得到对应的编号；\n\n- 使用字典树，当动态规划中 $i$ 增加且 $j$ 不变时，对应的后缀每一次会多出一个字符，这正好对应着在字典树上往子节点的遍历操作。这样只需要在动态规划中先遍历 $j$ 再遍历 $i$，就可以在 $O(1)$ 的时间在字典树上进行移动，得到对应的编号。\n\n下面给出第二种方法对应的代码。\n\n**代码**\n\n```C++ [sol1-C++]\nstruct Trie {\n    Trie* child[26];\n    int id;\n\n    Trie() {\n        for (int i = 0; i < 26; ++i) {\n            child[i] = nullptr;\n        }\n        id = -1;\n    }\n};\n\nint add(Trie* node, const string& word, int& index) {\n    for (char ch: word) {\n        int i = ch - 'a';\n        if (!node->child[i]) {\n            node->child[i] = new Trie();\n        }\n        node = node->child[i];\n    }\n    if (node->id == -1) {\n        node->id = ++index;\n    }\n    return node->id;\n}\n\nvoid update(long long& x, long long y) {\n    if (x == -1 || y < x) {\n        x = y;\n    }\n}\n\nclass Solution {\npublic:\n    long long minimumCost(string source, string target, vector<string>& original, vector<string>& changed, vector<int>& cost) {\n        int n = source.size();\n        int m = original.size();\n        Trie* root = new Trie();\n\n        int p = -1;\n        vector<vector<int>> G(m * 2, vector<int>(m * 2, inf));\n        for (int i = 0; i < m * 2; ++i) {\n            G[i][i] = 0;\n        }\n        for (int i = 0; i < m; ++i) {\n            int x = add(root, original[i], p);\n            int y = add(root, changed[i], p);\n            G[x][y] = min(G[x][y], cost[i]);\n        }\n\n        for (int k = 0; k <= p; ++k) {\n            for (int i = 0; i <= p; ++i) {\n                for (int j = 0; j <= p; ++j) {\n                    G[i][j] = min(G[i][j], G[i][k] + G[k][j]);\n                }\n            }\n        }\n\n        vector<long long> f(n, -1);\n        for (int j = 0; j < n; ++j) {\n            if (j > 0 && f[j - 1] == -1) {\n                continue;\n            }\n            long long base = (j == 0 ? 0 : f[j - 1]);\n            if (source[j] == target[j]) {\n                update(f[j], base);\n            }\n            Trie* u = root;\n            Trie* v = root;\n            for (int i = j; i < n; ++i) {\n                u = u->child[source[i] - 'a'];\n                v = v->child[target[i] - 'a'];\n                if (!u || !v) {\n                    break;\n                }\n                if (u->id != -1 && v->id != -1 && G[u->id][v->id] != inf) {\n                    update(f[i], base + G[u->id][v->id]);\n                }\n            }\n        }\n        return f[n - 1];\n    }\n\nprivate:\n    static constexpr int inf = INT_MAX / 2;\n};\n```\n\n```Python [sol1-Python]\nclass Trie:\n    def __init__(self):\n        self.child = [None] * 26\n        self.id = -1\n\ndef add(node: Trie, word: str, index: List[int]) -> int:\n    for ch in word:\n        i = ord(ch) - ord(\"a\")\n        if node.child[i] is None:\n            node.child[i] = Trie()\n        node = node.child[i]\n    if node.id == -1:\n        index[0] += 1\n        node.id = index[0]\n    return node.id\n\ndef update(x: int, y: int) -> int:\n    if x == -1 or y < x:\n        return y\n    return x\n\nclass Solution:\n    def minimumCost(self, source: str, target: str, original: List[str], changed: List[str], cost: List[int]) -> int:\n        n, m = len(source), len(original)\n        root = Trie()\n\n        p = [-1]\n        G = [[inf] * (m * 2) for _ in range(m * 2)]\n        for i in range(m * 2):\n            G[i][i] = 0\n\n        for i in range(m):\n            x = add(root, original[i], p)\n            y = add(root, changed[i], p)\n            G[x][y] = min(G[x][y], cost[i])\n\n        for k in range(p[0] + 1):\n            for i in range(p[0] + 1):\n                for j in range(p[0] + 1):\n                   G[i][j] = min(G[i][j], G[i][k] + G[k][j])\n        \n        f = [-1] * n\n        for j in range(n):\n            if j > 0 and f[j - 1] == -1:\n                continue\n            \n            base = 0 if j == 0 else f[j - 1]\n            if source[j] == target[j]:\n                f[j] = update(f[j], base)\n\n            u = v = root\n            for i in range(j, n):\n                u = u.child[ord(source[i]) - ord(\"a\")]\n                v = v.child[ord(target[i]) - ord(\"a\")]\n                if u is None or v is None:\n                    break\n                if u.id != -1 and v.id != -1 and G[u.id][v.id] != inf:\n                    f[i] = update(f[i], base + G[u.id][v.id])\n\n        return f[n - 1]\n```\n\n```Java [sol1-Java]\nclass Trie {\n    Trie[] child = new Trie[26];\n    int id = -1;\n}\n\nclass Solution {\n    private static final int INF = Integer.MAX_VALUE / 2;\n    \n    private int add(Trie node, String word, int[] index) {\n        for (char ch : word.toCharArray()) {\n            int i = ch - 'a';\n            if (node.child[i] == null) {\n                node.child[i] = new Trie();\n            }\n            node = node.child[i];\n        }\n        if (node.id == -1) {\n            node.id = ++index[0];\n        }\n        return node.id;\n    }\n    \n    private void update(long[] x, long y) {\n        if (x[0] == -1 || y < x[0]) {\n            x[0] = y;\n        }\n    }\n    \n    public long minimumCost(String source, String target, String[] original, String[] changed, int[] cost) {\n        int n = source.length();\n        int m = original.length;\n        Trie root = new Trie();\n        \n        int[] p = {-1};\n        int[][] G = new int[m * 2][m * 2];\n        \n        for (int i = 0; i < m * 2; i++) {\n            Arrays.fill(G[i], INF);\n            G[i][i] = 0;\n        }\n        \n        for (int i = 0; i < m; i++) {\n            int x = add(root, original[i], p);\n            int y = add(root, changed[i], p);\n            G[x][y] = Math.min(G[x][y], cost[i]);\n        }\n        \n        int size = p[0] + 1;\n        for (int k = 0; k < size; k++) {\n            for (int i = 0; i < size; i++) {\n                for (int j = 0; j < size; j++) {\n                    G[i][j] = Math.min(G[i][j], G[i][k] + G[k][j]);\n                }\n            }\n        }\n        \n        long[] f = new long[n];\n        Arrays.fill(f, -1);\n        for (int j = 0; j < n; j++) {\n            if (j > 0 && f[j - 1] == -1) {\n                continue;\n            }\n            long base = (j == 0 ? 0 : f[j - 1]);\n            if (source.charAt(j) == target.charAt(j)) {\n                f[j] = f[j] == -1 ? base : Math.min(f[j], base);\n            }\n            \n            Trie u = root;\n            Trie v = root;\n            for (int i = j; i < n; i++) {\n                u = u.child[source.charAt(i) - 'a'];\n                v = v.child[target.charAt(i) - 'a'];\n                if (u == null || v == null) {\n                    break;\n                }\n                if (u.id != -1 && v.id != -1 && G[u.id][v.id] != INF) {\n                    long newVal = base + G[u.id][v.id];\n                    if (f[i] == -1 || newVal < f[i]) {\n                        f[i] = newVal;\n                    }\n                }\n            }\n        }\n        \n        return f[n - 1];\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Trie {\n    public Trie[] child = new Trie[26];\n    public int id = -1;\n}\n\npublic class Solution {\n    private const int INF = int.MaxValue / 2;\n    \n    private int Add(Trie node, string word, ref int index) {\n        foreach (char ch in word) {\n            int i = ch - 'a';\n            if (node.child[i] == null) {\n                node.child[i] = new Trie();\n            }\n            node = node.child[i];\n        }\n        if (node.id == -1) {\n            node.id = ++index;\n        }\n        return node.id;\n    }\n    \n    private void Update(ref long x, long y) {\n        if (x == -1 || y < x) {\n            x = y;\n        }\n    }\n    \n    public long MinimumCost(string source, string target, string[] original, string[] changed, int[] cost) {\n        int n = source.Length;\n        int m = original.Length;\n        Trie root = new Trie();\n        \n        int p = -1;\n        int[,] G = new int[m * 2, m * 2];\n        \n        for (int i = 0; i < m * 2; i++) {\n            for (int j = 0; j < m * 2; j++) {\n                G[i, j] = INF;\n            }\n            G[i, i] = 0;\n        }\n        \n        for (int i = 0; i < m; i++) {\n            int x = Add(root, original[i], ref p);\n            int y = Add(root, changed[i], ref p);\n            G[x, y] = Math.Min(G[x, y], cost[i]);\n        }\n        \n        int size = p + 1;\n        for (int k = 0; k < size; k++) {\n            for (int i = 0; i < size; i++) {\n                for (int j = 0; j < size; j++) {\n                    G[i, j] = Math.Min(G[i, j], G[i, k] + G[k, j]);\n                }\n            }\n        }\n        \n        long[] f = new long[n];\n        Array.Fill(f, -1);\n        for (int j = 0; j < n; j++) {\n            if (j > 0 && f[j - 1] == -1) {\n                continue;\n            }\n            long baseVal = (j == 0 ? 0 : f[j - 1]);\n            if (source[j] == target[j]) {\n                Update(ref f[j], baseVal);\n            }\n            \n            Trie u = root;\n            Trie v = root;\n            for (int i = j; i < n; i++) {\n                u = u.child[source[i] - 'a'];\n                v = v.child[target[i] - 'a'];\n                if (u == null || v == null) {\n                    break;\n                }\n                if (u.id != -1 && v.id != -1 && G[u.id, v.id] != INF) {\n                    long newVal = baseVal + G[u.id, v.id];\n                    Update(ref f[i], newVal);\n                }\n            }\n        }\n        \n        return f[n - 1];\n    }\n}\n```\n\n```Go [sol1-Go]\ntype Trie struct {\n    child [26]*Trie\n    id    int\n}\n\nfunc newTrie() *Trie {\n    return &Trie{id: -1}\n}\n\nfunc add(node *Trie, word string, index *int) int {\n    for _, ch := range word {\n        i := ch - 'a'\n        if node.child[i] == nil {\n            node.child[i] = newTrie()\n        }\n        node = node.child[i]\n    }\n    if node.id == -1 {\n        *index++\n        node.id = *index\n    }\n    return node.id\n}\n\nfunc update(x *int64, y int64) {\n    if *x == -1 || y < *x {\n        *x = y\n    }\n}\n\nfunc minimumCost(source string, target string, original []string, changed []string, cost []int) int64 {\n    n := len(source)\n    m := len(original)\n    root := newTrie()\n    \n    p := -1\n    nodeCount := m * 2\n    G := make([][]int, nodeCount)\n    for i := range G {\n        G[i] = make([]int, nodeCount)\n        for j := range G[i] {\n            G[i][j] = math.MaxInt32 / 2\n        }\n        G[i][i] = 0\n    }\n    \n    for i := 0; i < m; i++ {\n        x := add(root, original[i], &p)\n        y := add(root, changed[i], &p)\n        G[x][y] = min(G[x][y], cost[i])\n    }\n    \n    size := p + 1\n    for k := 0; k < size; k++ {\n        for i := 0; i < size; i++ {\n            for j := 0; j < size; j++ {\n                G[i][j] = min(G[i][j], G[i][k] + G[k][j])\n            }\n        }\n    }\n    \n    f := make([]int64, n)\n    for i := range f {\n        f[i] = -1\n    }\n    \n    for j := 0; j < n; j++ {\n        if j > 0 && f[j - 1] == -1 {\n            continue\n        }\n        \n        var base int64\n        if j == 0 {\n            base = 0\n        } else {\n            base = f[j-1]\n        }\n        \n        if source[j] == target[j] {\n            update(&f[j], base)\n        }\n        \n        u, v := root, root\n        for i := j; i < n; i++ {\n            u = u.child[source[i] - 'a']\n            v = v.child[target[i] - 'a']\n            if u == nil || v == nil {\n                break\n            }\n            if u.id != -1 && v.id != -1 && G[u.id][v.id] != math.MaxInt32/2 {\n                newVal := base + int64(G[u.id][v.id])\n                update(&f[i], newVal)\n            }\n        }\n    }\n    \n    return f[n - 1]\n}\n```\n\n```C [sol1-C]\n#define INF (INT_MAX / 2)\n\ntypedef struct Trie {\n    struct Trie* child[26];\n    int id;\n} Trie;\n\nTrie* createTrie() {\n    Trie* node = (Trie*)malloc(sizeof(Trie));\n    for (int i = 0; i < 26; i++) {\n        node->child[i] = NULL;\n    }\n    node->id = -1;\n    return node;\n}\n\nint add(Trie* node, const char* word, int* index) {\n    for (int i = 0; word[i]; i++) {\n        int ch = word[i] - 'a';\n        if (!node->child[ch]) {\n            node->child[ch] = createTrie();\n        }\n        node = node->child[ch];\n    }\n    if (node->id == -1) {\n        node->id = ++(*index);\n    }\n    return node->id;\n}\n\nvoid update(long long* x, long long y) {\n    if (*x == -1 || y < *x) {\n        *x = y;\n    }\n}\n\nlong long minimumCost(char* source, char* target, char** original, int originalSize,\n                     char** changed, int changedSize, int* cost, int costSize) {\n    int n = strlen(source);\n    int m = originalSize;\n    Trie* root = createTrie();\n    \n    int p = -1;\n    int nodeCount = m * 2;\n    int** G = (int**)malloc(nodeCount * sizeof(int*));\n    for (int i = 0; i < nodeCount; i++) {\n        G[i] = (int*)malloc(nodeCount * sizeof(int));\n        for (int j = 0; j < nodeCount; j++) {\n            G[i][j] = INF;\n        }\n        G[i][i] = 0;\n    }\n    \n    for (int i = 0; i < m; i++) {\n        int x = add(root, original[i], &p);\n        int y = add(root, changed[i], &p);\n        G[x][y] = fmin(G[x][y], cost[i]);\n    }\n    \n    for (int k = 0; k <= p; k++) {\n        for (int i = 0; i <= p; i++) {\n            for (int j = 0; j <= p; j++) {\n                G[i][j] = fmin(G[i][j], G[i][k] + G[k][j]);\n            }\n        }\n    }\n    \n    long long* f = (long long*)malloc(n * sizeof(long long));\n    for (int i = 0; i < n; i++) {\n        f[i] = -1;\n    }\n    for (int j = 0; j < n; j++) {\n        if (j > 0 && f[j - 1] == -1) {\n            continue;\n        }\n\n        long long base = (j == 0 ? 0 : f[j - 1]);\n        if (source[j] == target[j]) {\n            update(&f[j], base);\n        }\n        \n        Trie* u = root;\n        Trie* v = root;\n        for (int i = j; i < n; i++) {\n            u = u->child[source[i] - 'a'];\n            v = v->child[target[i] - 'a'];\n            if (!u || !v) {\n                break;\n            }\n            if (u->id != -1 && v->id != -1 && G[u->id][v->id] != INF) {\n                update(&f[i], base + G[u->id][v->id]);\n            }\n        }\n    }\n    \n    long long result = f[n - 1];\n    for (int i = 0; i < nodeCount; i++) {\n        free(G[i]);\n    }\n    free(G);\n    free(f);\n    \n    return result;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nclass Trie {\n    constructor() {\n        this.child = new Array(26).fill(null);\n        this.id = -1;\n    }\n}\n\nfunction minimumCost(source, target, original, changed, cost) {\n    const INF = Number.MAX_SAFE_INTEGER / 2;\n    \n    function add(node, word, index) {\n        for (const ch of word) {\n            const i = ch.charCodeAt(0) - 'a'.charCodeAt(0);\n            if (!node.child[i]) {\n                node.child[i] = new Trie();\n            }\n            node = node.child[i];\n        }\n        if (node.id === -1) {\n            node.id = ++index.value;\n        }\n        return node.id;\n    }\n    \n    const n = source.length;\n    const m = original.length;\n    const root = new Trie();\n    \n    const p = { value: -1 };\n    const nodeCount = m * 2;\n    const G = Array.from({ length: nodeCount }, () => Array(nodeCount).fill(INF));\n    for (let i = 0; i < nodeCount; i++) {\n        G[i][i] = 0;\n    }\n    for (let i = 0; i < m; i++) {\n        const x = add(root, original[i], p);\n        const y = add(root, changed[i], p);\n        G[x][y] = Math.min(G[x][y], cost[i]);\n    }\n    \n    const size = p.value + 1;\n    for (let k = 0; k < size; k++) {\n        for (let i = 0; i < size; i++) {\n            for (let j = 0; j < size; j++) {\n                G[i][j] = Math.min(G[i][j], G[i][k] + G[k][j]);\n            }\n        }\n    }\n    \n    const f = new Array(n).fill(-1);\n    for (let j = 0; j < n; j++) {\n        if (j > 0 && f[j - 1] === -1) {\n            continue;\n        }\n        const base = j === 0 ? 0 : f[j - 1];\n        if (source[j] === target[j]) {\n            if (f[j] === -1 || base < f[j]) {\n                f[j] = base;\n            }\n        }\n        \n        let u = root;\n        let v = root;\n        for (let i = j; i < n; i++) {\n            u = u.child[source.charCodeAt(i) - 'a'.charCodeAt(0)];\n            v = v.child[target.charCodeAt(i) - 'a'.charCodeAt(0)];\n            if (!u || !v) {\n                break;\n            }\n            if (u.id !== -1 && v.id !== -1 && G[u.id][v.id] !== INF) {\n                const newVal = base + G[u.id][v.id];\n                if (f[i] === -1 || newVal < f[i]) {\n                    f[i] = newVal;\n                }\n            }\n        }\n    }\n    \n    return f[n - 1];\n}\n```\n\n```TypeScript [sol1-TypeScript]\nclass Trie {\n    child: (Trie | null)[];\n    id: number;\n    \n    constructor() {\n        this.child = new Array(26).fill(null);\n        this.id = -1;\n    }\n}\n\nfunction minimumCost(source: string, target: string, original: string[], changed: string[], cost: number[]): number {\n    const INF: number = Number.MAX_SAFE_INTEGER / 2;\n    \n    function add(node: Trie, word: string, index: { value: number }): number {\n        for (const ch of word) {\n            const i = ch.charCodeAt(0) - 'a'.charCodeAt(0);\n            if (!node.child[i]) {\n                node.child[i] = new Trie();\n            }\n            node = node.child[i]!;\n        }\n        if (node.id === -1) {\n            node.id = ++index.value;\n        }\n        return node.id;\n    }\n    \n    const n: number = source.length;\n    const m: number = original.length;\n    const root: Trie = new Trie();\n    \n    const p = { value: -1 };\n    const nodeCount: number = m * 2;\n    const G: number[][] = Array.from({ length: nodeCount }, () => Array(nodeCount).fill(INF));\n    for (let i = 0; i < nodeCount; i++) {\n        G[i][i] = 0;\n    }\n    \n    for (let i = 0; i < m; i++) {\n        const x: number = add(root, original[i], p);\n        const y: number = add(root, changed[i], p);\n        G[x][y] = Math.min(G[x][y], cost[i]);\n    }\n    \n    const size: number = p.value + 1;\n    for (let k = 0; k < size; k++) {\n        for (let i = 0; i < size; i++) {\n            for (let j = 0; j < size; j++) {\n                G[i][j] = Math.min(G[i][j], G[i][k] + G[k][j]);\n            }\n        }\n    }\n    \n    const f: number[] = new Array(n).fill(-1);\n    for (let j = 0; j < n; j++) {\n        if (j > 0 && f[j - 1] === -1) {\n            continue;\n        }\n        const base: number = j === 0 ? 0 : f[j - 1];\n        if (source[j] === target[j]) {\n            if (f[j] === -1 || base < f[j]) {\n                f[j] = base;\n            }\n        }\n        \n        let u: Trie | null = root;\n        let v: Trie | null = root;\n        for (let i = j; i < n; i++) {\n            u = u?.child[source.charCodeAt(i) - 'a'.charCodeAt(0)] ?? null;\n            v = v?.child[target.charCodeAt(i) - 'a'.charCodeAt(0)] ?? null;\n            if (!u || !v) {\n                break;\n            }\n            if (u.id !== -1 && v.id !== -1 && G[u.id][v.id] !== INF) {\n                const newVal: number = base + G[u.id][v.id];\n                if (f[i] === -1 || newVal < f[i]) {\n                    f[i] = newVal;\n                }\n            }\n        }\n    }\n    \n    return f[n - 1];\n}\n```\n\n```Rust [sol1-Rust]\nuse std::collections::HashMap;\n\nconst INF: i32 = i32::MAX / 2;\n\nstruct TrieNode {\n    child: [Option<Box<TrieNode>>; 26],\n    id: i32,\n}\n\nimpl TrieNode {\n    fn new() -> Self {\n        Self {\n            child: Default::default(),\n            id: -1,\n        }\n    }\n    \n    fn add(node: &mut Box<TrieNode>, word: &str, index: &mut i32) -> i32 {\n        let mut current = node;\n        for ch in word.chars() {\n            let i = (ch as u8 - b'a') as usize;\n            if current.child[i].is_none() {\n                current.child[i] = Some(Box::new(TrieNode::new()));\n            }\n            current = current.child[i].as_mut().unwrap();\n        }\n        if current.id == -1 {\n            *index += 1;\n            current.id = *index;\n        }\n        current.id\n    }\n}\n\nimpl Solution {\n    pub fn minimum_cost(source: String, target: String, original: Vec<String>, changed: Vec<String>, cost: Vec<i32>) -> i64 {\n        let n = source.len();\n        let m = original.len();\n        let mut root = Box::new(TrieNode::new());\n        \n        let mut p = -1;\n        let node_count = m * 2;\n        let mut g = vec![vec![INF; node_count]; node_count];\n        for i in 0..node_count {\n            g[i][i] = 0;\n        }\n        \n        for i in 0..m {\n            let x = TrieNode::add(&mut root, &original[i], &mut p);\n            let y = TrieNode::add(&mut root, &changed[i], &mut p);\n            g[x as usize][y as usize] = g[x as usize][y as usize].min(cost[i]);\n        }\n        \n        let size = (p + 1) as usize;\n        for k in 0..size {\n            for i in 0..size {\n                for j in 0..size {\n                    g[i][j] = g[i][j].min(g[i][k] + g[k][j]);\n                }\n            }\n        }\n        \n        let mut f = vec![-1i64; n];\n        let source_chars: Vec<char> = source.chars().collect();\n        let target_chars: Vec<char> = target.chars().collect();\n        for j in 0..n {\n            if j > 0 && f[j - 1] == -1 { \n                continue; \n            }\n            let base = if j == 0 { 0 } else { f[j - 1] };\n            if source_chars[j] == target_chars[j] {\n                if f[j] == -1 || base < f[j] {\n                    f[j] = base;\n                }\n            }\n            \n            let mut u = &root;\n            let mut v = &root;\n            for i in j..n {\n                let u_idx = (source_chars[i] as u8 - b'a') as usize;\n                let v_idx = (target_chars[i] as u8 - b'a') as usize;\n                \n                u = match u.child[u_idx].as_ref() {\n                    Some(node) => node,\n                    None => break,\n                };\n                v = match v.child[v_idx].as_ref() {\n                    Some(node) => node,\n                    None => break,\n                };\n                \n                if u.id != -1 && v.id != -1 && g[u.id as usize][v.id as usize] != INF {\n                    let new_val = base + g[u.id as usize][v.id as usize] as i64;\n                    if f[i] == -1 || new_val < f[i] {\n                        f[i] = new_val;\n                    }\n                }\n            }\n        }\n        \n        f[n - 1]\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n^2 + m^3 + mL)$，其中 $n$ 是数组 $\\textit{source}$ 和 $\\textit{target}$ 的长度，$m$ 是数组 $\\textit{original}$、$\\textit{changed}$ 和 $\\textit{cost}$ 的长度，$L$ 是数组 $\\textit{original}$ 和 $\\textit{changed}$ 中字符串的平均长度。构造字典树的时间复杂度为 $O(mL)$，计算最短路的时间复杂度为 $O(m^3)$，动态规划的时间复杂度为 $O(n^2)$。\n\n- 空间复杂度：$O(n + m^2 + mL)$。字典树需要的空间为 $O(mL)$，图 $G$ 需要的空间为 $O(m^2)$，动态规划需要的空间为 $O(n)$。",
+            "slateValue": "",
+            "slug": "zhuan-huan-zi-fu-chuan-de-zui-xiao-cheng-fdp8",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "bSTR59",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 5,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Trie",
+                    "nameTranslated": "字典树",
+                    "slug": "trie",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Shortest Path",
+                    "nameTranslated": "最短路",
+                    "slug": "shortest-path",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rolling Hash",
+                    "nameTranslated": "滚动哈希",
+                    "slug": "rolling-hash",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2026-01-26T03:36:34.869405+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：字典树 + Floyd 算法 + 动态规划 思路与算法 我们需要得到字符串 [latex] 转换为 [latex] 的最小成本，但允许将字符串分割成 [latex] 若干个部分，每一部分进行若干次转换，并最后拼接得到 [latex]。 因此，这提示我们使用动态规划。记 [latex] 表示将 [latex] 到",
+            "topic": {
+                "id": 3889117,
+                "subscribed": false,
+                "commentCount": 7,
+                "viewCount": 10,
+                "post": {
+                    "id": 7094246,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 13,
+            "isEditorsPick": false,
+            "hitCount": 3491,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "minimum-cost-to-convert-string-ii",
+                "questionFrontendId": "2977"
+            },
+            "next": {
+                "slug": "zi-dian-shu-floyddp-by-endlesscheng-oi2r",
+                "title": "字典树+Floyd+记忆化搜索/递推（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

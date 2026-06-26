@@ -1,0 +1,156 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "azFEKr",
+            "title": "执行操作后元素的最高频率 II",
+            "content": "#### 方法一：排序 + 枚举 + 二分查找\n\n前置题目：[「3346. 执行操作后元素的最高频率 I」](https://leetcode.cn/problems/maximum-frequency-of-an-element-after-performing-operations-i/)。请确保已经理解并掌握了前置题目中的方法。\n\n本题是前置题目的数据强化版本，将 $k$ 和 $\\textit{nums}[i]$ 的范围从 $1e5$ 变为了 $1e9$，因此不能再如[「3346. 执行操作后元素的最高频率 I」](https://leetcode.cn/problems/maximum-frequency-of-an-element-after-performing-operations-i/)中一样直接将 $[\\textit{nums}[i]_{\\min}$，$\\textit{nums}[i]_{\\max}]$ 作为枚举区间。\n\n仍然考虑枚举 $m_i$ 作为目标众数，那么考虑前置题目中**最多能变成 $m_i$ 的元素个数 $f_i$** 的计算公式：\n\n$f_i = \\min(r - l + 1, \\textit{numOperations} + \\textit{count}_i)$。\n\n由于在枚举过程中 $\\textit{numOperations}$ 为常数，而**如果 $m_i$ 不在 $\\textit{nums}$ 中**（这正是我们无法直接枚举的原因）则 $\\textit{count}_i$ 恒为 $0$，显然此时 $f_i$ 的值**只取决于 $l$ 和 $r$**，换而言之，只取决于这个 $m_i$ 对应的 $\\textit{nums}$ 的上下界元素是否一致。\n\n那么对于 $l$ 和 $r$ 相同的那些 $m_i$，是否可以只枚举一次？\n\n考虑单侧情况，例如只考虑 $m_i$ 对应的 $r_i$。$r_i$ 的含义是：在排序后的 $\\textit{nums}$ 中，最后一个小于等于 $m_i + k$ 的元素的下标。\n\n让我们假设 $m_i + k$ 的值恰好是 $\\textit{nums}[r_i]$。且 $\\textit{nums}[r_i]$ 的下一个元素 $\\textit{nums}[r_i + 1]$ 的值是 $m_j + k$，即另一个 $m_j$ 对应的元素，那么显然有以下推论：\n\n对于任意 $m_k \\in [m_i, m_j)$ 有:\n\n$$\nm_i + k \\le m_k + k \\lt m_j + k\n$$\n\n又因为 $m_i + k = \\textit{nums}[r_i], \\, m_j + k = \\textit{nums}[r_i + 1]$:\n\n$$\n\\textit{nums}[r_i] \\le m_k + k \\lt \\textit{nums}[r_i + 1]\n$$\n\n即:\n\n$$\n\\textit{nums}[r_i] - k \\le m_k \\lt \\textit{nums}[r_i + 1] - k\n$$\n\n这意味着只考虑 $r$ 变化的情况下，对于任意 $m_k \\in [\\textit{nums}[r_i] - k, \\textit{nums}[r_i + 1] - k)$ 我们只需要统计一次答案，因为这些 $m_k$ 对应的右边界全都是 $r_i$。也就是对于任意 $nums[i] - k$，若其处于 $[\\textit{nums}[i]_{\\min}$，$\\textit{nums}[i]_{\\max}]$ 这个区间，且不在 $\\textit{nums}$ 中，则加入枚举值候选。同理，我们还需要将满足条件的 $\\textit{nums}[i] + k$ 加入候选。\n\n上面这段内容还有一种更加通俗的理解方式：将 $l$ 和 $r$ 想象一个滑动窗口，它的中点是 $m_i$，窗口的右边界 $m_i + k$ 随着 $m_i$ 增加而右移，每当窗口的右边界越过 $\\textit{nums}$ 中的一个数，$r_i$ 会增加 $1$。同理，每当窗口的左边界离开 $\\textit{nums}$ 中的一个数，则 $l_i$ 会增加 $1$。而上面我们已经分析过，只有当 $l$ 和 $r$ 变化时，这些不在 $\\textit{nums}$ 中的 $m_i$ 对答案的贡献才会发生变化。因此我们只在滑动窗口处于临界情况时统计一次答案，就能保证计算到所有可能的 $m_i$。\n\n综上所述，对于每一个 $\\textit{nums}[i]$ 只需要枚举 $\\textit{nums}[i]$，$\\textit{nums}[i] - k$ 和 $\\textit{nums}[i] + k$ 即可。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int maxFrequency(vector<int>& nums, int k, int numOperations) {\n        sort(nums.begin(), nums.end());\n        int ans = 0;\n        unordered_map<int, int> numCount;\n        set<int> modes;\n\n        auto addMode = [&](int value) {\n            modes.insert(value);\n            if (value - k >= nums.front()) {\n                modes.insert(value - k);\n            }\n            if (value + k <= nums.back()) {\n                modes.insert(value + k);\n            }\n        };\n\n        int lastNumIndex = 0;\n        for (int i = 0; i < nums.size(); ++i) {\n            if (nums[i] != nums[lastNumIndex]) {\n                numCount[nums[lastNumIndex]] = i - lastNumIndex;\n                ans = max(ans, i - lastNumIndex);\n                addMode(nums[lastNumIndex]);\n                lastNumIndex = i;\n            }\n        }\n\n        numCount[nums[lastNumIndex]] = nums.size() - lastNumIndex;\n        ans = max(ans, (int)nums.size() - lastNumIndex);\n        addMode(nums[lastNumIndex]);\n\n        auto leftBound = [&](int value) {\n            int left = 0, right = nums.size() - 1;\n            while (left < right) {\n                int mid = (left + right) / 2;\n                if (nums[mid] < value) {\n                    left = mid + 1;\n                } else {\n                    right = mid;\n                }\n            }\n            return left;\n        };\n\n        auto rightBound = [&](int value) {\n            int left = 0, right = nums.size() - 1;\n            while (left < right) {\n                int mid = (left + right + 1) / 2;\n                if (nums[mid] > value) {\n                    right = mid - 1;\n                } else {\n                    left = mid;\n                }\n            }\n            return left;\n        };\n\n        for (int mode : modes) {\n            int l = leftBound(mode - k);\n            int r = rightBound(mode + k);\n\n            int tempAns;\n            if (numCount.count(mode)) {\n                tempAns = min(r - l + 1, numCount[mode] + numOperations);\n            } else {\n                tempAns = min(r - l + 1, numOperations);\n            }\n            ans = max(ans, tempAns);\n        }\n\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int maxFrequency(int[] nums, int k, int numOperations) {\n        Arrays.sort(nums);\n        int ans = 0;\n        Map<Integer, Integer> numCount = new HashMap<>();\n        Set<Integer> modes = new TreeSet<>();\n        \n        Consumer<Integer> addMode = (value) -> {\n            modes.add(value);\n            if (value - k >= nums[0]) {\n                modes.add(value - k);\n            }\n            if (value + k <= nums[nums.length - 1]) {\n                modes.add(value + k);\n            }\n        };\n        \n        int lastNumIndex = 0;\n        for (int i = 0; i < nums.length; ++i) {\n            if (nums[i] != nums[lastNumIndex]) {\n                numCount.put(nums[lastNumIndex], i - lastNumIndex);\n                ans = Math.max(ans, i - lastNumIndex);\n                addMode.accept(nums[lastNumIndex]);\n                lastNumIndex = i;\n            }\n        }\n        \n        numCount.put(nums[lastNumIndex], nums.length - lastNumIndex);\n        ans = Math.max(ans, nums.length - lastNumIndex);\n        addMode.accept(nums[lastNumIndex]);\n        \n        IntUnaryOperator leftBound = (value) -> {\n            int left = 0, right = nums.length - 1;\n            while (left < right) {\n                int mid = (left + right) / 2;\n                if (nums[mid] < value) {\n                    left = mid + 1;\n                } else {\n                    right = mid;\n                }\n            }\n            return left;\n        };\n        \n        IntUnaryOperator rightBound = (value) -> {\n            int left = 0, right = nums.length - 1;\n            while (left < right) {\n                int mid = (left + right + 1) / 2;\n                if (nums[mid] > value) {\n                    right = mid - 1;\n                } else {\n                    left = mid;\n                }\n            }\n            return left;\n        };\n        \n        for (int mode : modes) {\n            int l = leftBound.applyAsInt(mode - k);\n            int r = rightBound.applyAsInt(mode + k);\n            int tempAns;\n            if (numCount.containsKey(mode)) {\n                tempAns = Math.min(r - l + 1, numCount.get(mode) + numOperations);\n            } else {\n                tempAns = Math.min(r - l + 1, numOperations);\n            }\n            ans = Math.max(ans, tempAns);\n        }\n        \n        return ans;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MaxFrequency(int[] nums, int k, int numOperations) {\n        Array.Sort(nums);\n        \n        int ans = 0;\n        Dictionary<int, int> numCount = new Dictionary<int, int>();\n        SortedSet<int> modes = new SortedSet<int>();\n        \n        Action<int> addMode = (value) => {\n            modes.Add(value);\n            if (value - k >= nums[0]) {\n                modes.Add(value - k);\n            }\n            if (value + k <= nums[nums.Length - 1]) {\n                modes.Add(value + k);\n            }\n        };\n        \n        int lastNumIndex = 0;\n        for (int i = 0; i < nums.Length; ++i) {\n            if (nums[i] != nums[lastNumIndex]) {\n                numCount[nums[lastNumIndex]] = i - lastNumIndex;\n                ans = Math.Max(ans, i - lastNumIndex);\n                addMode(nums[lastNumIndex]);\n                lastNumIndex = i;\n            }\n        }\n        \n        numCount[nums[lastNumIndex]] = nums.Length - lastNumIndex;\n        ans = Math.Max(ans, nums.Length - lastNumIndex);\n        addMode(nums[lastNumIndex]);\n        \n        Func<int, int> leftBound = (value) => {\n            int left = 0, right = nums.Length - 1;\n            while (left < right) {\n                int mid = (left + right) / 2;\n                if (nums[mid] < value) {\n                    left = mid + 1;\n                } else {\n                    right = mid;\n                }\n            }\n            return left;\n        };\n        \n        Func<int, int> rightBound = (value) => {\n            int left = 0, right = nums.Length - 1;\n            while (left < right) {\n                int mid = (left + right + 1) / 2;\n                if (nums[mid] > value) {\n                    right = mid - 1;\n                } else {\n                    left = mid;\n                }\n            }\n            return left;\n        };\n        \n        foreach (int mode in modes) {\n            int l = leftBound(mode - k);\n            int r = rightBound(mode + k);\n            int tempAns;\n            if (numCount.ContainsKey(mode)) {\n                tempAns = Math.Min(r - l + 1, numCount[mode] + numOperations);\n            } else {\n                tempAns = Math.Min(r - l + 1, numOperations);\n            }\n            ans = Math.Max(ans, tempAns);\n        }\n        \n        return ans;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc maxFrequency(nums []int, k int, numOperations int) int {\n    sort.Ints(nums)\n    ans := 0\n    numCount := make(map[int]int)\n    modes := make(map[int]bool)\n    \n    addMode := func(value int) {\n        modes[value] = true\n        if value - k >= nums[0] {\n            modes[value - k] = true\n        }\n        if value + k <= nums[len(nums)-1] {\n            modes[value + k] = true\n        }\n    }\n    \n    lastNumIndex := 0\n    for i := 0; i < len(nums); i++ {\n        if nums[i] != nums[lastNumIndex] {\n            numCount[nums[lastNumIndex]] = i - lastNumIndex\n            if i - lastNumIndex > ans {\n                ans = i - lastNumIndex\n            }\n            addMode(nums[lastNumIndex])\n            lastNumIndex = i\n        }\n    }\n    \n    numCount[nums[lastNumIndex]] = len(nums) - lastNumIndex\n    if len(nums) - lastNumIndex > ans {\n        ans = len(nums) - lastNumIndex\n    }\n    addMode(nums[lastNumIndex])\n    \n    leftBound := func(value int) int {\n        left, right := 0, len(nums)-1\n        for left < right {\n            mid := (left + right) / 2\n            if nums[mid] < value {\n                left = mid + 1\n            } else {\n                right = mid\n            }\n        }\n        return left\n    }\n    \n    rightBound := func(value int) int {\n        left, right := 0, len(nums)-1\n        for left < right {\n            mid := (left + right + 1) / 2\n            if nums[mid] > value {\n                right = mid - 1\n            } else {\n                left = mid\n            }\n        }\n        return left\n    }\n    \n    uniqueModes := make([]int, 0, len(modes))\n    for mode := range modes {\n        uniqueModes = append(uniqueModes, mode)\n    }\n    sort.Ints(uniqueModes)\n    \n    for _, mode := range uniqueModes {\n        l := leftBound(mode - k)\n        r := rightBound(mode + k)\n        var tempAns int\n        if count, exists := numCount[mode]; exists {\n            tempAns = min(r - l + 1, count + numOperations)\n        } else {\n            tempAns = min(r - l + 1, numOperations)\n        }\n        if tempAns > ans {\n            ans = tempAns\n        }\n    }\n    \n    return ans\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def maxFrequency(self, nums: List[int], k: int, numOperations: int) -> int:\n        nums.sort()\n        ans = 0\n        num_count = defaultdict(int)\n        modes = set()\n\n        def add_mode(value):\n            modes.add(value)\n            if value - k >= nums[0]:\n                modes.add(value - k)\n            if value + k <= nums[-1]:\n                modes.add(value + k)\n\n        last_num_index = 0\n        for i in range(len(nums)):\n            if nums[i] != nums[last_num_index]:\n                num_count[nums[last_num_index]] = i - last_num_index\n                ans = max(ans, i - last_num_index)\n                add_mode(nums[last_num_index])\n                last_num_index = i\n\n        num_count[nums[last_num_index]] = len(nums) - last_num_index\n        ans = max(ans, len(nums) - last_num_index)\n        add_mode(nums[last_num_index])\n\n        for mode in sorted(modes):\n            l = bisect.bisect_left(nums, mode - k)\n            r = bisect.bisect_right(nums, mode + k) - 1\n            if mode in num_count:\n                temp_ans = min(r - l + 1, num_count[mode] + numOperations)\n            else:\n                temp_ans = min(r - l + 1, numOperations)\n            ans = max(ans, temp_ans)\n        \n        return ans\n```\n\n```C [sol1-C]\ntypedef struct {\n    int key;\n    int val;\n    UT_hash_handle hh;\n} HashItem; \n\nHashItem *hashFindItem(HashItem **obj, int key) {\n    HashItem *pEntry = NULL;\n    HASH_FIND_INT(*obj, &key, pEntry);\n    return pEntry;\n}\n\nbool hashAddItem(HashItem **obj, int key, int val) {\n    if (hashFindItem(obj, key)) {\n        return false;\n    }\n    HashItem *pEntry = (HashItem *)malloc(sizeof(HashItem));\n    pEntry->key = key;\n    pEntry->val = val;\n    HASH_ADD_INT(*obj, key, pEntry);\n    return true;\n}\n\nbool hashSetItem(HashItem **obj, int key, int val) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        hashAddItem(obj, key, val);\n    } else {\n        pEntry->val = val;\n    }\n    return true;\n}\n\nint hashGetItem(HashItem **obj, int key, int defaultVal) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        return defaultVal;\n    }\n    return pEntry->val;\n}\n\nvoid hashFree(HashItem **obj) {\n    HashItem *curr = NULL, *tmp = NULL;\n    HASH_ITER(hh, *obj, curr, tmp) {\n        HASH_DEL(*obj, curr);  \n        free(curr);\n    }\n}\n\nint compare(const void* a, const void* b) {\n    return (*(int*)a - *(int*)b);\n}\n\nvoid addMode(int *nums, int numsSize, int k, HashItem **modes, int value) {\n    hashAddItem(modes, value, 1);\n    if (value - k >= nums[0]) {\n        hashAddItem(modes, value - k, 1);\n    }\n    if (value + k <= nums[numsSize - 1]) {\n        hashAddItem(modes, value + k, 1);\n    }\n}\n\nint leftBound(int *nums, int numsSize, int value) {\n    int left = 0, right = numsSize - 1;\n    while (left < right) {\n        int mid = (left + right) / 2;\n        if (nums[mid] < value) {\n            left = mid + 1;\n        } else {\n            right = mid;\n        }\n    }\n    return left;\n}\n\nint rightBound(int *nums, int numsSize, int value) {\n    int left = 0, right = numsSize - 1;\n    while (left < right) {\n        int mid = (left + right + 1) / 2;\n        if (nums[mid] > value) {\n            right = mid - 1;\n        } else {\n            left = mid;\n        }\n    }\n    return left;\n}\n\nint maxFrequency(int* nums, int numsSize, int k, int numOperations) {\n    qsort(nums, numsSize, sizeof(int), compare);\n    int ans = 0;\n    HashItem *numCount = NULL;\n    HashItem *modes = NULL;\n    \n    \n    int lastNumIndex = 0;\n    for (int i = 0; i < numsSize; ++i) {\n        if (nums[i] != nums[lastNumIndex]) {\n            hashSetItem(&numCount, nums[lastNumIndex], i - lastNumIndex);\n            if (i - lastNumIndex > ans) {\n                ans = i - lastNumIndex;\n            }\n            addMode(nums, numsSize, k, &modes, nums[lastNumIndex]);\n            lastNumIndex = i;\n        }\n    }\n    \n    hashSetItem(&numCount, nums[lastNumIndex], numsSize - lastNumIndex);\n    if (numsSize - lastNumIndex > ans) {\n        ans = numsSize - lastNumIndex;\n    }\n    addMode(nums, numsSize, k, &modes, nums[lastNumIndex]);\n    \n    int modesSize = HASH_COUNT(modes);\n    int *sortModes = (int *)malloc(sizeof(int) * modesSize);\n    int pos = 0;\n    for (HashItem *pEntry = modes; pEntry; pEntry = pEntry->hh.next) {\n        sortModes[pos++] = pEntry->key;\n    }\n    qsort(sortModes, modesSize, sizeof(int), compare);\n\n    for (int i = 0; i < modesSize; i++) {\n        int mode = sortModes[i];\n        int l = leftBound(nums, numsSize, mode - k);\n        int r = rightBound(nums, numsSize, mode + k);\n        int tempAns;\n        if (hashFindItem(&numCount, mode)) {\n            int count = hashGetItem(&numCount, mode, 0);\n            tempAns = fmin(r - l + 1, count + numOperations);\n        } else {\n            tempAns = fmin(r - l + 1, numOperations);\n        }\n        if (tempAns > ans) {\n            ans = tempAns;\n        }\n    }\n    \n    hashFree(&numCount);\n    hashFree(&modes);\n    free(sortModes);\n    return ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar maxFrequency = function (nums, k, numOperations) {\n    nums.sort((a, b) => a - b);\n\n    let ans = 0;\n    const numCount = new Map();\n    const modes = new Set();\n\n    const addMode = (value) => {\n        modes.add(value);\n        if (value - k >= nums.at(0)) {\n            modes.add(value - k);\n        }\n\n        if (value + k <= nums.at(-1)) {\n            modes.add(value + k);\n        }\n    };\n\n    let lastNumIndex = 0;\n    for (let i = 0; i < nums.length; i++) {\n        if (nums[i] !== nums[lastNumIndex]) {\n            numCount.set(nums[lastNumIndex], i - lastNumIndex);\n            ans = Math.max(ans, i - lastNumIndex);\n            addMode(nums[lastNumIndex]);\n\n            lastNumIndex = i;\n        }\n    }\n\n    numCount.set(nums[lastNumIndex], nums.length - lastNumIndex);\n    ans = Math.max(ans, nums.length - lastNumIndex);\n    addMode(nums[lastNumIndex]);\n\n    const leftBound = (value) => {\n        let left = 0;\n        let right = nums.length - 1;\n        while (left < right) {\n            const mid = Math.floor((left + right) / 2);\n            if (nums[mid] < value) {\n                left = mid + 1;\n            } else {\n                right = mid;\n            }\n        }\n        return left;\n    };\n\n    const rightBound = (value) => {\n        let left = 0;\n        let right = nums.length - 1;\n        while (left < right) {\n            const mid = Math.floor((left + right + 1) / 2);\n            if (nums[mid] > value) {\n                right = mid - 1;\n            } else {\n                left = mid;\n            }\n        }\n        return left;\n    };\n\n    for (const mode of modes) {\n        const [l, r] = [leftBound(mode - k), rightBound(mode + k)];\n\n        let tempAns;\n\n        if (numCount.has(mode)) {\n            tempAns = Math.min(r - l + 1, numCount.get(mode) + numOperations);\n        } else {\n            tempAns = Math.min(r - l + 1, numOperations);\n        }\n\n        ans = Math.max(ans, tempAns);\n    }\n\n    return ans;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction maxFrequency(nums: number[], k: number, numOperations: number): number {\n    nums.sort((a, b) => a - b);\n\n    let ans = 0;\n    const numCount: Map<number, number> = new Map();\n    const modes: Set<number> = new Set();\n\n    const addMode = (value: number) => {\n        modes.add(value);\n        if (value - k >= nums.at(0)!) {\n            modes.add(value - k);\n        }\n\n        if (value + k <= nums.at(-1)!) {\n            modes.add(value + k);\n        }\n    };\n\n    let lastNumIndex = 0;\n    for (let i = 0; i < nums.length; i++) {\n        if (nums[i] !== nums[lastNumIndex]) {\n            numCount.set(nums[lastNumIndex], i - lastNumIndex);\n            ans = Math.max(ans, i - lastNumIndex);\n            addMode(nums[lastNumIndex]);\n\n            lastNumIndex = i;\n        }\n    }\n\n    numCount.set(nums[lastNumIndex], nums.length - lastNumIndex);\n    ans = Math.max(ans, nums.length - lastNumIndex);\n    addMode(nums[lastNumIndex]);\n\n    const leftBound = (value: number) => {\n        let left = 0;\n        let right = nums.length - 1;\n        while (left < right) {\n            const mid = Math.floor((left + right) / 2);\n            if (nums[mid] < value) {\n                left = mid + 1;\n            } else {\n                right = mid;\n            }\n        }\n        return left;\n    };\n\n    const rightBound = (value: number) => {\n        let left = 0;\n        let right = nums.length - 1;\n        while (left < right) {\n            const mid = Math.floor((left + right + 1) / 2);\n            if (nums[mid] > value) {\n                right = mid - 1;\n            } else {\n                left = mid;\n            }\n        }\n        return left;\n    };\n\n    for (const mode of modes) {\n        const [l, r] = [leftBound(mode - k), rightBound(mode + k)];\n\n        let tempAns: number;\n\n        if (numCount.has(mode)) {\n            tempAns = Math.min(r - l + 1, numCount.get(mode)! + numOperations);\n        } else {\n            tempAns = Math.min(r - l + 1, numOperations);\n        }\n\n        ans = Math.max(ans, tempAns);\n    }\n\n    return ans;\n}\n```\n\n```Rust [sol1-Rust]\nuse std::collections::{HashMap, HashSet};\nuse std::cmp;\n\nimpl Solution {\n    pub fn max_frequency(nums: Vec<i32>, k: i32, num_operations: i32) -> i32 {\n        let mut nums = nums;\n        nums.sort();\n        \n        let mut ans = 0;\n        let mut num_count = HashMap::new();\n        let mut modes = HashSet::new();\n        \n        let mut add_mode = |value: i32| {\n            modes.insert(value);\n            if value - k >= nums[0] {\n                modes.insert(value - k);\n            }\n            if value + k <= nums[nums.len() - 1] {\n                modes.insert(value + k);\n            }\n        };\n        \n        let mut last_num_index = 0;\n        for i in 0..nums.len() {\n            if nums[i] != nums[last_num_index] {\n                num_count.insert(nums[last_num_index], i - last_num_index);\n                ans = cmp::max(ans, (i - last_num_index) as i32);\n                add_mode(nums[last_num_index]);\n                last_num_index = i;\n            }\n        }\n        \n        num_count.insert(nums[last_num_index], nums.len() - last_num_index);\n        ans = cmp::max(ans, (nums.len() - last_num_index) as i32);\n        add_mode(nums[last_num_index]);\n        \n        let left_bound = |value: i32| -> usize {\n            let mut left = 0;\n            let mut right = nums.len() - 1;\n            while left < right {\n                let mid = (left + right) / 2;\n                if nums[mid] < value {\n                    left = mid + 1;\n                } else {\n                    right = mid;\n                }\n            }\n            left\n        };\n        \n        let right_bound = |value: i32| -> usize {\n            let mut left = 0;\n            let mut right = nums.len() - 1;\n            while left < right {\n                let mid = (left + right + 1) / 2;\n                if nums[mid] > value {\n                    right = mid - 1;\n                } else {\n                    left = mid;\n                }\n            }\n            left\n        };\n        \n        let mut sorted_modes: Vec<i32> = modes.into_iter().collect();\n        sorted_modes.sort();\n        \n        for mode in sorted_modes {\n            let l = left_bound(mode - k);\n            let r = right_bound(mode + k);\n            let temp_ans = if let Some(&count) = num_count.get(&mode) {\n                cmp::min(r - l + 1, count + num_operations as usize)\n            } else {\n                cmp::min(r - l + 1, num_operations as usize)\n            };\n            ans = cmp::max(ans, temp_ans as i32);\n        }\n        \n        ans\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：设 $n$ 为 $\\textit{nums}$ 的长度，排序需要 $O(n \\log n)$，预处理需要 $O(n)$，枚举众数需要 $O(n \\log n)$，总时间复杂度为 $O(n \\log n)$。\n\n- 空间复杂度：$O(n)$。",
+            "slateValue": "",
+            "slug": "zhi-xing-cao-zuo-hou-yuan-su-de-zui-gao-n4uko",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "azFEKr",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 1,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Prefix Sum",
+                    "nameTranslated": "前缀和",
+                    "slug": "prefix-sum",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Sorting",
+                    "nameTranslated": "排序",
+                    "slug": "sorting",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Sliding Window",
+                    "nameTranslated": "滑动窗口",
+                    "slug": "sliding-window",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2025-10-11T17:19:37.529539+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：排序 + 枚举 + 二分查找 前置题目：「3346. 执行操作后元素的最高频率 I」。请确保已经理解并掌握了前置题目中的方法。 本题是前置题目的数据强化版本，将 [latex] 和 [latex] 的范围从 [latex] 变为了 [latex]，因此不能再如「3346. 执行操作后元素的最高频率 I」中一样直",
+            "topic": {
+                "id": 3803631,
+                "subscribed": false,
+                "commentCount": 10,
+                "viewCount": 32,
+                "post": {
+                    "id": 6944578,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 15,
+            "isEditorsPick": false,
+            "hitCount": 5370,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "maximum-frequency-of-an-element-after-performing-operations-ii",
+                "questionFrontendId": "3347"
+            },
+            "next": {
+                "slug": "liang-chong-fang-fa-chai-fen-hua-dong-ch-7buy",
+                "title": "两种方法：差分/三指针+双指针（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,132 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "67jqCX",
+            "title": "锯齿形数组的总数 II",
+            "content": "#### 方法一：动态规划 + 矩阵快速幂\n\n本题是[「3699. 锯齿形数组的总数 I」](https://leetcode.cn/problems/number-of-zigzag-arrays-i/)的困难版本，请先理解前置题目的动态规划思想，以及「[矩阵快速幂](https://oi-wiki.org/math/binary-exponentiation/)」的求法。\n\n**思路与算法**\n\n相较于前置题目，本题在数据范围上大幅降低了取值边界 $l$ 与 $r$ 的范围，但是将数组的长度范围扩展到了 $10^9$，因此不能再直接使用基于下标的遍历转移。\n\n考虑动态规划转移的优化方案：在前置题目中，我们使用了前缀和优化单次状态转移。这本质上揭示了，当前状态是由**前一个状态分量的线性组合**得到的，这意味着我们可以将状态转移写成一个**状态转移矩阵**，将初始状态不断乘上这个状态转移矩阵（左乘右乘均可，但是要保持方向一致），就能得到最终的状态。而一旦将状态转移变换写成矩阵，该矩阵一定是方阵，连乘就可以表达为**方阵的幂次**，我们就可以使用矩阵的快速幂运算来优化求解过程，从而将外层时间复杂度从基于下标遍历的 $O(n)$ 优化到 $O(\\log n)$ 级别。这便是本方法的基本思想。\n\n下面来考虑如何构造状态分量和转移矩阵。回顾一下，设区间长度 $m = r - l + 1$，之前拆出了两个形状为 $1 \\times m$ 状态分量 $\\textit{dp}_0$ 和 $\\textit{dp}_1$，其中 $\\textit{dp}_0$ 代表末尾元素和前一个元素构成的排列是严格递减的，$\\textit{dp}_1$ 则代表构成的排列是严格递增的。显然我们可以针对两个状态分量分别构造一个状态转移矩阵，设 $\\textit{dp}_0$ 对应的转移矩阵是 $B$，$\\textit{dp}_1$ 对应的转移矩阵是 $A$，则原来的状态转移过程可以描述为：\n\n$$\n\\begin{aligned}\n\\textit{dp}_0[i] = \\textit{dp}_1[i-1] \\cdot B \\\\\n\\textit{dp}_1[i] = \\textit{dp}_0[i-1] \\cdot A\n\\end{aligned}\n$$\n\n然后我们可以使用分块矩阵的思想，将两个分量合并为一个形状为 $1 \\times (2 \\cdot m)$ 的向量 $[\\textit{dp}_0[i],\\, \\textit{dp}_1[i]]$，得到单一转移方程如下：\n\n$$\n\\begin{bmatrix} \\textit{dp}_0[i] & \\textit{dp}_1[i] \\end{bmatrix} = \\begin{bmatrix} \\textit{dp}_0[i-1] & \\textit{dp}_1[i-1] \\end{bmatrix} \\cdot \\begin{bmatrix} O & A \\\\ B & O \\end{bmatrix}\n$$\n\n其中，大方阵 $U = \\begin{bmatrix} O & A \\\\ B & O \\end{bmatrix}$ 即为合并后的状态转移矩阵，大小为 $(2 \\cdot m) \\times (2 \\cdot m)$，$O$ 是 $m \\times m$ 的零矩阵。这里之所以排列成分块反对角矩阵，是因为两个分量的转移刚好是交错进行的，$\\textit{dp}_0$ 由上一个 $\\textit{dp}_1$ 转移而来，反之同理。\n\n剩下的部分为分块矩阵 $A$ 和 $B$ 的构造。$A$ 和 $B$ 大小均为 $m \\times m$，它们定义了前置题目中转移方程的矩阵形式：\n\n- 矩阵 $A$（从 $\\textit{dp}_0$ 转移至 $\\textit{dp}_1$）：设矩阵的行索引和列索引分别为 $i, j$（以 $1$ 为起始下标），根据向量右乘矩阵的定义，对于 $\\textit{dp}_0 \\cdot A$，新状态的第 $j$ 个分量实际上是由旧状态 $\\textit{dp}_0$ 与矩阵 $A$ 的**第 $j$ 列**进行点乘得到的。换言之，对于 $A$ 的第 $j$ 列，从上到下表达了旧分量参与线性组合的权重。因为转移到 $\\textit{dp}_1$ 要求构成的排列是严格递增的，即旧元素必须严格小于新元素，所以我们要把旧状态中小于 $j$ 的部分求和。反映在矩阵上，意味着对于 $A$ 的第 $j$ 列，只有行索引 $i$ 从 $1$ 到 $j-1$ 的位置系数取 $1$，其余取 $0$。这便构成了主对角线上方全为 $1$ 的**严格上三角矩阵**。\n\n- 矩阵 $B$（从 $\\textit{dp}_1$ 转移至 $\\textit{dp}_0$）：同理可得，转移到要求严格递减的 $\\textit{dp}_0$ 时，因为要求旧元素必须严格大于新元素。反映在矩阵 $B$ 的第 $j$ 列上，就是行索引 $i$ 从 $j+1$ 到 $m$ 的位置的系数取 $1$。最终将构成一个主对角线下方全为 $1$ 的**严格下三角矩阵**。\n\n为了直观地理解，取 $m = 3$ 作为示例。此时矩阵 $A$ 和 $B$ 分别为：\n\n$$\nA = \\begin{bmatrix} 0 & 1 & 1 \\\\ 0 & 0 & 1 \\\\ 0 & 0 & 0 \\end{bmatrix}, \\quad B = \\begin{bmatrix} 0 & 0 & 0 \\\\ 1 & 0 & 0 \\\\ 1 & 1 & 0 \\end{bmatrix}\n$$\n\n将它们按分块矩阵的规则组装成完整的 $6 \\times 6$ 状态转移方阵 $U$，如下所示：\n\n$$\nU = \\left[\n\\begin{array}{ccc:ccc}\n0 & 0 & 0 & 0 & 1 & 1 \\\\\n0 & 0 & 0 & 0 & 0 & 1 \\\\\n0 & 0 & 0 & 0 & 0 & 0 \\\\\n\\hdashline\n0 & 0 & 0 & 0 & 0 & 0 \\\\\n1 & 0 & 0 & 0 & 0 & 0 \\\\\n1 & 1 & 0 & 0 & 0 & 0\n\\end{array}\n\\right]\n$$\n\n设目标锯齿数组的长度是 $n$，此时终态为 $\\textit{dp}[n-1]$，求解过程如下：\n\n$$\n\\textit{dp}[n-1] = \\textit{dp}[0] \\cdot U^{n-1}\n$$\n\n构造全 1 的向量作为 $\\textit{dp}$ 的初始分量，将其与 $U$ 矩阵使用快速幂进行幂次运算，再对 $\\textit{dp}$ 的结果求和，即为所求。矩阵快速幂算法和整数下的快速幂一致，只是将其中的乘法运算替换为矩阵乘法，这里不再赘述。唯一需要注意一点是，实现的时候可以直接将 $\\textit{dp}[0]$ 而不是单位阵作为左乘的第一个矩阵。由于 $\\textit{dp}[0]$ 是一个 $1 \\times 2 \\cdot m$ 的向量，每次乘上 $U$ 后得到的也是 $1 \\times 2 \\cdot m$ 的向量，这可以大幅减少快速幂过程中矩阵乘法的运算次数。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\nprivate:\n    static constexpr long long MOD = 1'000'000'007;\n    using Matrix = vector<vector<long long>>;\n\n    Matrix mul(const Matrix& a, const Matrix& b) {\n        int n = a.size();\n        int m = b[0].size();\n        Matrix res(n, vector<long long>(m, 0));\n\n        for (int i = 0; i < n; i++) {\n            for (int k = 0; k < a[0].size(); k++) {\n                long long r = a[i][k];\n                if (r == 0) {\n                    continue;\n                }\n                for (int j = 0; j < m; j++) {\n                    res[i][j] = (res[i][j] + r * b[k][j]) % MOD;\n                }\n            }\n        }\n        return res;\n    }\n\n    Matrix powMul(Matrix base, long long exp, Matrix res) {\n        while (exp > 0) {\n            if (exp & 1) {\n                res = mul(res, base);\n            }\n            base = mul(base, base);\n            exp >>= 1;\n        }\n        return res;\n    }\n\npublic:\n    int zigZagArrays(int n, int l, int r) {\n        int m = r - l + 1;\n        if (n == 1) {\n            return m;\n        }\n\n        int size = 2 * m;\n        Matrix u(size, vector<long long>(size, 0));\n\n        for (int i = 0; i < m; i++) {\n            for (int j = 0; j < i; j++) {\n                u[i][j + m] = 1;\n            }\n            for (int j = i + 1; j < m; j++) {\n                u[i + m][j] = 1;\n            }\n        }\n\n        Matrix dp(1, vector<long long>(size, 1));\n\n        dp = powMul(std::move(u), n - 1, std::move(dp));\n\n        long long ans = 0;\n        for (int i = 0; i < size; i++) {\n            ans = (ans + dp[0][i]) % MOD;\n        }\n\n        return ans;\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    MOD = 1_000_000_007\n    \n    def mul(self, a, b):\n        n = len(a)\n        m = len(b[0])\n        res = [[0] * m for _ in range(n)]\n        \n        for i in range(n):\n            for k in range(len(a[0])):\n                r = a[i][k]\n                if r == 0:\n                    continue\n                for j in range(m):\n                    res[i][j] = (res[i][j] + r * b[k][j]) % self.MOD\n        return res\n    \n    def powMul(self, base, exp, res):\n        while exp > 0:\n            if exp & 1:\n                res = self.mul(res, base)\n            base = self.mul(base, base)\n            exp >>= 1\n        return res\n    \n    def zigZagArrays(self, n: int, l: int, r: int) -> int:\n        m = r - l + 1\n        if n == 1:\n            return m\n        \n        size = 2 * m\n        u = [[0] * size for _ in range(size)]\n        for i in range(m):\n            for j in range(i):\n                u[i][j + m] = 1\n            for j in range(i + 1, m):\n                u[i + m][j] = 1\n        \n        dp = [[1] * size]\n        dp = self.powMul(u, n - 1, dp)\n        ans = 0\n        for i in range(size):\n            ans = (ans + dp[0][i]) % self.MOD\n        \n        return ans\n```\n\n```Java [sol1-Java]\nclass Solution {\n    private static final long MOD = 1_000_000_007L;\n\n    static class Matrix {\n        int n, m;\n        long[] data;\n\n        Matrix(int n, int m) {\n            this.n = n;\n            this.m = m;\n            this.data = new long[n * m];\n        }\n\n        long get(int i, int j) {\n            return data[i * m + j];\n        }\n\n        void set(int i, int j, long val) {\n            data[i * m + j] = val;\n        }\n\n        Matrix mul(Matrix b) {\n            Matrix res = new Matrix(n, b.m);\n            for (int i = 0; i < n; i++) {\n                for (int k = 0; k < m; k++) {\n                    long r = this.get(i, k);\n                    if (r == 0) {\n                        continue;\n                    }\n\n                    for (int j = 0; j < b.m; j++) {\n                        res.set(i, j, (res.get(i, j) + r * b.get(k, j)) % MOD);\n                    }\n                }\n            }\n            return res;\n        }\n\n        Matrix pow(long exp, Matrix res) {\n            Matrix base = new Matrix(n, m);\n            System.arraycopy(this.data, 0, base.data, 0, this.data.length);\n\n            while (exp > 0) {\n                if ((exp & 1L) == 1L) {\n                    res = res.mul(base);\n                }\n                base = base.mul(base);\n                exp >>= 1L;\n            }\n            return res;\n        }\n    }\n\n    public int zigZagArrays(int n, int l, int r) {\n        int m = r - l + 1;\n        if (n == 1) {\n            return m;\n        }\n\n        Matrix u = new Matrix(2 * m, 2 * m);\n\n        for (int i = 0; i < m; i++) {\n            for (int j = 0; j < i; j++) {\n                u.set(i, j + m, 1L);\n            }\n            for (int j = i + 1; j < m; j++) {\n                u.set(i + m, j, 1L);\n            }\n        }\n\n        Matrix dp = new Matrix(1, 2 * m);\n        for (int i = 0; i < 2 * m; i++) {\n            dp.set(0, i, 1L);\n        }\n\n        dp = u.pow(n - 1, dp);\n\n        long ans = 0;\n        for (int i = 0; i < 2 * m; i++) {\n            ans = (ans + dp.get(0, i)) % MOD;\n        }\n\n        return (int) ans;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution\n{\n    const long MOD = 1_000_000_007;\n\n    public struct Matrix\n    {\n        public int n, m;\n        public long[] data;\n\n        public Matrix(int n, int m)\n        {\n            this.n = n;\n            this.m = m;\n            data = new long[n * m];\n        }\n\n        public long Get(int i, int j) => data[i * m + j];\n        public void Set(int i, int j, long val) => data[i * m + j] = val;\n\n        public static Matrix operator *(Matrix a, Matrix b)\n        {\n            var res = new Matrix(a.n, b.m);\n\n            for (var i = 0; i < a.n; i++)\n            {\n                for (var k = 0; k < a.m; k++)\n                {\n                    var r = a.Get(i, k);\n                    if (r == 0) continue;\n\n                    for (var j = 0; j < b.m; j++)\n                    {\n                        res.Set(i, j, (res.Get(i, j) + r * b.Get(k, j)) % MOD);\n                    }\n                }\n            }\n            return res;\n        }\n\n        public Matrix PowMul(long exp, Matrix res)\n        {\n            var baseMat = new Matrix(n, m);\n            Array.Copy(data, baseMat.data, data.Length);\n\n            while (exp > 0)\n            {\n                if ((exp & 1) == 1)\n                {\n                    res *= baseMat;\n                }\n                baseMat *= baseMat;\n                exp >>= 1;\n            }\n            return res;\n        }\n    }\n\n    public int ZigZagArrays(int n, int l, int r)\n    {\n        if (n == 1) return r - l + 1;\n\n        var m = r - l + 1;\n        var size = 2 * m;\n        var u = new Matrix(size, size);\n\n        for (var i = 0; i < m; i++)\n        {\n            for (var j = 0; j < i; j++) u.Set(i, j + m, 1);\n            for (var j = i + 1; j < m; j++) u.Set(i + m, j, 1);\n        }\n\n        var dp = new Matrix(1, size);\n        Array.Fill(dp.data, 1L);\n\n        dp = u.PowMul(n - 1, dp);\n\n        return (int)dp.data.Aggregate(0L, (acc, val) => (acc + val) % MOD);\n    }\n}\n```\n\n```C [sol1-C]\n#define MOD 1000000007LL\n\ntypedef long long ll;\n\nll** matrix_alloc(int n, int m) {\n    ll** mat = (ll**)malloc(n * sizeof(ll*));\n    for (int i = 0; i < n; i++) {\n        mat[i] = (ll*)calloc(m, sizeof(ll));\n    }\n    return mat;\n}\n\nvoid matrix_free(ll** mat, int n) {\n    for (int i = 0; i < n; i++) {\n        free(mat[i]);\n    }\n    free(mat);\n}\n\nll** mul(ll** a, ll** b, int an, int am, int bm) {\n    ll** res = matrix_alloc(an, bm);\n    \n    for (int i = 0; i < an; i++) {\n        for (int k = 0; k < am; k++) {\n            ll r = a[i][k];\n            if (r == 0) {\n                continue;\n            }\n            for (int j = 0; j < bm; j++) {\n                res[i][j] = (res[i][j] + r * b[k][j]) % MOD;\n            }\n        }\n    }\n    return res;\n}\n\nvoid pow_mul(ll** base, int size, ll exp, ll** res) {\n    ll** base_copy = matrix_alloc(size, size);\n    ll** res_copy = matrix_alloc(1, size);\n    \n    for (int i = 0; i < size; i++) {\n        memcpy(base_copy[i], base[i], size * sizeof(ll));\n    }\n    memcpy(res_copy[0], res[0], size * sizeof(ll));\n    \n    while (exp > 0) {\n        if (exp & 1) {\n            ll** temp = mul(res_copy, base_copy, 1, size, size);\n            matrix_free(res_copy, 1);\n            res_copy = temp;\n        }\n        ll** temp = mul(base_copy, base_copy, size, size, size);\n        matrix_free(base_copy, size);\n        base_copy = temp;\n        exp >>= 1;\n    }\n    \n    memcpy(res[0], res_copy[0], size * sizeof(ll));\n    \n    matrix_free(base_copy, size);\n    matrix_free(res_copy, 1);\n}\n\nint zigZagArrays(int n, int l, int r) {\n    int m = r - l + 1;\n    if (n == 1) {\n        return m;\n    }\n    \n    int size = 2 * m;\n    ll** u = matrix_alloc(size, size);\n    \n    for (int i = 0; i < m; i++) {\n        for (int j = 0; j < i; j++) {\n            u[i][j + m] = 1;\n        }\n        for (int j = i + 1; j < m; j++) {\n            u[i + m][j] = 1;\n        }\n    }\n    \n    ll** dp = matrix_alloc(1, size);\n    for (int i = 0; i < size; i++) {\n        dp[0][i] = 1;\n    }\n    \n    pow_mul(u, size, (ll)(n - 1), dp);\n    ll ans = 0;\n    for (int i = 0; i < size; i++) {\n        ans = (ans + dp[0][i]) % MOD;\n    }\n    \n    matrix_free(u, size);\n    matrix_free(dp, 1);\n    \n    return (int)ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nconst MOD = 1_000_000_007n;\n\nclass Matrix {\n    constructor(n, m) {\n        this.n = n;\n        this.m = m;\n        this.data = new BigInt64Array(n * m);\n    }\n\n    get(i, j) {\n        return this.data[i * this.m + j];\n    }\n\n    set(i, j, val) {\n        this.data[i * this.m + j] = val;\n    }\n\n    mul(b) {\n        const res = new Matrix(this.n, b.m);\n\n        for (let i = 0; i < this.n; i++) {\n            for (let k = 0; k < this.m; k++) {\n                const r = this.get(i, k);\n                if (r === 0n) continue;\n\n                for (let j = 0; j < b.m; j++) {\n                    res.set(i, j, (res.get(i, j) + r * b.get(k, j)) % MOD);\n                }\n            }\n        }\n        return res;\n    }\n\n    powMul(exp, res) {\n        let base = new Matrix(this.n, this.m);\n        base.data = new BigInt64Array(this.data);\n\n        while (exp > 0n) {\n            if ((exp & 1n) === 1n) {\n                res = res.mul(base);\n            }\n            base = base.mul(base);\n            exp >>= 1n;\n        }\n\n        return res;\n    }\n}\n\nfunction zigZagArrays(n, l, r) {\n    const m = r - l + 1;\n    if (n === 1) return m;\n\n    let u = new Matrix(2 * m, 2 * m);\n\n    for (let i = 0; i < m; i++) {\n        for (let j = 0; j < i; j++) {\n            u.set(i, j + m, 1n);\n        }\n        for (let j = i + 1; j < m; j++) {\n            u.set(i + m, j, 1n);\n        }\n    }\n\n    let dp = new Matrix(1, 2 * m);\n    for (let i = 0; i < 2 * m; i++) {\n        dp.set(0, i, 1n);\n    }\n\n    dp = u.powMul(BigInt(n - 1), dp);\n\n    let ans = 0n;\n    for (let i = 0; i < 2 * m; i++) {\n        ans = (ans + dp.get(0, i)) % MOD;\n    }\n\n    return Number(ans);\n}\n```\n\n```TypeScript [sol1-TypeScript]\nconst MOD = 1_000_000_007n;\n\nclass Matrix {\n    data: BigInt64Array;\n\n    constructor(public n: number, public m: number) {\n        this.data = new BigInt64Array(n * m);\n    }\n\n    get(i: number, j: number): bigint {\n        return this.data[i * this.m + j];\n    }\n\n    set(i: number, j: number, val: bigint) {\n        this.data[i * this.m + j] = val;\n    }\n\n    mul(b: Matrix): Matrix {\n        const res = new Matrix(this.n, b.m);\n\n        for (let i = 0; i < this.n; i++) {\n            for (let k = 0; k < this.m; k++) {\n                const r = this.get(i, k);\n                if (r === 0n) continue;\n\n                for (let j = 0; j < b.m; j++) {\n                    res.set(i, j, (res.get(i, j) + r * b.get(k, j)) % MOD);\n                }\n            }\n        }\n        return res;\n    }\n\n    powMul(exp: bigint, res: Matrix): Matrix {\n        let base = new Matrix(this.n, this.m);\n        base.data = new BigInt64Array(this.data);\n\n        while (exp > 0n) {\n            if ((exp & 1n) === 1n) {\n                res = res.mul(base);\n            }\n            base = base.mul(base);\n            exp >>= 1n;\n        }\n\n        return res;\n    }\n}\n\nfunction zigZagArrays(n: number, l: number, r: number): number {\n    const m = r - l + 1;\n    if (n === 1) return m;\n\n    let u = new Matrix(2 * m, 2 * m);\n\n    for (let i = 0; i < m; i++) {\n        for (let j = 0; j < i; j++) {\n            u.set(i, j + m, 1n);\n        }\n        for (let j = i + 1; j < m; j++) {\n            u.set(i + m, j, 1n);\n        }\n    }\n\n    let dp = new Matrix(1, 2 * m);\n    for (let i = 0; i < 2 * m; i++) {\n        dp.set(0, i, 1n);\n    }\n\n    dp = u.powMul(BigInt(n - 1), dp);\n\n    let ans = 0n;\n    for (let i = 0; i < 2 * m; i++) {\n        ans = (ans + dp.get(0, i)) % MOD;\n    }\n\n    return Number(ans);\n}\n```\n\n```Go [sol1-Go]\nconst MOD = 1000000007\n\ntype Matrix [][]int64\n\nfunc mul(a, b Matrix) Matrix {\n    n := len(a)\n    m := len(b[0])\n    res := make(Matrix, n)\n    for i := range res {\n        res[i] = make([]int64, m)\n    }\n    \n    for i := 0; i < n; i++ {\n        for k := 0; k < len(a[0]); k++ {\n            r := a[i][k]\n            if r == 0 {\n                continue\n            }\n            for j := 0; j < m; j++ {\n                res[i][j] = (res[i][j] + r * b[k][j]) % MOD\n            }\n        }\n    }\n    return res\n}\n\nfunc powMul(base Matrix, exp int64, res Matrix) Matrix {\n    for exp > 0 {\n        if exp & 1 == 1 {\n            res = mul(res, base)\n        }\n        base = mul(base, base)\n        exp >>= 1\n    }\n    return res\n}\n\nfunc zigZagArrays(n int, l int, r int) int {\n    m := r - l + 1\n    if n == 1 {\n        return m\n    }\n    \n    size := 2 * m\n    u := make(Matrix, size)\n    for i := range u {\n        u[i] = make([]int64, size)\n    }\n    \n    for i := 0; i < m; i++ {\n        for j := 0; j < i; j++ {\n            u[i][j+m] = 1\n        }\n        for j := i + 1; j < m; j++ {\n            u[i+m][j] = 1\n        }\n    }\n    \n    dp := make(Matrix, 1)\n    dp[0] = make([]int64, size)\n    for i := 0; i < size; i++ {\n        dp[0][i] = 1\n    }\n    \n    dp = powMul(u, int64(n-1), dp)\n    \n    var ans int64 = 0\n    for i := 0; i < size; i++ {\n        ans = (ans + dp[0][i]) % MOD\n    }\n    \n    return int(ans)\n}\n```\n\n```Rust [sol1-Rust]\nconst MOD: i64 = 1_000_000_007;\n\n#[derive(Clone)]\nstruct Matrix {\n    n: usize,\n    m: usize,\n    data: Vec<i64>,\n}\n\nimpl Matrix {\n    fn new(n: usize, m: usize) -> Self {\n        Matrix {\n            n,\n            m,\n            data: vec![0; n * m],\n        }\n    }\n\n    fn get(&self, i: usize, j: usize) -> i64 {\n        self.data[i * self.m + j]\n    }\n\n    fn set(&mut self, i: usize, j: usize, val: i64) {\n        self.data[i * self.m + j] = val;\n    }\n\n    fn pow_mul(mut self, mut exp: i64, mut res: Matrix) -> Matrix {\n        while exp > 0 {\n            if exp & 1 == 1 {\n                res = &res * &self;\n            }\n            self = &self * &self;\n            exp >>= 1;\n        }\n        res\n    }\n}\n\nimpl std::ops::Mul for &Matrix {\n    type Output = Matrix;\n\n    fn mul(self, b: &Matrix) -> Matrix {\n        let mut res = Matrix::new(self.n, b.m);\n        for i in 0..self.n {\n            for k in 0..self.m {\n                let r = self.get(i, k);\n                if r == 0 { continue; }\n\n                for j in 0..b.m {\n                    res.set(i, j, (res.get(i, j) + r * b.get(k, j)) % MOD);\n                }\n            }\n        }\n        res\n    }\n}\n\nimpl Solution {\n    pub fn zig_zag_arrays(n: i32, l: i32, r: i32) -> i32 {\n        let m = (r - l + 1) as usize;\n        if n == 1 { return m as i32; }\n\n        let size = 2 * m;\n        let mut u = Matrix::new(size, size);\n\n        for i in 0..m {\n            for j in 0..i {\n                u.set(i, j + m, 1);\n            }\n            for j in (i + 1)..m {\n                u.set(i + m, j, 1);\n            }\n        }\n\n        let mut dp = Matrix::new(1, size);\n        for i in 0..size {\n            dp.set(0, i, 1);\n        }\n\n        dp = u.pow_mul((n - 1) as i64, dp);\n\n        let mut ans = 0;\n        for i in 0..size {\n            ans = (ans + dp.get(0, i)) % MOD;\n        }\n\n        ans as i32\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(m^3 \\log n)$，其中 $m$ 是给定区间的长度，即 $r - l + 1$。其中构造各个矩阵需要 $O(m^2)$；矩阵快速幂外层循环需要 $O(\\log n)$，矩阵乘法需要 $O(m^3)$，总时间复杂度为 $O(m^3 \\log n)$；最后求和需要 $O(m)$。故总时间复杂度为 $O(m^3 \\log n)$。\n\n- 空间复杂度：$O(m^2)$。状态转移矩阵 $u$ 需要 $O(m^2)$ 的空间，初始状态向量 $\\textit{dp}$ 需要 $O(m)$，矩阵相乘的中间变量需要额外 $O(m^2)$ 空间。故总空间复杂度是 $O(m^2)$。",
+            "slateValue": "",
+            "slug": "ju-chi-xing-shu-zu-de-zong-shu-ii-by-lee-z1x1",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "67jqCX",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 4,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2026-06-16T01:34:40.753272+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 + 矩阵快速幂 本题是「3699. 锯齿形数组的总数 I」的困难版本，请先理解前置题目的动态规划思想，以及「矩阵快速幂」的求法。 思路与算法 相较于前置题目，本题在数据范围上大幅降低了取值边界 [latex] 与 [latex] 的范围，但是将数组的长度范围扩展到了 [latex]，因此不能再直接使用",
+            "topic": {
+                "id": 3984256,
+                "subscribed": false,
+                "commentCount": 10,
+                "viewCount": 11,
+                "post": {
+                    "id": 7262501,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 15,
+            "isEditorsPick": false,
+            "hitCount": 2599,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "number-of-zigzag-arrays-ii",
+                "questionFrontendId": "3700"
+            },
+            "next": {
+                "slug": "ju-zhen-kuai-su-mi-you-hua-dppythonnumpy-77e7",
+                "title": "两种方法：矩阵快速幂优化 DP / BM+Kitamasa（Python/NumPy/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

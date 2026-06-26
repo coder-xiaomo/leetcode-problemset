@@ -1,0 +1,124 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "QXRX3x",
+            "title": "数组相对排序",
+            "content": "#### 方法一：自定义排序\n\n一种容易想到的方法是使用排序并自定义比较函数。\n\n由于数组 $\\textit{arr}_2$ 规定了比较顺序，因此我们可以使用哈希表对该顺序进行映射：即对于数组 $\\textit{arr}_2$ 中的第 $i$ 个元素，我们将 $(\\textit{arr}_2[i], i)$ 这一键值对放入哈希表 $\\textit{rank}$ 中，就可以很方便地对数组 $\\textit{arr}_1$ 中的元素进行比较。\n\n比较函数的写法有很多种，例如我们可以使用最基础的比较方法，对于元素 $x$ 和 $y$：\n\n- 如果 $x$ 和 $y$ 都出现在哈希表中，那么比较它们对应的值 $\\textit{rank}[x]$ 和 $\\textit{rank}[y]$；\n\n- 如果 $x$ 和 $y$ 都没有出现在哈希表中，那么比较它们本身；\n\n- 对于剩余的情况，出现在哈希表中的那个元素较小。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<int> relativeSortArray(vector<int>& arr1, vector<int>& arr2) {\n        unordered_map<int, int> rank;\n        for (int i = 0; i < arr2.size(); ++i) {\n            rank[arr2[i]] = i;\n        }\n        sort(arr1.begin(), arr1.end(), [&](int x, int y) {\n            if (rank.count(x)) {\n                return rank.count(y) ? rank[x] < rank[y] : true;\n            }\n            else {\n                return rank.count(y) ? false : x < y;\n            }\n        });\n        return arr1;\n    }\n};\n```\n\n```Golang [sol1-Golang]\nfunc relativeSortArray(arr1 []int, arr2 []int) []int {\n    rank := map[int]int{}\n    for i, v := range arr2 {\n        rank[v] = i\n    }\n    sort.Slice(arr1, func(i, j int) bool {\n        x, y := arr1[i], arr1[j]\n        rankX, hasX := rank[x]\n        rankY, hasY := rank[y]\n        if hasX && hasY {\n            return rankX < rankY\n        }\n        if hasX || hasY {\n            return hasX\n        }\n        return x < y\n    })\n    return arr1\n}\n```\n\n```C [sol1-C]\nstruct hashTable {\n    int key;\n    int val;\n    UT_hash_handle hh;\n};\n\nstruct hashTable* hashtable;\n\nstruct hashTable* find(int ikey) {\n    struct hashTable* tmp;\n    HASH_FIND_INT(hashtable, &ikey, tmp);\n    return tmp;\n}\n\nvoid insert(int ikey, int ival) {\n    struct hashTable* tmp = malloc(sizeof(struct hashTable));\n    tmp->key = ikey, tmp->val = ival;\n    HASH_ADD_INT(hashtable, key, tmp);\n}\n\nint cmp(void* _a, void* _b) {\n    int a = *((int*)_a), b = *((int*)_b);\n    struct hashTable *fa = find(a), *fb = find(b);\n    if (fa == NULL) {\n        return fb == NULL ? a - b : 1;\n    } else {\n        return fb == NULL ? -1 : fa->val - fb->val;\n    }\n}\n\nint* relativeSortArray(int* arr1, int arr1Size, int* arr2, int arr2Size, int* returnSize) {\n    hashtable = NULL;\n    for (int i = 0; i < arr2Size; ++i) {\n        insert(arr2[i], i);\n    }\n    qsort(arr1, arr1Size, sizeof(int), cmp);\n    *returnSize = arr1Size;\n    return arr1;\n}\n```\n\n很多语言支持对「元组」进行排序，即依次比较元组中每一个对应位置的元素，直到比较出大小关系为止。因此，对于元素 $x$，如果它出现在哈希表中，我们使用二元组 $(0, \\textit{rank}[x])$；如果它没有出现在哈希表中，我们使用二元组 $(1, x)$，就可以得到正确的排序结果。\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    vector<int> relativeSortArray(vector<int>& arr1, vector<int>& arr2) {\n        unordered_map<int, int> rank;\n        for (int i = 0; i < arr2.size(); ++i) {\n            rank[arr2[i]] = i;\n        }\n        auto mycmp = [&](int x) -> pair<int, int> {\n            return rank.count(x) ? pair{0, rank[x]} : pair{1, x};\n        };\n        sort(arr1.begin(), arr1.end(), [&](int x, int y) {\n            return mycmp(x) < mycmp(y);\n        });\n        return arr1;\n    }\n};\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def relativeSortArray(self, arr1: List[int], arr2: List[int]) -> List[int]:\n        def mycmp(x: int) -> (int, int):\n            return (0, rank[x]) if x in rank else (1, x)\n        \n        rank = {x: i for i, x in enumerate(arr2)}\n        arr1.sort(key=mycmp)\n        return arr1\n```\n\n此外，由于题目中给定的元素都是正数，因此我们可以用 $\\textit{rank}[x]-n$ 和 $x$ 分别代替 $(0, \\textit{rank}[x])$ 和 $(1, x)$，其中 $n$ 是数组 $\\textit{arr}_2$ 的长度（同时也是哈希表 $\\textit{rank}$ 的大小）。这样做的正确性在于，$\\textit{rank}[x]-n$ 一定是负数，而 $x$ 一定是正数。\n\n```C++ [sol3-C++]\nclass Solution {\npublic:\n    vector<int> relativeSortArray(vector<int>& arr1, vector<int>& arr2) {\n        unordered_map<int, int> rank;\n        int n = arr2.size();\n        for (int i = 0; i < n; ++i) {\n            rank[arr2[i]] = i - n;\n        }\n        sort(arr1.begin(), arr1.end(), [&](int x, int y) {\n            return (rank.count(x) ? rank[x] : x) < (rank.count(y) ? rank[y] : y);\n        });\n        return arr1;\n    }\n};\n```\n\n```Python [sol3-Python3]\nclass Solution:\n    def relativeSortArray(self, arr1: List[int], arr2: List[int]) -> List[int]:\n        def mycmp(x: int) -> (int, int):\n            return rank[x] if x in rank else x\n        \n        n = len(arr2)\n        rank = {x: i - n for i, x in enumerate(arr2)}\n        arr1.sort(key=mycmp)\n        return arr1\n```\n\n```Golang [sol3-Golang]\nfunc relativeSortArray(arr1 []int, arr2 []int) []int {\n    rank := map[int]int{}\n    for i, v := range arr2 {\n        rank[v] = i - len(arr2)\n    }\n    sort.Slice(arr1, func(i, j int) bool {\n        x, y := arr1[i], arr1[j]\n        if r, has := rank[x]; has {\n            x = r\n        }\n        if r, has := rank[y]; has {\n            y = r\n        }\n        return x < y\n    })\n    return arr1\n}\n```\n\n```C [sol3-C]\nstruct hashTable {\n    int key;\n    int val;\n    UT_hash_handle hh;\n};\n\nstruct hashTable* hashtable;\n\nstruct hashTable* find(int ikey) {\n    struct hashTable* tmp;\n    HASH_FIND_INT(hashtable, &ikey, tmp);\n    return tmp;\n}\n\nvoid insert(int ikey, int ival) {\n    struct hashTable* tmp = malloc(sizeof(struct hashTable));\n    tmp->key = ikey, tmp->val = ival;\n    HASH_ADD_INT(hashtable, key, tmp);\n}\n\nint cmp(void* _a, void* _b) {\n    int a = *((int*)_a), b = *((int*)_b);\n    struct hashTable *fa = find(a), *fb = find(b);\n    return (fa == NULL ? a : fa->val) - (fb == NULL ? b : fb->val);\n}\n\nint* relativeSortArray(int* arr1, int arr1Size, int* arr2, int arr2Size, int* returnSize) {\n    hashtable = NULL;\n    for (int i = 0; i < arr2Size; ++i) {\n        insert(arr2[i], i - arr2Size);\n    }\n    qsort(arr1, arr1Size, sizeof(int), cmp);\n    *returnSize = arr1Size;\n    return arr1;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(m \\log m + n)$，其中 $m$ 和 $n$ 分别是数组 $\\textit{arr}_1$ 和 $\\textit{arr}_2$ 的长度。构造哈希表 $\\textit{rank}$ 的时间复杂度为 $O(n)$，排序的时间复杂度为 $O(m \\log m)$。\n\n- 空间复杂度：$O(\\log m + n)$，哈希表 $\\textit{rank}$ 需要的空间为 $O(n)$，排序需要的栈空间为 $O(\\log m)$。\n\n#### 方法二：计数排序\n\n**思路与算法**\n\n注意到本题中元素的范围为 $[0, 1000]$，这个范围不是很大，我们也可以考虑不基于比较的排序，例如「计数排序」。\n\n具体地，我们使用一个长度为 $1001$（下标从 $0$ 到 $1000$）的数组 $\\textit{frequency}$，记录每一个元素在数组 $\\textit{arr}_1$ 中出现的次数。随后我们遍历数组 $\\textit{arr}_2$，当遍历到元素 $x$ 时，我们将 $\\textit{frequency}[x]$ 个 $x$ 加入答案中，并将 $\\textit{frequency}[x]$ 清零。当遍历结束后，所有在 $\\textit{arr}_2$ 中出现过的元素就已经有序了。\n\n此时还剩下没有在 $\\textit{arr}_2$ 中出现过的元素，因此我们还需要对整个数组 $\\textit{frequency}$ 进行一次遍历。当遍历到元素 $x$ 时，如果 $\\textit{frequency}[x]$ 不为 $0$，我们就将 $\\textit{frequency}[x]$ 个 $x$ 加入答案中。\n\n**细节**\n\n我们可以对空间复杂度进行一个小优化。实际上，我们不需要使用长度为 $1001$ 的数组，而是可以找出数组 $\\textit{arr}_1$ 中的最大值 $\\textit{upper}$，使用长度为 $\\textit{upper}+1$ 的数组即可。\n\n**代码**\n\n```C++ [sol4-C++]\nclass Solution {\npublic:\n    vector<int> relativeSortArray(vector<int>& arr1, vector<int>& arr2) {\n        int upper = *max_element(arr1.begin(), arr1.end());\n        vector<int> frequency(upper + 1);\n        for (int x: arr1) {\n            ++frequency[x];\n        }\n        vector<int> ans;\n        for (int x: arr2) {\n            for (int i = 0; i < frequency[x]; ++i) {\n                ans.push_back(x);\n            }\n            frequency[x] = 0;\n        }\n        for (int x = 0; x <= upper; ++x) {\n            for (int i = 0; i < frequency[x]; ++i) {\n                ans.push_back(x);\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```Java [sol4-Java]\nclass Solution {\n    public int[] relativeSortArray(int[] arr1, int[] arr2) {\n        int upper = 0;\n        for (int x : arr1) {\n            upper = Math.max(upper, x);\n        }\n        int[] frequency = new int[upper + 1];\n        for (int x : arr1) {\n            ++frequency[x];\n        }\n        int[] ans = new int[arr1.length];\n        int index = 0;\n        for (int x : arr2) {\n            for (int i = 0; i < frequency[x]; ++i) {\n                ans[index++] = x;\n            }\n            frequency[x] = 0;\n        }\n        for (int x = 0; x <= upper; ++x) {\n            for (int i = 0; i < frequency[x]; ++i) {\n                ans[index++] = x;\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```Python [sol4-Python3]\nclass Solution:\n    def relativeSortArray(self, arr1: List[int], arr2: List[int]) -> List[int]:\n        upper = max(arr1)\n        frequency = [0] * (upper + 1)\n        for x in arr1:\n            frequency[x] += 1\n        \n        ans = list()\n        for x in arr2:\n            ans.extend([x] * frequency[x])\n            frequency[x] = 0\n        for x in range(upper + 1):\n            if frequency[x] > 0:\n                ans.extend([x] * frequency[x])\n        return ans\n```\n\n```Golang [sol4-Golang]\nfunc relativeSortArray(arr1 []int, arr2 []int) []int {\n    upper := 0\n    for _, v := range arr1 {\n        if v > upper {\n            upper = v\n        }\n    }\n    frequency := make([]int, upper+1)\n    for _, v := range arr1 {\n        frequency[v]++\n    }\n\n    ans := make([]int, 0, len(arr1))\n    for _, v := range arr2 {\n        for ; frequency[v] > 0; frequency[v]-- {\n            ans = append(ans, v)\n        }\n    }\n    for v, freq := range frequency {\n        for ; freq > 0; freq-- {\n            ans = append(ans, v)\n        }\n    }\n    return ans\n}\n```\n\n```C [sol4-C]\nint* relativeSortArray(int* arr1, int arr1Size, int* arr2, int arr2Size, int* returnSize) {\n    int upper = 0;\n    for (int i = 0; i < arr1Size; i++) {\n        upper = fmax(upper, arr1[i]);\n    }\n    int frequency[upper + 1];\n    memset(frequency, 0, sizeof(frequency));\n    for (int i = 0; i < arr1Size; i++) {\n        frequency[arr1[i]]++;\n    }\n    int* ans = malloc(sizeof(int) * arr1Size);\n    *returnSize = 0;\n    for (int i = 0; i < arr2Size; i++) {\n        int x = arr2[i];\n        for (int j = 0; j < frequency[x]; j++) {\n            ans[(*returnSize)++] = x;\n        }\n        frequency[x] = 0;\n    }\n    for (int x = 0; x <= upper; x++) {\n        for (int i = 0; i < frequency[x]; i++) {\n            ans[(*returnSize)++] = x;\n        }\n    }\n    return ans;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(m + n + \\textit{upper})$，其中 $m$ 和 $n$ 分别是数组 $\\textit{arr}_1$ 和 $\\textit{arr}_2$ 的长度，$\\textit{upper}$ 是数组 $\\textit{arr}_1$ 中的最大值，在本题中 $\\textit{upper}$ 不会超过 $1000$。遍历数组 $\\textit{arr}_2$ 的时间复杂度为 $O(n)$，遍历数组 $\\textit{frequency}$ 的时间复杂度为 $O(\\textit{upper})$，而在遍历的过程中，我们一共需要 $O(m)$ 的时间得到答案数组。\n\n- 空间复杂度：$O(\\textit{upper})$，即为数组 $\\textit{frequency}$ 需要使用的空间。注意到与方法一不同的是，方法二的代码使用了额外的空间（而不是直接覆盖数组 $\\textit{arr}_1$）存放答案，但我们一般不将存储返回答案的数组计入空间复杂度，并且在我们得到数组 $\\textit{frequency}$ 之后，实际上也是可以将返回答案覆盖在数组 $\\textit{arr}_1$ 上的。如果在面试中遇到了本题，这些细节都可以和面试官进行确认。",
+            "slateValue": "",
+            "slug": "shu-zu-xiang-dui-pai-xu-by-leetcode-solu-sfng",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "QXRX3x",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 23,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Counting",
+                    "nameTranslated": "计数",
+                    "slug": "counting",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-10-08T09:37:47.208463+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：自定义排序 一种容易想到的方法是使用排序并自定义比较函数。 由于数组 $\\textit{arr}_2$ 规定了比较顺序，因此我们可以使用哈希表对该顺序进行映射：即对于数组 $\\textit{arr}_2$ 中的第 $i$ 个元素，我们将 $(\\textit{arr}_2[i], i)$ 这一键值对放入哈希表 $",
+            "topic": {
+                "id": 1036619,
+                "subscribed": false,
+                "commentCount": 45,
+                "viewCount": 12492,
+                "post": {
+                    "id": 2207794,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 55,
+            "isEditorsPick": false,
+            "hitCount": 28964,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "0H97ZC",
+                "questionFrontendId": "LCR 075"
+            },
+            "next": {
+                "slug": "jian-zhi-offer-ii-075-shu-zu-xiang-dui-p-capk",
+                "title": "剑指 Offer II 075. 数组相对排序"
+            },
+            "prev": null
+        }
+    }
+}

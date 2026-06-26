@@ -1,0 +1,144 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "aVMrkZ",
+            "title": "找出最长等值子数组",
+            "content": "#### 方法一：滑动窗口\n\n**思路与算法**\n\n题目要求找到数组中删除最多 $k$ 个元素后**最长等值子数组**的长度，所谓**最长等值子数组**即数组种连续相同元素的最长长度。假设可以找到数组中每个不同元素构成的的**最长等值子数组**，即可找到全局的最大值。首先我们需要对数组中的元素进行分类，然后依次枚举求出每个不同元素构成的**最长等值子数组**长度。\n\n首先分析一个简单问题，假定给定区间 $[l,r]$，此时元素 $x$ 在区间出现的次数为 $\\textit{cnt}[x]$，则该区间中以要构造以 $x$ 为等值子数组需要删除的元素个数即为 $r - l + 1 - \\textit{cnt}[x]$，如果此时 $r - l + 1 - \\textit{cnt}[x] \\le k$，则可以构成一个符合题意的**等值子数组**。\n\n我们将索引按照不同元素进行分类，假设元素 $x$ 在数组中从小到大出现的位置为 $a_0,a_1,\\cdots,a_m$，此时枚举不同的区间 $[a_j,a_i]$ 并计算出区间中构成的**等值子数组**的长度即可，此时给定区间内需要删除的元素个数即为 $a_i - a_j - (i - j)$。实际我们不必枚举所有的区间，可以利用**滑动窗口**的思路，只需枚举区间的右端点 $a_i$，当区间 $[a_j,a_i]$ 需要删除的元素大于 $k$ 时我们再移动 $a_j$，直到区间需要删除的元素小于等于 $k$，即此时满足 $a_i - a_j - (i - j) \\le k$ 即可。找到所有合法**等值子数组**的长度，返回最大值即可。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int longestEqualSubarray(vector<int>& nums, int k) {\n        int n = nums.size();\n        unordered_map<int, vector<int>> pos;\n        for (int i = 0; i < n; i++) {\n            pos[nums[i]].emplace_back(i);\n        }\n        int ans = 0;\n        for (auto &[_, vec] : pos) {\n            /* 缩小窗口，直到不同元素数量小于等于 k */\n            for (int i = 0, j = 0; i < vec.size(); i++) {\n                while (vec[i] - vec[j] - (i - j) > k) {\n                    j++;\n                }\n                ans = max(ans, i - j + 1);\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```C [sol1-C]\nint longestEqualSubarray(int* nums, int numsSize, int k){\n    int cnt[numsSize + 1];\n    int *pos[numsSize + 1];\n    int arrSize[numsSize + 1];\n    memset(cnt, 0, sizeof(cnt));\n    memset(arrSize, 0, sizeof(arrSize));\n    memset(pos, 0, sizeof(pos));\n\n    for (int i = 0; i < numsSize; i++) {\n        cnt[nums[i]]++;\n    }\n    for (int i = 0; i < numsSize; i++) {\n        int x = nums[i];\n        if (pos[x] == NULL) {\n            pos[x] = (int *)malloc(sizeof(int) * cnt[x]);\n        }\n        pos[x][arrSize[x]++] = i;\n    }\n    int ans = 0;\n    for (int t = 0; t <= numsSize; t++) {\n        for (int i = 0, j = 0; i < cnt[t]; i++) {\n            /* 缩小窗口，直到不同元素数量小于等于 k */\n            while (pos[t][i] - pos[t][j] - (i - j) > k) {\n                j++;\n            }\n            ans = fmax(ans, i - j + 1);\n        }\n    }\n    for (int i = 0; i <= numsSize; i++) {\n        free(pos[i]);\n    }\n    return ans;\n}\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int longestEqualSubarray(List<Integer> nums, int k) {\n        int n = nums.size();\n        Map<Integer, List<Integer>> pos = new HashMap<>();\n        for (int i = 0; i < n; i++) {\n            pos.computeIfAbsent(nums.get(i), x -> new ArrayList<>()).add(i);\n        }\n        int ans = 0;\n        for (List<Integer> vec : pos.values()) {\n            for (int i = 0, j = 0; i < vec.size(); i++) {\n                /* 缩小窗口，直到不同元素数量小于等于 k */\n                while (vec.get(i) - vec.get(j) - (i - j) > k) {\n                    j++;\n                }\n                ans = Math.max(ans, i - j + 1);\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int LongestEqualSubarray(IList<int> nums, int k) {\n        int n = nums.Count;\n        IDictionary<int, IList<int>> pos = new Dictionary<int, IList<int>>();\n        for (int i = 0; i < n; i++) {\n            pos.TryAdd(nums[i], new List<int>());\n            pos[nums[i]].Add(i);\n        }\n        int ans = 0;\n        foreach (IList<int> vec in pos.Values) {\n            for (int i = 0, j = 0; i < vec.Count; i++) {\n                /* 缩小窗口，直到不同元素数量小于等于 k */\n                while (vec[i] - vec[j] - (i - j) > k) {\n                    j++;\n                }\n                ans = Math.Max(ans, i - j + 1);\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def longestEqualSubarray(self, nums: List[int], k: int) -> int:\n        pos = defaultdict(list)\n        for i, num in enumerate(nums):\n            pos[num].append(i)\n\n        ans = 0\n        for vec in pos.values():\n            j = 0\n            for i in range(len(vec)):\n                # 缩小窗口，直到不同元素数量小于等于 k \n                while vec[i] - vec[j] - (i - j) > k:\n                    j += 1\n                ans = max(ans, i - j + 1)\n\n        return ans\n```\n\n```Go [sol1-Go]\nfunc longestEqualSubarray(nums []int, k int) int {\n    pos := make(map[int][]int)\n    for i, num := range nums {\n        pos[num] = append(pos[num], i)\n    }\n    ans := 0\n    for _, vec := range pos {\n        j := 0\n        for i := 0; i < len(vec); i++ {\n            /* 缩小窗口，直到不同元素数量小于等于 k */\n            for vec[i] - vec[j] - (i - j) > k {\n                j++\n            }\n            ans = max(ans, i - j + 1)\n        }\n    }\n    return ans\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar longestEqualSubarray = function(nums, k) {\n    let n = nums.length;\n    let pos = new Map();\n    for (let i = 0; i < n; i++) {\n        if (!pos.has(nums[i])) {\n            pos.set(nums[i], []);\n        }\n        pos.get(nums[i]).push(i);\n    }\n    let ans = 0;\n    for (let vec of pos.values()) {\n        for (let i = 0, j = 0; i < vec.length; i++) {\n            /* 缩小窗口，直到不同元素数量小于等于 k */\n            while (vec[i] - vec[j] - (i - j) > k) {\n                j++;\n            }\n            ans = Math.max(ans, i - j + 1);\n        }\n    }\n    return ans;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction longestEqualSubarray(nums: number[], k: number): number {\n    let n = nums.length;\n    let pos = new Map<number, number[]>();\n    for (let i = 0; i < n; i++) {\n        if (!pos.has(nums[i])) {\n            pos.set(nums[i], []);\n        }\n        pos.get(nums[i]).push(i);\n    }\n    let ans = 0;\n    for (let vec of pos.values()) {\n        for (let i = 0, j = 0; i < vec.length; i++) {\n            /* 缩小窗口，直到不同元素数量小于等于 k */\n            while (vec[i] - vec[j] - (i - j) > k) {\n                j++;\n            }\n            ans = Math.max(ans, i - j + 1);\n        }\n    }\n    return ans;\n};\n```\n\n```Rust [sol1-Rust]\nuse std::collections::HashMap;\n\nimpl Solution {\n    pub fn longest_equal_subarray(nums: Vec<i32>, k: i32) -> i32 {\n        let mut pos: HashMap<i32, Vec<usize>> = HashMap::new();\n        let n = nums.len();\n        for (i, &num) in nums.iter().enumerate() {\n            pos.entry(num).or_insert(Vec::new()).push(i);\n        }\n        let mut ans = 0;\n        for vec in pos.values() {\n            let mut j = 0;\n            for i in 0..vec.len() {\n                /* 缩小窗口，直到不同元素数量小于等于 k */\n                while vec[i] as i32 - vec[j] as i32 - (i as i32 - j as i32) > k {\n                    j += 1;\n                }\n                ans = ans.max(i - j + 1);\n            }\n        }\n        ans as i32\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 表示数组 $\\textit{nums}$ 的长度。分组需要的时间复杂度为  $O(n)$，通过滑动窗口找到每种元素的最大长度只需遍历所有的连续相等字符的长度计数即可，最多有 $n$ 个连续字符串的长度计数，因此总的时间复杂度为 $O(n)$。\n\n- 空间复杂度：$O(n)$，其中 $n$ 表示数组 $\\textit{nums}$ 的长度。分组保存每种元素的索引序列需要的空间为 $O(n)$。\n\n#### 方法二：一次遍历优化\n\n**思路与算法**\n\n根据方法一的可知，假设求给定的区间 $[l,r]$ 的等值子数组，则此时区间中最优选择的**等值元素**一定是 $\\textit{nums}[l]$，且此时满足 $\\textit{nums}[l] = \\textit{nums}[r]$，$nums[l]$ 为区间 $[l,r]$ 的「[众数](https://baike.baidu.com/item/%E4%BC%97%E6%95%B0/44796)」。最优选择的等值元素为 $x$，当 $x$ 为「[众数](https://baike.baidu.com/item/%E4%BC%97%E6%95%B0/44796)」时需要删除的元素个数最少，如果此时 $x \\neq \\textit{nums}[l]$，则实际还需要删除 $\\textit{nums}[l]$，相当于多删除了一次，此时应该将 $l$ 右移，直到 $\\textit{nums}[l] = x$。\n\n我们只需要计算满足 $x = \\textit{nums}[l] = \\textit{nums}[r]$ 且 $x$ 为众数的最优区间即可，此时如果区间 $[l,r]$ 中除 $x$ 以外的元素个数小于等于 $k$ 即可构成合法的**等值子数组**。实际计算时，我们枚举区间的右边界 $r$，此时对于左边界 $l$：\n+ 如果 $\\textit{nums}[l] = \\textit{nums}[r]$，此时在区间 $[l,r]$ 中除 $\\textit{nums}[l]$ 以外的元素个数大于 $k$ 时，此时需要将区间向右移动；\n\n+ 如果 $\\textit{nums}[l] \\neq \\textit{nums}[r]$，此时在区间 $[l,r]$ 中除 $\\textit{nums}[l]$ 以外的元素个数大于 $k$ 时，此时 $\\textit{nums}[l]$ 一定不是目标等值元素 $x$，此时可以跳过 $\\textit{nums}[l]$，将区间向右移动；\n\n+ 对于最优解来说需要满足 $\\textit{nums}[l] = \\textit{nums}[r]$ 且 $\\textit{nums}[l]$ 可做为目标等值元素。只需要统计满足 $\\textit{nums}[l]$ 可以做为等值元素的区间即可，最优解一定包含在该范围中，此时我们需要计算 $\\textit{nums}[r]$ 出现的次数；\n\n**代码**\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    int longestEqualSubarray(vector<int>& nums, int k) {\n        int n = nums.size();\n        int ans = 0;\n        unordered_map<int, int> cnt;\n        for (int i = 0, j = 0; j < n; j++) {\n            cnt[nums[j]]++;\n            /*当前区间中，无法以 nums[i] 为等值元素构成合法等值数组*/\n            while (j - i + 1 - cnt[nums[i]] > k) {\n                cnt[nums[i]]--;\n                i++;\n            }\n            ans = max(ans, cnt[nums[j]]);\n        }\n        return ans;\n    }\n};\n```\n\n```C [sol2-C]\nint longestEqualSubarray(int* nums, int numsSize, int k){\n    int cnt[numsSize + 1];\n    int ans = 0;\n    memset(cnt, 0, sizeof(cnt));\n\n    for (int i = 0, j = 0; j < numsSize; j++) {\n        cnt[nums[j]]++;\n        /*当前区间中，无法以 nums[i] 为等值元素构成合法等值数组*/\n        while (j - i + 1 - cnt[nums[i]] > k) {\n            cnt[nums[i]]--;\n            i++;\n        }\n        ans = fmax(ans, cnt[nums[j]]);\n    }\n    return ans;\n}\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public int longestEqualSubarray(List<Integer> nums, int k) {\n        int n = nums.size();\n        int ans = 0;\n        Map<Integer, Integer> cnt = new HashMap<>();\n        for (int i = 0, j = 0; j < n; j++) {\n            cnt.put(nums.get(j), cnt.getOrDefault(nums.get(j), 0) + 1);\n            /*当前区间中，无法以 nums[i] 为等值元素构成合法等值数组*/\n            while (j - i + 1 - cnt.get(nums.get(i)) > k) {\n                cnt.put(nums.get(i), cnt.get(nums.get(i)) - 1);\n                i++;\n            }\n            ans = Math.max(ans, cnt.get(nums.get(j)));\n        }\n        return ans;\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    public int LongestEqualSubarray(IList<int> nums, int k) {\n        int n = nums.Count;\n        int ans = 0;\n        IDictionary<int, int> cnt = new Dictionary<int, int>();\n        for (int i = 0, j = 0; j < n; j++) {\n            cnt.TryAdd(nums[j], 0);\n            cnt[nums[j]]++;\n            /*当前区间中，无法以 nums[i] 为等值元素构成合法等值数组*/\n            while (j - i + 1 - cnt[nums[i]] > k) {\n                cnt[nums[i]]--;\n                i++;\n            }\n            ans = Math.Max(ans, cnt[nums[j]]);\n        }\n        return ans;\n    }\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def longestEqualSubarray(self, nums: List[int], k: int) -> int:\n        ans = 0\n        cnt = defaultdict(int)\n        i = 0\n        for j, x in enumerate(nums):\n            cnt[x] += 1\n            # 当前区间中，无法以 nums[i] 为等值元素构成合法等值数组\n            while j - i + 1 - cnt[nums[i]] > k:\n                cnt[nums[i]] -= 1\n                i += 1\n            ans = max(ans, cnt[nums[j]])\n        return ans\n```\n\n```Go [sol2-Go]\nfunc longestEqualSubarray(nums []int, k int) int {\n    n := len(nums)\n    ans := 0\n    cnt := make(map[int]int)\n    for i, j := 0, 0; j < n; j++ {\n        cnt[nums[j]]++\n        /*当前区间中，无法以 nums[i] 为等值元素构成合法等值数组*/\n        for j - i + 1 - cnt[nums[i]] > k {\n            cnt[nums[i]]--\n            i++\n        }\n        if cnt[nums[j]] > ans {\n            ans = cnt[nums[j]]\n        }\n    }\n    return ans\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar longestEqualSubarray = function(nums, k) {\n    let n = nums.length;\n    let ans = 0;\n    let cnt = new Map();\n    for (let i = 0, j = 0; j < n; j++) {\n        cnt.set(nums[j], (cnt.get(nums[j]) || 0) + 1);\n        /*当前区间中，无法以 nums[i] 为等值元素构成合法等值数组*/\n        while (j - i + 1 - cnt.get(nums[i]) > k) {\n            cnt.set(nums[i], cnt.get(nums[i]) - 1);\n            i++;\n        }\n        ans = Math.max(ans, cnt.get(nums[j]));\n    }\n    return ans;\n};\n```\n\n```TypeScript [sol2-TypeScript]\nfunction longestEqualSubarray(nums: number[], k: number): number {\n    let n = nums.length;\n    let ans = 0;\n    let cnt = new Map<number, number>();\n    for (let i = 0, j = 0; j < n; j++) {\n        cnt.set(nums[j], (cnt.get(nums[j]) || 0) + 1);\n        /*当前区间中，无法以 nums[i] 为等值元素构成合法等值数组*/\n        while (j - i + 1 - (cnt.get(nums[i]) as number) > k) {\n            cnt.set(nums[i], (cnt.get(nums[i]) as number) - 1);\n            i++;\n        }\n        ans = Math.max(ans, cnt.get(nums[j]) as number);\n    }\n    return ans;\n};\n```\n\n```Rust [sol2-Rust]\nuse std::collections::HashMap;\n\nimpl Solution {\n    pub fn longest_equal_subarray(nums: Vec<i32>, k: i32) -> i32 {\n        let n = nums.len();\n        let mut ans = 0;\n        let mut cnt = HashMap::new();\n        let mut i = 0;\n        for j in 0..n {\n            *cnt.entry(nums[j]).or_insert(0) += 1;\n            /*当前区间中，无法以 nums[i] 为等值元素构成合法等值数组*/\n            while j as i32 - i as i32 + 1 - cnt[&nums[i]] > k {\n                *cnt.get_mut(&nums[i]).unwrap() -= 1;\n                i += 1;\n            }\n            ans = ans.max(cnt[&nums[j]]);\n        }\n        ans as i32\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 表示数组 $\\textit{nums}$ 的长度。通过滑动窗口找到最优解需要的时间为 $O(n)$。\n\n- 空间复杂度：$O(n)$，其中 $n$ 表示数组 $\\textit{nums}$ 的长度。分组保存每种元素的索引序列需要的空间为 $O(n)$。",
+            "slateValue": "",
+            "slug": "zhao-chu-zui-chang-deng-zhi-zi-shu-zu-by-vcnw",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "aVMrkZ",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 30,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Sliding Window",
+                    "nameTranslated": "滑动窗口",
+                    "slug": "sliding-window",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2024-05-21T02:24:59.500910+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：滑动窗口 思路与算法 题目要求找到数组中删除最多 $k$ 个元素后最长等值子数组的长度，所谓最长等值子数组即数组种连续相同元素的最长长度。假设可以找到数组中每个不同元素构成的的最长等值子数组，即可找到全局的最大值。首先我们需要对数组中的元素进行分类，然后依次枚举求出每个不同元素构成的最长等值子数组长度。 首先分",
+            "topic": {
+                "id": 2784932,
+                "subscribed": false,
+                "commentCount": 64,
+                "viewCount": 1065,
+                "post": {
+                    "id": 5090385,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 118,
+            "isEditorsPick": false,
+            "hitCount": 22514,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "find-the-longest-equal-subarray",
+                "questionFrontendId": "2831"
+            },
+            "next": {
+                "slug": "fen-zu-shuang-zhi-zhen-pythonjavacgo-by-lqqau",
+                "title": "分组+滑动窗口（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

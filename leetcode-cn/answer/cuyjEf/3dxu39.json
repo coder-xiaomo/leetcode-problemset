@@ -1,0 +1,136 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "3dxu39",
+            "title": "按权重生成随机数",
+            "content": "#### 方法一：前缀和 + 二分查找\n\n**思路与算法**\n\n设数组 $w$ 的权重之和为 $\\textit{total}$。根据题目的要求，我们可以看成将 $[1, \\textit{total}]$ 范围内的所有整数分成 $n$ 个部分（其中 $n$ 是数组 $w$ 的长度），第 $i$ 个部分恰好包含 $w[i]$ 个整数，并且这 $n$ 个部分两两的交集为空。随后我们在 $[1, \\textit{total}]$ 范围内随机选择一个整数 $x$，如果整数 $x$ 被包含在第 $i$ 个部分内，我们就返回 $i$。\n\n一种较为简单的划分方法是按照从小到大的顺序依次划分每个部分。例如 $w = [3, 1, 2, 4]$ 时，权重之和 $\\textit{total} = 10$，那么我们按照 $[1, 3], [4, 4], [5, 6], [7, 10]$ 对 $[1, 10]$ 进行划分，使得它们的长度恰好依次为 $3, 1, 2, 4$。可以发现，每个区间的左边界是在它之前出现的所有元素的和加上 $1$，右边界是到它为止的所有元素的和。因此，如果我们用 $\\textit{pre}[i]$ 表示数组 $w$ 的前缀和：\n\n$$\n\\textit{pre}[i] = \\sum_{k=0}^i w[k]\n$$\n\n那么第 $i$ 个区间的左边界就是 $\\textit{pre}[i] - w[i] + 1$，右边界就是 $\\textit{pre}[i]$。\n\n当划分完成后，假设我们随机到了整数 $x$，我们希望找到满足：\n\n$$\n\\textit{pre}[i] - w[i] + 1 \\leq x \\leq \\textit{pre}[i]\n$$\n\n的 $i$ 并将其作为答案返回。由于 $\\textit{pre}[i]$ 是单调递增的，因此我们可以使用二分查找在 $O(\\log n)$ 的时间内快速找到 $i$，即找出最小的满足 $x \\leq \\textit{pre}[i]$ 的下标 $i$。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\nprivate:\n    mt19937 gen;\n    uniform_int_distribution<int> dis;\n    vector<int> pre;\n\npublic:\n    Solution(vector<int>& w): gen(random_device{}()), dis(1, accumulate(w.begin(), w.end(), 0)) {\n        partial_sum(w.begin(), w.end(), back_inserter(pre));\n    }\n    \n    int pickIndex() {\n        int x = dis(gen);\n        return lower_bound(pre.begin(), pre.end(), x) - pre.begin();\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    int[] pre;\n    int total;\n    \n    public Solution(int[] w) {\n        pre = new int[w.length];\n        pre[0] = w[0];\n        for (int i = 1; i < w.length; ++i) {\n            pre[i] = pre[i - 1] + w[i];\n        }\n        total = Arrays.stream(w).sum();\n    }\n    \n    public int pickIndex() {\n        int x = (int) (Math.random() * total) + 1;\n        return binarySearch(x);\n    }\n\n    private int binarySearch(int x) {\n        int low = 0, high = pre.length - 1;\n        while (low < high) {\n            int mid = (high - low) / 2 + low;\n            if (pre[mid] < x) {\n                low = mid + 1;\n            } else {\n                high = mid;\n            }\n        }\n        return low;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    int[] pre;\n    int total;\n    Random ran = new Random();\n\n    public Solution(int[] w) {\n        pre = new int[w.Length];\n        pre[0] = w[0];\n        for (int i = 1; i < w.Length; ++i) {\n            pre[i] = pre[i - 1] + w[i];\n        }\n        total = w.Sum();\n    }\n    \n    public int PickIndex() {\n        int x = ran.Next(1, total + 1);\n        return BinarySearch(x);\n    }\n\n    private int BinarySearch(int x) {\n        int low = 0, high = pre.Length - 1;\n        while (low < high) {\n            int mid = (high - low) / 2 + low;\n            if (pre[mid] < x) {\n                low = mid + 1;\n            } else {\n                high = mid;\n            }\n        }\n        return low;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n\n    def __init__(self, w: List[int]):\n        self.pre = list(accumulate(w))\n        self.total = sum(w)\n\n    def pickIndex(self) -> int:\n        x = random.randint(1, self.total)\n        return bisect_left(self.pre, x)\n```\n\n```JavaScript [sol1-JavaScript]\nvar Solution = function(w) {\n    pre = new Array(w.length).fill(0);\n    pre[0] = w[0];\n    for (let i = 1; i < w.length; ++i) {\n        pre[i] = pre[i - 1] + w[i];\n    }\n    this.total = _.sum(w);\n};\n\nSolution.prototype.pickIndex = function() {\n    const x = Math.floor((Math.random() * this.total)) + 1;\n    const binarySearch = (x) => {\n        let low = 0, high = pre.length - 1;\n        while (low < high) {\n            const mid = Math.floor((high - low) / 2) + low;\n            if (pre[mid] < x) {\n                low = mid + 1;\n            } else {\n                high = mid;\n            }\n        }\n        return low;\n    }\n    return binarySearch(x);\n};\n```\n\n```go [sol1-Golang]\ntype Solution struct {\n    pre []int\n}\n\nfunc Constructor(w []int) Solution {\n    for i := 1; i < len(w); i++ {\n        w[i] += w[i-1]\n    }\n    return Solution{w}\n}\n\nfunc (s *Solution) PickIndex() int {\n    x := rand.Intn(s.pre[len(s.pre)-1]) + 1\n    return sort.SearchInts(s.pre, x)\n}\n```\n\n```C [sol1-C]\ntypedef struct {\n    int* pre;\n    int preSize;\n    int total;\n} Solution;\n\nSolution* solutionCreate(int* w, int wSize) {\n    Solution* obj = malloc(sizeof(Solution));\n    obj->pre = malloc(sizeof(int) * wSize);\n    obj->preSize = wSize;\n    obj->total = 0;\n    for (int i = 0; i < wSize; i++) {\n        obj->total += w[i];\n        if (i > 0) {\n            obj->pre[i] = obj->pre[i - 1] + w[i];\n        } else {\n            obj->pre[i] = w[i];\n        }\n    }\n    return obj;\n}\n\nint binarySearch(Solution* obj, int x) {\n    int low = 0, high = obj->preSize - 1;\n    while (low < high) {\n        int mid = (high - low) / 2 + low;\n        if (obj->pre[mid] < x) {\n            low = mid + 1;\n        } else {\n            high = mid;\n        }\n    }\n    return low;\n}\n\nint solutionPickIndex(Solution* obj) {\n    int x = rand() % obj->total + 1;\n    return binarySearch(obj, x);\n}\n\nvoid solutionFree(Solution* obj) {\n    free(obj->pre);\n    free(obj);\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：初始化的时间复杂度为 $O(n)$，每次选择的时间复杂度为 $O(\\log n)$，其中 $n$ 是数组 $w$ 的长度。\n\n- 空间复杂度：$O(n)$，即为前缀和数组 $\\textit{pre}$ 需要使用的空间。",
+            "slateValue": "",
+            "slug": "an-quan-zhong-sheng-cheng-sui-ji-shu-by-bosxd",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "3dxu39",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 18,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Prefix Sum",
+                    "nameTranslated": "前缀和",
+                    "slug": "prefix-sum",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-10-08T10:57:03.182709+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：前缀和 + 二分查找 思路与算法 设数组 $w$ 的权重之和为 $\\textit{total}$。根据题目的要求，我们可以看成将 $[1, \\textit{total}]$ 范围内的所有整数分成 $n$ 个部分（其中 $n$ 是数组 $w$ 的长度），第 $i$ 个部分恰好包含 $w[i]$ 个整数，并且这 $",
+            "topic": {
+                "id": 1036717,
+                "subscribed": false,
+                "commentCount": 37,
+                "viewCount": 7817,
+                "post": {
+                    "id": 2207990,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 46,
+            "isEditorsPick": false,
+            "hitCount": 18361,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "cuyjEf",
+                "questionFrontendId": "LCR 071"
+            },
+            "next": {
+                "slug": "hua-luo-yue-que-qian-zhui-he-ni-xiang-da-meph",
+                "title": "【花落&月缺】前缀和，你想到了没，反正我是没想到(▼ヘ▼#)"
+            },
+            "prev": null
+        }
+    }
+}

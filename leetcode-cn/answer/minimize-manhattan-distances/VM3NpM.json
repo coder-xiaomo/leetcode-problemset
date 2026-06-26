@@ -1,0 +1,156 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "VM3NpM",
+            "title": "最小化曼哈顿距离",
+            "content": "#### 方法一：枚举所有的点\n\n**思路与算法**\n\n题目要求移除一个点后，使得任意两点的曼哈顿的**最大**距离尽可能的**小**。根据题意分析，我们可以找到任意两点的曼哈顿距离的**最大值**，并记录构成**最大值**的点的集合 $S$，需要去掉的点一定存在于该集合 $S$ 中，依次尝试去掉集合 $S$ 中的某点，并计算剩余点构成的曼哈顿距离。由于需要计算任意两点的曼哈顿距离所需要的时间复杂度至少为 $O(n^2)$，因此该算法在题目给定的数量级下会超时，需要进行优化。\n\n首先我们思考如何计算任意两点的最大距离，这里需要用到一些数学知识，可以参考「[曼哈顿距离与切比雪夫距离的相互转化](https://oi-wiki.org/geometry/distance/#%E6%9B%BC%E5%93%88%E9%A1%BF%E8%B7%9D%E7%A6%BB%E4%B8%8E%E5%88%87%E6%AF%94%E9%9B%AA%E5%A4%AB%E8%B7%9D%E7%A6%BB%E7%9A%84%E7%9B%B8%E4%BA%92%E8%BD%AC%E5%8C%96)」。设两点 $A,B$ 分别为 $(x_1,y_1),(x_2,y_2)$，此时 $A,B$ 两点的曼哈顿距离为：\n$$\n\\begin{aligned}\nd(A,B) &= |x_1-x_2| + |y_1-y_2|  \\\\\n&= \\max(x_1-x_2 - (y_1-y_2), x_2-x_1 - (y_1-y_2), x_1-x_2 + (y_1-y_2), x_2 - x1 + (y_1 - y_2)) \\\\\n&= \\max(x_1-y_1- (x_2-y_2), x_2-y_2 - (x_1-y_1), x_1 + y_1-(x_2+y_2),x_2+y_2-(x_1 + y_1)) \\\\\n\\end{aligned}\n$$\n\n此时将前两项与后两项分开进行整理：\n$$\n\\begin{aligned}\n\\max(x_1-y_1- (x_2-y_2), x_2-y_2 - (x_1-y_1)) = \\max(\\max(x_1-y_1, x_2-y_2) - \\min(x_1-y_1,x_2-y_2)) = |(x_1-y_1)- (x_2-y_2)| \\\\\n\n\\max(x_1 + y_1-(x_2+y_2),x_2+y_2-(x_1 + y_1)) = \\max(\\max(x_1+y_1,x_2 + y_2)- \\min(x_1+y_1,x_2 + y_2)) = |(x_1+y_1)- (x_2+y_2)| \\\\\n\\end{aligned}\n$$\n\n整理可得: \n$$d(A,B) = \\max(|x_1-y_1- (x_2-y_2)|, |(x_1+y_1) - (x_2+y_2)|)$$\n\n回到本题，对于每个点 $(x,y)$，我们分别计算它的坐标之和与坐标之差 $x-y,x+y$，并用有序集合 $S_x,S_y$ 维护这些值，此时任意两点曼哈顿距离的最大值即为两个集合 $S_x,S_y$ 中的最大值与该集合本身的最小值之差中取最大值。每次枚举点 $(x',y')$，从集合 $S_x,S_y$ 中删除对应的 $(x'-y',x'+y')$，然后再次计算最大的曼哈顿距离，计算完成后再恢复，枚举完成后即可得到最小的曼哈顿距离。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int minimumDistance(vector<vector<int>>& points) {\n        multiset<int> sx, sy;\n        for (auto & p : points) {\n            sx.emplace(p[0] - p[1]);\n            sy.emplace(p[0] + p[1]);\n        }\n        int res = INT_MAX;\n        for (auto &p : points) {\n            sx.erase(sx.find(p[0] - p[1]));\n            sy.erase(sy.find(p[0] + p[1]));\n            res = min(res, max(*sx.rbegin() - *sx.begin(), *sy.rbegin() - *sy.begin()));\n            sx.emplace(p[0] - p[1]);\n            sy.emplace(p[0] + p[1]);\n        }\n        return res;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int minimumDistance(int[][] points) {\n        TreeMap<Integer, Integer> sx = new TreeMap<Integer, Integer>();\n        TreeMap<Integer, Integer> sy = new TreeMap<Integer, Integer>();\n        for (int[] p : points) {\n            sx.put(p[0] - p[1], sx.getOrDefault(p[0] - p[1], 0) + 1);\n            sy.put(p[0] + p[1], sy.getOrDefault(p[0] + p[1], 0) + 1);\n        }\n        int res = Integer.MAX_VALUE;\n        for (int[] p : points) {\n            sx.put(p[0] - p[1], sx.get(p[0] - p[1]) - 1);\n            if (sx.get(p[0] - p[1]) == 0) {\n                sx.remove(p[0] - p[1]);\n            }\n            sy.put(p[0] + p[1], sy.get(p[0] + p[1]) - 1);\n            if (sy.get(p[0] + p[1]) == 0) {\n                sy.remove(p[0] + p[1]);\n            }\n            res = Math.min(res, Math.max(sx.lastKey() - sx.firstKey(), sy.lastKey() - sy.firstKey()));\n            sx.put(p[0] - p[1], sx.getOrDefault(p[0] - p[1], 0) + 1);\n            sy.put(p[0] + p[1], sy.getOrDefault(p[0] + p[1], 0) + 1);\n        }\n        return res;\n    }\n}\n```\n\n```Python [sol1-Python3]\nfrom sortedcontainers import SortedList\n\nclass Solution:\n    def minimumDistance(self, points: List[List[int]]) -> int:\n        sx = SortedList(p[0] - p[1] for p in points)\n        sy = SortedList(p[0] + p[1] for p in points)\n        res = float('inf')\n        for p in points:\n            sx.remove(p[0] - p[1])\n            sy.remove(p[0] + p[1])\n            res = min(res, max(sx[-1] - sx[0], sy[-1] - sy[0]))\n            sx.add(p[0] - p[1])\n            sy.add(p[0] + p[1])\n        return res\n```\n\n```Go [sol1-Go]\nfunc minimumDistance(points [][]int) int {\n    sx := redblacktree.New[int, int]()\n\tsy := redblacktree.New[int, int]()\n\tfor _, p := range points {\n\t\tput(sx, p[0] - p[1])\n\t\tput(sy, p[0] + p[1])\n\t}\n\tres := math.MaxInt\n\tfor _, p := range points {\n\t\tremove(sx, p[0] - p[1])\n\t\tremove(sy, p[0] + p[1])\n\t\tres = min(res, max(sx.Right().Key - sx.Left().Key, sy.Right().Key - sy.Left().Key))\n\t\tput(sx, p[0] - p[1])\n\t\tput(sy, p[0] + p[1])\n\t}\n\treturn res\n}\n\n\nfunc put(t *redblacktree.Tree[int, int], v int) {\n\tc, _ := t.Get(v)\n\tt.Put(v, c+1)\n}\n\nfunc remove(t *redblacktree.Tree[int, int], v int) {\n\tc, _ := t.Get(v)\n\tif c == 1 {\n\t\tt.Remove(v)\n\t} else {\n\t\tt.Put(v, c-1)\n\t}\n}\n```\n\n```Rust [sol1-Rust]\nuse std::collections::BTreeMap;\n\nimpl Solution {\n    pub fn minimum_distance(points: Vec<Vec<i32>>) -> i32 {\n        let mut sx: BTreeMap<i32, i32> = BTreeMap::new();\n        let mut sy: BTreeMap<i32, i32> = BTreeMap::new();\n        for p in &points {\n            let sx_key = p[0] - p[1];\n            let sy_key = p[0] + p[1];\n            *sx.entry(sx_key).or_insert(0) += 1;\n            *sy.entry(sy_key).or_insert(0) += 1;\n        }\n        \n        let mut res = std::i32::MAX;\n        for p in &points {\n            let sx_key = p[0] - p[1];\n            let sy_key = p[0] + p[1];\n            let count_sx = sx.entry(sx_key).or_insert(0);\n            *count_sx -= 1;\n            if *count_sx == 0 {\n                sx.remove(&sx_key);\n            }\n            let count_sy = sy.entry(sy_key).or_insert(0);\n            *count_sy -= 1;\n            if *count_sy == 0 {\n                sy.remove(&sy_key);\n            }\n            if !sx.is_empty() && !sy.is_empty() {\n                let max_sx = *sx.iter().rev().next().unwrap().0 - *sx.iter().next().unwrap().0;\n                let max_sy = *sy.iter().rev().next().unwrap().0 - *sy.iter().next().unwrap().0;\n                res = res.min(max_sx.max(max_sy));\n            }\n            *sx.entry(sx_key).or_insert(0) += 1;\n            *sy.entry(sy_key).or_insert(0) += 1;\n        }\n        res\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log n)$，$n$ 表示给定的数组的长度。每次从有序集合中删除和插入元素需要的时间为 $O(\\log n)$，一共需要枚举 $n$ 次，需要总的时间即为 $O(n \\log n)$。\n\n- 空间复杂度：$O(n)$，$n$ 表示给定的数组的长度。需要用有序集合存储每个点的横坐标与纵坐标的差与和，需要的空间为 $O(n)$。\n\n#### 方法二：枚举最大值与最小值\n\n**思路与算法**\n\n根据方法一可以知道，假设目前已知构成最大曼哈顿距离的两点分别为 $A,B$，此时最有选择必然是去掉 $A$ 或者 $B$，此时再次计算去掉 $A$ 或者 $B$ 后的最大曼哈顿距离，取二者的最小值返回即可。\n\n**代码**\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    int remove(vector<pair<int, int>> &arr, int i) {\n        int n = arr.size();\n        if (arr[0].second == i) {\n            return arr[n - 1].first - arr[1].first;\n        } else if (arr.back().second == i) {\n            return arr[n - 2].first - arr[0].first;\n        } else {\n            return arr[n - 1].first - arr[0].first;\n        }\n    }\n    \n    int minimumDistance(vector<vector<int>>& points) {\n        int n = points.size();\n        vector<pair<int, int>> sx, sy;\n        for (int i = 0; i < n; i++) {\n            int x = points[i][0], y = points[i][1];\n            sx.emplace_back(x - y, i);\n            sy.emplace_back(x + y, i);\n        }\n        sort(sx.begin(), sx.end());\n        sort(sy.begin(), sy.end());\n        int maxVal1 = sx.back().first - sx[0].first;\n        int maxVal2 = sy.back().first - sy[0].first;\n        int res = INT_MAX;\n        if (maxVal1 >= maxVal2) {\n            int i = sx[0].second, j = sx.back().second;\n            // 去掉 i 后的最大曼哈顿距离\n            res = min(res, max(remove(sx, i), remove(sy, i)));\n            // 去掉 j 后的最大曼哈顿距离\n            res = min(res, max(remove(sx, j), remove(sy, j)));\n        } else {\n            int i = sy[0].second, j = sy.back().second;\n            // 去掉 i 后的最大曼哈顿距离\n            res = min(res, max(remove(sx, i), remove(sy, i)));\n            // 去掉 j 后的最大曼哈顿距离\n            res = min(res, max(remove(sx, j), remove(sy, j)));\n        }\n        \n        return res;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public int minimumDistance(int[][] points) {\n        int n = points.length;\n        List<int[]> sx = new ArrayList<int[]>();\n        List<int[]> sy = new ArrayList<int[]>();\n        for (int i = 0; i < n; i++) {\n            int x = points[i][0], y = points[i][1];\n            sx.add(new int[]{x - y, i});\n            sy.add(new int[]{x + y, i});\n        }\n        sx.sort((a, b) -> a[0] - b[0]);\n        sy.sort((a, b) -> a[0] - b[0]);\n        int maxVal1 = sx.get(sx.size() - 1)[0] - sx.get(0)[0];\n        int maxVal2 = sy.get(sy.size() - 1)[0] - sy.get(0)[0];\n        int res = Integer.MAX_VALUE;\n        if (maxVal1 >= maxVal2) {\n            int i = sx.get(0)[1], j = sx.get(sx.size() - 1)[1];\n            // 去掉 i 后的最大曼哈顿距离\n            res = Math.min(res, Math.max(remove(sx, i), remove(sy, i)));\n            // 去掉 j 后的最大曼哈顿距离\n            res = Math.min(res, Math.max(remove(sx, j), remove(sy, j)));\n        } else {\n            int i = sy.get(0)[1], j = sy.get(sy.size() - 1)[1];\n            // 去掉 i 后的最大曼哈顿距离\n            res = Math.min(res, Math.max(remove(sx, i), remove(sy, i)));\n            // 去掉 j 后的最大曼哈顿距离\n            res = Math.min(res, Math.max(remove(sx, j), remove(sy, j)));\n        }\n        return res;\n    }\n\n    public int remove(List<int[]> arr, int i) {\n        int n = arr.size();\n        if (arr.get(0)[1] == i) {\n            return arr.get(n - 1)[0] - arr.get(1)[0];\n        } else if (arr.get(n - 1)[1] == i) {\n            return arr.get(n - 2)[0] - arr.get(0)[0];\n        } else {\n            return arr.get(n - 1)[0] - arr.get(0)[0];\n        }\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    public int MinimumDistance(int[][] points) {\n        int n = points.Length;\n        IList<int[]> sx = new List<int[]>();\n        IList<int[]> sy = new List<int[]>();\n        for (int i = 0; i < n; i++) {\n            int x = points[i][0], y = points[i][1];\n            sx.Add(new int[]{x - y, i});\n            sy.Add(new int[]{x + y, i});\n        }\n        ((List<int[]>) sx).Sort((a, b) => a[0] - b[0]);\n        ((List<int[]>) sy).Sort((a, b) => a[0] - b[0]);\n        int maxVal1 = sx[sx.Count - 1][0] - sx[0][0];\n        int maxVal2 = sy[sy.Count - 1][0] - sy[0][0];\n        int res = int.MaxValue;\n        if (maxVal1 >= maxVal2) {\n            int i = sx[0][1], j = sx[sx.Count - 1][1];\n            // 去掉 i 后的最大曼哈顿距离\n            res = Math.Min(res, Math.Max(remove(sx, i), remove(sy, i)));\n            // 去掉 j 后的最大曼哈顿距离\n            res = Math.Min(res, Math.Max(remove(sx, j), remove(sy, j)));\n        } else {\n            int i = sy[0][1], j = sy[sy.Count - 1][1];\n            // 去掉 i 后的最大曼哈顿距离\n            res = Math.Min(res, Math.Max(remove(sx, i), remove(sy, i)));\n            // 去掉 j 后的最大曼哈顿距离\n            res = Math.Min(res, Math.Max(remove(sx, j), remove(sy, j)));\n        }\n        return res;\n    }\n\n    public int remove(IList<int[]> arr, int i) {\n        int n = arr.Count;\n        if (arr[0][1] == i) {\n            return arr[n - 1][0] - arr[1][0];\n        } else if (arr[n - 1][1] == i) {\n            return arr[n - 2][0] - arr[0][0];\n        } else {\n            return arr[n - 1][0] - arr[0][0];\n        }\n    }\n}\n```\n\n```Go [sol2-Go]\nfunc minimumDistance(points [][]int) int {\n    n := len(points)\n    sx := make([][]int, n)\n    sy := make([][]int, n)\n    for i := 0; i < n; i++ {\n        x, y := points[i][0], points[i][1]\n        sx[i] = []int{x - y, i}\n        sy[i] = []int{x + y, i}\n    }\n    sort.Slice(sx, func(i, j int) bool {\n\t\treturn sx[i][0] < sx[j][0]\n\t})\n\tsort.Slice(sy, func(i, j int) bool {\n\t\treturn sy[i][0] < sy[j][0]\n\t})\n    maxVal1 := sx[n -1][0] - sx[0][0]\n    maxVal2 := sy[n -1][0] - sy[0][0]\n    res := int(^uint(0) >> 1)\n    if maxVal1 >= maxVal2 {\n        i, j := sx[0][1], sx[n - 1][1]\n        // 去掉 i 后的最大曼哈顿距离\n        res = min(res, max(remove(sx, i), remove(sy, i)))\n        // 去掉 j 后的最大曼哈顿距离\n        res = min(res, max(remove(sx, j), remove(sy, j)))\n    } else {\n        i, j := sy[0][1], sy[n - 1][1]\n        // 去掉 i 后的最大曼哈顿距离\n        res = min(res, max(remove(sx, i), remove(sy, i)))\n        // 去掉 j 后的最大曼哈顿距离\n        res = min(res, max(remove(sx, j), remove(sy, j)))\n    }\n    \n    return res\n}\n\nfunc remove(arr [][]int, i int) int {\n    n := len(arr)\n    if arr[0][1] == i {\n        return arr[n - 1][0] - arr[1][0]\n    } else if arr[n - 1][1] == i {\n        return arr[n - 2][0] - arr[0][0]\n    } else {\n        return arr[n - 1][0] - arr[0][0]\n    }\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def minimumDistance(self, points: List[List[int]]) -> int:\n        def remove(arr: List[tuple], i: int) -> int:\n            n = len(arr)\n            if arr[0][1] == i:\n                return arr[n - 1][0] - arr[1][0]\n            elif arr[-1][1] == i:\n                return arr[n - 2][0] - arr[0][0]\n            else:\n                return arr[-1][0] - arr[0][0]\n\n        n = len(points)\n        sx = [(x - y, i) for i, (x, y) in enumerate(points)]\n        sy = [(x + y, i) for i, (x, y) in enumerate(points)]\n        sx.sort()\n        sy.sort()\n        maxVal1 = sx[-1][0] - sx[0][0]\n        maxVal2 = sy[-1][0] - sy[0][0]\n        res = float('inf')\n        if maxVal1 >= maxVal2:\n            i, j = sx[0][1], sx[-1][1]\n            # 去掉 i 后的最大曼哈顿距离\n            res = min(res, max(remove(sx, i), remove(sy, i)))\n            # 去掉 j 后的最大曼哈顿距离\n            res = min(res, max(remove(sx, j), remove(sy, j)))\n        else:\n            i, j = sy[0][1], sy[-1][1]\n            # 去掉 i 后的最大曼哈顿距离\n            res = min(res, max(remove(sx, i), remove(sy, i)))\n            # 去掉 j 后的最大曼哈顿距离\n            res = min(res, max(remove(sx, j), remove(sy, j)))\n        return res\n```\n\n```C [sol2-C]\nint calc(int **arr, int arrSize, int i) {\n    if (arr[0][1] == i) {\n        return arr[arrSize - 1][0] - arr[1][0];\n    } else if (arr[arrSize - 1][1] == i) {\n        return arr[arrSize - 2][0] - arr[0][0];\n    } else {\n        return arr[arrSize - 1][0] - arr[0][0];\n    }\n}\n\nint cmp(const void *a, const void *b) {\n    return (*(int **)a)[0] - (*(int **)b)[0];\n}\n\nint minimumDistance(int** points, int pointsSize, int* pointsColSize) {\n    int n = pointsSize;\n    int *sx[n], *sy[n];\n    for (int i = 0; i < n; i++) {\n        sx[i] = (int *)malloc(sizeof(int) * 2);\n        sy[i] = (int *)malloc(sizeof(int) * 2);\n        int x = points[i][0], y = points[i][1];\n        sx[i][0] = x - y;\n        sx[i][1] = i;\n        sy[i][0] = x + y;\n        sy[i][1] = i;\n    }\n    qsort(sx, n, sizeof(int *), cmp);\n    qsort(sy, n, sizeof(int *), cmp);\n    int maxVal1 = sx[n - 1][0] - sx[0][0];\n    int maxVal2 = sy[n - 1][0] - sy[0][0];\n    int res = INT_MAX;\n    if (maxVal1 >= maxVal2) {\n        int i = sx[0][1], j = sx[n - 1][1];\n        // 去掉 i 后的最大曼哈顿距离\n        res = fmin(res, fmax(calc(sx, n, i), calc(sy, n, i)));\n        // 去掉 j 后的最大曼哈顿距离\n        res = fmin(res, fmax(calc(sx, n, j), calc(sy, n, j)));\n    } else {\n        int i = sy[0][1], j = sy[n - 1][1];\n        // 去掉 i 后的最大曼哈顿距离\n        res = fmin(res, fmax(calc(sx, n, i), calc(sy, n, i)));\n        // 去掉 j 后的最大曼哈顿距离\n        res = fmin(res, fmax(calc(sx, n, j), calc(sy, n, j)));\n    }\n    for (int i = 0; i < n; i++) {\n        free(sx[i]);\n        free(sy[i]);\n    }\n    return res;\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar minimumDistance = function(points) {\n    const n = points.length;\n    const sx = [];\n    const sy = [];\n    \n    for (let i = 0; i < n; i++) {\n        const [x, y] = points[i];\n        sx.push([x - y, i]);\n        sy.push([x + y, i]);\n    }\n    sx.sort((a, b) => a[0] - b[0]);\n    sy.sort((a, b) => a[0] - b[0]);\n    const maxVal1 = sx[n - 1][0] - sx[0][0];\n    const maxVal2 = sy[n - 1][0] - sy[0][0];\n    let res = Infinity;\n    if (maxVal1 >= maxVal2) {\n        const i = sx[0][1], j = sx[n - 1][1];\n        // 去掉 i 后的最大曼哈顿距离\n        res = Math.min(res, Math.max(remove(sx, i), remove(sy, i)));\n        // 去掉 j 后的最大曼哈顿距离\n        res = Math.min(res, Math.max(remove(sx, j), remove(sy, j)));\n    } else {\n        const i = sy[0][1], j = sy[n - 1][1];\n        // 去掉 i 后的最大曼哈顿距离\n        res = Math.min(res, Math.max(remove(sx, i), remove(sy, i)));\n        // 去掉 j 后的最大曼哈顿距离\n        res = Math.min(res, Math.max(remove(sx, j), remove(sy, j)));\n    }\n    return res;\n};\n\nfunction remove(arr, i) {\n    const n = arr.length;\n    if (arr[0][1] === i) {\n        return arr[n - 1][0] - arr[1][0];\n    } else if (arr[n - 1][1] === i) {\n        return arr[n - 2][0] - arr[0][0];\n    } else {\n        return arr[n - 1][0] - arr[0][0];\n    }\n}\n```\n\n```TypeScript [sol2-TypeScript]\nfunction minimumDistance(points: number[][]): number {\n    const n: number = points.length;\n    const sx = [];\n    const sy = [];\n    for (let i = 0; i < n; i++) {\n        const [x, y] = points[i];\n        sx.push([x - y, i]);\n        sy.push([x + y, i]);\n    }\n    sx.sort((a, b) => a[0] - b[0]);\n    sy.sort((a, b) => a[0] - b[0]);\n    const maxVal1: number = sx[n - 1][0] - sx[0][0];\n    const maxVal2: number = sy[n - 1][0] - sy[0][0];\n    let res: number = Infinity;\n    if (maxVal1 >= maxVal2) {\n        const i: number = sx[0][1], j: number = sx[n - 1][1];\n        // 去掉 i 后的最大曼哈顿距离\n        res = Math.min(res, Math.max(remove(sx, i), remove(sy, i)));\n        // 去掉 j 后的最大曼哈顿距离\n        res = Math.min(res, Math.max(remove(sx, j), remove(sy, j)));\n    } else {\n        const i: number = sy[0][1], j: number = sy[n - 1][1];\n        // 去掉 i 后的最大曼哈顿距离\n        res = Math.min(res, Math.max(remove(sx, i), remove(sy, i)));\n        // 去掉 j 后的最大曼哈顿距离\n        res = Math.min(res, Math.max(remove(sx, j), remove(sy, j)));\n    }\n    return res;\n};\n\nfunction remove(arr: [number, number][], i: number): number {\n    const n: number = arr.length;\n    if (arr[0][1] === i) {\n        return arr[n - 1][0] - arr[1][0];\n    } else if (arr[n - 1][1] === i) {\n        return arr[n - 2][0] - arr[0][0];\n    } else {\n        return arr[n - 1][0] - arr[0][0];\n    }\n}\n```\n\n```Rust [sol2-Rust]\nimpl Solution {\n    pub fn minimum_distance(points: Vec<Vec<i32>>) -> i32 {\n        let n = points.len();\n        let mut sx: Vec<(i32, usize)> = Vec::with_capacity(n);\n        let mut sy: Vec<(i32, usize)> = Vec::with_capacity(n);\n        for (i, point) in points.iter().enumerate() {\n            let x = point[0];\n            let y = point[1];\n            sx.push((x - y, i));\n            sy.push((x + y, i));\n        }\n        sx.sort_unstable_by_key(|pair| pair.0);\n        sy.sort_unstable_by_key(|pair| pair.0);\n        let max_val1 = sx[n - 1].0 - sx[0].0;\n        let max_val2 = sy[n - 1].0 - sy[0].0;\n        let mut res = std::i32::MAX;\n        if max_val1 >= max_val2 {\n            let i = sx[0].1;\n            let j = sx[n - 1].1;\n            // 去掉 i 后的最大曼哈顿距离\n            res = res.min(std::cmp::max(Self::remove(&sx, i), Self::remove(&sy, i)));\n            // 去掉 j 后的最大曼哈顿距离\n            res = res.min(std::cmp::max(Self::remove(&sx, j), Self::remove(&sy, j)));\n        } else {\n            let i = sy[0].1;\n            let j = sy[n - 1].1;\n            // 去掉 i 后的最大曼哈顿距离\n            res = res.min(std::cmp::max(Self::remove(&sx, i), Self::remove(&sy, i)));\n            // 去掉 j 后的最大曼哈顿距离\n            res = res.min(std::cmp::max(Self::remove(&sx, j), Self::remove(&sy, j)));\n        }\n        res\n    }\n\n    fn remove(arr: &Vec<(i32, usize)>, i: usize) -> i32 {\n        let n = arr.len();\n        if arr[0].1 == i {\n            return arr[n - 1].0 - arr[1].0;\n        } else if arr[n - 1].1 == i {\n            return arr[n - 2].0 - arr[0].0;\n        } else {\n            return arr[n - 1].0 - arr[0].0;\n        }\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log n)$，$n$ 表示给定的数组的长度。对所有点的横坐标与纵坐标的差与和进行排序，需要的时间为 $O(n \\log n)$。\n\n- 空间复杂度：$O(n)$，$n$ 表示给定的数组的长度。需要用有数组存储每个点的横坐标与纵坐标的差与和，需要的空间为 $O(n)$。",
+            "slateValue": "",
+            "slug": "zui-xiao-hua-man-ha-dun-ju-chi-by-leetco-dipa",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "VM3NpM",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 12,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Geometry",
+                    "nameTranslated": "几何",
+                    "slug": "geometry",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Enumeration",
+                    "nameTranslated": "枚举",
+                    "slug": "enumeration",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Ordered Set",
+                    "nameTranslated": "有序集合",
+                    "slug": "ordered-set",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2024-07-03T03:32:00.398049+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：枚举所有的点 思路与算法 题目要求移除一个点后，使得任意两点的曼哈顿的最大距离尽可能的小。根据题意分析，我们可以找到任意两点的曼哈顿距离的最大值，并记录构成最大值的点的集合 $S$，需要去掉的点一定存在于该集合 $S$ 中，依次尝试去掉集合 $S$ 中的某点，并计算剩余点构成的曼哈顿距离。由于需要计算任意两点的",
+            "topic": {
+                "id": 2829782,
+                "subscribed": false,
+                "commentCount": 28,
+                "viewCount": 934,
+                "post": {
+                    "id": 5161832,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 66,
+            "isEditorsPick": false,
+            "hitCount": 14537,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "minimize-manhattan-distances",
+                "questionFrontendId": "3102"
+            },
+            "next": {
+                "slug": "tu-jie-man-ha-dun-ju-chi-heng-deng-shi-b-op84",
+                "title": "【图解】曼哈顿距离转切比雪夫距离（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

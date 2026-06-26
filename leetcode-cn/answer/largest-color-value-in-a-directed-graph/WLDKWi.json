@@ -1,0 +1,156 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "WLDKWi",
+            "title": "有向图中最大颜色值",
+            "content": "#### 方法一：拓扑排序 + 动态规划\n\n**提示 $1$**\n\n我们需要求出的答案等价于：\n\n> 对于一种颜色 $c$，以及一条路径 $\\textit{path}$，其中颜色为 $c$ 的节点有 $\\textit{path}_c$ 个。我们希望挑选 $c$ 以及 $\\textit{path}$，使得 $\\textit{path}_c$ 的值最大。\n\n**提示 $2$**\n\n根据提示 $1$，我们可以枚举颜色 $c$，随后选出可以使得 $\\textit{path}_c$ 达到最大值的 $\\textit{path}$。这些 $\\textit{path}_c$ 中的最大值即为答案。\n\n**提示 $3$**\n\n如果给定的有向图包含环，那么它不存在拓扑排序。\n\n如果给定的有向图不包含环，那么这个有向图是一个「有向无环图」，它一定存在拓扑排序。\n\n根据拓扑排序的性质，如果节点 $a$ 有一条有向边指向节点 $b$，那么 $b$ 在拓扑排序中一定出现在 $a$ 之后。因此，**一条路径上点的顺序与它们在拓扑排序中出现的顺序是一致的。**\n\n**提示 $4$**\n\n我们可以根据拓扑排序来进行动态规划。\n\n设 $f(v, c)$ 表示以节点 $v$ 为终点的所有路径中，包含颜色 $c$ 的节点数量的最大值。在进行状态转移时，我们考虑所有 $v$ 的前驱节点（即有一条有向边指向 $v$ 的节点）$\\textit{prev}_v$：\n\n$$\nf(v, c) = \\left( \\max_{u \\in \\textit{prev}_j} f(u, c) \\right) + \\mathbb{I}(v, c)\n$$\n\n即找出前驱节点中包含颜色 $c$ 的节点数量最多的那个节点进行转移，并且如果 $v$ 本身的颜色为 $c$，$f(v, c)$ 的值就增加 $1$。这里 $\\mathbb{I}(v, c)$ 为示性函数，当节点 $v$ 的颜色为 $c$ 时，函数值为 $1$，否则为 $0$。\n\n那么 $\\textit{path}_c$ 的值即为 $f(v, c)$ 中的最大值。\n\n**思路与算法**\n\n我们可以将状态转移融入使用广度优先搜索的方法求解拓扑排序的过程中。当我们遍历到节点 $u$ 时：\n\n- 如果 $u$ 的颜色为 $c$，那么将 $f(u, c)$ 的值增加 $1$；\n\n- 枚举 $u$ 的所有后继节点（即从 $u$ 出发经过一条有向边可以到达的节点），对于后继节点 $v$，将 $f(v, c)$ 更新为其与 $f(u, c)$ 的较大值。\n\n这样的操作与上文描述的状态转移方程是一致的。它的好处在于，如果使用广度优先搜索的方法求解拓扑排序，那么我们需要使用邻接表存储所有的有向边，而上文的动态规划是通过「枚举 $v$ $\\to$ 枚举前驱节点 $u$」进行状态转移的，这就需要我们额外存储所有边的反向边，才能通过 $v$ 找到所有的前驱节点。如果我们通过「枚举 $u$ $\\to$ 枚举后继节点 $v$」进行状态转移，这样就与拓扑排序存储的边保持一致了。\n\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int largestPathValue(string colors, vector<vector<int>>& edges) {\n        int n = colors.size();\n        // 邻接表\n        vector<vector<int>> g(n);\n        // 节点的入度统计，用于找出拓扑排序中最开始的节点\n        vector<int> indeg(n);\n        for (auto&& edge: edges) {\n            ++indeg[edge[1]];\n            g[edge[0]].push_back(edge[1]);\n        }\n        \n        // 记录拓扑排序过程中遇到的节点个数\n        // 如果最终 found 的值不为 n，说明图中存在环\n        int found = 0;\n        vector<array<int, 26>> f(n);\n        queue<int> q;\n        for (int i = 0; i < n; ++i) {\n            if (!indeg[i]) {\n                q.push(i);\n            }\n        }\n        \n        while (!q.empty()) {\n            ++found;\n            int u = q.front();\n            q.pop();\n            // 将节点 u 对应的颜色增加 1\n            ++f[u][colors[u] - 'a'];\n            // 枚举 u 的后继节点 v\n            for (int v: g[u]) {\n                --indeg[v];\n                // 将 f(v,c) 更新为其与 f(u,c) 的较大值\n                for (int c = 0; c < 26; ++c) {\n                    f[v][c] = max(f[v][c], f[u][c]);\n                }\n                if (!indeg[v]) {\n                    q.push(v);\n                }\n            }\n        }\n\n        if (found != n) {\n            return -1;\n        }\n        \n        int ans = 0;\n        for (int i = 0; i < n; ++i) {\n            ans = max(ans, *max_element(f[i].begin(), f[i].end()));\n        }\n        return ans;\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def largestPathValue(self, colors: str, edges: List[List[int]]) -> int:\n        n = len(colors)\n        # 邻接表\n        g = collections.defaultdict(list)\n        # 节点的入度统计，用于找出拓扑排序中最开始的节点\n        indeg = [0] * n\n\n        for x, y in edges:\n            indeg[y] += 1\n            g[x].append(y)\n        \n        # 记录拓扑排序过程中遇到的节点个数\n        # 如果最终 found 的值不为 n，说明图中存在环\n        found = 0\n        f = [[0] * 26 for _ in range(n)]\n        q = collections.deque()\n        for i in range(n):\n            if indeg[i] == 0:\n                q.append(i)\n    \n        while q:\n            found += 1\n            u = q.popleft()\n            # 将节点 u 对应的颜色增加 1\n            f[u][ord(colors[u]) - ord(\"a\")] += 1\n            # 枚举 u 的后继节点 v\n            for v in g[u]:\n                indeg[v] -= 1\n                # 将 f(v,c) 更新为其与 f(u,c) 的较大值\n                for c in range(26):\n                    f[v][c] = max(f[v][c], f[u][c])\n                if indeg[v] == 0:\n                    q.append(v)\n        \n        if found != n:\n            return -1\n        \n        ans = 0\n        for i in range(n):\n            ans = max(ans, max(f[i]))\n        return ans\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int largestPathValue(String colors, int[][] edges) {\n        int n = colors.length();\n        // 邻接表\n        List<List<Integer>> g = new ArrayList<>();\n        for (int i = 0; i < n; ++i) {\n            g.add(new ArrayList<>());\n        }\n        // 节点的入度统计，用于找出拓扑排序中最开始的节点\n        int[] indeg = new int[n];\n        for (int[] edge : edges) {\n            ++indeg[edge[1]];\n            g.get(edge[0]).add(edge[1]);\n        }\n        \n        // 记录拓扑排序过程中遇到的节点个数\n        // 如果最终 found 的值不为 n，说明图中存在环\n        int found = 0;\n        int[][] f = new int[n][26];\n        Queue<Integer> q = new LinkedList<>();\n        for (int i = 0; i < n; ++i) {\n            if (indeg[i] == 0) {\n                q.offer(i);\n            }\n        }\n        while (!q.isEmpty()) {\n            ++found;\n            int u = q.poll();\n            // 将节点 u 对应的颜色增加 1\n            ++f[u][colors.charAt(u) - 'a'];\n            // 枚举 u 的后继节点 v\n            for (int v : g.get(u)) {\n                --indeg[v];\n                // 将 f(v,c) 更新为其与 f(u,c) 的较大值\n                for (int c = 0; c < 26; ++c) {\n                    f[v][c] = Math.max(f[v][c], f[u][c]);\n                }\n                if (indeg[v] == 0) {\n                    q.offer(v);\n                }\n            }\n        }\n        if (found != n) {\n            return -1;\n        }\n        int ans = 0;\n        for (int i = 0; i < n; ++i) {\n            ans = Math.max(ans, Arrays.stream(f[i]).max().getAsInt());\n        }\n        return ans;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int LargestPathValue(string colors, int[][] edges) {\n        int n = colors.Length;\n        // 邻接表\n        List<List<int>> g = new List<List<int>>();\n        for (int i = 0; i < n; ++i) {\n            g.Add(new List<int>());\n        }\n        // 节点的入度统计，用于找出拓扑排序中最开始的节点\n        int[] indeg = new int[n];\n        foreach (var edge in edges) {\n            ++indeg[edge[1]];\n            g[edge[0]].Add(edge[1]);\n        }\n        // 记录拓扑排序过程中遇到的节点个数\n        // 如果最终 found 的值不为 n，说明图中存在环\n        int found = 0;\n        int[][] f = new int[n][];\n        for (int i = 0; i < n; ++i) {\n            f[i] = new int[26];\n        }\n        Queue<int> q = new Queue<int>();\n        for (int i = 0; i < n; ++i) {\n            if (indeg[i] == 0) {\n                q.Enqueue(i);\n            }\n        }\n        while (q.Count > 0) {\n            ++found;\n            int u = q.Dequeue();\n            // 将节点 u 对应的颜色增加 1\n            ++f[u][colors[u] - 'a'];\n            // 枚举 u 的后继节点 v\n            foreach (int v in g[u]) {\n                --indeg[v];\n                // 将 f(v,c) 更新为其与 f(u,c) 的较大值\n                for (int c = 0; c < 26; ++c) {\n                    f[v][c] = Math.Max(f[v][c], f[u][c]);\n                }\n                if (indeg[v] == 0) {\n                    q.Enqueue(v);\n                }\n            }\n        }\n        if (found != n) {\n            return -1;\n        }\n        int ans = 0;\n        for (int i = 0; i < n; ++i) {\n            ans = Math.Max(ans, f[i].Max());\n        }\n        return ans;\n    }\n}\n\n```\n\n```Go [sol1-Go]\nfunc largestPathValue(colors string, edges [][]int) int {\n    n := len(colors)\n    // 邻接表\n    g := make([][]int, n)\n    // 节点的入度统计，用于找出拓扑排序中最开始的节点\n    indeg := make([]int, n)\n    for _, edge := range edges {\n        indeg[edge[1]]++\n        g[edge[0]] = append(g[edge[0]], edge[1])\n    }\n\n    // 记录拓扑排序过程中遇到的节点个数\n    // 如果最终 found 的值不为 n，说明图中存在环\n    found := 0\n    f := make([][26]int, n)\n    q := []int{}\n    for i := 0; i < n; i++ {\n        if indeg[i] == 0 {\n            q = append(q, i)\n        }\n    }\n\n    for len(q) > 0 {\n        found++\n        u := q[0]\n        q = q[1:]\n        // 将节点 u 对应的颜色增加 1\n        f[u][colors[u]-'a']++\n        // 枚举 u 的后继节点 v\n        for _, v := range g[u] {\n            indeg[v]--\n            // 将 f(v,c) 更新为其与 f(u,c) 的较大值\n            for c := 0; c < 26; c++ {\n                f[v][c] = max(f[v][c], f[u][c])\n            }\n            if indeg[v] == 0 {\n                q = append(q, v)\n            }\n        }\n    }\n    if found != n {\n        return -1\n    }\n    ans := 0\n    for i := 0; i < n; i++ {\n        for c := 0; c < 26; c++ {\n            ans = max(ans, f[i][c])\n        }\n    }\n    return ans\n}\n```\n\n```C [sol1-C]\nstruct ListNode *createListNode(int val) {\n    struct ListNode *obj = (struct ListNode *)malloc(sizeof(struct ListNode));\n    obj->val = val;\n    obj->next = NULL;\n    return obj;\n}\n\nvoid freeList(struct ListNode *list) {\n    while (list) {\n        struct ListNode *p = list;\n        list = list->next;\n        free(p);\n    }\n}\n\nint largestPathValue(char* colors, int** edges, int edgesSize, int* edgesColSize) {\n    int n = strlen(colors);\n    // 邻接表\n    struct ListNode *g[n];\n    // 节点的入度统计，用于找出拓扑排序中最开始的节点\n    int indeg[n];\n    for (int i = 0; i < n; i++) {\n        g[i] = NULL;\n        indeg[i] = 0;\n    }\n    for (int i = 0; i < edgesSize; ++i) {\n        int x = edges[i][0], y = edges[i][1];\n        ++indeg[y];\n        struct ListNode *node = createListNode(y);\n        node->next = g[x];\n        g[x] = node;\n    }\n\n    // 记录拓扑排序过程中遇到的节点个数\n    // 如果最终 found 的值不为 n，说明图中存在环\n    int found = 0;\n    int f[n][26];\n    int queue[n];\n    int head = 0, tail = 0;\n    memset(f, 0, sizeof(f));\n    for (int i = 0; i < n; ++i) {\n        if (indeg[i] == 0) {\n            queue[tail++] = i;\n        }\n    }\n\n    while (head != tail) {\n        ++found;\n        int u = queue[head];\n        head++;\n        // 将节点 u 对应的颜色增加 1\n        ++f[u][colors[u] - 'a'];\n        // 枚举 u 的后继节点 v\n        for (struct ListNode *p = g[u]; p != NULL; p = p->next) {\n            int v = p->val;\n            --indeg[v];\n            // 将 f(v,c) 更新为其与 f(u,c) 的较大值\n            for (int c = 0; c < 26; ++c) {\n                f[v][c] = (f[v][c] > f[u][c]) ? f[v][c] : f[u][c];\n            }\n            if (indeg[v] == 0) {\n                queue[tail++] = v;\n            }\n        }\n    }\n\n    if (found != n) {\n        return -1;\n    }\n    int ans = 0;\n    for (int i = 0; i < n; ++i) {\n        for (int c = 0; c < 26; ++c) {\n            if (f[i][c] > ans) {\n                ans = f[i][c];\n            }\n        }\n        freeList(g[i]);\n    }\n    \n    return ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar largestPathValue = function(colors, edges) {\n    const n = colors.length;\n    // 邻接表\n    const g = Array.from({ length: n }, () => []);\n    // 节点的入度统计，用于找出拓扑排序中最开始的节点\n    const indeg = Array(n).fill(0);\n    for (const [u, v] of edges) {\n        indeg[v]++;\n        g[u].push(v);\n    }\n    // 记录拓扑排序过程中遇到的节点个数\n    // 如果最终 found 的值不为 n，说明图中存在环\n    let found = 0;\n    const f = Array.from({ length: n }, () => Array(26).fill(0));\n    const q = [];\n    for (let i = 0; i < n; i++) {\n        if (indeg[i] === 0) {\n            q.push(i);\n        }\n    }\n    while (q.length > 0) {\n        found++;\n        const u = q.shift();\n        // 将节点 u 对应的颜色增加 1\n        f[u][colors.charCodeAt(u) - 'a'.charCodeAt(0)]++;\n        // 枚举 u 的后继节点 v\n        for (const v of g[u]) {\n            indeg[v]--;\n            // 将 f(v,c) 更新为其与 f(u,c) 的较大值\n            for (let c = 0; c < 26; c++) {\n                f[v][c] = Math.max(f[v][c], f[u][c]);\n            }\n            if (indeg[v] === 0) {\n                q.push(v);\n            }\n        }\n    }\n    if (found !== n) {\n        return -1;\n    }\n    let ans = 0;\n    for (let i = 0; i < n; i++) {\n        ans = Math.max(ans, ...f[i]);\n    }\n    return ans;\n}\n\n```\n\n```TypeScript [sol1-TypeScript]\nfunction largestPathValue(colors: string, edges: number[][]): number {\n    const n = colors.length;\n    // 邻接表\n    const g: number[][] = Array.from({ length: n }, () => []);\n    // 节点的入度统计，用于找出拓扑排序中最开始的节点\n    const indeg: number[] = Array(n).fill(0);\n    for (const [u, v] of edges) {\n        indeg[v]++;\n        g[u].push(v);\n    }\n    // 记录拓扑排序过程中遇到的节点个数\n    // 如果最终 found 的值不为 n，说明图中存在环\n    let found = 0;\n    const f: number[][] = Array.from({ length: n }, () => Array(26).fill(0));\n    const q: number[] = [];\n    for (let i = 0; i < n; i++) {\n        if (indeg[i] === 0) {\n            q.push(i);\n        }\n    }\n    while (q.length > 0) {\n        found++;\n        const u = q.shift()!;\n        // 将节点 u 对应的颜色增加 1\n        f[u][colors.charCodeAt(u) - 'a'.charCodeAt(0)]++;\n        // 枚举 u 的后继节点 v\n        for (const v of g[u]) {\n            indeg[v]--;\n            // 将 f(v,c) 更新为其与 f(u,c) 的较大值\n            for (let c = 0; c < 26; c++) {\n                f[v][c] = Math.max(f[v][c], f[u][c]);\n            }\n            if (indeg[v] === 0) {\n                q.push(v);\n            }\n        }\n    }\n\n    if (found !== n) {\n        return -1;\n    }\n\n    let ans = 0;\n    for (let i = 0; i < n; i++) {\n        ans = Math.max(ans, ...f[i]);\n    }\n    return ans;\n};\n```\n\n```Rust [sol1-Rust]\nuse std::collections::{VecDeque, HashMap};\n\nimpl Solution {\n    pub fn largest_path_value(colors: String, edges: Vec<Vec<i32>>) -> i32 {\n        let n = colors.len();\n        // 邻接表\n        let mut g = vec![vec![]; n];\n        // 节点的入度统计，用于找出拓扑排序中最开始的节点\n        let mut indeg = vec![0; n];\n        for edge in edges {\n            indeg[edge[1] as usize] += 1;\n            g[edge[0] as usize].push(edge[1] as usize);\n        }\n\n        // 记录拓扑排序过程中遇到的节点个数\n        // 如果最终 found 的值不为 n，说明图中存在环\n        let mut found = 0;\n        let mut f = vec![vec![0; 26]; n];\n        let mut q = VecDeque::new();\n        for i in 0..n {\n            if indeg[i] == 0 {\n                q.push_back(i);\n            }\n        }\n        while let Some(u) = q.pop_front() {\n            found += 1;\n            // 将节点 u 对应的颜色增加 1\n            f[u][colors.as_bytes()[u] as usize - b'a' as usize] += 1;\n            // 枚举 u 的后继节点 v\n            for &v in &g[u] {\n                indeg[v] -= 1;\n                // 将 f(v,c) 更新为其与 f(u,c) 的较大值\n                for c in 0..26 {\n                    f[v][c] = f[v][c].max(f[u][c]);\n                }\n                if indeg[v] == 0 {\n                    q.push_back(v);\n                }\n            }\n        }\n        if found != n {\n            return -1;\n        }\n        let mut ans = 0;\n        for i in 0..n {\n            ans = ans.max(*f[i].iter().max().unwrap());\n        }\n        ans\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O((n+m)|\\Sigma|)$，其中 $|\\Sigma|$ 表示颜色的数量，在本题中 $|\\Sigma|=26$。\n    - 一般的拓扑排序需要的时间为 $O(n+m)$。而在本题中，我们在拓扑排序的过程中加入了状态转移，由于一条有向边对应着 $|\\Sigma|$ 次状态转移，因此拓扑排序的时间复杂度实际为 $O(n + m|\\Sigma|)$；\n    - 我们需要在 $O(n |\\Sigma|)$ 个状态中找出最大值，时间复杂度为 $O(n |\\Sigma|)$。\n\n    将它们相加即可得到总时间复杂度为 $O(n + m|\\Sigma|) + O(n |\\Sigma|) = O((n+m)|\\Sigma|)$。\n\n- 空间复杂度：$O(n|\\Sigma| + m)$。\n    - 我们需要 $O(n |\\Sigma|)$ 的空间存储对应数量的状态；\n    - 我们需要 $O(n+m)$ 的空间存储邻接表；\n    - 我们需要 $O(n)$ 的队列空间进行拓扑排序。\n\n    将它们相加即可得到总时间复杂度为 $O(n |\\Sigma| + m)$。",
+            "slateValue": "",
+            "slug": "you-xiang-tu-zhong-zui-da-yan-se-zhi-by-dmtaa",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "WLDKWi",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 42,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Depth-First Search",
+                    "nameTranslated": "深度优先搜索",
+                    "slug": "depth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Breadth-First Search",
+                    "nameTranslated": "广度优先搜索",
+                    "slug": "breadth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Graph",
+                    "nameTranslated": "图",
+                    "slug": "graph",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Topological Sort",
+                    "nameTranslated": "拓扑排序",
+                    "slug": "topological-sort",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-05-09T05:35:51.258371+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：拓扑排序 + 动态规划 提示 [latex] 我们需要求出的答案等价于： 对于一种颜色 [latex]，以及一条路径 [latex]，其中颜色为 [latex] 的节点有 [latex] 个。我们希望挑选 [latex] 以及 [latex]，使得 [latex] 的值最大。 提示 [latex] 根据提示 [",
+            "topic": {
+                "id": 766070,
+                "subscribed": false,
+                "commentCount": 28,
+                "viewCount": 3682,
+                "post": {
+                    "id": 1696673,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 49,
+            "isEditorsPick": false,
+            "hitCount": 14503,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "largest-color-value-in-a-directed-graph",
+                "questionFrontendId": "1857"
+            },
+            "next": {
+                "slug": "an-zhao-tuo-bu-xu-dp-by-endlesscheng-2n4g",
+                "title": "两种方法：记忆化搜索 / 拓扑排序（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

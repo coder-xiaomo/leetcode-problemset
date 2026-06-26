@@ -1,0 +1,84 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "Bo4k6u",
+            "title": "Promise 时间限制",
+            "content": "[TOC]\n\n---\n# 解决方案\n\n## 概述\n\n这个问题要求你增强一个异步函数，以便它返回的 Promise 会在时间限制到期时自动拒绝。\n\n## 时间限制的用例\n\n### 长时间运行的过程\n\n你可能遇到过一些代码会一遍又一遍地重复执行。一个常见的例子是将数据加载到缓存中并使其与数据源保持同步。\n\n```javascript\nasync function repeatProcessIndefinitely() {\n  while (true) {\n    try {\n      await someProcess();\n    } catch (e) {\n      console.error(e);\n    }\n  }\n}\n```\n\n如果 `someProcess` 永远无法完成，循环将被冻结，什么都不会发生。强制 `someProcess` 抛出错误将取消进程的冻结状态。\n\n需要考虑的重要问题是，即使 Promise 被拒绝，`someProcess` 中的代码仍然可以继续执行。因此，可能会有多个代码块并行执行。更好的解决方案可能是解决导致冻结的根本问题，或者实施适当的取消。考虑解决“设计可取消的函数”以实现真正的取消。\n\n以下代码展示了要在一小时后强制 Promise `someProcess()` 被拒绝：\n\n```javascript\nconst ONE_HOUR_IN_MS = 3600 * 1000;\nconst timeLimitedProcess = timeLimit(someProcess, ONE_HOUR_IN_MS);\n```\n\n### 通知用户失败\n\n想象一下，用户请求下载一个文件，你期望下载时间应该在 10 秒内完成。如果下载时间太长，而不希望让用户等待，最好是放弃下载并向用户显示错误消息。\n\n与第一个用例类似，这确实只应该作为最终的手段来执行。更好的方法可能是实现加载指示器和/或解决导致速度慢的潜在问题。\n\n## 方法 1：在新 Promise 内部调用函数\n\n我们可以创建一个新的 Promise，它在传递的函数解析或拒绝时立即解析。这本质上是模拟了传递的函数，而不对其产生任何影响。要满足要求，我们只需要添加一个 `setTimeout`，它可以提前强制拒绝 Promise。\n\n```javascript []\nvar timeLimit = function(fn, t) {\n  return async function(...args) {\n    return new Promise((resolve, reject) => {\n      setTimeout(() => {\n        reject(\"Time Limit Exceeded\");\n      }, t);\n      fn(...args).then(resolve).catch(reject);\n    })\n  }\n};\n```\n```typescript []\ntype Fn = (...params: any[]) => Promise<any>;\n\nfunction timeLimit(fn: Fn, t: number): Fn {\n  return async function(...args) {\n    return new Promise((resolve, reject) => {\n      setTimeout(() => {\n        reject(\"Time Limit Exceeded\");\n      }, t);\n      fn(...args).then(resolve).catch(reject);\n    })\n  }\n};\n```\n\n## 方法 2：处理清除 Timeout\n\n在上面的示例中，如果函数的 Promise 在时间限制到期之前完成，拒绝逻辑仍然会在将来的某个时候被不必要地触发。这不会对函数的外部行为产生任何影响，因为 Promise 只能解析或拒绝一次。拒绝已解析的 Promise 不会产生任何效果。\n\n然而，想象一下如果时间限制设置得非常长。这些代码块将不得不在 JavaScript 事件循环最终执行它们之前在内存中存储很长时间。这可能被视为内存泄漏，而专业的实现应该避免这种情况。不过，这并不是这个问题的要求。\n\n为了实现这一点，我们可以利用 `setTimeout` 返回的整数 ID，这实际上是对要执行的代码块的引用。然后，你可以使用内置的 `clearTimeout(id)` 来中止代码的执行。\n\n我们还可以利用 `Promise.finally` 方法。传递给它的回调将在 Promise 解析或拒绝时执行。\n\n```javascript []\nvar timeLimit = function(fn, t) {\n  return async function(...args) {\n    return new Promise((resolve, reject) => {\n      const timeout = setTimeout(() => {\n        reject(\"Time Limit Exceeded\");\n      }, t);\n      fn(...args)\n        .then(resolve)\n        .catch(reject)\n        .finally(() => clearTimeout(timeout));\n    })\n  }\n};\n```\n```typescript []\ntype Fn = (...params: any[]) => Promise<any>;\n\nfunction timeLimit(fn: Fn, t: number): Fn {\n  return async function(...args) {\n    return new Promise((resolve, reject) => {\n      const timeout = setTimeout(() => {\n        reject(\"Time Limit Exceeded\");\n      }, t);\n      fn(...args)\n        .then(resolve)\n        .catch(reject)\n        .finally(() => clearTimeout(timeout));\n    })\n  }\n};\n```\n\n## 方法 3：Promise Race\n\n我们可以通过使用 `Promise.race` 函数来简化代码。它接受一个 Promise 数组并返回一个新的 Promise。返回的 Promise 将解析或拒绝其中一个 Promise 解析或拒绝的第一个值。\n\n```javascript []\nvar timeLimit = function(fn, t) {\n  return async function(...args) {\n    const timeLimitPromise = new Promise((resolve, reject) => {\n      setTimeout(() => reject(\"Time Limit Exceeded\"), t)\n    });\n    const returnedPromise = fn(...args);\n    return Promise.race([timeLimitPromise, returnedPromise]);\n  }\n};\n```\n```typescript []\ntype Fn = (...params: any[]) => Promise<any>;\n\nfunction timeLimit(fn: Fn, t: number): Fn {\n  return async function(...args) {\n    const timeLimitPromise = new Promise((resolve, reject) => {\n      setTimeout(() => reject(\"Time Limit Exceeded\"), t)\n    });\n    const returnedPromise = fn(...args);\n    return Promise.race([timeLimitPromise, returnedPromise]);\n  }\n};\n```\n\n## 方法 4：Async/Await + 清除 Timeout\n\n我们可以修改方法 2 以使用 async/await 语法。你只能在异步函数内使用 `await` 关键字，因此我们必须将 `async` 关键字添加到传递给新 Promise 的回调中。现在回调返回一个 Promise，而不是 `undefined`。请注意，这是可以接受的，因为 `Promise` 构造函数不会查看回调返回的内容。不过，一个常见的错误是不恰当地将代码标记为异步。\n\n```javascript []\nvar timeLimit = function(fn, t) {\n  return async function(...args) {\n    return new Promise(async (resolve, reject) => {\n      const timeout = setTimeout(() => {\n        reject(\"Time Limit Exceeded\");\n      }, t);\n\n      try {\n        const result = await fn(...args);\n        resolve(result);\n      } catch(err) {\n        reject(err);\n      }\n      clearTimeout(timeout);\n    });\n  };\n};\n```\n```typescript []\ntype Fn = (...params: any[]) => Promise<any>;\n\nfunction timeLimit(fn: Fn, t: number): Fn {\n  return async function(...args) {\n    return new Promise(async (resolve, reject) => {\n      const timeout = setTimeout(() => {\n        reject(\"Time Limit Exceeded\");\n      }, t);\n\n      try {\n        const result = await fn(...args);\n        resolve(result);\n      } catch(err) {\n        reject(err);\n      }\n      clearTimeout(timeout);\n    });\n  };\n};\n```\n\n## 结语\n\n通过这些方法，你可以增强异步函数，使其在时间限制内自动拒绝 Promise。这在处理长时间运行的进程或通知用户失败等情况下非常有用。根据你的需要，选择适当的方法来实现时间限制。",
+            "slateValue": "",
+            "slug": "promise-shi-jian-xian-zhi-by-leetcode-so-wegv",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "Bo4k6u",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 8,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-10-31T03:27:07.344410+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "解决方案 概述 这个问题要求你增强一个异步函数，以便它返回的 Promise 会在时间限制到期时自动拒绝。 时间限制的用例 长时间运行的过程 你可能遇到过一些代码会一遍又一遍地重复执行。一个常见的例子是将数据加载到缓存中并使其与数据源保持同步。 javascript async function repeatProce",
+            "topic": {
+                "id": 2506142,
+                "subscribed": false,
+                "commentCount": 2,
+                "viewCount": 77,
+                "post": {
+                    "id": 4669051,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 28,
+            "isEditorsPick": false,
+            "hitCount": 4107,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "promise-time-limit",
+                "questionFrontendId": "2637"
+            },
+            "next": {
+                "slug": "fang-zhi-zhong-fu-wu-yi-yi-diao-yong-ban-amok",
+                "title": "防止重复无意义调用版本"
+            },
+            "prev": null
+        }
+    }
+}

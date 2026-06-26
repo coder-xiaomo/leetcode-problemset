@@ -1,0 +1,144 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "iTlOqO",
+            "title": "统计特殊三元组",
+            "content": "#### 方法一：枚举 + 计数\n\n**思路与算法**\n\n根据题意，容易观察到对于三元组 $(i, \\,j, \\,k)$ 有 $\\textit{nums}[i] = \\textit{nums}[k]$，考虑枚举两侧的数或者中间的数进行计数。\n\n如果枚举两侧的数，例如枚举 $\\textit{nums}[i]$，寻找合法的 $(j, \\,k)$，那么势必需要维护 $\\textit{nums}$ 数组上数与数之间的相对位置信息，这是繁琐的，且在这个数据范围限制下较难实现。\n\n不妨换个思路，枚举中间的 $\\textit{nums}[j]$，此时只需要知道左右两侧分别有多少个数等于 $\\textit{nums}[j] \\times 2$，即可计算 $\\textit{nums}[j]$ 对答案的贡献。\n\n设对于当前位置左侧有 $\\textit{LeftCnt}$ 个满足条件的下标，右侧有 $\\textit{RightCnt}$ 个满足条件的下标，根据计数问题的乘法原理，它们对答案的贡献是：$\\textit{LeftCnt} \\times \\textit{RightCnt} \\bmod{(10^9 + 7)}$。\n\n下面思考如何计算 $\\textit{LeftCnt}$ 和 $\\textit{RightCnt}$。\n\n考虑使用哈希表对 $\\textit{nums}$ 中的元素进行计数，我们维护两个哈希表 $\\textit{numCnt}$ 和 $\\textit{numPartialCnt}$，分别代表 $\\textit{nums}$ 中的每个元素在**整个数组**中出现的总次数和在**当前遍历位置**下每个元素出现的次数。\n\n我们可以提前遍历计算 $\\textit{numCnt}$，然后在枚举的同时更新 $\\textit{numPartialCnt}$。设此时需要寻找的目标值为 $t$（即两倍的 $\\textit{nums}[j]$），此时显然有：$\\textit{LeftCnt} = \\textit{numPartialCnt}[t], \\,\\textit{RightCnt} = \\textit{numCnt}[t] - \\textit{numPartialCnt}[t]$。\n\n最后需要注意当前位置的元素对更新 $\\textit{numPartialCnt}$ 的影响。因为当 $\\textit{nums}[j] = 0$ 时，我们要寻找的三个数是相同的，因此更新 $\\textit{numPartialCnt}$ 的时机需要放在计算 $\\textit{LeftCnt}$ 之后，且在计算 $\\textit{RightCnt}$ 之前。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int specialTriplets(vector<int>& nums) {\n        const int MOD = 1e9 + 7;\n        unordered_map<int, int> numCnt;\n        unordered_map<int, int> numPartialCnt;\n\n        numCnt.reserve(nums.size() * 2);\n        numPartialCnt.reserve(nums.size() * 2);\n\n        for (int v : nums) {\n            numCnt[v]++;\n        }\n\n        int ans = 0;\n        for (int v : nums) {\n            int target = v * 2;\n            int lCnt = numPartialCnt[target];\n            numPartialCnt[v]++;\n            int rCnt = numCnt[target] - numPartialCnt[target];\n            ans = (ans + (lCnt * 1LL * rCnt % MOD)) % MOD;\n        }\n\n        return ans;\n    }\n};\n```\n\n```JavaScript [sol1-JavaScript]\nconst MOD = 1e9 + 7;\n\nvar specialTriplets = function (nums) {\n    const numCnt = new Map();\n    const numPartialCnt = new Map();\n\n    for (const v of nums) {\n        numCnt.set(v, (numCnt.get(v) ?? 0) + 1);\n    }\n\n    let ans = 0;\n    for (const v of nums) {\n        const target = v * 2;\n        const lCnt = numPartialCnt.get(target) ?? 0;\n\n        numPartialCnt.set(v, (numPartialCnt.get(v) ?? 0) + 1);\n        const rCnt = (numCnt.get(target) ?? 0) - (numPartialCnt.get(target) ?? 0);\n\n        ans += (lCnt * rCnt) % MOD;\n        ans %= MOD;\n    }\n    return ans;\n}\n```\n\n```TypeScript [sol1-TypeScript]\nconst MOD = 1e9 + 7;\n\nfunction specialTriplets(nums: number[]): number {\n    const numCnt = new Map<number, number>();\n    const numPartialCnt = new Map<number, number>();\n\n    for (const v of nums) {\n        numCnt.set(v, (numCnt.get(v) ?? 0) + 1);\n    }\n\n    let ans = 0;\n    for (const v of nums) {\n        const target = v * 2;\n        const lCnt = numPartialCnt.get(target) ?? 0;\n\n        numPartialCnt.set(v, (numPartialCnt.get(v) ?? 0) + 1);\n        const rCnt = (numCnt.get(target) ?? 0) - (numPartialCnt.get(target) ?? 0);\n\n        ans += (lCnt * rCnt) % MOD;\n        ans %= MOD;\n    }\n    return ans;\n}\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int specialTriplets(int[] nums) {\n        final int MOD = 1000000007;\n        Map<Integer, Integer> numCnt = new HashMap<>();\n        Map<Integer, Integer> numPartialCnt = new HashMap<>();\n        \n        for (int v : nums) {\n            numCnt.put(v, numCnt.getOrDefault(v, 0) + 1);\n        }\n        \n        long ans = 0;\n        for (int v : nums) {\n            int target = v * 2;\n            int lCnt = numPartialCnt.getOrDefault(target, 0);\n            numPartialCnt.put(v, numPartialCnt.getOrDefault(v, 0) + 1);\n            int rCnt = numCnt.getOrDefault(target, 0) - numPartialCnt.getOrDefault(target, 0);\n            ans = (ans + (long) lCnt * rCnt) % MOD;\n        }\n        \n        return (int) ans;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int SpecialTriplets(int[] nums) {\n        const int MOD = 1000000007;\n        Dictionary<int, int> numCnt = new Dictionary<int, int>();\n        Dictionary<int, int> numPartialCnt = new Dictionary<int, int>();\n        \n        foreach (int v in nums) {\n            if (numCnt.ContainsKey(v)) {\n                numCnt[v]++;\n            } else {\n                numCnt[v] = 1;\n            }\n        }\n        \n        long ans = 0;\n        foreach (int v in nums) {\n            int target = v * 2;\n            int lCnt = numPartialCnt.ContainsKey(target) ? numPartialCnt[target] : 0;\n            if (numPartialCnt.ContainsKey(v)) {\n                numPartialCnt[v]++;\n            } else {\n                numPartialCnt[v] = 1;\n            }\n            \n            int totalCnt = numCnt.ContainsKey(target) ? numCnt[target] : 0;\n            int partialCnt = numPartialCnt.ContainsKey(target) ? numPartialCnt[target] : 0;\n            int rCnt = totalCnt - partialCnt;\n            \n            ans = (ans + (long)lCnt * rCnt) % MOD;\n        }\n        \n        return (int)ans;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc specialTriplets(nums []int) int {\n    const MOD = 1000000007\n    numCnt := make(map[int]int)\n    numPartialCnt := make(map[int]int)\n    \n    for _, v := range nums {\n        numCnt[v]++\n    }\n    \n    ans := 0\n    for _, v := range nums {\n        target := v * 2\n        lCnt := numPartialCnt[target]\n        numPartialCnt[v]++\n        rCnt := numCnt[target] - numPartialCnt[target]\n        \n        ans = (ans + lCnt * rCnt) % MOD\n    }\n    \n    return ans\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def specialTriplets(self, nums: List[int]) -> int:\n        MOD = 10**9 + 7\n        num_cnt = {}\n        num_partial_cnt = {}\n        \n        for v in nums:\n            num_cnt[v] = num_cnt.get(v, 0) + 1\n        \n        ans = 0\n        for v in nums:\n            target = v * 2\n            l_cnt = num_partial_cnt.get(target, 0)\n            num_partial_cnt[v] = num_partial_cnt.get(v, 0) + 1\n            r_cnt = num_cnt.get(target, 0) - num_partial_cnt.get(target, 0)\n            ans = (ans + l_cnt * r_cnt) % MOD\n        \n        return ans\n```\n\n```C [sol1-C]\n#define MOD 1000000007\n\ntypedef struct {\n    int key;\n    int val;\n    UT_hash_handle hh;\n} HashItem; \n\nHashItem *hashFindItem(HashItem **obj, int key) {\n    HashItem *pEntry = NULL;\n    HASH_FIND_INT(*obj, &key, pEntry);\n    return pEntry;\n}\n\nbool hashAddItem(HashItem **obj, int key, int val) {\n    if (hashFindItem(obj, key)) {\n        return false;\n    }\n    HashItem *pEntry = (HashItem *)malloc(sizeof(HashItem));\n    pEntry->key = key;\n    pEntry->val = val;\n    HASH_ADD_INT(*obj, key, pEntry);\n    return true;\n}\n\nbool hashSetItem(HashItem **obj, int key, int val) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        hashAddItem(obj, key, val);\n    } else {\n        pEntry->val = val;\n    }\n    return true;\n}\n\nint hashGetItem(HashItem **obj, int key, int defaultVal) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        return defaultVal;\n    }\n    return pEntry->val;\n}\n\nvoid hashFree(HashItem **obj) {\n    HashItem *curr = NULL, *tmp = NULL;\n    HASH_ITER(hh, *obj, curr, tmp) {\n        HASH_DEL(*obj, curr);  \n        free(curr);\n    }\n}\n\nint specialTriplets(int* nums, int numsSize) {\n    HashItem *numCnt = NULL;\n    HashItem *numPartialCnt = NULL;\n    \n    for (int i = 0; i < numsSize; i++) {\n        int v = nums[i];\n        hashSetItem(&numCnt, v, hashGetItem(&numCnt, v, 0) + 1);\n    }\n    \n    long long ans = 0;\n    for (int i = 0; i < numsSize; i++) {\n        int v = nums[i];\n        int target = v * 2;\n        int lCnt = hashGetItem(&numPartialCnt, target, 0);\n        hashSetItem(&numPartialCnt, v, hashGetItem(&numPartialCnt, v, 0) + 1);\n        int rCnt = hashGetItem(&numCnt, target, 0) - hashGetItem(&numPartialCnt, target, 0);\n        ans = (ans + (long long)lCnt * rCnt) % MOD;\n    }\n    \n    hashFree(&numCnt);\n    hashFree(&numPartialCnt);\n    return (int)ans;\n}\n```\n\n```Rust [sol1-Rust]\nuse std::collections::HashMap;\n\nimpl Solution {\n    pub fn special_triplets(nums: Vec<i32>) -> i32 {\n        const MOD: i64 = 1_000_000_007;\n        let mut num_cnt: HashMap<i32, i32> = HashMap::new();\n        let mut num_partial_cnt: HashMap<i32, i32> = HashMap::new();\n        \n        for &v in &nums {\n            *num_cnt.entry(v).or_insert(0) += 1;\n        }\n        \n        let mut ans: i64 = 0;\n        for v in nums {\n            let target = v * 2;\n            let l_cnt = *num_partial_cnt.get(&target).unwrap_or(&0);\n            *num_partial_cnt.entry(v).or_insert(0) += 1;\n            let total_cnt = *num_cnt.get(&target).unwrap_or(&0);\n            let partial_cnt = *num_partial_cnt.get(&target).unwrap_or(&0);\n            let r_cnt = total_cnt - partial_cnt;\n            ans = (ans + l_cnt as i64 * r_cnt as i64) % MOD;\n        }\n        \n        ans as i32\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，设 $n$ 是 $\\textit{nums}$ 的长度，遍历 $\\textit{nums}$ 需要 $O(n)$，哈希表的存取需要 $O(1)$，故总时间复杂度为 $O(n)$。\n\n- 空间复杂度：$O(n)$，哈希表需要 $O(n)$ 的空间。\n\n#### 方法二：枚举 + 二分查找\n\n**思路与算法**\n\n基本思路同方法一，区别在于建立位置索引后再利用二分查找来计算 $\\textit{LeftCnt}$ 和 $\\textit{RightCnt}$。\n\n使用哈希表 $\\textit{pos}$ 建立每个元素的位置索引，将元素在 $\\textit{nums}$ 中出现的下标序列存入 $\\textit{pos}$。\n\n由于这个下标序列的长度蕴含了对应元素出现的次数信息，故对于当前枚举的位置 $j$，只需要通过二分查找 $j$ 在目标元素的下标序列中的位置，即可计算 $\\textit{LeftCnt}$ 和 $\\textit{RightCnt}$。\n\n**代码**\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    int specialTriplets(vector<int>& nums) {\n        const int MOD = 1e9 + 7;\n        unordered_map<int, vector<int>> pos;\n        pos.reserve(nums.size() * 2);\n\n        for (int i = 0; i < nums.size(); i++) {\n            pos[nums[i]].push_back(i);\n        }\n\n        int ans = 0;\n\n        for (int i = 1; i < nums.size() - 1; i++) {\n            int target = nums[i] * 2LL;\n            if (pos.count(target) == 0) {\n                continue;\n            }\n\n            const auto& arr = pos[target];\n            if (arr.size() <= 1 || arr[0] >= i) {\n                continue;\n            }\n\n            auto split = upper_bound(arr.begin(), arr.end(), i);\n            int l = split - arr.begin();\n            int r = arr.size() - l;\n\n            if (nums[i] == 0) {\n                l--;\n            }\n            ans = (ans + l * 1LL * r % MOD) % MOD;\n        }\n\n        return ans;\n    }\n};\n```\n\n```JavaScript [sol2-JavaScript]\nconst MOD = 1e9 + 7;\n\nvar specialTriplets = function (nums) {\n    const pos = new Map();\n\n    for (let i = 0; i < nums.length; i++) {\n        const v = nums[i];\n        if (pos.has(v)) {\n            pos.get(v).push(i);\n        } else {\n            pos.set(v, [i]);\n        }\n    }\n\n    const upperBound = (arr, i) => {\n        let l = 0, r = arr.length - 1;\n\n        while (l < r) {\n            const mid = l + ((r - l + 1) >> 1);\n            if (i >= arr[mid]) {\n                l = mid;\n            } else {\n                r = mid - 1;\n            }\n        }\n        return [l + 1, arr.length - 1 - l];\n    };\n\n    let ans = 0;\n    for (let i = 1; i < nums.length - 1; i++) {\n        const targetPos = pos.get(nums[i] * 2);\n        if (targetPos && targetPos.length > 1 && targetPos[0] < i) {\n            let [l, r] = upperBound(targetPos, i);\n            if (nums[i] === 0) {\n                l--;\n            }\n            ans += (l * r) % MOD;\n            ans %= MOD;\n        }\n    }\n    return ans;\n};\n```\n\n```TypeScript [sol2-TypeScript]\nconst MOD = 1e9 + 7;\n\nfunction specialTriplets(nums: number[]): number {\n    const pos = new Map<number, number[]>();\n\n    for (let i = 0; i < nums.length; i++) {\n        const v = nums[i];\n        if (pos.has(v)) {\n            pos.get(v)!.push(i);\n        } else {\n            pos.set(v, [i]);\n        }\n    }\n\n    const upperBound = (arr: number[], i: number) => {\n        let l = 0, r = arr.length - 1;\n\n        while (l < r) {\n            const mid = l + ((r - l + 1) >> 1);\n            if (i >= arr[mid]) {\n                l = mid;\n            } else {\n                r = mid - 1;\n            }\n        }\n        return [l + 1, arr.length - 1 - l];\n    };\n\n    let ans = 0;\n    for (let i = 1; i < nums.length - 1; i++) {\n        const targetPos = pos.get(nums[i] * 2);\n        if (targetPos && targetPos.length > 1 && targetPos[0] < i) {\n            let [l, r] = upperBound(targetPos, i);\n            if (nums[i] === 0) {\n                l--;\n            }\n            ans += (l * r) % MOD;\n            ans %= MOD;\n        }\n    }\n    return ans;\n}\n```\n\n```Java [sol2-Java]\nclass Solution {\n    private static final int MOD = 1000000007;\n\n    public int specialTriplets(int[] nums) {\n        Map<Integer, List<Integer>> pos = new HashMap<>();\n        \n        for (int i = 0; i < nums.length; i++) {\n            int v = nums[i];\n            pos.computeIfAbsent(v, k -> new ArrayList<>()).add(i);\n        }\n        \n        int ans = 0;\n        for (int i = 1; i < nums.length - 1; i++) {\n            int target = nums[i] * 2;\n            List<Integer> targetPos = pos.get(target);\n            if (targetPos != null && targetPos.size() > 1 && targetPos.get(0) < i) {\n                int[] lr = upperBound(targetPos, i);\n                int l = lr[0];\n                int r = lr[1];\n                if (nums[i] == 0) {\n                    l--;\n                }\n                ans = (int)((ans + (long)l * r) % MOD);\n            }\n        }\n        return ans;\n    }\n    \n    private int[] upperBound(List<Integer> arr, int i) {\n        int l = 0, r = arr.size() - 1;\n        while (l < r) {\n            int mid = l + ((r - l + 1) >> 1);\n            if (i >= arr.get(mid)) {\n                l = mid;\n            } else {\n                r = mid - 1;\n            }\n        }\n        return new int[]{l + 1, arr.size() - 1 - l};\n    }\n}\n```\n\n```C# [sol2-C#]\nusing System;\nusing System.Collections.Generic;\n\npublic class Solution {\n    private const int MOD = 1000000007;\n    \n    public int SpecialTriplets(int[] nums) {\n        Dictionary<int, List<int>> pos = new Dictionary<int, List<int>>();\n        \n        for (int i = 0; i < nums.Length; i++) {\n            int v = nums[i];\n            if (!pos.ContainsKey(v)) {\n                pos[v] = new List<int>();\n            }\n            pos[v].Add(i);\n        }\n        \n        int ans = 0;\n        for (int i = 1; i < nums.Length - 1; i++) {\n            int target = nums[i] * 2;\n            if (pos.ContainsKey(target) && pos[target].Count > 1 && pos[target][0] < i) {\n                var (l, r) = UpperBound(pos[target], i);\n                int leftCount = l;\n                int rightCount = r;\n                if (nums[i] == 0) {\n                    leftCount--;\n                }\n                ans = (int)((ans + (long)leftCount * rightCount) % MOD);\n            }\n        }\n        return ans;\n    }\n    \n    private (int, int) UpperBound(List<int> arr, int i) {\n        int l = 0, r = arr.Count - 1;\n        while (l < r) {\n            int mid = l + ((r - l + 1) >> 1);\n            if (i >= arr[mid]) {\n                l = mid;\n            } else {\n                r = mid - 1;\n            }\n        }\n        return (l + 1, arr.Count - 1 - l);\n    }\n}\n```\n\n```Go [sol2-Go]\nfunc specialTriplets(nums []int) int {\n    const MOD = 1000000007\n    pos := make(map[int][]int)\n    \n    for i, v := range nums {\n        pos[v] = append(pos[v], i)\n    }\n    \n    ans := 0\n    for i := 1; i < len(nums)-1; i++ {\n        target := nums[i] * 2\n        if targetPos, exists := pos[target]; exists && len(targetPos) > 1 && targetPos[0] < i {\n            l, r := upperBound(targetPos, i)\n            if nums[i] == 0 {\n                l--\n            }\n            ans = (ans + l * r) % MOD\n        }\n    }\n    return ans\n}\n\nfunc upperBound(arr []int, i int) (int, int) {\n    l, r := 0, len(arr)-1\n    for l < r {\n        mid := l + ((r - l + 1) >> 1)\n        if i >= arr[mid] {\n            l = mid\n        } else {\n            r = mid - 1\n        }\n    }\n    return l + 1, len(arr) - 1 - l\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def specialTriplets(self, nums: List[int]) -> int:\n        MOD = 10**9 + 7\n        pos = defaultdict(list)\n\n        for i, v in enumerate(nums):\n            pos[v].append(i)\n            \n        def upper_bound(arr, i):\n            l, r = 0, len(arr) - 1\n            while l < r:\n                mid = l + ((r - l + 1) >> 1)\n                if i >= arr[mid]:\n                    l = mid\n                else:\n                    r = mid - 1\n            return l + 1, len(arr) - 1 - l\n\n        ans = 0\n        for i in range(1, len(nums) - 1):\n            target = nums[i] * 2\n            if target in pos and len(pos[target]) > 1 and pos[target][0] < i:\n                l, r = upper_bound(pos[target], i)\n                if nums[i] == 0:\n                    l -= 1\n                ans = (ans + l * r) % MOD\n\n        return ans\n```\n\n```C [sol2-C]\n#define MOD 1000000007\n\ntypedef struct {\n    int key;\n    int *indices;\n    int size;\n    int capacity;\n    UT_hash_handle hh;\n} HashItem;\n\nHashItem* hashFindItem(HashItem **obj, int key) {\n    HashItem *pEntry = NULL;\n    HASH_FIND_INT(*obj, &key, pEntry);\n    return pEntry;\n}\n\nbool hashAddItem(HashItem **obj, int key, int index) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (pEntry) {\n        if (pEntry->size >= pEntry->capacity) {\n            pEntry->capacity *= 2;\n            pEntry->indices = realloc(pEntry->indices, pEntry->capacity * sizeof(int));\n        }\n        pEntry->indices[pEntry->size++] = index;\n    } else {\n        pEntry = (HashItem *)malloc(sizeof(HashItem));\n        pEntry->key = key;\n        pEntry->capacity = 32;\n        pEntry->size = 1;\n        pEntry->indices = malloc(pEntry->capacity * sizeof(int));\n        pEntry->indices[0] = index;\n        HASH_ADD_INT(*obj, key, pEntry);\n    }\n    \n    return true;\n}\n\nvoid hashFree(HashItem **obj) {\n    HashItem *curr = NULL, *tmp = NULL;\n    HASH_ITER(hh, *obj, curr, tmp) {\n        HASH_DEL(*obj, curr);\n        free(curr->indices);\n        free(curr);\n    }\n}\n\nint upperBound(int *arr, int size, int target) {\n    int left = 0, right = size;\n    while (left < right) {\n        int mid = left + (right - left) / 2;\n        if (arr[mid] <= target) {\n            left = mid + 1;\n        } else {\n            right = mid;\n        }\n    }\n    return left;\n}\n\nint specialTriplets(int* nums, int numsSize) {    \n    HashItem *pos = NULL;\n    for (int i = 0; i < numsSize; i++) {\n        hashAddItem(&pos, nums[i], i);\n    }\n    \n    int ans = 0;\n    for (int i = 1; i < numsSize - 1; i++) {\n        int target = nums[i] * 2;\n        HashItem *pEntry = hashFindItem(&pos, target);\n        if (pEntry == NULL || pEntry->size <= 1) {\n            continue;\n        }\n        \n        int *targetPos = pEntry->indices;\n        int arrSize = pEntry->size;\n        if (targetPos[0] >= i) {\n            continue;\n        }\n        \n        int split = upperBound(targetPos, arrSize, i);\n        int l = split;\n        int r = arrSize - split;\n        if (nums[i] == 0) {\n            l--;\n        }\n        if (l > 0 && r > 0) {\n            ans = (int)((ans + (long long)l * r) % MOD);\n        }\n    }\n    \n    hashFree(&pos);\n    return ans;\n}\n```\n\n```Rust [sol2-Rust]\nuse std::collections::HashMap;\n\nimpl Solution {\n    pub fn special_triplets(nums: Vec<i32>) -> i32 {\n        const MOD: i64 = 1_000_000_007;\n        let mut pos: HashMap<i32, Vec<usize>> = HashMap::new();\n        \n        for (i, &v) in nums.iter().enumerate() {\n            pos.entry(v).or_insert_with(Vec::new).push(i);\n        }\n        \n        let upper_bound = |arr: &[usize], i: usize| -> (usize, usize) {\n            let (mut l, mut r) = (0, arr.len() - 1);\n            while l < r {\n                let mid = l + ((r - l + 1) >> 1);\n                if i >= arr[mid] {\n                    l = mid;\n                } else {\n                    r = mid - 1;\n                }\n            }\n            (l + 1, arr.len() - 1 - l)\n        };\n        \n        let mut ans: i64 = 0;\n        for i in 1..nums.len() - 1 {\n            let target = nums[i] * 2;\n            if let Some(target_pos) = pos.get(&target) {\n                if target_pos.len() > 1 && target_pos[0] < i {\n                    let (mut l, r) = upper_bound(target_pos, i);\n                    if nums[i] == 0 {\n                        l -= 1;\n                    }\n                    ans = (ans + l as i64 * r as i64) % MOD;\n                }\n            }\n        }\n        \n        ans as i32\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log n)$，设 $n$ 是 $\\textit{nums}$ 的长度，遍历 $\\textit{nums}$ 需要 $O(n)$，哈希表的存取需要 $O(1)$，二分查找复杂度为 $O(\\log n)，$故总时间复杂度为 $O(n \\log n)$。\n\n- 空间复杂度：$O(n)$，哈希表存储元素下标索引序列，均摊后需要 $O(n)$ 的空间。",
+            "slateValue": "",
+            "slug": "tong-ji-te-shu-san-yuan-zu-by-leetcode-s-f3ac",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "iTlOqO",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 5,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Counting",
+                    "nameTranslated": "计数",
+                    "slug": "counting",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2025-12-04T03:35:26.008474+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：枚举 + 计数 思路与算法 根据题意，容易观察到对于三元组 [latex] 有 [latex]，考虑枚举两侧的数或者中间的数进行计数。 如果枚举两侧的数，例如枚举 [latex]，寻找合法的 [latex]，那么势必需要维护 [latex] 数组上数与数之间的相对位置信息，这是繁琐的，且在这个数据范围限制下较难",
+            "topic": {
+                "id": 3848618,
+                "subscribed": false,
+                "commentCount": 12,
+                "viewCount": 16,
+                "post": {
+                    "id": 7024263,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 9,
+            "isEditorsPick": false,
+            "hitCount": 6264,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "count-special-triplets",
+                "questionFrontendId": "3583"
+            },
+            "next": {
+                "slug": "mei-ju-zhong-jian-qian-hou-zhui-fen-jie-5uad8",
+                "title": "两种方法：枚举中间 / 一次遍历（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

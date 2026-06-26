@@ -1,0 +1,144 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "HOXGjq",
+            "title": "感染二叉树需要的总时间",
+            "content": "#### 方法一：深度优先搜索建图 + 广度优先搜索求感染时间\n\n**思路**\n\n根据题意，需求出值为 $\\textit{start}$ 的节点到其他节点最远的距离。树中的最远距离可以用广度优先搜索来求解。但是 $\\textit{start}$ 不一定为根节点，我们需要先将树的结构用深度优先搜索解析成无向图，再用广度优先搜索来求最长距离。代码中 $\\textit{graph}$ 即为邻接表，用一个哈希表来表示。哈希表的键为节点值，值为其相邻节点的值组成的列表。建完表后用广度优先搜索求最长距离。\n\n**代码**\n\n```Python [sol1-Python3]\nclass Solution:\n    def amountOfTime(self, root: Optional[TreeNode], start: int) -> int:\n        graph = defaultdict(list)\n        def dfs(node: TreeNode) -> None:\n            for child in [node.left, node.right]:\n                if child:\n                    graph[node.val].append(child.val)\n                    graph[child.val].append(node.val)\n                    dfs(child)\n        dfs(root)\n\n        q = deque([[start, 0]])\n        visited = set([start])\n        time = 0\n        while q:\n            nodeVal, time = q.popleft()\n            for childVal in graph[nodeVal]:\n                if childVal not in visited:\n                    q.append([childVal, time + 1])\n                    visited.add(childVal)\n        return time\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int amountOfTime(TreeNode root, int start) {\n        Map<Integer, List<Integer>> graph = new HashMap<Integer, List<Integer>>();\n        dfs(graph, root);\n        Queue<int[]> queue = new ArrayDeque<int[]>();\n        queue.offer(new int[]{start, 0});\n        Set<Integer> visited = new HashSet<Integer>();\n        visited.add(start);\n        int time = 0;\n        while (!queue.isEmpty()) {\n            int[] arr = queue.poll();\n            int nodeVal = arr[0];\n            time = arr[1];\n            for (int childVal : graph.get(nodeVal)) {\n                if (visited.add(childVal)) {\n                    queue.offer(new int[]{childVal, time + 1});\n                }\n            }\n        }\n        return time;\n    }\n\n    public void dfs(Map<Integer, List<Integer>> graph, TreeNode node) {\n        graph.putIfAbsent(node.val, new ArrayList<Integer>());\n        for (TreeNode child : Arrays.asList(node.left, node.right)) {\n            if (child != null) {\n                graph.get(node.val).add(child.val);\n                graph.putIfAbsent(child.val, new ArrayList<Integer>());\n                graph.get(child.val).add(node.val);\n                dfs(graph, child);\n            }\n        }\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int amountOfTime(TreeNode *root, int start) {\n        unordered_map<int, vector<int>> graph;\n        function<void(TreeNode *)> dfs = [&](TreeNode *node) {\n            for (TreeNode *child : vector<TreeNode *>{node->left, node->right}) {\n                if (child != nullptr) {\n                    graph[node->val].push_back(child->val);\n                    graph[child->val].push_back(node->val);\n                    dfs(child);\n                }\n            }\n        };\n        dfs(root);\n        queue<vector<int>> q;\n        q.push({start, 0});\n        unordered_set<int> visited;\n        visited.insert(start);\n        int time = 0;\n        while (!q.empty()) {\n            auto arr = q.front();\n            q.pop();\n            int nodeVal = arr[0];\n            time = arr[1];\n            for (int childVal: graph[nodeVal]) {\n                if (!visited.count(childVal)) {\n                    q.push({childVal, time + 1});\n                    visited.insert(childVal);\n                }\n            }\n        }\n        return time;\n    }\n};\n```\n\n```Go [sol1-Go]\nfunc amountOfTime(root *TreeNode, start int) int {\n    graph := map[int][]int{}\n    var dfs func(*TreeNode)\n    dfs = func(node *TreeNode) {\n        for _, child := range []*TreeNode{node.Left, node.Right} {\n            if child != nil {\n                graph[node.Val] = append(graph[node.Val], child.Val)\n                graph[child.Val] = append(graph[child.Val], node.Val)\n                dfs(child)\n            }\n        }\n    }\n    dfs(root)\n    q := [][]int{[]int{start, 0}}\n    visited := map[int]bool{}\n    visited[start] = true\n    time := 0\n    for len(q) > 0 {\n        arr := q[0]\n        q = q[1:]\n        nodeVal := arr[0]\n        time = arr[1]\n        for _, childVal := range graph[nodeVal] {\n            if !visited[childVal] {\n                q = append(q, []int{childVal, time + 1})\n                visited[childVal] = true\n            }\n        }\n    }\n    return time\n}\n```\n\n```C [sol1-C]\ntypedef struct {\n    int key;\n    struct ListNode *val;\n    UT_hash_handle hh;\n} HashMapItem; \n\ntypedef struct {\n    int key;\n    UT_hash_handle hh;\n} HashSetItem; \n\nstruct ListNode* creatListNode(int val) {\n    struct ListNode *obj = (struct ListNode*)malloc(sizeof(struct ListNode));\n    obj->val = val;\n    obj->next = NULL;\n    return obj;\n}\n\nHashMapItem *hashMapFindItem(HashMapItem **obj, int key) {\n    HashMapItem *pEntry = NULL;\n    HASH_FIND_INT(*obj, &key, pEntry);\n    return pEntry;\n}\n\nstruct ListNode* hashMapGetItem(HashMapItem **obj, int key) {\n    HashMapItem *pEntry = NULL;\n    HASH_FIND_INT(*obj, &key, pEntry);\n    if (!pEntry) {\n        return NULL;\n    } else {\n        return pEntry->val;\n    }\n}\n\nbool hashMapAddItem(HashMapItem **obj, int key, int val) {\n    HashMapItem *pEntry = NULL;\n    HASH_FIND_INT(*obj, &key, pEntry);\n    struct ListNode *node = creatListNode(val);\n    if (pEntry) {\n        node ->next = pEntry->val;\n        pEntry->val = node;\n    } else {\n        pEntry = (HashMapItem *)malloc(sizeof(HashMapItem));\n        pEntry->key = key;\n        pEntry->val = node;\n        HASH_ADD_INT(*obj, key, pEntry);\n    }\n    return true;\n}\n\nvoid freeList(struct ListNode *list) {\n    while (list) {\n        struct ListNode *p = list;\n        list = list->next;\n        free(p);\n    }\n}\n\nvoid hashMapFree(HashMapItem **obj) {\n    HashMapItem *curr = NULL, *tmp = NULL;\n    HASH_ITER(hh, *obj, curr, tmp) {\n        HASH_DEL(*obj, curr);  \n        freeList(curr->val);\n        free(curr);\n    }\n}\n\nHashSetItem *hashSetFindItem(HashSetItem **obj, int key) {\n    HashSetItem *pEntry = NULL;\n    HASH_FIND_INT(*obj, &key, pEntry);\n    return pEntry;\n} \n\nvoid hashSetAddItem(HashSetItem **obj, int key) {\n    HashSetItem *pEntry = hashSetFindItem(obj, key);\n    if (!pEntry) {\n        pEntry = (HashSetItem *)malloc(sizeof(HashSetItem));\n        pEntry->key = key;\n        HASH_ADD_INT(*obj, key, pEntry);\n    }\n}\n\nvoid hashSetFree(HashSetItem **obj) {\n    HashSetItem *curr = NULL, *tmp = NULL;\n    HASH_ITER(hh, *obj, curr, tmp) {\n        HASH_DEL(*obj, curr);  \n        free(curr);\n    }\n}\n\nvoid dfs(struct TreeNode *node, HashMapItem **graph) {\n    if (node == NULL) {\n        return;\n    }\n    struct TreeNode *arr[2] = {node->left, node->right};\n    for (int i = 0; i < 2; i++) {\n        if (arr[i] != NULL) {\n            hashMapAddItem(graph, node->val, arr[i]->val);\n            hashMapAddItem(graph, arr[i]->val, node->val);\n            dfs(arr[i], graph);\n        }\n    }\n};\n\ntypedef struct Pair {\n    int node;\n    int time;\n} Pair;\n\nint amountOfTime(struct TreeNode *root, int start) {\n    HashMapItem *graph = NULL;\n    dfs(root, &graph);\n\n    int nodeSize = HASH_COUNT(graph)  + 1;\n    Pair q[nodeSize];\n    int head = 0, tail = 0;\n    q[tail].node = start;\n    q[tail].time = 0;\n    tail++;\n\n    HashSetItem *visited = NULL;\n    hashSetAddItem(&visited, start);\n    int time = 0;\n    while (head != tail) {\n        int nodeVal = q[head].node;\n        time = q[head].time;\n        head++;\n        for (struct ListNode *p = hashMapGetItem(&graph, nodeVal); p != NULL; p = p->next) {\n            int childVal = p->val;\n            if (!hashSetFindItem(&visited, childVal)) {\n                int childVal = p->val;\n                q[tail].node = childVal;\n                q[tail].time = time + 1;\n                tail++;\n                hashSetAddItem(&visited, childVal);\n            }\n        }\n    }\n    hashMapFree(&graph);\n    hashSetFree(&visited);\n    return time;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar amountOfTime = function(root, start) {\n    const graph = new Map();\n    const dfs = (node) => {\n        [node.left, node.right].forEach((child) => {\n            if (child !== null) {\n                graph.has(node.val) ? graph.get(node.val).push(child.val) : graph.set(node.val, [child.val]);\n                graph.has(child.val) ? graph.get(child.val).push(node.val) : graph.set(child.val, [node.val]);\n                dfs(child);\n            }\n        });\n    };\n   \n    dfs(root);\n    const q = [[start, 0]];\n    visited = new Set([start]);\n    let time = 0;\n    while (q.length > 0) {\n        const [nodeVal, currTime] = q.shift();\n        time = currTime;\n        if (graph.has(nodeVal)) {\n            graph.get(nodeVal).forEach((childVal) => {\n                if (!visited.has(childVal)) {\n                    q.push([childVal, time + 1]);\n                    visited.add(childVal);\n                }\n            });\n        }\n    }\n    return time;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction amountOfTime(root: TreeNode | null, start: number): number {\n    const graph: Map<number, number[]> = new Map();\n    const dfs = (node: TreeNode) => {\n        [node.left, node.right].forEach((child) => {\n            if (child !== null) {\n                graph.has(node.val) ? graph.get(node.val).push(child.val) : graph.set(node.val, [child.val]);\n                graph.has(child.val) ? graph.get(child.val).push(node.val) : graph.set(child.val, [node.val]);\n                dfs(child);\n            }\n        });\n    };\n    dfs(root);\n\n    const q = [[start, 0]];\n    const visited: Set<number> = new Set([start]);\n    let time = 0;\n    while (q.length > 0) {\n        const [nodeVal, currTime] = q.shift()!;\n        time = currTime;\n        if (graph.has(nodeVal)) {\n            graph.get(nodeVal)!.forEach((childVal) => {\n                if (!visited.has(childVal)) {\n                    q.push([childVal, time + 1]);\n                    visited.add(childVal);\n                }\n            });\n        }\n    }\n    return time;\n};\n```\n\n```Rust [sol1-Rust]\nuse std::rc::Rc;\nuse std::cell::RefCell;\nuse std::collections::{HashMap, HashSet, VecDeque};\n\nimpl Solution {\n    pub fn amount_of_time(root: Option<Rc<RefCell<TreeNode>>>, start: i32) -> i32 {\n        let mut graph: HashMap<i32, Vec<i32>> = HashMap::new();\n        let mut visited: HashSet<i32> = HashSet::new();\n        \n        fn dfs(node_opt: Option<&Rc<RefCell<TreeNode>>>, graph: &mut HashMap<i32, Vec<i32>>) {\n            if let Some(node_ref) = node_opt {\n                let node = node_ref.borrow();\n                if let Some(ref left) = &node.left {\n                    graph.entry(node.val).or_insert_with(Vec::new).push(left.borrow().val);\n                    graph.entry(left.borrow().val).or_insert_with(Vec::new).push(node.val);\n                    dfs(Some(&left), graph);\n                }\n                if let Some(ref right) = &node.right {\n                    graph.entry(node.val).or_insert_with(Vec::new).push(right.borrow().val);\n                    graph.entry(right.borrow().val).or_insert_with(Vec::new).push(node.val);\n                    dfs(Some(&right), graph);\n                }\n            }\n        }\n        \n        if let Some(node) = root.as_ref() {\n            dfs(Some(&node), &mut graph);\n        }\n\n        let mut q = VecDeque::new();\n        let mut time = 0;\n        q.push_back((start, 0));\n        visited.insert(start);\n        while let Some((node_val, curr_time)) = q.pop_front() {\n            time = curr_time;\n            if let Some(children) = graph.get(&node_val) {\n                for &child_val in children {\n                    if !visited.contains(&child_val) {\n                        q.push_back((child_val, time + 1));\n                        visited.insert(child_val);\n                    }\n                }\n            }\n        }\n        time\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是树的节点个数。\n\n- 空间复杂度：$O(n)$。",
+            "slateValue": "",
+            "slug": "gan-ran-er-cha-shu-xu-yao-de-zong-shi-ji-awgp",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "HOXGjq",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 9,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Tree",
+                    "nameTranslated": "树",
+                    "slug": "tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Depth-First Search",
+                    "nameTranslated": "深度优先搜索",
+                    "slug": "depth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Breadth-First Search",
+                    "nameTranslated": "广度优先搜索",
+                    "slug": "breadth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Tree",
+                    "nameTranslated": "二叉树",
+                    "slug": "binary-tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2024-04-22T01:50:32.806001+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：深度优先搜索建图 + 广度优先搜索求感染时间 思路 根据题意，需求出值为 $\\textit{start}$ 的节点到其他节点最远的距离。树中的最远距离可以用广度优先搜索来求解。但是 $\\textit{start}$ 不一定为根节点，我们需要先将树的结构用深度优先搜索解析成无向图，再用广度优先搜索来求最长距离。代",
+            "topic": {
+                "id": 2750528,
+                "subscribed": false,
+                "commentCount": 67,
+                "viewCount": 904,
+                "post": {
+                    "id": 5036267,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 47,
+            "isEditorsPick": false,
+            "hitCount": 16649,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "amount-of-time-for-binary-tree-to-be-infected",
+                "questionFrontendId": "2385"
+            },
+            "next": {
+                "slug": "cong-liang-ci-bian-li-dao-yi-ci-bian-li-tmt0x",
+                "title": "从两次遍历到一次遍历（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

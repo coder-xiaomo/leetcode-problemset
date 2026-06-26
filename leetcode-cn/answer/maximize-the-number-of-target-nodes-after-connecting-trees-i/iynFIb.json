@@ -1,0 +1,144 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "iynFIb",
+            "title": "连接两棵树后最大目标节点数目 I",
+            "content": "#### 方法一：深度优先搜索\n\n根据题意，对于第 $i$ 个查询，使用第一颗树的节点 $i$ 去连接第二颗树的节点时，第二颗树的节点与第一颗树的节点 $i$ 的距离会更小，目标节点也更多。假设连接的第二颗树的节点为 $j$，那么我们需要统计第一颗树中和节点 $i$ 距离小于等于 $k$ 的节点数目 $\\textit{count}_1[i]$，以及第二颗树中和第一颗树的节点 $i$ 的距离小于等于 $k - 1$ 的节点数目 $\\textit{count}_2[j]$。\n\n注意到 $\\textit{count}_2[j]$ 的计算与查询无关，因此我们可以使用深度优先搜索预计算第二颗树中与节点 $j$ 的距离小于等于 $k - 1$ 的节点数目 $\\textit{count}_2[j]$，然后枚举节点 $j$，计算 $\\textit{count}_2[j]$ 的最大值 $\\textit{maxCount}_2$。\n\n对于第 $i$ 个查询，我们使用深度优先搜索计算 $\\textit{count}_1[i]$ 的值，然后加上 $\\textit{maxCount}_2$ 就得到查询的结果。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int dfs(int node, int parent, const vector<vector<int>>& children, int k) {\n        if (k < 0) {\n            return 0;\n        }\n        int res = 1;\n        for (int child : children[node]) {\n            if (child == parent) {\n                continue;\n            }\n            res += dfs(child, node, children, k - 1);\n        }\n        return res;\n    }\n\n    vector<int> build(const vector<vector<int>>& edges, int k) {\n        int n = edges.size() + 1;\n        vector<vector<int>> children(n);\n        for (const auto& edge : edges) {\n            children[edge[0]].push_back(edge[1]);\n            children[edge[1]].push_back(edge[0]);\n        }\n        vector<int> res(n);\n        for (int i = 0; i < n; i++) {\n            res[i] = dfs(i, -1, children, k);\n        }\n        return res;\n    }\n\n    vector<int> maxTargetNodes(vector<vector<int>>& edges1, vector<vector<int>>& edges2, int k) {\n        int n = edges1.size() + 1, m = edges2.size() + 1;\n        vector<int> count1 = build(edges1, k);\n        vector<int> count2 = build(edges2, k - 1);\n        int maxCount2 = *max_element(count2.begin(), count2.end());\n        vector<int> res(n);\n        for (int i = 0; i < n; i++) {\n            res[i] = count1[i] + maxCount2;\n        }\n        return res;\n    }\n};\n```\n\n```Go [sol1-Go]\nfunc maxTargetNodes(edges1 [][]int, edges2 [][]int, k int) []int {\n\tvar dfs func(node, parent int, children [][]int, k int) int\n\tdfs = func(node, parent int, children [][]int, k int) int {\n\t\tif k < 0 {\n\t\t\treturn 0\n\t\t}\n\t\tres := 1\n\t\tfor _, child := range children[node] {\n\t\t\tif child == parent {\n\t\t\t\tcontinue\n\t\t\t}\n\t\t\tres += dfs(child, node, children, k-1)\n\t\t}\n\t\treturn res\n\t}\n\n\tbuild := func(edges [][]int, k int) []int {\n\t\tn := len(edges) + 1\n\t\tchildren := make([][]int, n)\n\t\tfor _, edge := range edges {\n\t\t\tu, v := edge[0], edge[1]\n\t\t\tchildren[u] = append(children[u], v)\n\t\t\tchildren[v] = append(children[v], u)\n\t\t}\n\t\tres := make([]int, n)\n\t\tfor i := 0; i < n; i++ {\n\t\t\tres[i] = dfs(i, -1, children, k)\n\t\t}\n\t\treturn res\n\t}\n\n\tn := len(edges1) + 1\n\tcount1 := build(edges1, k)\n\tcount2 := build(edges2, k - 1)\n\tmaxCount2 := 0\n\tfor _, c := range count2 {\n\t\tif c > maxCount2 {\n\t\t\tmaxCount2 = c\n\t\t}\n\t}\n\tres := make([]int, n)\n\tfor i := 0; i < n; i++ {\n\t\tres[i] = count1[i] + maxCount2\n\t}\n\treturn res\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def maxTargetNodes(self, edges1: List[List[int]], edges2: List[List[int]], k: int) -> List[int]:\n        def dfs(node: int, parent: int, children: List[List[int]], k: int) -> int:\n            if k < 0:\n                return 0\n            res = 1\n            for child in children[node]:\n                if child == parent:\n                    continue\n                res += dfs(child, node, children, k - 1)\n            return res\n\n        def build(edges: List[List[int]], k: int) -> List[int]:\n            n = len(edges) + 1\n            children = [[] for _ in range(n)]\n            for u, v in edges:\n                children[u].append(v)\n                children[v].append(u)\n            res = [0] * n\n            for i in range(n):\n                res[i] = dfs(i, -1, children, k)\n            return res\n\n        n = len(edges1) + 1\n        count1 = build(edges1, k)\n        count2 = build(edges2, k - 1)\n        maxCount2 = max(count2)\n        res = [count1[i] + maxCount2 for i in range(n)]\n        return res\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int[] maxTargetNodes(int[][] edges1, int[][] edges2, int k) {\n        int n = edges1.length + 1, m = edges2.length + 1;\n        int[] count1 = build(edges1, k);\n        int[] count2 = build(edges2, k - 1);\n        int maxCount2 = 0;\n        for (int c : count2) {\n            if (c > maxCount2) {\n                maxCount2 = c;\n            }\n        }\n        int[] res = new int[n];\n        for (int i = 0; i < n; i++) {\n            res[i] = count1[i] + maxCount2;\n        }\n        return res;\n    }\n\n    private int[] build(int[][] edges, int k) {\n        int n = edges.length + 1;\n        List<List<Integer>> children = new ArrayList<>();\n        for (int i = 0; i < n; i++) {\n            children.add(new ArrayList<>());\n        }\n        for (int[] edge : edges) {\n            children.get(edge[0]).add(edge[1]);\n            children.get(edge[1]).add(edge[0]);\n        }\n        int[] res = new int[n];\n        for (int i = 0; i < n; i++) {\n            res[i] = dfs(i, -1, children, k);\n        }\n        return res;\n    }\n\n    private int dfs(int node, int parent, List<List<Integer>> children, int k) {\n        if (k < 0) {\n            return 0;\n        }\n        int res = 1;\n        for (int child : children.get(node)) {\n            if (child == parent) {\n                continue;\n            }\n            res += dfs(child, node, children, k - 1);\n        }\n        return res;\n    }\n}\n```\n\n```TypeScript [sol1-TypeScript]\nfunction maxTargetNodes(edges1: number[][], edges2: number[][], k: number): number[] {\n    function dfs(node: number, parent: number, children: number[][], k: number): number {\n        if (k < 0) {\n            return 0;\n        }\n        let res = 1;\n        for (const child of children[node]) {\n            if (child === parent) {\n                continue;\n            }\n            res += dfs(child, node, children, k - 1);\n        }\n        return res;\n    }\n\n    function build(edges: number[][], k: number): number[] {\n        const n = edges.length + 1;\n        const children: number[][] = Array.from({ length: n }, () => []);\n        for (const [u, v] of edges) {\n            children[u].push(v);\n            children[v].push(u);\n        }\n        const res: number[] = Array(n);\n        for (let i = 0; i < n; i++) {\n            res[i] = dfs(i, -1, children, k);\n        }\n        return res;\n    }\n\n    const n = edges1.length + 1;\n    const count1 = build(edges1, k);\n    const count2 = build(edges2, k - 1);\n    const maxCount2 = Math.max(...count2);\n    const res: number[] = Array(n);\n    for (let i = 0; i < n; i++) {\n        res[i] = count1[i] + maxCount2;\n    }\n    return res;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar maxTargetNodes = function(edges1, edges2, k) {\n    const dfs = (node, parent, children, k) => {\n        if (k < 0) {\n            return 0;\n        }\n        let res = 1;\n        for (const child of children[node]) {\n            if (child === parent) {\n                continue;\n            }\n            res += dfs(child, node, children, k - 1);\n        }\n        return res;\n    };\n\n    const build = (edges, k) => {\n        const n = edges.length + 1;\n        const children = Array.from({ length: n }, () => []);\n        for (const [u, v] of edges) {\n            children[u].push(v);\n            children[v].push(u);\n        }\n        const res = Array(n);\n        for (let i = 0; i < n; i++) {\n            res[i] = dfs(i, -1, children, k);\n        }\n        return res;\n    };\n\n    const n = edges1.length + 1;\n    const count1 = build(edges1, k);\n    const count2 = build(edges2, k - 1);\n    const maxCount2 = Math.max(...count2);\n    const res = Array(n);\n    for (let i = 0; i < n; i++) {\n        res[i] = count1[i] + maxCount2;\n    }\n    return res;\n};\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int[] MaxTargetNodes(int[][] edges1, int[][] edges2, int k) {\n        int n = edges1.Length + 1, m = edges2.Length + 1;\n        int[] count1 = Build(edges1, k);\n        int[] count2 = Build(edges2, k - 1);\n        int maxCount2 = 0;\n        foreach (int c in count2) {\n            if (c > maxCount2) {\n                maxCount2 = c;\n            }\n        }\n        int[] res = new int[n];\n        for (int i = 0; i < n; i++) {\n            res[i] = count1[i] + maxCount2;\n        }\n        return res;\n    }\n\n    private int[] Build(int[][] edges, int k) {\n        int n = edges.Length + 1;\n        List<List<int>> children = new List<List<int>>();\n        for (int i = 0; i < n; i++) {\n            children.Add(new List<int>());\n        }\n        foreach (var edge in edges) {\n            children[edge[0]].Add(edge[1]);\n            children[edge[1]].Add(edge[0]);\n        }\n        int[] res = new int[n];\n        for (int i = 0; i < n; i++) {\n            res[i] = Dfs(i, -1, children, k);\n        }\n        return res;\n    }\n\n    private int Dfs(int node, int parent, List<List<int>> children, int k) {\n        if (k < 0) {\n            return 0;\n        }\n        int res = 1;\n        foreach (int child in children[node]) {\n            if (child == parent) {\n                continue;\n            }\n            res += Dfs(child, node, children, k - 1);\n        }\n        return res;\n    }\n}\n```\n\n```C [sol1-C]\nint dfs(int node, int parent, int** children, int* childrenColSize, int k) {\n    if (k < 0) {\n        return 0;\n    }\n    int res = 1;\n    for (int i = 0; i < childrenColSize[node]; i++) {\n        int child = children[node][i];\n        if (child == parent) {\n            continue;\n        }\n        res += dfs(child, node, children, childrenColSize, k - 1);\n    }\n    return res;\n}\n\nint* build(int** edges, int edgesSize, int k) {\n    int n = edgesSize + 1;\n    int** children = (int**)malloc(n * sizeof(int*));\n    int* childrenColSize = (int*)malloc(n * sizeof(int));\n    memset(childrenColSize, 0, n * sizeof(int));\n    for (int i = 0; i < edgesSize; i++) {\n        childrenColSize[edges[i][0]]++;\n        childrenColSize[edges[i][1]]++;\n    }\n    for (int i = 0; i < n; i++) {\n        children[i] = (int *)malloc(childrenColSize[i] * sizeof(int));\n        childrenColSize[i] = 0;\n    }\n    for (int i = 0; i < edgesSize; i++) {\n        children[edges[i][0]][childrenColSize[edges[i][0]]++] = edges[i][1];\n        children[edges[i][1]][childrenColSize[edges[i][1]]++] = edges[i][0];\n    }\n    int* res = (int*)malloc(n * sizeof(int));\n    for (int i = 0; i < n; i++) {\n        res[i] = dfs(i, -1, children, childrenColSize, k);\n    }\n    for (int i = 0; i < n; i++) {\n        free(children[i]);\n    }\n    free(children);\n    free(childrenColSize);\n    return res;\n}\n\nint* maxTargetNodes(int** edges1, int edges1Size, int* edges1ColSize, int** edges2, int edges2Size, int* edges2ColSize, int k, int* returnSize) {\n    int n = edges1Size + 1;\n    int* count1 = build(edges1, edges1Size, k);\n    int* count2 = build(edges2, edges2Size, k - 1);\n    int maxCount = 0;\n    for (int i = 0; i < edges2Size + 1; i++) {\n        if (count2[i] > maxCount) {\n            maxCount = count2[i];\n        }\n    }\n    int* res = (int*)malloc(n * sizeof(int));\n    for (int i = 0; i < n; i++) {\n        res[i] = count1[i] + maxCount;\n    }\n    *returnSize = n;\n    free(count1);\n    free(count2);\n    return res;\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn max_target_nodes(edges1: Vec<Vec<i32>>, edges2: Vec<Vec<i32>>, k: i32) -> Vec<i32> {\n        fn dfs(node: usize, parent: i32, children: &Vec<Vec<i32>>, k: i32) -> i32 {\n            if k < 0 {\n                return 0;\n            }\n            let mut res = 1;\n            for &child in &children[node] {\n                if child == parent {\n                    continue;\n                }\n                res += dfs(child as usize, node as i32, children, k - 1);\n            }\n            res\n        }\n\n        fn build(edges: Vec<Vec<i32>>, k: i32) -> Vec<i32> {\n            let n = edges.len() + 1;\n            let mut children = vec![vec![]; n];\n            for edge in edges {\n                let u = edge[0] as usize;\n                let v = edge[1] as usize;\n                children[u].push(v as i32);\n                children[v].push(u as i32);\n            }\n            let mut res = vec![0; n];\n            for i in 0..n {\n                res[i] = dfs(i, -1, &children, k);\n            }\n            res\n        }\n\n        let n = edges1.len() + 1;\n        let count1 = build(edges1, k);\n        let count2 = build(edges2, k - 1);\n        let max_count2 = *count2.iter().max().unwrap();\n        let mut res = vec![0; n];\n        for i in 0..n {\n            res[i] = count1[i] + max_count2;\n        }\n        res\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n^2 + m^2)$，其中 $n$ 和 $m$ 分别是 $\\textit{edges}_1$ 和 $\\textit{edges}_2$ 对应的无向树的节点数目。\n\n- 空间复杂度：$O(n + m)$。",
+            "slateValue": "",
+            "slug": "lian-jie-liang-ke-shu-hou-zui-da-mu-biao-730m",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "iynFIb",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 8,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Tree",
+                    "nameTranslated": "树",
+                    "slug": "tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Depth-First Search",
+                    "nameTranslated": "深度优先搜索",
+                    "slug": "depth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Breadth-First Search",
+                    "nameTranslated": "广度优先搜索",
+                    "slug": "breadth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2025-05-15T00:50:18.319189+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：深度优先搜索 根据题意，对于第 [latex] 个查询，使用第一颗树的节点 [latex] 去连接第二颗树的节点时，第二颗树的节点与第一颗树的节点 [latex] 的距离会更小，目标节点也更多。假设连接的第二颗树的节点为 [latex]，那么我们需要统计第一颗树中和节点 [latex] 距离小于等于 [late",
+            "topic": {
+                "id": 3677383,
+                "subscribed": false,
+                "commentCount": 10,
+                "viewCount": 52,
+                "post": {
+                    "id": 6714207,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 23,
+            "isEditorsPick": false,
+            "hitCount": 6361,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "maximize-the-number-of-target-nodes-after-connecting-trees-i",
+                "questionFrontendId": "3372"
+            },
+            "next": {
+                "slug": "nao-jin-ji-zhuan-wan-bao-li-mei-ju-pytho-ua6k",
+                "title": "脑筋急转弯+暴力枚举+直径优化（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

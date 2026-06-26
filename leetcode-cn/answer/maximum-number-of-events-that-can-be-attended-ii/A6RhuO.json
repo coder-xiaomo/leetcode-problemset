@@ -1,0 +1,150 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "A6RhuO",
+            "title": "最多可以参加的会议数目 II",
+            "content": "#### 方法一：动态规划 + 二分查找\n\n**思路与算法**\n\n参加第 $i$ 个会议即可得到价值 $\\textit{value}_i$，题目要求求出可参加会议价值和的最大值。由于每个会议的起始时间为 $\\textit{startDay}_i$，结束时间为 $\\textit{endDay}_i$，每个会议必须**完整**参加且同一时间内只能参加一个会议，且每个会议的价值不同，题目本质为**背包**问题，因此我们可以使用动态规划来解决该问题。首先需要对会议 $\\textit{events}$ 按照结束时间先后顺序进行排序，设 $\\textit{dp}[i][j]$ 表示前 $i$ 个会议中选择参加 $j$ 个会议的最大价值和，此时可以得到递推公式如下：\n\n+ 如果第 $i$ 个会议选择不参加，此时前 $i$ 个会议的最大价值和即等于前 $i-1$ 个会议的最大价值和，此时得到递推公式：$\\textit{dp}[i][j] = \\textit{dp}[i-1][j]$；\n\n+ 如果第 $i$ 个会议选择参加，此时可以在 $[1,\\textit{start}_i)$ 时间段内选择 $j-1$ 个会议参加，然后在 $[\\textit{startDay}_i,\\textit{endDay}_i]$ 时间段参加第 $i$ 个会议，假设在时间段 $[1,\\textit{start}_i)$ 有 $p$ 个会议可以参加，此时可以得到递推公式：$\\textit{dp}[i][j] = \\textit{dp}[p][j-1] + \\textit{value}_i$；\n\n+ 综上，我们可以得到递推公式: $\\textit{dp}[i][j] = \\max(\\textit{dp}[i-1][j],\\textit{dp}[p][j-1] + \\textit{value}_i)$；\n\n由于所有的会议均是按照结束时间进行排序的，给定时间 $t$，可以通过**二分查找**找到结束时间早于 $t$ 的会议数目。从小到大依次枚举 $(i,j)$，最终结果即为 $\\textit{dp}[n][k]$。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int maxValue(vector<vector<int>>& events, int k) {\n        int n = events.size();\n        vector<vector<int>> dp(n + 1,vector<int>(k + 1));\n        ranges::sort(events, [](const vector<int>& a, const vector<int>& b) {\n            return a[1] < b[1];\n        });\n\n        for (int i = 0; i < n; i++) {\n            int p = ranges::lower_bound(events, events[i][0], {}, [](const auto& e) {             \n                return e[1]; \n            }) - events.begin();\n            for (int j = 1; j <= k; j++) {\n                dp[i + 1][j] = max(dp[i][j], dp[p][j - 1] + events[i][2]);\n            }\n        }\n\n        return dp[n][k];\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int maxValue(int[][] events, int k) {\n        Arrays.sort(events, Comparator.comparingInt(a -> a[1]));\n        int n = events.length;\n        int[][] dp = new int[n + 1][k + 1];\n\n        for (int i = 0; i < n; i++) {\n            int p = lowerBound(events, events[i][0]);\n            for (int j = 1; j <= k; j++) {\n                dp[i + 1][j] = Math.max(dp[i][j], dp[p][j - 1] + events[i][2]);\n            }\n        }\n\n        return dp[n][k];\n    }\n\n    private int lowerBound(int[][] events, int target) {\n        int left = 0, right = events.length;\n        while (left < right) {\n            int mid = (left + right) / 2;\n            if (events[mid][1] < target) {\n                left = mid + 1;\n            } else {\n                right = mid;\n            }\n        }\n        return left;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MaxValue(int[][] events, int k) {\n        Array.Sort(events, (a, b) => a[1].CompareTo(b[1]));\n        int n = events.Length;\n        int[,] dp = new int[n + 1, k + 1];\n\n        for (int i = 0; i < n; i++) {\n            int p = LowerBound(events, events[i][0]);\n            for (int j = 1; j <= k; j++) {\n                dp[i + 1, j] = Math.Max(dp[i, j], dp[p, j - 1] + events[i][2]);\n            }\n        }\n\n        return dp[n, k];\n    }\n\n    private int LowerBound(int[][] events, int target) {\n        int left = 0, right = events.Length;\n        while (left < right) {\n            int mid = (left + right) / 2;\n            if (events[mid][1] < target) {\n                left = mid + 1;\n            } else {\n                right = mid;\n            }\n        }\n        return left;\n    }\n}\n\n```\n\n```Go [sol1-Go]\nfunc maxValue(events [][]int, k int) int {\n\tsort.Slice(events, func(i, j int) bool {\n\t\treturn events[i][1] < events[j][1]\n\t})\n\tn := len(events)\n\tdp := make([][]int, n + 1)\n\tfor i := range dp {\n\t\tdp[i] = make([]int, k + 1)\n\t}\n\tfor i, e := range events {\n\t\tp := sort.Search(i, func(j int) bool { return events[j][1] >= e[0] })\n\t\tfor j := 1; j <= k; j++ {\n\t\t\tdp[i + 1][j] = max(dp[i][j], dp[p][j - 1] + events[i][2])\n\t\t}\n\t}\n\n\treturn dp[n][k]\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def maxValue(self, events: list[list[int]], k: int) -> int:\n        events.sort(key = lambda x: x[1])\n        n = len(events)\n        dp = [[0] * (k + 1) for _ in range(n + 1)]\n        for i, (start, end, val) in enumerate(events):\n            p = bisect_left(events, start, hi = n - 1, key=lambda e: e[1])\n            for j in range(1, k + 1):\n                dp[i + 1][j] = max(dp[i][j], dp[p][j - 1] + events[i][2])\n\n        return dp[n][k]\n```\n\n```C [sol1-C]\nint compare(const void *a, const void *b) {\n    return (*(int**)a)[1] - (*(int**)b)[1];\n}\n\nint lower_bound(int** events, int n, int target) {\n    int left = 0, right = n;\n    while (left < right) {\n        int mid = (left + right) / 2;\n        if (events[mid][1] < target) {\n            left = mid + 1;\n        } else {\n            right = mid;\n        }\n    }\n    return left;\n}\n\nint maxValue(int** events, int eventsSize, int* eventsColSize, int k) {\n    qsort(events, eventsSize, sizeof(int*), compare);\n    int** dp = malloc((eventsSize + 1) * sizeof(int*));\n    for (int i = 0; i <= eventsSize; i++) {\n        dp[i] = calloc(k + 1, sizeof(int));\n    }\n    for (int i = 0; i < eventsSize; i++) {\n        int p = lower_bound(events, eventsSize, events[i][0]);\n        for (int j = 1; j <= k; j++) {\n            dp[i + 1][j] = fmax(dp[i][j], dp[p][j - 1] + events[i][2]);\n        }\n    }\n    int res = dp[eventsSize][k];\n    for (int i = 0; i <= eventsSize; i++) {\n        free(dp[i]);\n    }\n    free(dp);\n\n    return res;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar maxValue = function(events, k) {\n    events.sort((a, b) => a[1] - b[1]);\n    const n = events.length;\n    const dp = Array.from({ length: n + 1 }, () => Array(k + 1).fill(0));\n    const lowerBound = (target) => {\n        let left = 0, right = n;\n        while (left < right) {\n            const mid = (left + right) >> 1;\n            if (events[mid][1] < target) left = mid + 1;\n            else right = mid;\n        }\n        return left;\n    };\n\n    for (let i = 0; i < n; i++) {\n        const p = lowerBound(events[i][0]);\n        for (let j = 1; j <= k; j++) {\n            dp[i + 1][j] = Math.max(dp[i][j], dp[p][j - 1] + events[i][2]);\n        }\n    }\n\n    return dp[n][k];\n}\n```\n\n```TypeScript [sol1-TypeScript]\nfunction maxValue(events: number[][], k: number): number {\n    events.sort((a, b) => a[1] - b[1]);\n    const n = events.length;\n    const dp: number[][] = Array.from({ length: n + 1 }, () => Array(k + 1).fill(0));\n\n    function lowerBound(target: number): number {\n        let left = 0, right = n;\n        while (left < right) {\n            const mid = Math.floor((left + right) / 2);\n            if (events[mid][1] < target) left = mid + 1;\n            else right = mid;\n        }\n        return left;\n    }\n\n    for (let i = 0; i < n; i++) {\n        const p = lowerBound(events[i][0]);\n        for (let j = 1; j <= k; j++) {\n            dp[i + 1][j] = Math.max(dp[i][j], dp[p][j - 1] + events[i][2]);\n        }\n    }\n\n    return dp[n][k];\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn max_value(mut events: Vec<Vec<i32>>, k: i32) -> i32 {\n        events.sort_by_key(|e| e[1]);\n        let n = events.len();\n        let k = k as usize;\n        let mut dp = vec![vec![0; k + 1]; n + 1];\n        let ends: Vec<i32> = events.iter().map(|e| e[1]).collect();\n\n        for i in 0..n {\n            let p = events.partition_point(|x| x[1] < events[i][0]);\n            for j in 1..=k {\n                dp[i + 1][j] = dp[i][j].max(dp[p][j - 1] + events[i][2]);\n            }\n        }\n\n        dp[n][k]\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(nk + n \\log n)$，其中 $n$ 表示给定数组 $\\textit{events}$ 的长度，$k$ 表示给定的数字 $k$。数组排序需要的时间为 $O(n \\log n)$，一共需要枚举 $n$ 个待选会议，每次枚举二分查找需要的时间为 $\\log n$，枚举参加会议数目需要的时间为 $O(k)$，动态规划一共有 $nk$ 个子状态需要计算，因此总的时间为 $O(nk + n\\log n)$。\n\n- 空间复杂度：$O(nk)$，其中 $n$ 表示给定数组 $\\textit{events}$ 的长度，$k$ 表示给定的数字 $k$。排序需要的空间为 $O(n)$，动态规划一共有 $nk$ 个子状态需要存储，因此总的空间为 $O(nk)$。",
+            "slateValue": "",
+            "slug": "zui-duo-ke-yi-can-jia-de-hui-yi-shu-mu-i-icul",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "A6RhuO",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 5,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Sorting",
+                    "nameTranslated": "排序",
+                    "slug": "sorting",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2025-06-17T13:32:44.577584+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 + 二分查找 思路与算法 参加第 [latex] 个会议即可得到价值 [latex]，题目要求求出可参加会议价值和的最大值。由于每个会议的起始时间为 [latex]，结束时间为 [latex]，每个会议必须完整参加且同一时间内只能参加一个会议，且每个会议的价值不同，题目本质为背包问题，因此我们可以使用",
+            "topic": {
+                "id": 3702630,
+                "subscribed": false,
+                "commentCount": 18,
+                "viewCount": 51,
+                "post": {
+                    "id": 6761945,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 28,
+            "isEditorsPick": false,
+            "hitCount": 6312,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "maximum-number-of-events-that-can-be-attended-ii",
+                "questionFrontendId": "1751"
+            },
+            "next": {
+                "slug": "dong-tai-gui-hua-er-fen-cha-zhao-you-hua-fuip",
+                "title": "动态规划 + 二分查找优化（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

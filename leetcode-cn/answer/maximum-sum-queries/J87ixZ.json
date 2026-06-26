@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "J87ixZ",
+            "title": "最大和查询",
+            "content": "#### 方法一：单调栈 + 二分查找\n\n**思路**\n\n首先我们将 $\\textit{nums}_1$ 和 $\\textit{nums}_2$ 按照下标合并成一个数组方便排序，数组的元素是二元数组。然后将数组 $\\textit{queries}$ 进行扩充带上原始下标，是为了排序后能带上原来的下标信息，因为要返回的 $\\textit{answer}$ 数组是要与原始下标对应的。然后将两个数组分别按照 $\\textit{nums}_1$ 和 $\\textit{queries}$ 中的 $x$ 进行降序排序，得到 $\\textit{sortedNums}$ 和 $\\textit{sortedQueries}$。这样，我们就可以通过按照大小顺序访问 $\\textit{sortedNums}$ 和 $\\textit{sortedQueries}$，使得在访问 $\\textit{queries}[i]$ 时，满足 $\\textit{sortedNums}[j][0] \\geq x_i$ 的 $\\textit{sortedNums}[j]$ 已经全部被访问过，而未被访问过的 $\\textit{sortedNums}[j]$ 则均不满足上述条件。这样，我们就可以在后续计算时，可以忽略这个条件，而着眼于另一个条件。\n\n接下来，就需要考虑另一个条件，满足 $\\textit{sortedNums}[j][1] \\geq y_i$，并且要求出满足这个条件的最大的 $\\textit{sortedNums}[j][0] + \\textit{sortedNums}[j][1]$。此时 $\\textit{sortedNums}[j][1]$ 和 $y_i$ 都是无序的。考虑 $\\textit{sortedNums}[j][1]$ 和之前访问过的 $\\textit{sortedNums}[j'][1]$ 的关系：\n* 如果 $\\textit{sortedNums}[j][1] \\leq \\textit{sortedNums}[j'][1]$，那么的 $\\textit{sortedNums}[j]$ 与 $\\textit{sortedNums}[j']$ 相比毫无竞争力。因为先访问 $\\textit{sortedNums}[j']$，那么则有 $\\textit{sortedNums}[j'][0] \\geq \\textit{sortedNums}[j][0]$，又有 $\\textit{sortedNums}[j'][1] \\geq \\textit{sortedNums}[j][1]$，则有 $\\textit{sortedNums}[j'][0] + \\textit{sortedNums}[j'][1] \\geq \\textit{sortedNums}[j][0] + \\textit{sortedNums}[j][1]$。$\\textit{sortedNums}[j]$ 在满足条件上既无优先性，在目标值上也无法提供更优值。\n* 如果 $\\textit{sortedNums}[j][1] > \\textit{sortedNums}[j'][1]$。这时 $\\textit{sortedNums}[j]$ 会在满足不等式的条件上提供一个优先性。又因为此时它有优先性，我们就可以不考虑满足 $\\textit{sortedNums}[j'][0] + \\textit{sortedNums}[j'][1] \\leq \\textit{sortedNums}[j][0] + \\textit{sortedNums}[j][1]$ 的 $j'$。这提醒我们可以将访问过的 $\\textit{sortedNums}[j][0] + \\textit{sortedNums}[j][1]$ 维护成一个单调栈，每次访问到一个 $\\textit{sortedNums}[j]$，都将栈尾的具有更小的目标值的和的元素弹出。\n \n根据上述两种情况，我们可以这样设计我们的单调栈：栈的元素是二元数组 $[\\textit{sortedNums}[j][1], \\textit{sortedNums}[j][0] + \\textit{sortedNums}[j][1]]$，并且按照第一个元素递增（第一种情况里已证明），按照第二个元素递减。\n\n接下来，访问 $\\textit{sortedQueries}$ 时，我们可以利用二分搜索来寻找单调栈中第一个满足 $\\textit{stack}[k][0] \\geq y_i$ 的元素，此时目标值的最大值即为 $\\textit{stack}[k][1]$，将其填入 $\\textit{answer}$。\n\n**代码**\n\n```Python [sol1-Python3]\nclass Solution:\n    def maximumSumQueries(self, nums1: List[int], nums2: List[int], queries: List[List[int]]) -> List[int]:\n        sortedNums = sorted([[a, b] for a, b in zip(nums1, nums2)], key = lambda x: -x[0])\n        sortedQueries = sorted([[i, x, y] for i, (x, y) in enumerate(queries)], key=lambda q:-q[1])\n        stack = []\n        answer = [-1] * len(queries)\n        j = 0\n        for i, x, y in sortedQueries:\n            while j < len(sortedNums) and sortedNums[j][0] >= x:\n                num1, num2 = sortedNums[j]\n                while stack and stack[-1][1] <= num1 + num2:\n                    stack.pop()\n                if not stack or stack[-1][0] < num2:\n                    stack.append([num2, num1 + num2])\n                j += 1\n            k = bisect_left(stack, [y, 0])\n            if k < len(stack):\n                answer[i] = stack[k][1]\n        return answer\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int[] maximumSumQueries(int[] nums1, int[] nums2, int[][] queries) {\n        int n = nums1.length;\n        int[][] sortedNums = new int[n][2];\n        for (int i = 0; i < n; i++) {\n            sortedNums[i][0] = nums1[i];\n            sortedNums[i][1] = nums2[i];\n        }\n        Arrays.sort(sortedNums, (a, b) -> b[0] - a[0]);\n        int q = queries.length;\n        int[][] sortedQueries = new int[q][3];\n        for (int i = 0; i < q; i++) {\n            sortedQueries[i][0] = i;\n            sortedQueries[i][1] = queries[i][0];\n            sortedQueries[i][2] = queries[i][1];\n        }\n        Arrays.sort(sortedQueries, (a, b) -> b[1] - a[1]);\n        List<int[]> stack = new ArrayList<int[]>();\n        int[] answer = new int[q];\n        Arrays.fill(answer, -1);\n        int j = 0;\n        for (int[] query : sortedQueries) {\n            int i = query[0], x = query[1], y = query[2];\n            while (j < n && sortedNums[j][0] >= x) {\n                int[] pair = sortedNums[j];\n                int num1 = pair[0], num2 = pair[1];\n                while (!stack.isEmpty() && stack.get(stack.size() - 1)[1] <= num1 + num2) {\n                    stack.remove(stack.size() - 1);\n                }\n                if (stack.isEmpty() || stack.get(stack.size() - 1)[0] < num2) {\n                    stack.add(new int[]{num2, num1 + num2});\n                }\n                j++;\n            }\n            int k = binarySearch(stack, y);\n            if (k < stack.size()) {\n                answer[i] = stack.get(k)[1];\n            }\n        }\n        return answer;\n    }\n\n    public int binarySearch(List<int[]> list, int target) {\n        int low = 0, high = list.size();\n        while (low < high) {\n            int mid = low + (high - low) / 2;\n            if (list.get(mid)[0] >= target) {\n                high = mid;\n            } else {\n                low = mid + 1;\n            }\n        }\n        return low;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int[] MaximumSumQueries(int[] nums1, int[] nums2, int[][] queries) {\n        int n = nums1.Length;\n        int[][] sortedNums = new int[n][];\n        for (int i = 0; i < n; i++) {\n            sortedNums[i] = new int[2];\n            sortedNums[i][0] = nums1[i];\n            sortedNums[i][1] = nums2[i];\n        }\n        Array.Sort(sortedNums, (a, b) => b[0] - a[0]);\n        int q = queries.Length;\n        int[][] sortedQueries = new int[q][];\n        for (int i = 0; i < q; i++) {\n            sortedQueries[i] = new int[3];\n            sortedQueries[i][0] = i;\n            sortedQueries[i][1] = queries[i][0];\n            sortedQueries[i][2] = queries[i][1];\n        }\n        Array.Sort(sortedQueries, (a, b) => b[1] - a[1]);\n        IList<Tuple<int, int>> stack = new List<Tuple<int, int>>();\n        int[] answer = new int[q];\n        Array.Fill(answer, -1);\n        int j = 0;\n        foreach (int[] query in sortedQueries) {\n            int i = query[0], x = query[1], y = query[2];\n            while (j < n && sortedNums[j][0] >= x) {\n                int[] pair = sortedNums[j];\n                int num1 = pair[0], num2 = pair[1];\n                while (stack.Count > 0 && stack[stack.Count - 1].Item2 <= num1 + num2) {\n                    stack.RemoveAt(stack.Count - 1);\n                }\n                if (stack.Count == 0 || stack[stack.Count - 1].Item1 < num2) {\n                    stack.Add(new Tuple<int, int>(num2, num1 + num2));\n                }\n                j++;\n            }\n            int k = BinarySearch(stack, y);\n            if (k < stack.Count) {\n                answer[i] = stack[k].Item2;\n            }\n        }\n        return answer;\n    }\n\n    public int BinarySearch(IList<Tuple<int, int>> list, int target) {\n        int low = 0, high = list.Count;\n        while (low < high) {\n            int mid = low + (high - low) / 2;\n            if (list[mid].Item1 >= target) {\n                high = mid;\n            } else {\n                low = mid + 1;\n            }\n        }\n        return low;\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<int> maximumSumQueries(vector<int>& nums1, vector<int>& nums2, vector<vector<int>>& queries) {\n        vector<pair<int, int>> sortedNums;\n        vector<tuple<int, int, int>> sortedQueries;\n        for (int i = 0; i < nums1.size(); i++) {\n            sortedNums.emplace_back(nums1[i], nums2[i]);\n        }\n        sort(sortedNums.begin(), sortedNums.end(), greater<pair<int, int>>());\n        for (int i = 0; i < queries.size(); i++) {\n            sortedQueries.emplace_back(i, queries[i][0], queries[i][1]);\n        }\n        sort(sortedQueries.begin(), sortedQueries.end(), [](tuple<int, int, int> &a, tuple<int, int, int> &b) {\n            return get<1>(a) > get<1>(b);\n        });\n\n        vector<pair<int, int>> stk;\n        vector<int> answer(queries.size(), -1);\n        int j = 0;\n        for (auto &[i, x, y] : sortedQueries) {\n            while (j < sortedNums.size() && sortedNums[j].first >= x) {\n                auto [num1, num2] = sortedNums[j];\n                while (!stk.empty() && stk.back().second <= num1 + num2) {\n                    stk.pop_back();\n                }\n                if (stk.empty() || stk.back().first < num2) {\n                    stk.emplace_back(num2, num1 + num2);\n                }\n                j++;\n            }\n            int k = lower_bound(stk.begin(), stk.end(), make_pair(y, 0)) - stk.begin();\n            if (k < stk.size()) {\n                answer[i] = stk[k].second;\n            }\n        }            \n        return answer;\n    }\n};\n```\n\n```C [sol1-C]\nstatic int cmp1(const void *a, const void *b) {\n    return ((int *)b)[0] - ((int *)a)[0];\n}\n\nstatic int cmp2(const void *a, const void *b) {\n    return ((int *)b)[1] - ((int *)a)[1];\n}\n\nint binarySearch(const int **list, int low, int high, int target) {\n    while (low < high) {\n        int mid = low + (high - low) / 2;\n        if (list[mid][0] >= target) {\n            high = mid;\n        } else {\n            low = mid + 1;\n        }\n    }\n    return low;\n}\n\nint* maximumSumQueries(int* nums1, int nums1Size, int* nums2, int nums2Size, int** queries, int queriesSize, int* queriesColSize, int* returnSize) {\n    int sortedNums[nums1Size][2];\n    int sortedQueries[queriesSize][3];\n    for (int i = 0; i < nums1Size; i++) {\n        sortedNums[i][0] = nums1[i];\n        sortedNums[i][1] = nums2[i];\n    }\n    qsort(sortedNums, nums1Size, sizeof(sortedNums[0]), cmp1);\n    for (int i = 0; i < queriesSize; i++) {\n        sortedQueries[i][0] = i;\n        sortedQueries[i][1] = queries[i][0];\n        sortedQueries[i][2] = queries[i][1];\n    }\n    qsort(sortedQueries, queriesSize, sizeof(sortedQueries[0]), cmp2);\n    \n    int **stack = (int **)calloc(nums1Size, sizeof(int *));\n    int top = 0;\n    for (int i = 0; i < nums1Size; i++) {\n        stack[i] = (int *)calloc(2, sizeof(int));\n    }\n    int *answer = (int *)calloc(queriesSize, sizeof(int));\n    int j = 0;\n    for (int i = 0; i < queriesSize; i++) {\n        answer[i] = -1;\n    }\n    for (int i = 0; i < queriesSize; i++) {\n        int index = sortedQueries[i][0];\n        int x = sortedQueries[i][1];\n        int y = sortedQueries[i][2];\n        while (j < nums1Size && sortedNums[j][0] >= x) {\n            int num1 = sortedNums[j][0];\n            int num2 = sortedNums[j][1];\n            while (top > 0 && stack[top - 1][1] <= num1 + num2) {\n                top--;\n            }\n            if (top == 0 || stack[top - 1][0] < num2) {\n                stack[top][0] = num2;\n                stack[top][1] = num1 + num2;\n                top++;\n            }\n            j++;\n        }\n        int k = binarySearch(stack, 0, top, y);\n        if (k < top) {\n            answer[index] = stack[k][1];\n        }\n    }   \n    for (int i = 0; i < nums1Size; i++) {\n        free(stack[i]);\n    }    \n    free(stack);\n    *returnSize = queriesSize;    \n    return answer;\n}\n```\n\n```Go [sol1-Go]\nfunc maximumSumQueries(nums1 []int, nums2 []int, queries [][]int) []int {\n    sortedNums := make([][]int, len(nums1))\n    for i := 0; i < len(nums1); i++ {\n        sortedNums[i] = []int{nums1[i], nums2[i]}\n    }\n    sort.Slice(sortedNums, func(i, j int) bool { \n        return sortedNums[i][0] > sortedNums[j][0]\n    })\n\n    sortedQueries := make([][]int, len(queries))\n    for i := 0; i < len(queries); i++ {\n        sortedQueries[i] = []int{i, queries[i][0], queries[i][1]}\n    }\n    sort.Slice(sortedQueries, func(i, j int) bool { \n        return sortedQueries[i][1] > sortedQueries[j][1]\n    })\n\n    stack := [][]int{}\n    answer := make([]int, len(queries))\n    for i := 0; i < len(queries); i++ {\n        answer[i] = -1\n    }\n    j := 0\n    for _, q := range sortedQueries {\n        i, x, y := q[0], q[1], q[2]\n        for j < len(sortedNums) && sortedNums[j][0] >= x {\n            num1, num2 := sortedNums[j][0], sortedNums[j][1]\n            for len(stack) > 0 && stack[len(stack) - 1][1] <= num1 + num2 {\n                stack = stack[:len(stack) - 1]\n            }\n            if len(stack) == 0 || stack[len(stack) - 1][0] < num2 {\n                stack = append(stack, []int{num2, num1 + num2})\n            }\n            j++\n        }\n        k := sort.Search(len(stack), func(i int) bool { \n            return stack[i][0] >= y \n        })\n        \n        if k < len(stack) {\n            answer[i] = stack[k][1]\n        }\n    }            \n    return answer\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar maximumSumQueries = function(nums1, nums2, queries) {\n    const sortedNums = nums1.map((x, i) => [x, nums2[i]]);\n    const sortedQueries = queries.map((x, i) => [i, ...x]);\n    sortedNums.sort((a, b) => b[0] - a[0]);\n    sortedQueries.sort((a, b) => b[1] - a[1]);\n\n    const answer = new Array(queries.length).fill(-1);\n    const stack = [];\n    let j = 0;\n    for (const q of sortedQueries) {\n        const i = q[0];\n        const x = q[1];\n        const y = q[2];\n        while (j < sortedNums.length && sortedNums[j][0] >= x) {\n            const num1 = sortedNums[j][0];\n            const num2 = sortedNums[j][1];\n            while (stack.length > 0 && stack[stack.length - 1][1] <= num1 + num2) {\n                stack.pop();\n            }\n            if (stack.length == 0 || stack[stack.length - 1][0] < num2) {\n                stack.push([num2, num1 + num2]);\n            }\n            j++;\n        }\n        const k = binarySearch(stack, y);\n        if (k < stack.length) {\n            answer[i] = stack[k][1];\n        }\n    }         \n    return answer;\n};\n\nfunction binarySearch(arr, target) {\n    let low = 0, high = arr.length\n    while (low < high) {\n        const mid = low + Math.floor((high - low) / 2);\n        if (arr[mid][0] >= target) {\n            high = mid;\n        } else {\n            low = mid + 1;\n        }\n    }\n    return low;\n} \n```\n\n**复杂度分析**\n\n- 时间复杂度：$O((n+q)\\times \\log{n} + q\\times \\log{q})$，其中 $n$ 是数组 $\\textit{nums1}$ 的长度，其中 $q$ 是数组 $\\textit{queries}$ 的长度。两次排序分别消耗 $O(n\\times \\log{n})$ 和 $O(q\\times \\log{q})$。$n$ 个元素最多进栈出栈各一次。二分搜索会进行 $q$ 次，每次消耗 $O(\\log{n})$，总的时间复杂度为 $O((n+q)\\times \\log{n} + q\\times \\log{q})$。\n\n- 空间复杂度：$O(n+q)$，需要消耗 $O(n+q)$ 来保存两个排序完的数组，栈消耗 $O(n)$，总的空间复杂度为 $O(n+q)$。",
+            "slateValue": "",
+            "slug": "zui-da-he-cha-xun-by-leetcode-solution-jlk0",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "J87ixZ",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 18,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Stack",
+                    "nameTranslated": "栈",
+                    "slug": "stack",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Monotonic Stack",
+                    "nameTranslated": "单调栈",
+                    "slug": "monotonic-stack",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2023-11-13T04:26:25.480230+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：单调栈 + 二分查找 思路 首先我们将 $\\textit{nums}_1$ 和 $\\textit{nums}_2$ 按照下标合并成一个数组方便排序，数组的元素是二元数组。然后将数组 $\\textit{queries}$ 进行扩充带上原始下标，是为了排序后能带上原来的下标信息，因为要返回的 $\\textit{an",
+            "topic": {
+                "id": 2524819,
+                "subscribed": false,
+                "commentCount": 25,
+                "viewCount": 951,
+                "post": {
+                    "id": 4697365,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 41,
+            "isEditorsPick": false,
+            "hitCount": 15281,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "maximum-sum-queries",
+                "questionFrontendId": "2736"
+            },
+            "next": {
+                "slug": "pai-xu-dan-diao-zhan-shang-er-fen-by-end-of9h",
+                "title": "排序+单调栈上二分（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

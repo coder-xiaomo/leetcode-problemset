@@ -1,0 +1,130 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "Es4eKj",
+            "title": "你能在你最喜欢的那天吃到你最喜欢的糖果吗？",
+            "content": "#### 前言\n\n读者需要注意的题目中的一个小陷阱：**我们是从第 $0$ 天开始吃糖果**。因此对于第 $i$ 个询问，我们可以吃 $\\textit{favoriteDay}_i+1$ 天的糖果。\n\n#### 方法一：前缀和\n\n**思路与算法**\n\n对于第 $i$ 个询问 $(\\textit{favoriteType}_i, \\textit{favoriteDay}_i, \\textit{dailyCap}_i)$，我们每天至少吃 $1$ 颗糖果，至多吃 $\\textit{dailyCap}_i$ 颗糖果，因此我们吃的糖果的数量落在区间：\n\n$$\n\\Big[ \\textit{favoriteDay}_i+1, (\\textit{favoriteDay}_i+1) \\times \\textit{dailyCap}_i \\Big]\n$$\n\n内。那么只要这个区间包含了一颗第 $\\textit{favoriteType}_i$ 种类型的糖果，就可以满足要求了。\n\n因此我们求出糖果数量的前缀和，记录在数组 $\\textit{sum}$ 中，那么第 $\\textit{favoriteType}_i$ 种类型的糖果对应的编号范围为：\n\n$$\n\\Big[ \\textit{sum}[\\textit{favoriteType}_i-1]+1, \\textit{sum}[\\textit{favoriteType}_i] \\Big]\n$$\n\n特别地，如果 $\\textit{favoriteType}_i$ 为 $0$，那么区间的左端点为 $1$。\n\n我们只要判断这两个区间是否有交集即可。如果有交集，说明我们可以吃到第 $\\textit{favoriteType}_i$ 类的糖果。判断是否有交集的方法如下：\n\n> 对于区间 $[x_1, y_1]$ 以及 $[x_2, y_2]$，它们没有交集当且仅当 $x_1 > y_2$ 或者 $y_1 < x_2$。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\nprivate:\n    using LL = long long;\n\npublic:\n    vector<bool> canEat(vector<int>& candiesCount, vector<vector<int>>& queries) {\n        int n = candiesCount.size();\n        \n        // 前缀和\n        vector<LL> sum(n);\n        sum[0] = candiesCount[0];\n        for (int i = 1; i < n; ++i) {\n            sum[i] = sum[i - 1] + candiesCount[i];\n        }\n        \n        vector<bool> ans;\n        for (const auto& q: queries) {\n            int favoriteType = q[0], favoriteDay = q[1], dailyCap = q[2];\n            \n            LL x1 = favoriteDay + 1;\n            LL y1 = (LL)(favoriteDay + 1) * dailyCap;\n            LL x2 = (favoriteType == 0 ? 1 : sum[favoriteType - 1] + 1);\n            LL y2 = sum[favoriteType];\n            \n            ans.push_back(!(x1 > y2 || y1 < x2));\n        }\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public boolean[] canEat(int[] candiesCount, int[][] queries) {\n        int n = candiesCount.length;\n        \n        // 前缀和\n        long[] sum = new long[n];\n        sum[0] = candiesCount[0];\n        for (int i = 1; i < n; ++i) {\n            sum[i] = sum[i - 1] + candiesCount[i];\n        }\n        \n        int q = queries.length;\n        boolean[] ans = new boolean[q];\n        for (int i = 0; i < q; ++i) {\n            int[] query = queries[i];\n            int favoriteType = query[0], favoriteDay = query[1], dailyCap = query[2];\n            \n            long x1 = favoriteDay + 1;\n            long y1 = (long) (favoriteDay + 1) * dailyCap;\n            long x2 = favoriteType == 0 ? 1 : sum[favoriteType - 1] + 1;\n            long y2 = sum[favoriteType];\n            \n            ans[i] = !(x1 > y2 || y1 < x2);\n        }\n        return ans;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public bool[] CanEat(int[] candiesCount, int[][] queries) {\n        int n = candiesCount.Length;\n        \n        // 前缀和\n        long[] sum = new long[n];\n        sum[0] = candiesCount[0];\n        for (int i = 1; i < n; ++i) {\n            sum[i] = sum[i - 1] + candiesCount[i];\n        }\n        \n        int q = queries.Length;\n        bool[] ans = new bool[q];\n        for (int i = 0; i < q; ++i) {\n            int[] query = queries[i];\n            int favoriteType = query[0], favoriteDay = query[1], dailyCap = query[2];\n            \n            long x1 = favoriteDay + 1;\n            long y1 = (long) (favoriteDay + 1) * dailyCap;\n            long x2 = favoriteType == 0 ? 1 : sum[favoriteType - 1] + 1;\n            long y2 = sum[favoriteType];\n            \n            ans[i] = !(x1 > y2 || y1 < x2);\n        }\n        return ans;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def canEat(self, candiesCount: List[int], queries: List[List[int]]) -> List[bool]:\n        # 前缀和\n        total = list(accumulate(candiesCount))\n        \n        ans = list()\n        for favoriteType, favoriteDay, dailyCap in queries:\n            x1 = favoriteDay + 1\n            y1 = (favoriteDay + 1) * dailyCap\n            x2 = 1 if favoriteType == 0 else total[favoriteType - 1] + 1\n            y2 = total[favoriteType]\n            \n            ans.append(not(x1 > y2 or y1 < x2))\n        \n        return ans\n```\n\n```go [sol1-Golang]\nfunc canEat(candiesCount []int, queries [][]int) []bool {\n    n := len(candiesCount)\n\n    // 前缀和\n    sum := make([]int, n)\n    sum[0] = candiesCount[0]\n    for i := 1; i < n; i++ {\n        sum[i] = sum[i-1] + candiesCount[i]\n    }\n\n    ans := make([]bool, len(queries))\n    for i, q := range queries {\n        favoriteType, favoriteDay, dailyCap := q[0], q[1], q[2]\n\n        x1 := favoriteDay + 1\n        y1 := (favoriteDay + 1) * dailyCap\n        x2 := 1\n        if favoriteType > 0 {\n            x2 = sum[favoriteType-1] + 1\n        }\n        y2 := sum[favoriteType]\n\n        ans[i] = !(x1 > y2 || y1 < x2)\n    }\n    return ans\n}\n```\n\n```C [sol1-C]\nbool* canEat(int* candiesCount, int candiesCountSize, int** queries, int queriesSize, int* queriesColSize, int* returnSize) {\n    int n = candiesCountSize;\n\n    // 前缀和\n    long sum[n];\n    sum[0] = candiesCount[0];\n    for (int i = 1; i < n; ++i) {\n        sum[i] = sum[i - 1] + candiesCount[i];\n    }\n    bool* ans = malloc(sizeof(bool) * queriesSize);\n    *returnSize = queriesSize;\n    for (int i = 0; i < queriesSize; i++) {\n        int* q = queries[i];\n        int favoriteType = q[0], favoriteDay = q[1], dailyCap = q[2];\n\n        long x1 = favoriteDay + 1;\n        long y1 = (long)(favoriteDay + 1) * dailyCap;\n        long x2 = (favoriteType == 0 ? 1 : sum[favoriteType - 1] + 1);\n        long y2 = sum[favoriteType];\n\n        ans[i] = !(x1 > y2 || y1 < x2);\n    }\n    return ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar canEat = function(candiesCount, queries) {\n    const n = candiesCount.length;\n    \n    // 前缀和\n    const sum = new Array(n).fill(0);;\n    sum[0] = candiesCount[0];\n    for (let i = 1; i < n; ++i) {\n        sum[i] = sum[i - 1] + candiesCount[i];\n    }\n    \n    const q = queries.length;\n    const ans = new Array(q).fill(0);\n    for (let i = 0; i < q; ++i) {\n        const query = queries[i];\n        const favoriteType = query[0], favoriteDay = query[1], dailyCap = query[2];\n        \n        const x1 = favoriteDay + 1;\n        const y1 = (favoriteDay + 1) * dailyCap;\n        const x2 = favoriteType == 0 ? 1 : sum[favoriteType - 1] + 1;\n        const y2 = sum[favoriteType];\n        \n        ans[i] = !(x1 > y2 || y1 < x2);\n    }\n    return ans;\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n+q)$，其中 $n$ 和 $q$ 分别是数组 $\\textit{candiesCount}$ 和 $\\textit{queries}$ 的长度。我们需要 $O(n)$ 的时间计算前缀和，$O(q)$ 的时间得到所有询问的结果。\n\n- 空间复杂度：$O(n)$，即为存储前缀和数组需要的空间。注意返回值不计入空间复杂度。",
+            "slateValue": "",
+            "slug": "ni-neng-zai-ni-zui-xi-huan-de-na-tian-ch-boa0",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "Es4eKj",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 47,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 3,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Prefix Sum",
+                    "nameTranslated": "前缀和",
+                    "slug": "prefix-sum",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2021-05-31T14:55:45.942868+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "前言 读者需要注意的题目中的一个小陷阱：我们是从第 $0$ 天开始吃糖果。因此对于第 $i$ 个询问，我们可以吃 $\\textit{favoriteDay}_i+1$ 天的糖果。 方法一：前缀和 思路与算法 对于第 $i$ 个询问 $(\\textit{favoriteType}_i, \\textit{favoriteD",
+            "topic": {
+                "id": 805900,
+                "subscribed": false,
+                "commentCount": 191,
+                "viewCount": 21577,
+                "post": {
+                    "id": 1771450,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 39,
+            "isEditorsPick": false,
+            "hitCount": 38084,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "can-you-eat-your-favorite-candy-on-your-favorite-day",
+                "questionFrontendId": "1744"
+            },
+            "next": {
+                "slug": "gong-shui-san-xie-qian-zhui-he-qiu-jie-c-b38y",
+                "title": "【宫水三叶】前缀和求解吃🍭问题"
+            },
+            "prev": null
+        }
+    }
+}

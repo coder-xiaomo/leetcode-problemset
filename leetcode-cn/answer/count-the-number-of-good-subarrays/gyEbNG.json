@@ -1,0 +1,150 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "gyEbNG",
+            "title": "统计好子数组的数目",
+            "content": "#### 方法一：双指针\n\n**思路与算法**\n\n根据题目中对于**好数组**的定义，如果 $\\textit{nums}[i..j]$ 是一个好数组，那么对于所有满足 $j' > j$ 的 $j'$，$\\textit{nums}[i..j']$ 中相同的值不会更少，所以 $\\textit{nums}[i..j']$ 也一定是一个好数组。\n\n这就提示我们可以使用双指针的方法解决本题。我们枚举左指针 $\\textit{left}$ 表示子数组的左边界，它的初始值为 $0$，同时用右指针 $\\textit{right}$ 表示子数组的右边界，它的初始值为 $-1$。对于当前枚举到的 $\\textit{left}$，我们需要不断向右移动 $\\textit{right}$，直到 $\\textit{nums}[\\textit{left}..\\textit{right}]$ 是一个好数组。\n\n在移动 $\\textit{right}$ 的过程中，我们可以增量计算相同元素的数量：我们可以使用一个哈希映射 $\\textit{cnt}$ 记录每一个子数组中的每一个元素，以及它出现的次数。让 $\\textit{right}$ 向右移动时，相同元素的数量增加了 $\\textit{cnt}[\\textit{right}]$，随后需要将 $\\textit{cnt}[\\textit{right}]$ 增加 $1$。待 $\\textit{right}$ 移动完成后，根据上面的推论，以 $\\textit{left}$ 为左边界的好子数组的数量即为 $n - \\textit{right}$，其中 $n$ 是数组 $\\textit{nums}$ 的长度。我们将这个值累加入最终的答案。\n\n在这之后，当前的左边界 $\\textit{left}$ 枚举完成，相同的元素数量会减少 $\\textit{cnt}[\\textit{left}] - 1$，随后也需要将 $\\textit{cnt}[\\textit{left}]$ 减少 $1$。\n\n当所有的左边界都枚举完成后，即可得到最终的答案。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    long long countGood(vector<int>& nums, int k) {\n        int n = nums.size();\n        int same = 0, right = -1;\n        unordered_map<int, int> cnt;\n        long long ans = 0;\n        for (int left = 0; left < n; ++left) {\n            while (same < k && right + 1 < n) {\n                ++right;\n                same += cnt[nums[right]];\n                ++cnt[nums[right]];\n            }\n            if (same >= k) {\n                ans += n - right;\n            }\n            --cnt[nums[left]];\n            same -= cnt[nums[left]];\n        }\n        return ans;\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def countGood(self, nums: List[int], k: int) -> int:\n        n = len(nums)\n        same, right = 0, -1\n        cnt = Counter()\n        ans = 0\n        for left in range(n):\n            while same < k and right + 1 < n:\n                right += 1\n                same += cnt[nums[right]]\n                cnt[nums[right]] += 1\n            if same >= k:\n                ans += n - right\n            cnt[nums[left]] -= 1\n            same -= cnt[nums[left]]\n        return ans\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public long countGood(int[] nums, int k) {\n        int n = nums.length;\n        int same = 0, right = -1;\n        HashMap<Integer, Integer> cnt = new HashMap<>();\n        long ans = 0;\n        for (int left = 0; left < n; ++left) {\n            while (same < k && right + 1 < n) {\n                ++right;\n                same += cnt.getOrDefault(nums[right], 0);\n                cnt.put(nums[right], cnt.getOrDefault(nums[right], 0) + 1);\n            }\n            if (same >= k) {\n                ans += n - right;\n            }\n            cnt.put(nums[left], cnt.get(nums[left]) - 1);\n            same -= cnt.get(nums[left]);\n        }\n        return ans;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public long CountGood(int[] nums, int k) {\n        int n = nums.Length;\n        int same = 0, right = -1;\n        Dictionary<int, int> cnt = new Dictionary<int, int>();\n        long ans = 0;\n        for (int left = 0; left < n; ++left) {\n            while (same < k && right + 1 < n) {\n                ++right;\n                cnt.TryGetValue(nums[right], out int current);\n                same += current;\n                cnt[nums[right]] = current + 1;\n            }\n            if (same >= k) {\n                ans += n - right;\n            }\n            cnt[nums[left]] = cnt[nums[left]] - 1;\n            same -= cnt[nums[left]];\n        }\n        return ans;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc countGood(nums []int, k int) int64 {\n    n := len(nums)\n    same, right := 0, -1\n    cnt := make(map[int]int)\n    var ans int64 = 0\n    for left := 0; left < n; left++ {\n        for same < k && right + 1 < n {\n            right++\n            same += cnt[nums[right]]\n            cnt[nums[right]]++\n        }\n        if same >= k {\n            ans += int64(n - right)\n        }\n        cnt[nums[left]]--\n        same -= cnt[nums[left]]\n    }\n    return ans\n}\n```\n\n```C [sol1-C]\ntypedef struct {\n    int key;\n    int val;\n    UT_hash_handle hh;\n} HashItem; \n\nHashItem *hashFindItem(HashItem **obj, int key) {\n    HashItem *pEntry = NULL;\n    HASH_FIND_INT(*obj, &key, pEntry);\n    return pEntry;\n}\n\nbool hashAddItem(HashItem **obj, int key, int val) {\n    if (hashFindItem(obj, key)) {\n        return false;\n    }\n    HashItem *pEntry = (HashItem *)malloc(sizeof(HashItem));\n    pEntry->key = key;\n    pEntry->val = val;\n    HASH_ADD_INT(*obj, key, pEntry);\n    return true;\n}\n\nbool hashSetItem(HashItem **obj, int key, int val) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        hashAddItem(obj, key, val);\n    } else {\n        pEntry->val = val;\n    }\n    return true;\n}\n\nint hashGetItem(HashItem **obj, int key, int defaultVal) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        return defaultVal;\n    }\n    return pEntry->val;\n}\n\nvoid hashFree(HashItem **obj) {\n    HashItem *curr = NULL, *tmp = NULL;\n    HASH_ITER(hh, *obj, curr, tmp) {\n        HASH_DEL(*obj, curr);  \n        free(curr);\n    }\n}\n\nlong long countGood(int* nums, int numsSize, int k) {\n    int n = numsSize;\n    int same = 0, right = -1;\n    HashItem *cnt = NULL;\n    long long ans = 0;\n    for (int left = 0; left < n; ++left) {\n        while (same < k && right + 1 < n) {\n            ++right;\n            same += hashGetItem(&cnt, nums[right], 0);\n            hashSetItem(&cnt, nums[right], hashGetItem(&cnt, nums[right], 0) + 1);\n        }\n        if (same >= k) {\n            ans += n - right;\n        }\n        hashSetItem(&cnt, nums[left], hashGetItem(&cnt, nums[left], 0) - 1);\n        same -= hashGetItem(&cnt, nums[left], 0);\n    }\n    hashFree(&cnt);\n    return ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar countGood = function(nums, k) {\n    const n = nums.length;\n    let same = 0, right = -1;\n    const cnt = new Map();\n    let ans = 0;\n    for (let left = 0; left < n; ++left) {\n        while (same < k && right + 1 < n) {\n            ++right;\n            same += cnt.get(nums[right]) || 0;\n            cnt.set(nums[right], (cnt.get(nums[right]) || 0) + 1);\n        }\n        if (same >= k) {\n            ans += n - right;\n        }\n        cnt.set(nums[left], cnt.get(nums[left]) - 1);\n        same -= cnt.get(nums[left]);\n    }\n    return ans;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction countGood(nums: number[], k: number): number {\n    const n = nums.length;\n    let same = 0, right = -1;\n    const cnt = new Map<number, number>();\n    let ans = 0;\n    for (let left = 0; left < n; ++left) {\n        while (same < k && right + 1 < n) {\n            ++right;\n            same += cnt.get(nums[right]) || 0;\n            cnt.set(nums[right], (cnt.get(nums[right]) || 0) + 1);\n        }\n        if (same >= k) {\n            ans += n - right;\n        }\n        cnt.set(nums[left], (cnt.get(nums[left]) || 0) - 1);\n        same -= cnt.get(nums[left]) || 0;\n    }\n    return ans;\n};\n```\n\n```Rust [sol1-Rust]\nuse std::collections::HashMap;\n\nimpl Solution {\n    pub fn count_good(nums: Vec<i32>, k: i32) -> i64 {\n        let n = nums.len();\n        let mut same = 0;\n        let mut right = -1;\n        let mut cnt = HashMap::new();\n        let mut ans = 0i64;\n        for left in 0..n {\n            while same < k && right + 1 < n as i32 {\n                right += 1;\n                let num = nums[right as usize];\n                same += *cnt.get(&num).unwrap_or(&0);\n                *cnt.entry(num).or_insert(0) += 1;\n            }\n            if same >= k {\n                ans += (n as i64) - (right as i64);\n            }\n            let num = nums[left];\n            *cnt.entry(num).or_insert(0) -= 1;\n            same -= *cnt.get(&num).unwrap_or(&0);\n        }\n        ans\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是数组 $\\textit{nums}$ 的长度。双指针 $\\textit{left}$ 和 $\\textit{right}$ 各会对数组进行一次遍历。\n\n- 空间复杂度：$O(n)$，即为哈希表 $\\textit{cnt}$ 需要使用的空间。",
+            "slateValue": "",
+            "slug": "tong-ji-hao-zi-shu-zu-de-shu-mu-by-leetc-uvcm",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "gyEbNG",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 13,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Two Pointers",
+                    "nameTranslated": "双指针",
+                    "slug": "two-pointers",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Counting",
+                    "nameTranslated": "计数",
+                    "slug": "counting",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Sliding Window",
+                    "nameTranslated": "滑动窗口",
+                    "slug": "sliding-window",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2025-04-08T01:50:07.375571+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：双指针 思路与算法 根据题目中对于好数组的定义，如果 [latex] 是一个好数组，那么对于所有满足 [latex] 的 [latex]，[latex] 中相同的值不会更少，所以 [latex] 也一定是一个好数组。 这就提示我们可以使用双指针的方法解决本题。我们枚举左指针 [latex] 表示子数组的左边界，",
+            "topic": {
+                "id": 3643775,
+                "subscribed": false,
+                "commentCount": 24,
+                "viewCount": 92,
+                "post": {
+                    "id": 6651539,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 30,
+            "isEditorsPick": false,
+            "hitCount": 9746,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "count-the-number-of-good-subarrays",
+                "questionFrontendId": "2537"
+            },
+            "next": {
+                "slug": "shuang-zhi-zhen-by-endlesscheng-lkd9",
+                "title": "「越长越合法」型滑动窗口（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

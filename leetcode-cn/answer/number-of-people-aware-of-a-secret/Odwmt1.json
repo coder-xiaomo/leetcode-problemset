@@ -1,0 +1,144 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "Odwmt1",
+            "title": "二的幂数组中查询范围内的乘积",
+            "content": "#### 方法一：模拟 + 双端队列\n\n**思路与算法**\n\n我们可以直接根据题目描述进行模拟。\n\n使用两个双端队列 $\\textit{know}$ 和 $\\textit{share}$，它们分别表示仅知道秘密（但不会分享）和会分享秘密的人。两个双端队列中的每个元素都是一个二元组 $(\\textit{day}, \\textit{cnt})$，其中 $\\textit{day}$ 表示知晓秘密的时间，$\\textit{cnt}$ 表示在第 $\\textit{day}$ 天知晓秘密的总人数。\n\n初始时，在第一天只有 $1$ 个人知道秘密，并且不会分享，因此 $\\textit{know} = [(1, 1)]$，$\\textit{share} = []$。\n\n在第 $i~(2 \\leq i \\leq n)$ 天时：\n\n1. 第 $i - \\textit{delay}$ 天知晓秘密的人，会开始分享秘密。因此，如果 $\\textit{know}$ 的首元素是 $(i - \\textit{delay}, \\textit{cnt})$，那么将它移除，并加到 $\\textit{share}$ 的末尾；\n\n2. 第 $i - \\textit{forget}$ 天知晓秘密的人，会忘记秘密。因此，如果 $\\textit{share}$ 的首元素是 $(i - \\textit{forget}, \\textit{cnt})$，那么将它移除；\n\n3. 所有会分享秘密的人，会给一个新的人分享秘密。因此，需要在 $\\textit{know}$ 的末尾添加 $(i, \\textit{cnt})$，其中 $\\textit{cnt}$ 是 $\\textit{share}$ 中所有 $\\textit{cnt}$ 的总和。\n\n上述 $1$ 和 $2$ 的时间复杂度都是 $O(1)$，而 $3$ 的时间复杂度是 $O(n)$，因为需要对 $\\textit{share}$ 进行一次遍历。虽然这样已经可以通过本题，但也可以将其优化成 $O(1)$。我们可以用两个变量 $\\textit{know}_\\textit{cnt}$ 和 $\\textit{share}_\\textit{cnt}$ 分别记录 $\\textit{know}$ 和 $\\textit{share}$ 中所有 $\\textit{cnt}$ 的总和，这样一来，上述的 $1$ 和 $2$ 的时间复杂度不会发生变化，而 $3$ 可以降低至 $O(1)$。\n\n最终的答案即为 $\\textit{know}_\\textit{cnt} + \\textit{share}_\\textit{cnt}$。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int peopleAwareOfSecret(int n, int delay, int forget) {\n        deque<pair<int, int>> know, share;\n        know.emplace_back(1, 1);\n        int know_cnt = 1, share_cnt = 0;\n        for (int i = 2; i <= n; ++i) {\n            if (!know.empty() && know[0].first == i - delay) {\n                know_cnt = (know_cnt - know[0].second + mod) % mod;\n                share_cnt = (share_cnt + know[0].second) % mod;\n                share.push_back(know[0]);\n                know.pop_front();\n            }\n            if (!share.empty() && share[0].first == i - forget) {\n                share_cnt = (share_cnt - share[0].second + mod) % mod;\n                share.pop_front();\n            }\n            if (!share.empty()) {\n                know_cnt = (know_cnt + share_cnt) % mod;\n                know.emplace_back(i, share_cnt);\n            }\n        }\n        return (know_cnt + share_cnt) % mod;\n    }\n\nprivate:\n    static constexpr int mod = 1000000007;\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def peopleAwareOfSecret(self, n: int, delay: int, forget: int) -> int:\n        know, share = deque([(1, 1)]), deque([])\n        know_cnt, share_cnt = 1, 0\n        for i in range(2, n + 1):\n            if know and know[0][0] == i - delay:\n                know_cnt -= know[0][1]\n                share_cnt += know[0][1]\n                share.append(know[0])\n                know.popleft()\n            if share and share[0][0] == i - forget:\n                share_cnt -= share[0][1]\n                share.popleft()\n            if share:\n                know_cnt += share_cnt\n                know.append((i, share_cnt))\n        return (know_cnt + share_cnt) % (10**9 + 7)\n```\n\n```Java [sol1-Java]\nclass Solution {\n    private static final int MOD = 1000000007;\n    \n    public int peopleAwareOfSecret(int n, int delay, int forget) {\n        Deque<int[]> know = new LinkedList<>();\n        Deque<int[]> share = new LinkedList<>();\n        know.add(new int[]{1, 1});\n        int knowCnt = 1, shareCnt = 0;\n        \n        for (int i = 2; i <= n; i++) {\n            if (!know.isEmpty() && know.peekFirst()[0] == i - delay) {\n                int[] first = know.pollFirst();\n                knowCnt = (knowCnt - first[1] + MOD) % MOD;\n                shareCnt = (shareCnt + first[1]) % MOD;\n                share.add(first);\n            }\n            if (!share.isEmpty() && share.peekFirst()[0] == i - forget) {\n                int[] first = share.pollFirst();\n                shareCnt = (shareCnt - first[1] + MOD) % MOD;\n            }\n            if (!share.isEmpty()) {\n                knowCnt = (knowCnt + shareCnt) % MOD;\n                know.add(new int[]{i, shareCnt});\n            }\n        }\n        return (knowCnt + shareCnt) % MOD;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    private const int MOD = 1000000007;\n    \n    public int PeopleAwareOfSecret(int n, int delay, int forget) {\n        LinkedList<int[]> know = new LinkedList<int[]>();\n        LinkedList<int[]> share = new LinkedList<int[]>();\n        know.AddLast(new int[]{1, 1});\n        int knowCnt = 1, shareCnt = 0;\n        \n        for (int i = 2; i <= n; i++) {\n            if (know.First != null && know.First.Value[0] == i - delay) {\n                int[] first = know.First.Value;\n                know.RemoveFirst();\n                knowCnt = (knowCnt - first[1] + MOD) % MOD;\n                shareCnt = (shareCnt + first[1]) % MOD;\n                share.AddLast(first);\n            }\n            if (share.First != null && share.First.Value[0] == i - forget) {\n                int[] first = share.First.Value;\n                share.RemoveFirst();\n                shareCnt = (shareCnt - first[1] + MOD) % MOD;\n            }\n            if (share.First != null) {\n                knowCnt = (knowCnt + shareCnt) % MOD;\n                know.AddLast(new int[]{i, shareCnt});\n            }\n        }\n        return (knowCnt + shareCnt) % MOD;\n    }\n}\n```\n\n```Go [sol1-Go]\nconst MOD = 1000000007\n\ntype Pair struct {\n    day   int\n    count int\n}\n\nfunc peopleAwareOfSecret(n int, delay int, forget int) int {\n    know := make([]Pair, 0)\n    share := make([]Pair, 0)\n    know = append(know, Pair{1, 1})\n    knowCnt, shareCnt := 1, 0\n\n    for i := 2; i <= n; i++ {\n        if len(know) > 0 && know[0].day == i-delay {\n            first := know[0]\n            know = know[1:]\n            knowCnt = (knowCnt - first.count + MOD) % MOD\n            shareCnt = (shareCnt + first.count) % MOD\n            share = append(share, first)\n        }\n        if len(share) > 0 && share[0].day == i-forget {\n            first := share[0]\n            share = share[1:]\n            shareCnt = (shareCnt - first.count + MOD) % MOD\n        }\n        if len(share) > 0 {\n            knowCnt = (knowCnt + shareCnt) % MOD\n            know = append(know, Pair{i, shareCnt})\n        }\n    }\n    return (knowCnt + shareCnt) % MOD\n}\n```\n\n```C [sol1-C]\n#define MOD 1000000007\n\ntypedef struct {\n    int day;\n    int count;\n} Pair;\n\ntypedef struct {\n    Pair* data;\n    int front;\n    int rear;\n    int capacity;\n} Queue;\n\nQueue* createQueue(int capacity) {\n    Queue* queue = (Queue*)malloc(sizeof(Queue));\n    queue->data = (Pair*)malloc(capacity * sizeof(Pair));\n    queue->front = 0;\n    queue->rear = -1;\n    queue->capacity = capacity;\n    return queue;\n}\n\nint isEmpty(Queue* queue) {\n    return queue->rear < queue->front;\n}\n\nvoid enqueue(Queue* queue, Pair item) {\n    if (queue->rear == queue->capacity - 1) {\n        queue->capacity *= 2;\n        queue->data = (Pair*)realloc(queue->data, queue->capacity * sizeof(Pair));\n    }\n    queue->data[++queue->rear] = item;\n}\n\nPair dequeue(Queue* queue) {\n    return queue->data[queue->front++];\n}\n\nPair peek(Queue* queue) {\n    return queue->data[queue->front];\n}\n\nvoid freeQueue(Queue *queue) {\n    free(queue->data);\n    free(queue);\n}\n\nint peopleAwareOfSecret(int n, int delay, int forget) {\n    Queue* know = createQueue(n);\n    Queue* share = createQueue(n);\n    \n    Pair initial = {1, 1};\n    enqueue(know, initial);\n    int knowCnt = 1, shareCnt = 0;\n    for (int i = 2; i <= n; i++) {\n        if (!isEmpty(know) && peek(know).day == i - delay) {\n            Pair first = dequeue(know);\n            knowCnt = (knowCnt - first.count + MOD) % MOD;\n            shareCnt = (shareCnt + first.count) % MOD;\n            enqueue(share, first);\n        }\n        if (!isEmpty(share) && peek(share).day == i - forget) {\n            Pair first = dequeue(share);\n            shareCnt = (shareCnt - first.count + MOD) % MOD;\n        }\n        if (!isEmpty(share)) {\n            knowCnt = (knowCnt + shareCnt) % MOD;\n            Pair newPair = {i, shareCnt};\n            enqueue(know, newPair);\n        }\n    }\n    \n    freeQueue(know);\n    freeQueue(share);\n\n    return (knowCnt + shareCnt) % MOD;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar peopleAwareOfSecret = function(n, delay, forget) {\n    const MOD = 1000000007;\n    const know = new Deque();\n    const share = new Deque();\n    know.pushBack({day: 1, count: 1});\n    let knowCnt = 1, shareCnt = 0;\n    \n    for (let i = 2; i <= n; i++) {\n        if (!know.isEmpty() && know.front().day === i - delay) {\n            const first = know.popFront();\n            knowCnt = (knowCnt - first.count + MOD) % MOD;\n            shareCnt = (shareCnt + first.count) % MOD;\n            share.pushBack(first);\n        }\n        if (!share.isEmpty() && share.front().day === i - forget) {\n            const first = share.popFront();\n            shareCnt = (shareCnt - first.count + MOD) % MOD;\n        }\n        if (!share.isEmpty()) {\n            knowCnt = (knowCnt + shareCnt) % MOD;\n            know.pushBack({day: i, count: shareCnt});\n        }\n    }\n    return (knowCnt + shareCnt) % MOD;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction peopleAwareOfSecret(n: number, delay: number, forget: number): number {\n    const MOD = 1000000007;\n    const know = new Deque<number[]>();\n    const share = new Deque<number[]>();\n    know.pushBack([1, 1]);\n    let knowCnt = 1, shareCnt = 0;\n    \n    for (let i = 2; i <= n; i++) {\n        if (!know.isEmpty() && know.front()[0] === i - delay) {\n            const first = know.popFront();\n            knowCnt = (knowCnt - first[1] + MOD) % MOD;\n            shareCnt = (shareCnt + first[1]) % MOD;\n            share.pushBack(first);\n        }\n        if (!share.isEmpty() && share.front()[0] === i - forget) {\n            const first = share.popFront();\n            shareCnt = (shareCnt - first[1] + MOD) % MOD;\n        }\n        if (!share.isEmpty()) {\n            knowCnt = (knowCnt + shareCnt) % MOD;\n            know.pushBack([i, shareCnt]);\n        }\n    }\n    return (knowCnt + shareCnt) % MOD;\n};\n```\n\n```Rust [sol1-Rust]\nuse std::collections::VecDeque;\n\nconst MOD: i32 = 1000000007;\n\nimpl Solution {\n    pub fn people_aware_of_secret(n: i32, delay: i32, forget: i32) -> i32 {\n        let n = n as usize;\n        let delay = delay as usize;\n        let forget = forget as usize;\n        \n        let mut know: VecDeque<(usize, i32)> = VecDeque::new();\n        let mut share: VecDeque<(usize, i32)> = VecDeque::new();\n        know.push_back((1, 1));\n        let mut know_cnt = 1;\n        let mut share_cnt = 0;\n        \n        for i in 2..=n {\n            if let Some(&(day, count)) = know.front() {\n                if day == i - delay {\n                    let (day, count) = know.pop_front().unwrap();\n                    know_cnt = (know_cnt - count + MOD) % MOD;\n                    share_cnt = (share_cnt + count) % MOD;\n                    share.push_back((day, count));\n                }\n            }\n            \n            if let Some(&(day, count)) = share.front() {\n                if day == i - forget {\n                    let (_, count) = share.pop_front().unwrap();\n                    share_cnt = (share_cnt - count + MOD) % MOD;\n                }\n            }\n            \n            if !share.is_empty() {\n                know_cnt = (know_cnt + share_cnt) % MOD;\n                know.push_back((i, share_cnt));\n            }\n        }\n        \n        (know_cnt + share_cnt) % MOD\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$。\n\n- 空间复杂度：$O(n)$。",
+            "slateValue": "",
+            "slug": "er-de-mi-shu-zu-zhong-cha-xun-fan-wei-ne-kbs4",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "Odwmt1",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 7,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Queue",
+                    "nameTranslated": "队列",
+                    "slug": "queue",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Simulation",
+                    "nameTranslated": "模拟",
+                    "slug": "simulation",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2025-09-04T02:05:40.793387+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：模拟 + 双端队列 思路与算法 我们可以直接根据题目描述进行模拟。 使用两个双端队列 [latex] 和 [latex]，它们分别表示仅知道秘密（但不会分享）和会分享秘密的人。两个双端队列中的每个元素都是一个二元组 [latex]，其中 [latex] 表示知晓秘密的时间，[latex] 表示在第 [latex",
+            "topic": {
+                "id": 3771803,
+                "subscribed": false,
+                "commentCount": 31,
+                "viewCount": 46,
+                "post": {
+                    "id": 6888287,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 30,
+            "isEditorsPick": false,
+            "hitCount": 9779,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "number-of-people-aware-of-a-secret",
+                "questionFrontendId": "2327"
+            },
+            "next": {
+                "slug": "by-endlesscheng-2x0z",
+                "title": "两种 O(n) 做法：差分数组/前缀和（Python/Java/C++/C/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

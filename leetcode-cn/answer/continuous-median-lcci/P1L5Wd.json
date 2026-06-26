@@ -1,0 +1,126 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "P1L5Wd",
+            "title": "连续中值",
+            "content": "#### 方法一：优先队列\n\n**思路和算法**\n\n我们用两个优先队列 $\\textit{queMax}$ 和 $\\textit{queMin}$ 分别记录大于中位数的数和小于等于中位数的数。当累计添加的数的数量为奇数时，$\\textit{queMin}$ 中的数的数量比 $\\textit{queMax}$ 多一个，此时中位数为 $\\textit{queMin}$ 的队头。当累计添加的数的数量为偶数时，两个优先队列中的数的数量相同，此时中位数为它们的队头的平均值。\n\n当我们尝试添加一个数 $\\textit{num}$ 到数据结构中，我们需要分情况讨论：\n\n1. $\\textit{num} \\leq \\max \\{\\textit{queMin}\\}$\n\n    此时 $\\textit{num}$ 小于等于中位数，我们需要将该数添加到 $\\textit{queMin}$ 中。新的中位数将小于等于原来的中位数，因此我们可能需要将 $\\textit{queMin}$ 中最大的数移动到 $\\textit{queMax}$ 中。\n\n2. $\\textit{num} > \\max \\{\\textit{queMin}\\}$\n\n    此时 $\\textit{num}$ 大于中位数，我们需要将该数添加到 $\\textit{queMax}$ 中。新的中位数将大于等于原来的中位数，因此我们可能需要将 $\\textit{queMax}$ 中最小的数移动到 $\\textit{queMin}$ 中。\n\n特别地，当累计添加的数的数量为 $0$ 时，我们将 $\\textit{num}$ 添加到 $\\textit{queMin}$ 中。\n\n**代码**\n\n```C++ [sol1-C++]\nclass MedianFinder {\npublic:\n    priority_queue<int, vector<int>, less<int>> queMin;\n    priority_queue<int, vector<int>, greater<int>> queMax;\n\n    MedianFinder() {}\n\n    void addNum(int num) {\n        if (queMin.empty() || num <= queMin.top()) {\n            queMin.push(num);\n            if (queMax.size() + 1 < queMin.size()) {\n                queMax.push(queMin.top());\n                queMin.pop();\n            }\n        } else {\n            queMax.push(num);\n            if (queMax.size() > queMin.size()) {\n                queMin.push(queMax.top());\n                queMax.pop();\n            }\n        }\n    }\n\n    double findMedian() {\n        if (queMin.size() > queMax.size()) {\n            return queMin.top();\n        }\n        return (queMin.top() + queMax.top()) / 2.0;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass MedianFinder {\n    PriorityQueue<Integer> queMin;\n    PriorityQueue<Integer> queMax;\n\n    public MedianFinder() {\n        queMin = new PriorityQueue<Integer>((a, b) -> (b - a));\n        queMax = new PriorityQueue<Integer>((a, b) -> (a - b));\n    }\n    \n    public void addNum(int num) {\n        if (queMin.isEmpty() || num <= queMin.peek()) {\n            queMin.offer(num);\n            if (queMax.size() + 1 < queMin.size()) {\n                queMax.offer(queMin.poll());\n            }\n        } else {\n            queMax.offer(num);\n            if (queMax.size() > queMin.size()) {\n                queMin.offer(queMax.poll());\n            }\n        }\n    }\n    \n    public double findMedian() {\n        if (queMin.size() > queMax.size()) {\n            return queMin.peek();\n        }\n        return (queMin.peek() + queMax.peek()) / 2.0;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class MedianFinder {\n    PriorityQueue<int, int> queMin;\n    PriorityQueue<int, int> queMax;\n\n    public MedianFinder() {\n        queMin = new PriorityQueue<int, int>();\n        queMax = new PriorityQueue<int, int>();\n    }\n    \n    public void AddNum(int num) {\n        if (queMin.Count == 0 || num <= queMin.Peek()) {\n            queMin.Enqueue(num, -num);\n            if (queMax.Count + 1 < queMin.Count) {\n                int tmp = queMin.Dequeue();\n                queMax.Enqueue(tmp, tmp);\n            }\n        } else {\n            queMax.Enqueue(num, num);\n            if (queMax.Count > queMin.Count) {\n                int tmp = queMax.Dequeue();\n                queMin.Enqueue(tmp, -tmp);\n            }\n        }\n    }\n    \n    public double FindMedian() {\n        if (queMin.Count > queMax.Count) {\n            return queMin.Peek();\n        }\n        return (queMin.Peek() + queMax.Peek()) / 2.0;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass MedianFinder:\n\n    def __init__(self):\n        self.queMin = list()\n        self.queMax = list()\n\n    def addNum(self, num: int) -> None:\n        queMin_ = self.queMin\n        queMax_ = self.queMax\n\n        if not queMin_ or num <= -queMin_[0]:\n            heapq.heappush(queMin_, -num)\n            if len(queMax_) + 1 < len(queMin_):\n                heapq.heappush(queMax_, -heapq.heappop(queMin_))\n        else:\n            heapq.heappush(queMax_, num)\n            if len(queMax_) > len(queMin_):\n                heapq.heappush(queMin_, -heapq.heappop(queMax_))\n        \n    def findMedian(self) -> float:\n        queMin_ = self.queMin\n        queMax_ = self.queMax\n\n        if len(queMin_) > len(queMax_):\n            return -queMin_[0]\n        return (-queMin_[0] + queMax_[0]) / 2\n```\n\n```go [sol1-Golang]\ntype MedianFinder struct {\n    queMin, queMax hp\n}\n\nfunc Constructor() MedianFinder {\n    return MedianFinder{}\n}\n\nfunc (mf *MedianFinder) AddNum(num int) {\n    minQ, maxQ := &mf.queMin, &mf.queMax\n    if minQ.Len() == 0 || num <= -minQ.IntSlice[0] {\n        heap.Push(minQ, -num)\n        if maxQ.Len()+1 < minQ.Len() {\n            heap.Push(maxQ, -heap.Pop(minQ).(int))\n        }\n    } else {\n        heap.Push(maxQ, num)\n        if maxQ.Len() > minQ.Len() {\n            heap.Push(minQ, -heap.Pop(maxQ).(int))\n        }\n    }\n}\n\nfunc (mf *MedianFinder) FindMedian() float64 {\n    minQ, maxQ := mf.queMin, mf.queMax\n    if minQ.Len() > maxQ.Len() {\n        return float64(-minQ.IntSlice[0])\n    }\n    return float64(maxQ.IntSlice[0]-minQ.IntSlice[0]) / 2\n}\n\ntype hp struct{ sort.IntSlice }\nfunc (h *hp) Push(v interface{}) { h.IntSlice = append(h.IntSlice, v.(int)) }\nfunc (h *hp) Pop() interface{}   { a := h.IntSlice; v := a[len(a)-1]; h.IntSlice = a[:len(a)-1]; return v }\n```\n\n**复杂度分析**\n\n- 时间复杂度：\n  - $\\textit{addNum}$: $O(\\log n)$，其中 $n$ 为累计添加的数的数量。\n  - $\\textit{findMedian}$: $O(1)$。\n\n- 空间复杂度：$O(n)$，主要为优先队列的开销。\n\n#### 方法二：有序集合 + 双指针\n\n**思路和算法**\n\n我们也可以使用有序集合维护这些数。我们把有序集合看作自动排序的数组，使用双指针指向有序集合中的中位数元素即可。当累计添加的数的数量为奇数时，双指针指向同一个元素。当累计添加的数的数量为偶数时，双指针分别指向构成中位数的两个数。\n\n当我们尝试添加一个数 $\\textit{num}$ 到数据结构中，我们需要分情况讨论：\n\n1. 初始有序集合为空时，我们直接让左右指针指向 $\\textit{num}$ 所在的位置。\n\n2. 有序集合为中元素为奇数时，$\\textit{left}$ 和 $\\textit{right}$ 同时指向中位数。如果 $\\textit{num}$ 大于等于中位数，那么只要让 $\\textit{left}$ 左移，否则让 $\\textit{right}$ 右移即可。\n\n3. 有序集合为中元素为偶数时，$\\textit{left}$ 和 $\\textit{right}$ 分别指向构成中位数的两个数。\n   - 当 $\\textit{num}$ 成为新的唯一的中位数，那么我们让 $\\textit{left}$ 右移，$\\textit{right}$ 左移，这样它们即可指向 $\\textit{num}$ 所在的位置；\n   - 当 $\\textit{num}$ 大于等于 $\\textit{right}$，那么我们让 $\\textit{left}$ 右移即可；\n   - 当 $\\textit{num}$ 小于 $\\textit{right}$ 指向的值，那么我们让 $\\textit{right}$ 左移，注意到如果 $\\textit{num}$ 恰等于 $\\textit{left}$ 指向的值，那么 $\\textit{num}$ 将被插入到 $\\textit{left}$ 右侧，使得 $\\textit{left}$ 和 $\\textit{right}$ 间距增大，所以我们还需要额外让 $\\textit{left}$ 指向移动后的 $\\textit{right}$。\n\n**代码**\n\n```C++ [sol2-C++]\nclass MedianFinder {\n    multiset<int> nums;\n    multiset<int>::iterator left, right;\n\npublic:\n    MedianFinder() : left(nums.end()), right(nums.end()) {}\n\n    void addNum(int num) {\n        const size_t n = nums.size();\n\n        nums.insert(num);\n        if (!n) {\n            left = right = nums.begin();\n        } else if (n & 1) {\n            if (num < *left) {\n                left--;\n            } else {\n                right++;\n            }\n        } else {\n            if (num > *left && num < *right) {\n                left++;\n                right--;\n            } else if (num >= *right) {\n                left++;\n            } else {\n                right--;\n                left = right;\n            }\n        }\n    }\n\n    double findMedian() {\n        return (*left + *right) / 2.0;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass MedianFinder {\n    TreeMap<Integer, Integer> nums;\n    int n;\n    int[] left;\n    int[] right;\n\n    public MedianFinder() {\n        nums = new TreeMap<Integer, Integer>();\n        n = 0;\n        left = new int[2];\n        right = new int[2];\n    }\n    \n    public void addNum(int num) {\n        nums.put(num, nums.getOrDefault(num, 0) + 1);\n        if (n == 0) {\n            left[0] = right[0] = num;\n            left[1] = right[1] = 1;\n        } else if ((n & 1) != 0) {\n            if (num < left[0]) {\n                decrease(left);\n            } else {\n                increase(right);\n            }\n        } else {\n            if (num > left[0] && num < right[0]) {\n                increase(left);\n                decrease(right);\n            } else if (num >= right[0]) {\n                increase(left);\n            } else {\n                decrease(right);\n                System.arraycopy(right, 0, left, 0, 2);\n            }\n        }\n        n++;\n    }\n\n    public double findMedian() {\n        return (left[0] + right[0]) / 2.0;\n    }\n\n    private void increase(int[] iterator) {\n        iterator[1]++;\n        if (iterator[1] > nums.get(iterator[0])) {\n            iterator[0] = nums.ceilingKey(iterator[0] + 1);\n            iterator[1] = 1;\n        }\n    }\n\n    private void decrease(int[] iterator) {\n        iterator[1]--;\n        if (iterator[1] == 0) {\n            iterator[0] = nums.floorKey(iterator[0] - 1);\n            iterator[1] = nums.get(iterator[0]);\n        }\n    }\n}\n```\n\n```Python [sol2-Python3]\nfrom sortedcontainers import SortedList\n\nclass MedianFinder:\n\n    def __init__(self):\n        self.nums = SortedList()\n        self.left = self.right = None\n        self.left_value = self.right_value = None\n\n    def addNum(self, num: int) -> None:\n        nums_ = self.nums\n\n        n = len(nums_)\n        nums_.add(num)\n\n        if n == 0:\n            self.left = self.right = 0\n        else:\n            # 模拟双指针，当 num 小于 self.left 或 self.right 指向的元素时，num 的加入会导致对应指针向右移动一个位置\n            if num < self.left_value:\n                self.left += 1\n            if num < self.right_value:\n                self.right += 1\n\n            if n & 1:\n                if num < self.left_value:\n                    self.left -= 1\n                else:\n                    self.right += 1\n            else:\n                if self.left_value < num < self.right_value:\n                    self.left += 1\n                    self.right -= 1\n                elif num >= self.right_value:\n                    self.left += 1\n                else:\n                    self.right -= 1\n                    self.left = self.right\n        \n        self.left_value = nums_[self.left]\n        self.right_value = nums_[self.right]\n\n    def findMedian(self) -> float:\n        return (self.left_value + self.right_value) / 2\n```\n\n```go [sol2-Golang]\ntype MedianFinder struct {\n    nums        *redblacktree.Tree\n    total       int\n    left, right iterator\n}\n\nfunc Constructor() MedianFinder {\n    return MedianFinder{nums: redblacktree.NewWithIntComparator()}\n}\n\nfunc (mf *MedianFinder) AddNum(num int) {\n    if count, has := mf.nums.Get(num); has {\n        mf.nums.Put(num, count.(int)+1)\n    } else {\n        mf.nums.Put(num, 1)\n    }\n    if mf.total == 0 {\n        it := mf.nums.Iterator()\n        it.Next()\n        mf.left = iterator{it, 1}\n        mf.right = mf.left\n    } else if mf.total%2 == 1 {\n        if num < mf.left.Key().(int) {\n            mf.left.prev()\n        } else {\n            mf.right.next()\n        }\n    } else {\n        if mf.left.Key().(int) < num && num < mf.right.Key().(int) {\n            mf.left.next()\n            mf.right.prev()\n        } else if num >= mf.right.Key().(int) {\n            mf.left.next()\n        } else {\n            mf.right.prev()\n            mf.left = mf.right\n        }\n    }\n    mf.total++\n}\n\nfunc (mf *MedianFinder) FindMedian() float64 {\n    return float64(mf.left.Key().(int)+mf.right.Key().(int)) / 2\n}\n\ntype iterator struct {\n    redblacktree.Iterator\n    count int\n}\n\nfunc (it *iterator) prev() {\n    if it.count > 1 {\n        it.count--\n    } else {\n        it.Prev()\n        it.count = it.Value().(int)\n    }\n}\n\nfunc (it *iterator) next() {\n    if it.count < it.Value().(int) {\n        it.count++\n    } else {\n        it.Next()\n        it.count = 1\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：\n  - $\\textit{addNum}$: $O(\\log n)$，其中 $n$ 为累计添加的数的数量。\n  - $\\textit{findMedian}$: $O(1)$。\n\n- 空间复杂度：$O(n)$，主要为有序集合的开销。",
+            "slateValue": "",
+            "slug": "lian-xu-zhong-zhi-by-leetcode-solution-q07m",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "P1L5Wd",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 5,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Design",
+                    "nameTranslated": "设计",
+                    "slug": "design",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Data Stream",
+                    "nameTranslated": "数据流",
+                    "slug": "data-stream",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Ordered Set",
+                    "nameTranslated": "有序集合",
+                    "slug": "ordered-set",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Heap (Priority Queue)",
+                    "nameTranslated": "堆（优先队列）",
+                    "slug": "heap-priority-queue",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2022-08-03T01:50:05.373872+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：优先队列\n思路和算法\n我们用两个优先队列 \\textit{queMax} 和 \\textit{queMin} 分别记录大于中位数的数和小于等于中位数的数。当累计添加的数的数量为奇数时，\\textit{queMin} 中的数的数量比 \\textit{queMax} 多一个，此时中位数为 \\textit{queM",
+            "topic": {
+                "id": 1718020,
+                "subscribed": false,
+                "commentCount": 4,
+                "viewCount": 483,
+                "post": {
+                    "id": 3402272,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 13,
+            "isEditorsPick": false,
+            "hitCount": 2410,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "continuous-median-lcci",
+                "questionFrontendId": "面试题 17.20"
+            },
+            "next": {
+                "slug": "yong-da-xiao-ding-dui-jie-jue-zhong-wei-k1w8r",
+                "title": "用大小顶堆解决中位数问题"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,116 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "Tlnprq",
+            "title": "统计所有可行路径",
+            "content": "#### 方法一：记忆化搜索\n\n**思路与算法**\n\n我们用 $f[\\textit{pos}][\\textit{rest}]$ 表示**当我们当前位于第 $\\textit{pos}$ 个城市，剩余的汽油量为 $\\textit{rest}$ 时，到达终点 $\\textit{finish}$ 的可能的路径总数**。\n\n在进行状态转移时，我们可以枚举下一个到达的城市 $i$，其中 $i \\neq \\textit{pos}$。从城市 $\\textit{pos}$ 前往城市 $i$ 消耗的汽油量为 $\\textit{cost}_{\\textit{pos}, i} = |\\textit{locations}[\\textit{pos}] - \\textit{locations}[i]|$，这个值不能超过当前剩余的汽油量 $\\textit{rest}$。因此我们可以得到状态转移方程：\n\n$$\nf[\\textit{pos}][\\textit{rest}] = \\sum_{i=0}^{n-1} f[i][\\textit{rest} - \\textit{cost}_{\\textit{pos}, i}] ~其中~ \\textit{rest} > \\textit{cost}_{\\textit{pos}, i}\n$$\n\n如果我们当前就在终点，即 $\\textit{pos} = \\textit{finish}$，那么我们不再进行移动也是一种可行的方案。此时，我们需要将 $f[\\textit{pos}][\\textit{rest}]$ 额外增加 $1$。\n\n由于状态表示中的第二维 $\\textit{rest}$ 是不断减小的，因此使用自顶向下的记忆化搜索，相较于使用多重循环的动态规划更加方便。\n\n最终的答案即为 $f[\\textit{start}][\\textit{fuel}]$。\n\n**优化**\n\n注意到「两点之间，线段最短」，因此从当前城市 $\\textit{pos}$ 到达终点 $\\textit{finish}$ 的最小汽油消耗量就是 $\\textit{cost}_{\\textit{pos}, \\textit{finish}}$。如果这个值大于剩余的汽油量 $\\textit{rest}$，那么我们可以在直接记忆化搜索中记录并返回 $f[\\textit{pos}][\\textit{rest}] = 0$。\n\n注意：该优化可以降低运行时间，但不会减少时间复杂度。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\nprivate:\n    static constexpr int mod = 1000000007;\n    vector<vector<int>> f;\n    \npublic:\n    int dfs(const vector<int>& locations, int pos, int finish, int rest) {\n        if (f[pos][rest] != -1) {\n            return f[pos][rest];\n        }\n        \n        f[pos][rest] = 0;\n        if (abs(locations[pos] - locations[finish]) > rest) {\n            return 0;\n        }\n        \n        int n = locations.size();\n        for (int i = 0; i < n; ++i) {\n            if (pos != i) {\n                if (int cost = abs(locations[pos] - locations[i]); cost <= rest) {\n                    f[pos][rest] += dfs(locations, i, finish, rest - cost);\n                    f[pos][rest] %= mod;\n                }\n            }\n        }\n        if (pos == finish) {\n            f[pos][rest] += 1;\n            f[pos][rest] %= mod;\n        }\n        return f[pos][rest];\n    }\n    \n    int countRoutes(vector<int>& locations, int start, int finish, int fuel) {\n        f.assign(locations.size(), vector<int>(fuel + 1, -1));\n        return dfs(locations, start, finish, fuel);\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    static final int MOD = 1000000007;\n    int[][] f;\n\n    public int countRoutes(int[] locations, int start, int finish, int fuel) {\n        f = new int[locations.length][fuel + 1];\n        for (int[] row : f) {\n            Arrays.fill(row, -1);\n        }\n        return dfs(locations, start, finish, fuel);\n    }\n\n    public int dfs(int[] locations, int pos, int finish, int rest) {\n        if (f[pos][rest] != -1) {\n            return f[pos][rest];\n        }\n        \n        f[pos][rest] = 0;\n        if (Math.abs(locations[pos] - locations[finish]) > rest) {\n            return 0;\n        }\n        \n        int n = locations.length;\n        for (int i = 0; i < n; ++i) {\n            if (pos != i) {\n                int cost;\n                if ((cost = Math.abs(locations[pos] - locations[i])) <= rest) {\n                    f[pos][rest] += dfs(locations, i, finish, rest - cost);\n                    f[pos][rest] %= MOD;\n                }\n            }\n        }\n        if (pos == finish) {\n            f[pos][rest] += 1;\n            f[pos][rest] %= MOD;\n        }\n        return f[pos][rest];\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def countRoutes(self, locations: List[int], start: int, finish: int, fuel: int) -> int:\n        n = len(locations)\n        \n        @lru_cache(None)\n        def dfs(pos, rest):\n            if abs(locations[pos] - locations[finish]) > rest:\n                return 0\n                \n            ans = 0\n            for i, loc in enumerate(locations):\n                if pos != i:\n                    cost = abs(locations[pos] - loc)\n                    if cost <= rest:\n                        ans += dfs(i, rest - cost)\n            if pos == finish:\n                ans += 1\n            return ans % 1000000007\n                        \n        return dfs(start, fuel)\n```\n\n```C [sol1-C]\nint mod = 1000000007;\n\nint f[101][201];\n\nint dfs(int* locations, int locationsSize, int pos, int finish, int rest) {\n    if (f[pos][rest] != -1) {\n        return f[pos][rest];\n    }\n\n    f[pos][rest] = 0;\n    if (abs(locations[pos] - locations[finish]) > rest) {\n        return 0;\n    }\n\n    for (int i = 0; i < locationsSize; ++i) {\n        if (pos != i) {\n            int cost = abs(locations[pos] - locations[i]);\n            if (cost <= rest) {\n                f[pos][rest] += dfs(locations, locationsSize, i, finish, rest - cost);\n                f[pos][rest] %= mod;\n            }\n        }\n    }\n    if (pos == finish) {\n        f[pos][rest] += 1;\n        f[pos][rest] %= mod;\n    }\n    return f[pos][rest];\n}\n\nint countRoutes(int* locations, int locationsSize, int start, int finish, int fuel) {\n    memset(f, -1, sizeof(f));\n    return dfs(locations, locationsSize, start, finish, fuel);\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n^2 \\cdot \\textit{fuel})$，其中 $n$ 是数组 $\\textit{locations}$ 的长度。状态的数量为 $O(n \\cdot \\textit{fuel})$，对于每个状态，我们需要 $O(n)$ 的时间进行转移，相乘即可得到时间复杂度。\n\n- 空间复杂度：$O(n \\cdot \\textit{fuel})$，即为状态的数量。\n\n#### 方法二：优化的动态规划\n\n**说明**\n\n本方法为进阶方法，有较高的思维难度。\n\n**思路与算法**\n\n我们可以将所有城市看成数轴上的 $n$ 个点，这样每一条从起点到终点的路径就可以看成是如下的形式：\n\n- 我们从起点开始沿着某个方向（数轴的正方向或负方向均可）移动到另一个点；\n\n- 随后我们改变方向（折返），移动到另一个点；\n\n- 重复上述的折返若干次，当到达终点时结束。\n\n也就是说，对于每一条路径，我们可以看作是**从起点到终点的若干次折返**。因此我么可以考虑这样定义状态：令 $\\textit{dp}_L[\\textit{city}][\\textit{used}]$ 表示**从起点到达城市 $\\textit{city}$，消耗的汽油量为 $\\textit{used}$ 并且最后一次折返的方向是数轴的负方向，满足要求的路径数目**；同样地，令 $\\textit{dp}_R[\\textit{city}][\\textit{used}]$ 表示**从起点到达城市 $\\textit{city}$，消耗的汽油量为 $\\textit{used}$，并且最后一次折返的方向是数轴的正方向，满足要求的路径数目**。\n\n那么我们如何进行转移呢？我们考虑 $\\textit{dp}_L[\\textit{city}][\\textit{used}]$，由于最后一次折返的方向是数轴的负方向，因此上一个到达的城市 $\\textit{city'}$ 的位置一定在 $\\textit{city}$ 的右侧，那么 $\\textit{dp}_L[\\textit{city}][\\textit{used}]$ 会从所有满足 $\\textit{locations}[\\textit{city}'] > \\textit{locations}[\\textit{city}]$ 且 $\\text{dist}(\\textit{city}, \\textit{city}') \\leq \\textit{used}$ 的 $\\textit{dp}_R[\\textit{city}][\\textit{used} - \\text{dist}(\\textit{city}, \\textit{city}')]$ 转移而来，其中 $\\text{dist}(\\textit{city}, \\textit{city}')$ 表示两个城市之间的距离。为了方便进行转移，我们不如将数组 $\\textit{locations}$ 进行升序排序，并且将起点和终点重新进行编号，这样所有满足 $\\textit{locations}[\\textit{city}'] > \\textit{locations}[\\textit{city}]$ 的城市 $\\textit{city}'$ 就是数组中在 $\\textit{city}$ 右侧的城市。\n\n在转移时，考虑从 $\\textit{dp}_R[\\textit{city}][\\textit{used} - \\text{dist}(\\textit{city}, \\textit{city}')]$ 转移到 $\\textit{dp}_L[\\textit{city}][\\textit{used}]$，我们从城市 $\\textit{city'}$ 向数轴负方向到达城市 $\\textit{city}$，途中的城市个数为 $\\textit{city} - \\textit{city'} - 1$，每个城市我们可以选择停留或者不停留，满足要求的路径数为\n\n$$\n2^{\\textit{city'} - \\textit{city} - 1}\n$$\n\n根据乘法原理，因此我们可以得到状态转移方程：\n\n$$\n\\textit{dp}_L[\\textit{city}][\\textit{used}] = \\sum_{\\textit{city'}=\\textit{city}+1}^{n-1} \\textit{dp}_R[\\textit{city}'][\\textit{used} - \\text{dist}(\\textit{city}, \\textit{city}')] \\times 2^{\\textit{city'} - \\textit{city} - 1}\n$$\n\n同理，根据对偶性，我们可以得到 $\\textit{dp}_R$ 的状态转移方程：\n\n$$\n\\textit{dp}_R[\\textit{city}][\\textit{used}] = \\sum_{\\textit{city'}=0}^{\\textit{city}-1} \\textit{dp}_L[\\textit{city}'][\\textit{used} - \\text{dist}(\\textit{city}, \\textit{city}')] \\times 2^{\\textit{city} - \\textit{city}' - 1}\n$$\n\n状态的数目为 $O(n \\cdot \\textit{fuel})$，转移的时间复杂度为 $O(n)$，因此总时间复杂度为 $O(n^2 \\cdot \\textit{fuel})$，与方法一相同。然而我们可以对该方法进行优化，考虑将上述 $\\textit{dp}_L$ 的状态转移方程提出第一项：\n\n$$\n\\begin{aligned}\n\\textit{dp}_L[\\textit{city}][\\textit{used}] &= \\textit{dp}_R[\\textit{city}+1][\\textit{used} - \\text{dist}(\\textit{city}, \\textit{city}+1)] \\\\\n&+ \\sum_{\\textit{city'}=\\textit{city}+2}^{n-1} \\textit{dp}_R[\\textit{city}'][\\textit{used} - \\text{dist}(\\textit{city}, \\textit{city}')] \\times 2^{\\textit{city'} - \\textit{city} - 1}\n\\end{aligned}\n$$\n\n这里需要满足 $\\textit{city} \\neq n-1$。当 $\\textit{city}=n-1$ 且 $\\textit{used} \\neq 0$ 时，$\\textit{dp}_L[\\textit{city}][\\textit{used}] = 0$ 恒成立，我们不需要进行任何处理。\n\n观察剩余的项，它和原状态转移方程很相似，即\n\n$$\n\\begin{aligned}\n\\textit{dp}_L[\\textit{city}+1]&[\\textit{used}-\\text{dist}(\\textit{city}, \\textit{city}+1)] \\\\\n&= \\sum_{\\textit{city'}=\\textit{city}+2}^{n-1} \\textit{dp}_R[\\textit{city}'][\\textit{used} - \\text{dist}(\\textit{city}, \\textit{city}')] \\times 2^{\\textit{city'} - \\textit{city} - 2}\n\\end{aligned}\n$$\n\n因此有\n\n$$\n\\begin{aligned}\n\\textit{dp}_L[\\textit{city}][\\textit{used}] &= \\textit{dp}_R[\\textit{city}+1][\\textit{used} - \\text{dist}(\\textit{city}, \\textit{city}+1)] \\\\\n&+ \\textit{dp}_L[\\textit{city}+1][\\textit{used}-\\text{dist}(\\textit{city}, \\textit{city}+1)] \\times 2\n\\end{aligned}\n$$\n\n同理，根据对偶性，我们可以优化 $\\textit{dp}_R$ 的状态转移方程：\n\n$$\n\\begin{aligned}\n\\textit{dp}_R[\\textit{city}][\\textit{used}] &= \\textit{dp}_L[\\textit{city}-1][\\textit{used} - \\text{dist}(\\textit{city}, \\textit{city}-1)] \\\\\n&+ \\textit{dp}_R[\\textit{city}-1][\\textit{used}-\\text{dist}(\\textit{city}, \\textit{city}-1)] \\times 2\n\\end{aligned}\n$$\n\n这样转移的时间减少为 $O(1)$，总时间复杂度为 $O(n \\cdot \\textit{fuel})$。\n\n**细节**\n\n处理边界条件需要一些抽象思维\n\n$$\n\\textit{dp}_L[\\textit{start}][0] = \\textit{dp}_R[\\textit{start}][0] = 1\n$$\n\n也就是说，我们从起点开始，无论最后一步往负方向（为下一步的正方向做铺垫）还是正方向（为下一步的负方向做铺垫）都有基础的 $1$ 条路径。然而这个边界条件会对状态转移带来一些麻烦。观察上述的状态转移方程，$\\textit{dp}_L[\\textit{city}][\\textit{used}]$ 会从 $\\textit{dp}_L[\\textit{city}+1][\\textit{used}-\\text{dist}(\\textit{city}, \\textit{city}+1)]$ 转移而来，并且乘以系数 $2$，这里我们是希望**我们是沿着负方向经过 $\\textit{city}+1$ 再到达 $\\textit{city}$，并且城市 $\\textit{city}+1$ 可以选择停留或不停留**。如果此时 $\\textit{city}+1=\\textit{start}$ 并且 $\\textit{used}-\\text{dist}(\\textit{city}, \\textit{city}+1) = 0$，这样就会从边界条件转移而来，而实际上**边界条件的方向只是为了下一次折返进行铺垫，而不是真的从那个方向折返**，因此**边界条件对应的状态不能作为系数为 $2$ 的这一项转移而来**。因此，我们的状态转移方程需要写成：\n\n$$\n\\begin{aligned}\n\\textit{dp}_L[\\textit{city}]&[\\textit{used}] = \\textit{dp}_R[\\textit{city}+1][\\textit{used} - \\text{dist}(\\textit{city}, \\textit{city}+1)] \\\\\n&+ \\begin{cases}\\textit{dp}_L[\\textit{city}+1][\\textit{used}-\\text{dist}(\\textit{city}, \\textit{city}+1)] \\times 2, & \\textit{used} > \\text{dist}(\\textit{city}, \\textit{city}+1) \\\\\n0, & \\textit{used} = \\text{dist}(\\textit{city}, \\textit{city}+1)\n\\end{cases}\n\\end{aligned}\n$$\n\n以及\n\n$$\n\\begin{aligned}\n\\textit{dp}_R[\\textit{city}]&[\\textit{used}] = \\textit{dp}_L[\\textit{city}-1][\\textit{used} - \\text{dist}(\\textit{city}, \\textit{city}-1)] \\\\\n&+ \\begin{cases}\\textit{dp}_R[\\textit{city}-1][\\textit{used}-\\text{dist}(\\textit{city}, \\textit{city}-1)] \\times 2, & \\textit{used} > \\text{dist}(\\textit{city}, \\textit{city}-1) \\\\\n0, & \\textit{used} = \\text{dist}(\\textit{city}, \\textit{city}-1)\n\\end{cases}\n\\end{aligned}\n$$\n\n最终的答案即为所有 $\\textit{dp}_L[\\textit{finish}][\\textit{used}]$ 与 $\\textit{dp}_R[\\textit{finish}][\\textit{used}]$ 的和。注意当 $\\textit{start}=\\textit{finish}$ 时，边界条件（即不移动也算一套路径）会被计算 $2$ 次，因此需要将答案减 $1$。\n\n**代码**\n\n```C++ [sol2-C++]\nclass Solution {\nprivate:\n    static constexpr int mod = 1000000007;\n\npublic:\n    int countRoutes(vector<int>& locations, int start, int finish, int fuel) {\n        int n = locations.size();\n        int startPos = locations[start];\n        int finishPos = locations[finish];\n        sort(locations.begin(), locations.end());\n        for (int i = 0; i < n; ++i) {\n            if (startPos == locations[i]) {\n                start = i;\n            }\n            if (finishPos == locations[i]) {\n                finish = i;\n            }\n        }\n\n        vector<vector<int>> dpL(n, vector<int>(fuel + 1));\n        vector<vector<int>> dpR(n, vector<int>(fuel + 1));\n        dpL[start][0] = dpR[start][0] = 1;\n        \n        for (int used = 0; used <= fuel; ++used) {\n            for (int city = n - 2; city >= 0; --city) {\n                if (int delta = locations[city + 1] - locations[city]; used >= delta) {\n                    dpL[city][used] = ((used == delta ? 0 : dpL[city + 1][used - delta]) * 2 % mod + dpR[city + 1][used - delta]) % mod;\n                }\n            }\n            for (int city = 1; city < n; ++city) {\n                if (int delta = locations[city] - locations[city - 1]; used >= delta) {\n                    dpR[city][used] = ((used == delta ? 0 : dpR[city - 1][used - delta]) * 2 % mod + dpL[city - 1][used - delta]) % mod;\n                }\n            }\n        }\n\n        int ans = 0;\n        for (int used = 0; used <= fuel; ++used) {\n            ans += (dpL[finish][used] + dpR[finish][used]) % mod;\n            ans %= mod;\n        }\n        if (start == finish) {\n            ans = (ans + mod - 1) % mod;\n        }\n        return ans;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    static final int MOD = 1000000007;\n\n    public int countRoutes(int[] locations, int start, int finish, int fuel) {\n        int n = locations.length;\n        int startPos = locations[start];\n        int finishPos = locations[finish];\n        Arrays.sort(locations);\n        for (int i = 0; i < n; ++i) {\n            if (startPos == locations[i]) {\n                start = i;\n            }\n            if (finishPos == locations[i]) {\n                finish = i;\n            }\n        }\n\n        int[][] dpL = new int[n][fuel + 1];\n        int[][] dpR = new int[n][fuel + 1];\n        dpL[start][0] = dpR[start][0] = 1;\n        \n        for (int used = 0; used <= fuel; ++used) {\n            for (int city = n - 2; city >= 0; --city) {\n                int delta = locations[city + 1] - locations[city];\n                if (used >= delta) {\n                    dpL[city][used] = ((used == delta ? 0 : dpL[city + 1][used - delta]) * 2 % MOD + dpR[city + 1][used - delta]) % MOD;\n                }\n            }\n            for (int city = 1; city < n; ++city) {\n                int delta = locations[city] - locations[city - 1];\n                if (used >= delta) {\n                    dpR[city][used] = ((used == delta ? 0 : dpR[city - 1][used - delta]) * 2 % MOD + dpL[city - 1][used - delta]) % MOD;\n                }\n            }\n        }\n\n        int ans = 0;\n        for (int used = 0; used <= fuel; ++used) {\n            ans += (dpL[finish][used] + dpR[finish][used]) % MOD;\n            ans %= MOD;\n        }\n        if (start == finish) {\n            ans = (ans + MOD - 1) % MOD;\n        }\n        return ans;\n    }\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def countRoutes(self, locations: List[int], start: int, finish: int, fuel: int) -> int:\n        mod = 10**9 + 7\n\n        n = len(locations)\n        startPos = locations[start]\n        finishPos = locations[finish]\n        locations.sort()\n        start = locations.index(startPos)\n        finish = locations.index(finishPos)\n\n        dpL = [[0] * (fuel + 1) for _ in range(n)]\n        dpR = [[0] * (fuel + 1) for _ in range(n)]\n        dpL[start][0] = dpR[start][0] = 1\n        \n        for used in range(fuel + 1):\n            for city in range(n - 2, -1, -1):\n                if (delta := locations[city + 1] - locations[city]) <= used:\n                    dpL[city][used] = ((0 if used == delta else dpL[city + 1][used - delta]) * 2 + dpR[city + 1][used - delta]) % mod\n            for city in range(1, n):\n                if (delta := locations[city] - locations[city - 1]) <= used:\n                    dpR[city][used] = ((0 if used == delta else dpR[city - 1][used - delta]) * 2 + dpL[city - 1][used - delta]) % mod\n\n        ans = sum(dpL[finish]) + sum(dpR[finish])\n        if start == finish:\n            ans -= 1\n        return ans % mod\n```\n\n```C [sol2-C]\nint cmp(const void* _a, const void* _b) {\n    int *a = (int*)_a, *b = (int*)_b;\n    return *a - *b;\n}\n\nint countRoutes(int* locations, int locationsSize, int start, int finish, int fuel) {\n    int mod = 1000000007;\n    int startPos = locations[start];\n    int finishPos = locations[finish];\n    qsort(locations, locationsSize, sizeof(int), cmp);\n    for (int i = 0; i < locationsSize; ++i) {\n        if (startPos == locations[i]) {\n            start = i;\n        }\n        if (finishPos == locations[i]) {\n            finish = i;\n        }\n    }\n\n    int dpL[locationsSize][fuel + 1];\n    int dpR[locationsSize][fuel + 1];\n    memset(dpL, 0, sizeof(dpL));\n    memset(dpR, 0, sizeof(dpR));\n    dpL[start][0] = dpR[start][0] = 1;\n\n    for (int used = 0; used <= fuel; ++used) {\n        for (int city = locationsSize - 2; city >= 0; --city) {\n            int delta = locations[city + 1] - locations[city];\n            if (used >= delta) {\n                dpL[city][used] = ((used == delta ? 0 : dpL[city + 1][used - delta]) * 2 % mod + dpR[city + 1][used - delta]) % mod;\n            }\n        }\n        for (int city = 1; city < locationsSize; ++city) {\n            int delta = locations[city] - locations[city - 1];\n            if (used >= delta) {\n                dpR[city][used] = ((used == delta ? 0 : dpR[city - 1][used - delta]) * 2 % mod + dpL[city - 1][used - delta]) % mod;\n            }\n        }\n    }\n\n    int ans = 0;\n    for (int used = 0; used <= fuel; ++used) {\n        ans += (dpL[finish][used] + dpR[finish][used]) % mod;\n        ans %= mod;\n    }\n    if (start == finish) {\n        ans = (ans + mod - 1) % mod;\n    }\n    return ans;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\cdot \\textit{fuel})$，其中 $n$ 是数组 $\\textit{locations}$ 的长度。状态的数量为 $O(n \\cdot \\textit{fuel})$，对于每个状态，我们只需要 $O(1)$ 的时间进行转移。\n\n- 空间复杂度：$O(n \\cdot \\textit{fuel})$，即为状态的数量。",
+            "slateValue": "",
+            "slug": "tong-ji-suo-you-ke-xing-lu-jing-by-leetcode-soluti",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "Tlnprq",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 21,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "CONFUSED"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Memoization",
+                    "nameTranslated": "记忆化",
+                    "slug": "memoization",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-10-09T15:07:23.094990+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：记忆化搜索 思路与算法 我们用 $f[\\textit{pos}][\\textit{rest}]$ 表示当我们当前位于第 $\\textit{pos}$ 个城市，剩余的汽油量为 $\\textit{rest}$ 时，到达终点 $\\textit{finish}$ 的可能的路径总数。 在进行状态转移时，我们可以枚举下一个",
+            "topic": {
+                "id": 441176,
+                "subscribed": false,
+                "commentCount": 25,
+                "viewCount": 4420,
+                "post": {
+                    "id": 1062291,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 47,
+            "isEditorsPick": false,
+            "hitCount": 11458,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "count-all-possible-routes",
+                "questionFrontendId": "1575"
+            },
+            "next": {
+                "slug": "dong-tai-gui-hua-lu-jing-wen-ti-ru-he-hu-hg5d",
+                "title": "【动态规划/所有路径问题】如何忽略「状态定义」&「转移方程」来实现动态规划 ..."
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,132 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "eLnoN7",
+            "title": "被列覆盖的最多行数",
+            "content": "#### 方法一：二进制枚举\n\n**思路与算法**\n\n由于题目给定的 $m \\times n$ 矩阵 $\\textit{mat}$ 的列数 $n$ 满足 $1 \\le n \\le 12$，所以我们可以用一个整数 $S$ 来表示当前我们选中列的序号集合：从低位到高位，第 $i$ 位为 $1$ 则表示第 $i$ 列被选择，否则表示第 $i$ 列没被选择，同时使用 $mask$ 数组表示矩阵每一行的排列情况，数组中的元素为该行二进制表示的数。然后我们可以通过枚举选择列的全部情况，得到符合题目要求的情况中被覆盖的最大行数：\n\n- 若选择的列的序号状态 $S$ 中 $1$ 的个数不为 $\\textit{numSelect}$，则该情况不符合题目要求，跳过该情况。\n- 否则我们计算 $mask$ 数组的每一个值与序号状态的与，若结果等于数组的值则表示该行被覆盖。计算被覆盖的行数，并全局维护该值的最大值即可。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int maximumRows(vector<vector<int>>& matrix, int numSelect) {\n        int m = matrix.size();\n        int n = matrix[0].size();\n        vector<int> mask(m, 0);\n        for (int i = 0; i < m; i++) {\n            for (int j = 0; j < n; j++){\n                mask[i] += matrix[i][j] << (n - j - 1);\n            }\n        }\n        int res = 0;\n        int cur = 0;\n        int limit = (1 << n);\n        while ((++cur) < limit) {\n            if (__builtin_popcount(cur) != numSelect) {\n                continue;\n            }\n            int t = 0;\n            for (int j = 0; j < m; j++) {\n                if ((mask[j] & cur) == mask[j]) {\n                    ++t;\n                }\n            }\n            res = max(res, t);\n        }\n        return res;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int maximumRows(int[][] matrix, int numSelect) {\n        int m = matrix.length;\n        int n = matrix[0].length;\n        int[] mask = new int[m];\n        for (int i = 0; i < m; i++) {\n            for (int j = 0; j < n; j++){\n                mask[i] += matrix[i][j] << (n - j - 1);\n            }\n        }\n        int res = 0;\n        int cur = 0;\n        int limit = (1 << n);\n        while (++cur < limit) {\n            if (Integer.bitCount(cur) != numSelect) {\n                continue;\n            }\n            int t = 0;\n            for (int j = 0; j < m; j++) {\n                if ((mask[j] & cur) == mask[j]) {\n                    ++t;\n                }\n            }\n            res = Math.max(res, t);\n        }\n        return res;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc maximumRows(matrix [][]int, numSelect int) int {\n    m, n := len(matrix), len(matrix[0])\n    mask := make([]int, m)\n    for i := 0; i < m; i++ {\n        for j := 0; j < n; j++ {\n            mask[i] += matrix[i][j] << (n - j - 1)\n        }\n    }\n    res, limit := 0, 1 << n\n    for cur := 1; cur < limit; cur++ {\n        if bits.OnesCount(uint(cur)) != numSelect {\n            continue\n        }\n        t := 0\n        for j := 0; j < m; j++ {\n            if (mask[j] & cur) == mask[j] {\n                t++\n            }\n        }\n        res = max(res, t)\n    }\n    return res\n}\n```\n\n```C [sol1-C]\nint maximumRows(int **matrix, int matrixSize, int *matrixColSize, int numSelect) {\n    int m = matrixSize, n = matrixColSize[0];\n    int *mask = (int *)malloc(sizeof(int) * m);\n    for (int i = 0; i < m; i++) {\n        mask[i] = 0;\n        for (int j = 0; j < n; j++) {\n            mask[i] += matrix[i][j] << (n - 1 - j);\n        }\n    }\n    int res = 0, limit = 1 << n;\n    for (int cur = 1; cur < limit; cur++) {\n        if (__builtin_popcount(cur) != numSelect) {\n            continue;\n        }\n        int t = 0;\n        for (int j = 0; j < m; j++) {\n            if ((mask[j] & cur) == mask[j]) {\n                t++;\n            }\n        }\n        res = res > t ? res : t;\n    }\n    free(mask);\n    return res;\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def maximumRows(self, matrix: List[List[int]], numSelect: int) -> int:\n        m, n = len(matrix), len(matrix[0])\n        mask = [sum(v << j for j, v in enumerate(row)) for i, row in enumerate(matrix)]\n        res, limit = 0, 1 << n\n        for cur in range(1, limit):\n            if cur.bit_count() != numSelect:\n                continue\n            t = sum((mask[j] & cur) == mask[j] for j in range(m))\n            res = max(res, t)\n        return res\n```\n\n```JavaScript [sol1-JavaScript]\nconst countOne = function(n) {\n    let res = 0;\n    while (n) {\n        n &= (n - 1);\n        res++;\n    }\n    return res;\n}\n\nvar maximumRows = function(matrix, numSelect) {\n    let m = matrix.length, n = matrix[0].length;\n    const mask = new Array(m).fill(0);\n    for (let i = 0; i < m; i++) {\n        for (let j = 0; j < n; j++) {\n            mask[i] += matrix[i][j] << (n - 1 - j);\n        }\n    }\n    let res = 0, cur = 0;\n    const limit = (1 << n);\n    while ((++cur) < limit) {\n        if (countOne(cur) != numSelect) {\n            continue;\n        }\n        let t = 0;\n        for (let j = 0; j < m; j++) {\n            if ((mask[j] & cur) == mask[j]) {\n                ++t;\n            }\n        }\n        res = Math.max(res, t);\n    }\n    return res;\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(m \\times 2^n)$，其中 $m$ 和 $n$ 分别为矩阵 $\\textit{matrix}$ 的行数和列数。\n- 空间复杂度：$O(m)$，其中 $m$ 为矩阵 $\\textit{matrix}$ 的行数。\n\n#### 方法二：二进制枚举的 Gosper's Hack 优化\n\n**思路与算法**\n\n「方法一」的实现中我们枚举了列的全部选择情况，其中包括很多不符合要求的情况（即选择列的数目不等于 $\\textit{numSelect}$），我们可以通过使用 $\\text{Gosper's Hack}$ 算法进行优化（由于该算法**通常不在面试考察范围**，所以在本文中仅给出代码实现，感兴趣的读者可以通过 [链接](http://programmingforinsomniacs.blogspot.com/2018/03/gospers-hack-explained.html) 进行学习）。通过该算法就可以在 $O(1)$ 的时间内找到下一个选中列的个数为 $\\textit{numSelect}$ 的集合。\n\n**代码**\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    int maximumRows(vector<vector<int>>& matrix, int numSelect) {\n        int m = matrix.size();\n        int n = matrix[0].size();\n        vector<int> mask(m, 0);\n        for (int i = 0; i < m; i++) {\n            for (int j = 0; j < n; j++){\n                mask[i] += matrix[i][j] << (n - j - 1);\n            }\n        }\n        int res = 0;\n        int cur = (1 << numSelect) - 1;\n        int limit = (1 << n);\n        while (cur < limit) {\n            int t = 0;\n            for (int j = 0; j < m; j++) {\n                if ((mask[j] & cur) == mask[j]) {\n                    ++t;\n                }\n            }\n            res = max(res, t);\n            int lb = cur & -cur;\n            int r = cur + lb;\n            cur = ((r ^ cur) >> __builtin_ctz(lb) + 2) | r;\n        }\n        return res;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public int maximumRows(int[][] matrix, int numSelect) {\n        int m = matrix.length;\n        int n = matrix[0].length;\n        int[] mask = new int[m];\n        for (int i = 0; i < m; i++) {\n            for (int j = 0; j < n; j++){\n                mask[i] += matrix[i][j] << (n - j - 1);\n            }\n        }\n        int res = 0;\n        int cur = (1 << numSelect) - 1;\n        int limit = (1 << n);\n        while (cur < limit) {\n            int t = 0;\n            for (int j = 0; j < m; j++) {\n                if ((mask[j] & cur) == mask[j]) {\n                    ++t;\n                }\n            }\n            res = Math.max(res, t);\n            int lb = cur & -cur;\n            int r = cur + lb;\n            cur = ((r ^ cur) >> Integer.numberOfTrailingZeros(lb) + 2) | r;\n        }\n        return res;\n    }\n}\n```\n\n```Go [sol2-Go]\nfunc maximumRows(matrix [][]int, numSelect int) int {\n    m, n := len(matrix), len(matrix[0])\n    mask := make([]int, m)\n    for i := 0; i < m; i++ {\n        for j := 0; j < n; j++ {\n            mask[i] += matrix[i][j] << (n - j - 1)\n        }\n    }\n    res, limit := 0, 1 << n\n    for cur := (1 << numSelect) - 1; cur < limit; {\n        t := 0\n        for j := 0; j < m; j++ {\n            if (mask[j] & cur) == mask[j] {\n                t++\n            }\n        }\n        res = max(res, t)\n        lb := cur & -cur\n        r := cur + lb\n        cur = ((r ^ cur) >> (bits.TrailingZeros(uint(lb)) + 2)) | r\n    }\n    return res\n}\n```\n\n```C [sol2-C]\nint maximumRows(int **matrix, int matrixSize, int *matrixColSize, int numSelect) {\n    int m = matrixSize, n = matrixColSize[0];\n    int *mask = (int *)malloc(sizeof(int) * m);\n    for (int i = 0; i < m; i++) {\n        mask[i] = 0;\n        for (int j = 0; j < n; j++) {\n            mask[i] += matrix[i][j] << (n - 1 - j);\n        }\n    }\n    int res = 0, limit = 1 << n;\n    for (int cur = (1 << numSelect) - 1; cur < limit;) {\n        int t = 0;\n        for (int j = 0; j < m; j++) {\n            if ((mask[j] & cur) == mask[j]) {\n                t++;\n            }\n        }\n        res = res > t ? res : t;\n        int lb = cur & -cur, r = cur + lb;\n        cur = ((r ^ cur) >> (__builtin_ctz(lb) + 2)) | r;\n    }\n    free(mask);\n    return res;\n}\n```\n\n```Python [sol2-Python3]\ndef count_trailing_zeros(x):\n    return (x & -x).bit_length() - 1\n\nclass Solution:\n    def maximumRows(self, matrix: List[List[int]], numSelect: int) -> int:\n        m, n = len(matrix), len(matrix[0])\n        mask = [sum(v << j for j, v in enumerate(row)) for i, row in enumerate(matrix)]\n        res, cur = 0, (1 << numSelect) - 1\n        limit = 1 << n\n        while cur < limit:\n            t = sum((mask[j] & cur) == mask[j] for j in range(m))\n            res = max(res, t)\n            lb = cur & -cur\n            r = cur + lb\n            cur = ((r ^ cur) >> count_trailing_zeros(lb) + 2) | r\n        return res\n```\n\n```JavaScript [sol2-JavaScript]\nconst countOnes = function(n) {\n    let res = 0;\n    while (n) {\n        n &= (n - 1);\n        res++;\n    }\n    return res;\n}\n\nconst bitLength = function(n) {\n    let res = 0;\n    while (n) {\n        n >>= 1;\n        res++;\n    }\n    return res;\n}\n\nconst countTrailingZeros = function(n) {\n    return bitLength(n & -n) - 1;\n}\n\nvar maximumRows = function(matrix, numSelect) {\n    let m = matrix.length, n = matrix[0].length;\n    const mask = new Array(m).fill(0);\n    for (let i = 0; i < m; i++) {\n        for (let j = 0; j < n; j++) {\n            mask[i] += matrix[i][j] << (n - 1 - j);\n        }\n    }\n    let res = 0, cur = (1 << numSelect) - 1;\n    const limit = (1 << n);\n    while (cur < limit) {\n        let t = 0;\n        for (let j = 0; j < m; j++) {\n            if ((mask[j] & cur) == mask[j]) {\n                ++t;\n            }\n        }\n        res = Math.max(res, t);\n        let lb = cur & -cur;\n        let r = cur + lb;\n        cur = ((r ^ cur) >> countTrailingZeros(lb) + 2) | r;\n    }\n    return res;\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(m \\times C_m^{\\textit{numSelect}})$，其中 $m$ 和 $n$ 分别为矩阵 $\\textit{mat}$ 的行数和列数, $\\textit{numSelect}$ 为题目要求选择的列的个数。\n- 空间复杂度：$O(m)$，其中 $m$ 为矩阵 $\\textit{matrix}$ 的行数。",
+            "slateValue": "",
+            "slug": "bei-lie-fu-gai-de-zui-duo-xing-shu-by-le-5kb9",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "eLnoN7",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 23,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Bit Manipulation",
+                    "nameTranslated": "位运算",
+                    "slug": "bit-manipulation",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Enumeration",
+                    "nameTranslated": "枚举",
+                    "slug": "enumeration",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Matrix",
+                    "nameTranslated": "矩阵",
+                    "slug": "matrix",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2024-01-02T08:10:33.037723+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：二进制枚举 思路与算法 由于题目给定的 $m \\times n$ 矩阵 $\\textit{mat}$ 的列数 $n$ 满足 $1 \\le n \\le 12$，所以我们可以用一个整数 $S$ 来表示当前我们选中列的序号集合：从低位到高位，第 $i$ 位为 $1$ 则表示第 $i$ 列被选择，否则表示第 $i$ 列",
+            "topic": {
+                "id": 2587986,
+                "subscribed": false,
+                "commentCount": 49,
+                "viewCount": 864,
+                "post": {
+                    "id": 4794444,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 69,
+            "isEditorsPick": false,
+            "hitCount": 17499,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "maximum-rows-covered-by-columns",
+                "questionFrontendId": "2397"
+            },
+            "next": {
+                "slug": "by-endlesscheng-dvxe",
+                "title": "两种方法：二进制枚举 / Gosper's Hack（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,150 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "S7lAuj",
+            "title": "删除一个冲突对后最大子数组数目",
+            "content": "#### 方法一：枚举\n\n考虑一个简化问题的求解：在不删除冲突对的情况下，计算不同时包含任何冲突对的合法子数组数目。\n\n对于简化问题，首先枚举子数组的左端点 $i$，然后在不同时包含任何冲突对的条件下，获取子数组的右端点 $j$ 的取值范围。对于冲突对 $\\textit{conflictingPairs}[k] = [a_k, b_k]$，假设 $a_k \\lt b_k$（如果不满足，则交换二者的位置），有两种情况：\n\n- $a_k \\lt i$，那么无论 $j$ 如何取值，都不会同时包含 $a_k$ 和 $b_k$\n\n- $a_k \\ge i$，那么 $j < b_k$\n\n根据以上讨论，令 $b_1 = \\min_{a_k \\ge i}b_k$，我们可以得到 $j$ 的取值范围：\n\n$$\ni \\le j \\lt \\min(b_1, n + 1)\n$$\n\n因此，左端点为 $i$ 的合法子数组数目为 $\\min(n + 1, b_1) - i$。为了快速地计算 $b_1$，我们使用数组 $\\textit{bMin}_1$ 和 $\\textit{bMin}_2$ 记录所有冲突对 $\\textit{conflictingPairs}$ 在同一 $a$ 的最小 $b$ 和次小 $b$ 的值（$a \\lt b$），那么 $b_1$ 可以通过计算 $\\textit{bMin}_1$ 的后缀最小值来求解。\n\n现在考虑删除恰好一个冲突对后，合法子数组数目的计算。对于左端点为 $i$ 的子数组，它的右端点 $j$ 的取值范围跟 $b_1$ 有关，如果删除的冲突对不涉及 $b_1$，那么左端点为 $i$ 的合法子数组数目不变。\n\n假设 $b_1$ 在 $\\textit{bMin}_1$ 的下标为 $i_{b_1}$，即 $\\textit{bMin}_1[i_{b_1}] = b_1$，我们使用 $\\textit{delCount}[i_{b_1}]$ 记录删除掉 $b_1$ 对应的冲突对后，可以增加的合法子数组的数量。令 $b_2$ 为 $\\textit{bMin}_1$ 在下标 $i$ 的后缀次小值，那么删除掉 $b_1$ 后，新的 $b_1^{'} = \\min(b_2, \\textit{bMin}_2[i_{b_1}])$，增加的合法子数组数目为 $\\min(b_1^{'}, n + 1) - \\min(b_1, n + 1)$，将它累加到 $\\textit{delCount}[i_{b_1}]$ 中。\n\n那么，在恰好删除一个冲突对后，可以得到的最大合法子数组数量等于不删除冲突对的最大合法子数组数量加上删除一个冲突对后增加的合法子数组数量 $\\textit{delCount}$ 的最大值。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    long long maxSubarrays(int n, vector<vector<int>>& conflictingPairs) {\n        vector<int> bMin1(n + 1, INT_MAX), bMin2(n + 1, INT_MAX);\n        for (const auto& pair : conflictingPairs) {\n            int a = min(pair[0], pair[1]), b = max(pair[0], pair[1]);\n            if (bMin1[a] > b) {\n                bMin2[a] = bMin1[a];\n                bMin1[a] = b;\n            } else if (bMin2[a] > b) {\n                bMin2[a] = b;\n            }\n        }\n        long long res = 0;\n        int ib1 = n, b2 = INT_MAX;\n        vector<long long> delCount(n + 1, 0);\n        for (int i = n; i >= 1; i--) {\n            if (bMin1[ib1] > bMin1[i]) {\n                b2 = min(b2, bMin1[ib1]);\n                ib1 = i;\n            } else {\n                b2 = min(b2, bMin1[i]);\n            }\n            res += min(bMin1[ib1], n + 1) - i;\n            delCount[ib1] += min(min(b2, bMin2[ib1]), n + 1) - min(bMin1[ib1], n + 1);\n        }\n        return res + *max_element(delCount.begin(), delCount.end());\n    }\n};\n```\n\n```Go [sol1-Go]\nfunc maxSubarrays(n int, conflictingPairs [][]int) int64 {\n    bMin1 := make([]int, n+1)\n    bMin2 := make([]int, n+1)\n    for i := 0; i <= n; i++ {\n        bMin1[i] = math.MaxInt32\n        bMin2[i] = math.MaxInt32\n    }\n    for _, pair := range conflictingPairs {\n        a := min(pair[0], pair[1])\n        b := max(pair[0], pair[1])\n        if bMin1[a] > b {\n            bMin2[a] = bMin1[a]\n            bMin1[a] = b\n        } else if bMin2[a] > b {\n            bMin2[a] = b\n        }\n    }\n    res, ib1, b2 := int64(0), n, math.MaxInt32\n    delCount := make([]int64, n+1)\n    for i := n; i >= 1; i-- {\n        if bMin1[ib1] > bMin1[i] {\n            b2 = min(b2, bMin1[ib1])\n            ib1 = i\n        } else {\n            b2 = min(b2, bMin1[i])\n        }\n        res += int64(min(bMin1[ib1], n+1) - i)\n        delCount[ib1] += int64(min(min(b2, bMin2[ib1]), n+1) - min(bMin1[ib1], n+1))\n    }\n    maxVal := int64(0)\n    for _, v := range delCount {\n        maxVal = max(maxVal, v)\n    }\n    return res + maxVal\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def maxSubarrays(self, n: int, conflictingPairs: List[List[int]]) -> int:\n        bMin1 = [2**31 - 1] * (n + 1)\n        bMin2 = [2**31 - 1] * (n + 1)\n        for pair in conflictingPairs:\n            a = min(pair[0], pair[1])\n            b = max(pair[0], pair[1])\n            if bMin1[a] > b:\n                bMin2[a] = bMin1[a]\n                bMin1[a] = b\n            elif bMin2[a] > b:\n                bMin2[a] = b\n        res = 0\n        ib1 = n\n        b2 = 0x3FFFFFFF\n        delCount = [0] * (n + 1)\n        for i in range(n, 0, -1):\n            if bMin1[ib1] > bMin1[i]:\n                b2 = min(b2, bMin1[ib1])\n                ib1 = i\n            else:\n                b2 = min(b2, bMin1[i])\n            res += min(bMin1[ib1], n + 1) - i\n            delCount[ib1] += min(min(b2, bMin2[ib1]), n + 1) - min(bMin1[ib1], n + 1)\n        return res + max(delCount)\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public long maxSubarrays(int n, int[][] conflictingPairs) {\n        int[] bMin1 = new int[n + 1];\n        int[] bMin2 = new int[n + 1];\n        Arrays.fill(bMin1, Integer.MAX_VALUE);\n        Arrays.fill(bMin2, Integer.MAX_VALUE);\n        for (int[] pair : conflictingPairs) {\n            int a = Math.min(pair[0], pair[1]), b = Math.max(pair[0], pair[1]);\n            if (bMin1[a] > b) {\n                bMin2[a] = bMin1[a];\n                bMin1[a] = b;\n            } else if (bMin2[a] > b) {\n                bMin2[a] = b;\n            }\n        }\n        long res = 0;\n        int ib1 = n, b2 = Integer.MAX_VALUE;\n        long[] delCount = new long[n + 1];\n        for (int i = n; i >= 1; i--) {\n            if (bMin1[ib1] > bMin1[i]) {\n                b2 = Math.min(b2, bMin1[ib1]);\n                ib1 = i;\n            } else {\n                b2 = Math.min(b2, bMin1[i]);\n            }\n            res += Math.min(bMin1[ib1], n + 1) - i;\n            delCount[ib1] += Math.min(Math.min(b2, bMin2[ib1]), n + 1) - Math.min(bMin1[ib1], n + 1);\n        }\n        long max = 0;\n        for (long val : delCount) {\n            max = Math.max(max, val);\n        }\n        return res + max;\n    }\n}\n```\n\n```TypeScript [sol1-TypeScript]\nfunction maxSubarrays(n: number, conflictingPairs: number[][]): number {\n    const bMin1 = Array(n + 1).fill(Number.MAX_SAFE_INTEGER);\n    const bMin2 = Array(n + 1).fill(Number.MAX_SAFE_INTEGER);\n    for (const pair of conflictingPairs) {\n        const a = Math.min(pair[0], pair[1]), b = Math.max(pair[0], pair[1]);\n        if (bMin1[a] > b) {\n            bMin2[a] = bMin1[a];\n            bMin1[a] = b;\n        } else if (bMin2[a] > b) {\n            bMin2[a] = b;\n        }\n    }\n    let res = 0, ib1 = n, b2 = Number.MAX_SAFE_INTEGER;\n    const delCount = Array(n + 1).fill(0);\n    for (let i = n; i >= 1; i--) {\n        if (bMin1[ib1] > bMin1[i]) {\n            b2 = Math.min(b2, bMin1[ib1]);\n            ib1 = i;\n        } else {\n            b2 = Math.min(b2, bMin1[i]);\n        }\n        res += Math.min(bMin1[ib1], n + 1) - i;\n        delCount[ib1] += Math.min(Math.min(b2, bMin2[ib1]), n + 1) - Math.min(bMin1[ib1], n + 1);\n    }\n    return res + Math.max(...delCount);\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar maxSubarrays = function(n, conflictingPairs) {\n    const bMin1 = Array(n + 1).fill(Number.MAX_SAFE_INTEGER);\n    const bMin2 = Array(n + 1).fill(Number.MAX_SAFE_INTEGER);\n    for (const pair of conflictingPairs) {\n        const a = Math.min(pair[0], pair[1]), b = Math.max(pair[0], pair[1]);\n        if (bMin1[a] > b) {\n            bMin2[a] = bMin1[a];\n            bMin1[a] = b;\n        } else if (bMin2[a] > b) {\n            bMin2[a] = b;\n        }\n    }\n    let res = 0, ib1 = n, b2 = Number.MAX_SAFE_INTEGER;\n    const delCount = Array(n + 1).fill(0);\n    for (let i = n; i >= 1; i--) {\n        if (bMin1[ib1] > bMin1[i]) {\n            b2 = Math.min(b2, bMin1[ib1]);\n            ib1 = i;\n        } else {\n            b2 = Math.min(b2, bMin1[i]);\n        }\n        res += Math.min(bMin1[ib1], n + 1) - i;\n        delCount[ib1] += Math.min(Math.min(b2, bMin2[ib1]), n + 1) - Math.min(bMin1[ib1], n + 1);\n    }\n    return res + Math.max(...delCount);\n};\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public long MaxSubarrays(int n, int[][] conflictingPairs) {\n        int[] bMin1 = new int[n + 1];\n        int[] bMin2 = new int[n + 1];\n        Array.Fill(bMin1, int.MaxValue);\n        Array.Fill(bMin2, int.MaxValue);\n        foreach (var pair in conflictingPairs) {\n            int a = Math.Min(pair[0], pair[1]);\n            int b = Math.Max(pair[0], pair[1]);\n            if (bMin1[a] > b) {\n                bMin2[a] = bMin1[a];\n                bMin1[a] = b;\n            } else if (bMin2[a] > b) {\n                bMin2[a] = b;\n            }\n        }\n        long res = 0;\n        int ib1 = n, b2 = int.MaxValue;\n        long[] delCount = new long[n + 1];\n        for (int i = n; i >= 1; i--) {\n            if (bMin1[ib1] > bMin1[i]) {\n                b2 = Math.Min(b2, bMin1[ib1]);\n                ib1 = i;\n            } else {\n                b2 = Math.Min(b2, bMin1[i]);\n            }\n            res += Math.Min(bMin1[ib1], n + 1) - i;\n            delCount[ib1] += Math.Min(Math.Min(b2, bMin2[ib1]), n + 1) - Math.Min(bMin1[ib1], n + 1);\n        }\n        long max = 0;\n        foreach (var val in delCount) {\n            if (val > max) max = val;\n        }\n        return res + max;\n    }\n}\n```\n\n```C [sol1-C]\nlong long maxSubarrays(int n, int** conflictingPairs, int conflictingPairsSize, int* conflictingPairsColSize) {\n    int* bMin1 = (int*)malloc((n + 1) * sizeof(int));\n    int* bMin2 = (int*)malloc((n + 1) * sizeof(int));\n    for (int i = 0; i <= n; i++) bMin1[i] = bMin2[i] = INT_MAX;\n    for (int i = 0; i < conflictingPairsSize; i++) {\n        int a = fmin(conflictingPairs[i][0], conflictingPairs[i][1]);\n        int b = fmax(conflictingPairs[i][0], conflictingPairs[i][1]);\n        if (bMin1[a] > b) {\n            bMin2[a] = bMin1[a];\n            bMin1[a] = b;\n        } else if (bMin2[a] > b) {\n            bMin2[a] = b;\n        }\n    }\n    long long res = 0;\n    int ib1 = n, b2 = INT_MAX;\n    long long* delCount = (long long*)calloc(n + 1, sizeof(long long));\n    for (int i = n; i >= 1; i--) {\n        if (bMin1[ib1] > bMin1[i]) {\n            b2 = fmin(b2, bMin1[ib1]);\n            ib1 = i;\n        } else {\n            b2 = fmin(b2, bMin1[i]);\n        }\n        res += fmin(bMin1[ib1], n + 1) - i;\n        delCount[ib1] += fmin(fmin(b2, bMin2[ib1]), n + 1) - fmin(bMin1[ib1], n + 1);\n    }\n    long long max = 0;\n    for (int i = 0; i <= n; i++) {\n        if (delCount[i] > max) max = delCount[i];\n    }\n    free(bMin1);\n    free(bMin2);\n    free(delCount);\n    return res + max;\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn max_subarrays(n: i32, conflicting_pairs: Vec<Vec<i32>>) -> i64 {\n        let n = n as usize;\n        let mut b_min1 = vec![i32::MAX; n + 1];\n        let mut b_min2 = vec![i32::MAX; n + 1];\n        for pair in conflicting_pairs {\n            let a = pair[0].min(pair[1]) as usize;\n            let b = pair[0].max(pair[1]);\n            if b_min1[a] > b {\n                b_min2[a] = b_min1[a];\n                b_min1[a] = b;\n            } else if b_min2[a] > b {\n                b_min2[a] = b;\n            }\n        }\n        let mut res: i64 = 0;\n        let mut ib1 = n;\n        let mut b2 = i32::MAX;\n        let mut del_count = vec![0i64; n + 1];\n        for i in (1..=n).rev() {\n            if b_min1[ib1] > b_min1[i] {\n                b2 = b2.min(b_min1[ib1]);\n                ib1 = i;\n            } else {\n                b2 = b2.min(b_min1[i]);\n            }\n            res += (b_min1[ib1].min((n + 1) as i32) - i as i32) as i64;\n            del_count[ib1] += (b2.min(b_min2[ib1]).min((n + 1) as i32) - b_min1[ib1].min((n + 1) as i32)) as i64;\n        }\n        res + *del_count.iter().max().unwrap()\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是整数数组 $\\textit{nums}$ 的长度。\n\n- 空间复杂度：$O(n)$。",
+            "slateValue": "",
+            "slug": "shan-chu-yi-ge-chong-tu-dui-hou-zui-da-z-lquv",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "S7lAuj",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 2,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Segment Tree",
+                    "nameTranslated": "线段树",
+                    "slug": "segment-tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Enumeration",
+                    "nameTranslated": "枚举",
+                    "slug": "enumeration",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Prefix Sum",
+                    "nameTranslated": "前缀和",
+                    "slug": "prefix-sum",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2025-07-22T01:36:01.539856+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：枚举 考虑一个简化问题的求解：在不删除冲突对的情况下，计算不同时包含任何冲突对的合法子数组数目。 对于简化问题，首先枚举子数组的左端点 [latex]，然后在不同时包含任何冲突对的条件下，获取子数组的右端点 [latex] 的取值范围。对于冲突对 [latex]，假设 [latex]（如果不满足，则交换二者的位",
+            "topic": {
+                "id": 3730080,
+                "subscribed": false,
+                "commentCount": 10,
+                "viewCount": 44,
+                "post": {
+                    "id": 6811700,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 15,
+            "isEditorsPick": false,
+            "hitCount": 4677,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "maximize-subarrays-after-removing-one-conflicting-pair",
+                "questionFrontendId": "3480"
+            },
+            "next": {
+                "slug": "mei-ju-zuo-duan-dian-wei-hu-zui-xiao-ci-4nvu6",
+                "title": "枚举左端点，维护最小次小 b（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,134 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "Ob0J1M",
+            "title": "套餐内商品的排列顺序",
+            "content": "#### 方法一：回溯\n\n**思路及解法**\n\n我们将这个问题看作有 $n$ 个排列成一行的空位，我们需要从左往右依次填入题目给定的 $n$ 个商品，每个商品只能使用一次。首先可以想到穷举的算法，即从左往右每一个空位都依次尝试填入一个商品，看是否能填完这 $n$ 个空位，编程实现时，我们可以用「回溯法」来模拟这个过程。\n\n定义递归函数 $\\texttt{backtrack}(i, \\textit{perm})$ 表示当前排列为 $\\textit{perm}$，下一个待填入的空位是第 $i$ 个空位（下标从 $0$ 开始）。那么该递归函数分为两个情况：\n\n- 如果 $i=n$，说明我们已经填完了 $n$ 个空位，找到了一个可行的解，我们将 $\\textit{perm}$ 放入答案数组中，递归结束。\n\n- 如果 $i<n$，此时需要考虑第 $i$ 个空位填哪个商品。根据题目要求我们肯定不能填已经填过的商品，因此很容易想到的一个处理手段是我们定义一个标记数组 $\\textit{vis}$ 来标记已经填过的商品，那么在填第 $i$ 个商品的时候我们遍历题目给定的 $n$ 个商品，如果这个商品没有被标记过，我们就尝试填入，并将其标记，继续尝试填下一个空位，即调用函数 $\\texttt{backtrack}(i + 1, \\textit{perm})$。回溯时，我们需要要撤销该空位填的商品以及对该商品的标记，并继续向当前空位尝试填入其他没被标记过的商品。\n\n但是该递归函数并没有满足「全排列不重复」的要求，在重复的商品较多的情况下，该递归函数会生成大量重复的排列。对于任意一个空位，如果存在重复的商品，该递归函数会将它们重复填上去并继续尝试导致最后答案的重复。\n\n解决该问题的一种较为直观的思路是，我们首先生成所有的排列，然后进行去重。而另一种思路是我们通过修改递归函数，使得该递归函数只会生成不重复的序列。\n\n具体地，我们只要在递归函数中设定一个规则，保证在填每一个空位的时候**重复商品只会被填入一次**。具体地，我们首先对原商品串排序，保证相同的商品都相邻，在递归函数中，我们限制每次填入的商品一定是这个商品所在重复商品集合中「从左往右第一个未被填入的商品」，即如下的判断条件：\n\n```C++ [sol0-C++]\nif (vis[j] || (j > 0 && !vis[j - 1] && goods[j - 1] == goods[j])) {\n    continue;\n}\n```\n\n这个限制条件保证了对于重复的商品，我们一定是从左往右依次填入的空位中的。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<string> rec;\n    vector<int> vis;\n\n    void backtrack(const string& goods, int i, int n, string& perm) {\n        if (i == n) {\n            rec.push_back(perm);\n            return;\n        }\n        for (int j = 0; j < n; j++) {\n            if (vis[j] || (j > 0 && !vis[j - 1] && goods[j - 1] == goods[j])) {\n                continue;\n            }\n            vis[j] = true;\n            perm.push_back(goods[j]);\n            backtrack(goods, i + 1, n, perm);\n            perm.pop_back();\n            vis[j] = false;\n        }\n    }\n\n    vector<string> goodsOrder(string goods) {\n        int n = goods.size();\n        vis.resize(n);\n        sort(goods.begin(), goods.end());\n        string perm;\n        backtrack(goods, 0, n, perm);\n        return rec;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    List<String> rec;\n    boolean[] vis;\n\n    public String[] goodsOrder(String goods) {\n        int n = goods.length();\n        rec = new ArrayList<String>();\n        vis = new boolean[n];\n        char[] arr = goods.toCharArray();\n        Arrays.sort(arr);\n        StringBuffer perm = new StringBuffer();\n        backtrack(arr, 0, n, perm);\n        int size = rec.size();\n        String[] recArr = new String[size];\n        for (int i = 0; i < size; i++) {\n            recArr[i] = rec.get(i);\n        }\n        return recArr;\n    }\n\n    public void backtrack(char[] arr, int i, int n, StringBuffer perm) {\n        if (i == n) {\n            rec.add(perm.toString());\n            return;\n        }\n        for (int j = 0; j < n; j++) {\n            if (vis[j] || (j > 0 && !vis[j - 1] && arr[j - 1] == arr[j])) {\n                continue;\n            }\n            vis[j] = true;\n            perm.append(arr[j]);\n            backtrack(arr, i + 1, n, perm);\n            perm.deleteCharAt(perm.length() - 1);\n            vis[j] = false;\n        }\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    IList<string> rec;\n    bool[] vis;\n\n    public string[] goodsOrder(string goods) {\n        int n = goods.Length;\n        rec = new List<string>();\n        vis = new bool[n];\n        char[] arr = goods.ToCharArray();\n        Array.Sort(arr);\n        StringBuilder perm = new StringBuilder();\n        Backtrack(arr, 0, n, perm);\n        int size = rec.Count;\n        string[] recArr = new string[size];\n        for (int i = 0; i < size; i++) {\n            recArr[i] = rec[i];\n        }\n        return recArr;\n    }\n\n    public void Backtrack(char[] arr, int i, int n, StringBuilder perm) {\n        if (i == n) {\n            rec.Add(perm.ToString());\n            return;\n        }\n        for (int j = 0; j < n; j++) {\n            if (vis[j] || (j > 0 && !vis[j - 1] && arr[j - 1] == arr[j])) {\n                continue;\n            }\n            vis[j] = true;\n            perm.Append(arr[j]);\n            Backtrack(arr, i + 1, n, perm);\n            perm.Length--;\n            vis[j] = false;\n        }\n    }\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar goodsOrder = function(goods) {\n    const rec = [], vis = [];\n    const n = goods.length;\n    const arr = Array.from(goods).sort();\n    const perm = [];\n    const backtrack = (arr, i, n, perm) => {\n        if (i === n) {\n            rec.push(perm.toString());\n            return;\n        }\n        for (let j = 0; j < n; j++) {\n            if (vis[j] || (j > 0 && !vis[j - 1] && arr[j - 1] === arr[j])) {\n                continue;\n            }\n            vis[j] = true;\n            perm.push(arr[j]);\n            backtrack(arr, i + 1, n, perm);\n            perm.pop();\n            vis[j] = false;\n        }\n    }\n\n    backtrack(arr, 0, n, perm);\n    const size = rec.length;\n    const recArr = new Array(size).fill(0);\n    for (let i = 0; i < size; i++) {\n        recArr[i] = rec[i].split(',').join('');\n    }\n    return recArr;\n};\n```\n\n```go [sol1-Golang]\nfunc goodsOrder(goods string) (ans []string) {\n    t := []byte(goods)\n    sort.Slice(t, func(i, j int) bool { return t[i] < t[j] })\n    n := len(t)\n    perm := make([]byte, 0, n)\n    vis := make([]bool, n)\n    var backtrack func(int)\n    backtrack = func(i int) {\n        if i == n {\n            ans = append(ans, string(perm))\n            return\n        }\n        for j, b := range vis {\n            if b || j > 0 && !vis[j-1] && t[j-1] == t[j] {\n                continue\n            }\n            vis[j] = true\n            perm = append(perm, t[j])\n            backtrack(i + 1)\n            perm = perm[:len(perm)-1]\n            vis[j] = false\n        }\n    }\n    backtrack(0)\n    return\n}\n```\n\n```C [sol1-C]\nvoid backtrack(char** rec, int* recSize, int* vis, char* goods, int i, int n, char* perm) {\n    if (i == n) {\n        char* tmp = malloc(sizeof(char) * (n + 1));\n        strcpy(tmp, perm);\n        rec[(*recSize)++] = tmp;\n        return;\n    }\n    for (int j = 0; j < n; j++) {\n        if (vis[j] || (j > 0 && !vis[j - 1] && goods[j - 1] == goods[j])) {\n            continue;\n        }\n        vis[j] = true;\n        perm[i] = goods[j];\n        backtrack(rec, recSize, vis, goods, i + 1, n, perm);\n        vis[j] = false;\n    }\n}\n\nint cmp(char* a, char* b) {\n    return *a - *b;\n}\n\nchar** goodsOrder(char* goods, int* returnSize) {\n    int n = strlen(goods);\n    int recMaxSize = 1;\n    for (int i = 2; i <= n; i++) {\n        recMaxSize *= i;\n    }\n    char** rec = malloc(sizeof(char*) * recMaxSize);\n    *returnSize = 0;\n    int vis[n];\n    memset(vis, 0, sizeof(vis));\n    char perm[n + 1];\n    perm[n] = '\\0';\n    qsort(goods, n, sizeof(char), cmp);\n    backtrack(rec, returnSize, vis, goods, 0, n, perm);\n    return rec;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\times n!)$，其中 $n$ 为给定商品串的长度。这些商品的全部排列有 $O(n!)$ 个，每个排列平均需要 $O(n)$ 的时间来生成。\n\n- 空间复杂度：$O(n)$。我们需要 $O(n)$ 的栈空间进行回溯，注意返回值不计入空间复杂度。\n\n#### 方法二：下一个排列\n\n**思路及解法**\n\n我们可以这样思考：当我们已知了当前的一个排列，我们能不能快速得到**字典序**中**下一个更大**的排列呢？\n\n答案是肯定的，参见「[31. 下一个排列的官方题解](https://leetcode.cn/problems/next-permutation/solution/xia-yi-ge-pai-lie-by-leetcode-solution/)」，当我们已知了当前的一个排列，我们可以在 $O(n)$ 的时间内计算出字典序下一个中更大的排列。这与 $\\texttt{C++}$ 中的 $\\texttt{next\\_permutation}$ 函数功能相同。\n\n具体地，我们首先对给定的商品串中的商品进行排序，即可得到当前商品串的第一个排列，然后我们不断地计算当前商品串的字典序中下一个更大的排列，直到不存在更大的排列为止即可。\n\n这个方案的优秀之处在于，我们得到的所有排列都不可能重复，这样我们就无需进行去重的操作。同时因为无需使用回溯法，没有栈的开销，算法时间复杂度的常数较小。\n\n**代码**\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    bool nextPermutation(string& goods) {\n        int i = goods.size() - 2;\n        while (i >= 0 && goods[i] >= goods[i + 1]) {\n            i--;\n        }\n        if (i < 0) {\n            return false;\n        }\n        int j = goods.size() - 1;\n        while (j >= 0 && goods[i] >= goods[j]) {\n            j--;\n        }\n        swap(goods[i], goods[j]);\n        reverse(goods.begin() + i + 1, goods.end());\n        return true;\n    }\n\n    vector<string> goodsOrder(string goods) {\n        vector<string> ret;\n        sort(goods.begin(), goods.end());\n        do {\n            ret.push_back(goods);\n        } while (nextPermutation(goods));\n        return ret;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public String[] goodsOrder(String goods) {\n        List<String> ret = new ArrayList<String>();\n        char[] arr = goods.toCharArray();\n        Arrays.sort(arr);\n        do {\n            ret.add(new String(arr));\n        } while (nextPermutation(arr));\n        int size = ret.size();\n        String[] retArr = new String[size];\n        for (int i = 0; i < size; i++) {\n            retArr[i] = ret.get(i);\n        }\n        return retArr;\n    }\n\n    public boolean nextPermutation(char[] arr) {\n        int i = arr.length - 2;\n        while (i >= 0 && arr[i] >= arr[i + 1]) {\n            i--;\n        }\n        if (i < 0) {\n            return false;\n        }\n        int j = arr.length - 1;\n        while (j >= 0 && arr[i] >= arr[j]) {\n            j--;\n        }\n        swap(arr, i, j);\n        reverse(arr, i + 1);\n        return true;\n    }\n\n    public void swap(char[] arr, int i, int j) {\n        char temp = arr[i];\n        arr[i] = arr[j];\n        arr[j] = temp;\n    }\n\n    public void reverse(char[] arr, int start) {\n        int left = start, right = arr.length - 1;\n        while (left < right) {\n            swap(arr, left, right);\n            left++;\n            right--;\n        }\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    public string[] goodsOrder(string goods) {\n        IList<string> ret = new List<string>();\n        char[] arr = goods.ToCharArray();\n        Array.Sort(arr);\n        do {\n            ret.Add(new string(arr));\n        } while (NextPermutation(arr));\n        int size = ret.Count;\n        string[] retArr = new string[size];\n        for (int i = 0; i < size; i++) {\n            retArr[i] = ret[i];\n        }\n        return retArr;\n    }\n\n    public bool NextPermutation(char[] arr) {\n        int i = arr.Length - 2;\n        while (i >= 0 && arr[i] >= arr[i + 1]) {\n            i--;\n        }\n        if (i < 0) {\n            return false;\n        }\n        int j = arr.Length - 1;\n        while (j >= 0 && arr[i] >= arr[j]) {\n            j--;\n        }\n        char temp = arr[i];\n        arr[i] = arr[j];\n        arr[j] = temp;\n        Array.Reverse(arr, i + 1, arr.Length - i - 1);\n        return true;\n    }\n\n    public void swap(char[] arr, int i, int j) {\n        char temp = arr[i];\n        arr[i] = arr[j];\n        arr[j] = temp;\n    }\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar goodsOrder = function(goods) {\n    const ret = [];\n    const arr = Array.from(goods).sort();\n\n    const nextPermutation = (arr) => {\n        let i = arr.length - 2;\n        while (i >= 0 && arr[i] >= arr[i + 1]) {\n            i--;\n        }\n        if (i < 0) {\n            return false;\n        }\n        let j = arr.length - 1;\n        while (j >= 0 && arr[i] >= arr[j]) {\n            j--;\n        }\n        swap(arr, i, j);\n        reverse(arr, i + 1);\n        return true;\n    }\n\n    const swap = (arr, i, j) => {\n        const temp = arr[i];\n        arr[i] = arr[j];\n        arr[j] = temp;\n    }\n\n    const reverse = (arr, start) => {\n        let left = start, right = arr.length - 1;\n        while (left < right) {\n            swap(arr, left, right);\n            left++;\n            right--;\n        }\n    }\n\n    do {\n        ret.push(arr.join(''));\n    } while (nextPermutation(arr));\n    const size = ret.length;\n    const retArr = new Array(size).fill(0);\n    for (let i = 0; i < size; i++) {\n        retArr[i] = ret[i];\n    }\n    return retArr;\n};\n```\n\n```go [sol2-Golang]\nfunc reverse(a []byte) {\n    for i, n := 0, len(a); i < n/2; i++ {\n        a[i], a[n-1-i] = a[n-1-i], a[i]\n    }\n}\n\nfunc nextPermutation(nums []byte) bool {\n    n := len(nums)\n    i := n - 2\n    for i >= 0 && nums[i] >= nums[i+1] {\n        i--\n    }\n    if i < 0 {\n        return false\n    }\n    j := n - 1\n    for j >= 0 && nums[i] >= nums[j] {\n        j--\n    }\n    nums[i], nums[j] = nums[j], nums[i]\n    reverse(nums[i+1:])\n    return true\n}\n\nfunc goodsOrder(goods string) (ans []string) {\n    t := []byte(goods)\n    sort.Slice(t, func(i, j int) bool { return t[i] < t[j] })\n    for {\n        ans = append(ans, string(t))\n        if !nextPermutation(t) {\n            break\n        }\n    }\n    return\n}\n```\n\n```C [sol2-C]\nvoid swap(char* a, char* b) {\n    char t = *a;\n    *a = *b, *b = t;\n}\n\nvoid reverse(char* goods, int i, int j) {\n    while (i < j) {\n        swap(&goods[i], &goods[j]);\n        i++, j--;\n    }\n}\n\nint cmp(char* a, char* b) {\n    return *a - *b;\n}\n\nbool nextPermutation(char* goods, int sSize) {\n    int i = sSize - 2;\n    while (i >= 0 && goods[i] >= goods[i + 1]) {\n        i--;\n    }\n    if (i < 0) {\n        return false;\n    }\n    int j = sSize - 1;\n    while (j >= 0 && goods[i] >= goods[j]) {\n        j--;\n    }\n    swap(&goods[i], &goods[j]);\n    reverse(goods, i + 1, sSize - 1);\n    return true;\n}\n\nchar** goodsOrder(char* goods, int* returnSize) {\n    int n = strlen(goods);\n    int recMaxSize = 1;\n    for (int i = 2; i <= n; i++) {\n        recMaxSize *= i;\n    }\n    char** rec = malloc(sizeof(char*) * recMaxSize);\n    *returnSize = 0;\n    qsort(goods, n, sizeof(char), cmp);\n    do {\n        char* tmp = malloc(sizeof(char) * (n + 1));\n        strcpy(tmp, goods);\n        rec[(*returnSize)++] = tmp;\n    } while (nextPermutation(goods, n));\n    return rec;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\times n!)$，其中 $n$ 为给定商品串的长度。我们需要 $O(n \\log n)$ 的时间得到第一个排列，$\\texttt{nextPermutation}$ 函数的时间复杂度为 $O(n)$，我们至多执行该函数 $O(n!)$ 次，因此总时间复杂度为 $O(n \\times n! + n \\log n) = O(n \\times n!)$。\n\n- 空间复杂度：$O(1)$。注意返回值不计入空间复杂度。",
+            "slateValue": "",
+            "slug": "zi-fu-chuan-de-pai-lie-by-leetcode-solut-hhvs",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "Ob0J1M",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 116,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 4,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Two Pointers",
+                    "nameTranslated": "双指针",
+                    "slug": "two-pointers",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Backtracking",
+                    "nameTranslated": "回溯",
+                    "slug": "backtracking",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-06-21T16:08:35.368749+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：回溯 思路及解法 我们将这个问题看作有 $n$ 个排列成一行的空位，我们需要从左往右依次填入题目给定的 $n$ 个商品，每个商品只能使用一次。首先可以想到穷举的算法，即从左往右每一个空位都依次尝试填入一个商品，看是否能填完这 $n$ 个空位，编程实现时，我们可以用「回溯法」来模拟这个过程。 定义递归函数 $\\t",
+            "topic": {
+                "id": 838947,
+                "subscribed": false,
+                "commentCount": 150,
+                "viewCount": 85934,
+                "post": {
+                    "id": 1833824,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 254,
+            "isEditorsPick": false,
+            "hitCount": 159214,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "zi-fu-chuan-de-pai-lie-lcof",
+                "questionFrontendId": "LCR 157"
+            },
+            "next": {
+                "slug": "mian-shi-ti-38-zi-fu-chuan-de-pai-lie-hui-su-fa-by",
+                "title": "LCR 157. 套餐内商品的排列顺序（回溯，清晰图解）"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "oqULrS",
+            "title": "到达首都的最少油耗",
+            "content": "#### 方法一：贪心 + 深度优先搜索\n\n**思路与算法**\n\n题目等价于给出了一棵以节点 $0$ 为根结点的树，并且初始树上的每一个节点上都有一个人，现在所有人都需要通过「车子」向结点 $0$ 移动。\n\n对于某一个节点 $x$，$x \\neq 0$，其父节点为 $y$。因为以节点 $x$ 为根结点的子树上的人都需要通过边 $x \\rightarrow y$ 向节点 $0$ 移动，所以为了使这条边上的「车子」利用率最高，我们贪心的让 $x$ 的全部子节点上的人到了节点 $x$ 后再一起坐车向上移动，我们不妨设以节点 $x$ 为根节点的子树大小为 $\\text{cnt}_x$，那么我们至少需要「车子」的数量为 $\\lceil \\frac{\\textit{cnt}_x}{\\textit{seats}} \\rceil$，其中 $\\textit{seats}$ 为一辆车的给定座位数。\n\n那么我们可以通过从根结点 $0$ 往下进行「深度优先搜索」，每一条边上「车子」的数目即为该条边上汽油的开销，统计全部边上汽油的开销即为最终答案。\n\n**代码**\n\n```Python [sol1-Python3]\nclass Solution:\n    def minimumFuelCost(self, roads: List[List[int]], seats: int) -> int:\n        g = [[] for i in range(len(roads) + 1)]\n        for e in roads:\n            g[e[0]].append(e[1])\n            g[e[1]].append(e[0])\n        res = 0\n        def dfs(cur, fa):\n            nonlocal res\n            peopleSum = 1 \n            for ne in g[cur]:\n                if ne != fa:\n                    peopleCnt = dfs(ne, cur)\n                    peopleSum += peopleCnt\n                    res += (peopleCnt + seats - 1) // seats\n            return peopleSum\n        dfs(0, -1)\n        return res\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    long long minimumFuelCost(vector<vector<int>>& roads, int seats) {\n        int n = roads.size();\n        vector<vector<int>> g(n + 1);\n        for (auto &e : roads) {\n            g[e[0]].push_back(e[1]);\n            g[e[1]].push_back(e[0]);\n        }\n        long long res = 0;\n        function<int(int, int)> dfs = [&](int cur, int fa) -> int {\n            int peopleSum = 1;\n            for (auto ne : g[cur]) {\n                if (ne != fa) {\n                    int peopleCnt = dfs(ne, cur);\n                    peopleSum += peopleCnt;\n                    res += (peopleCnt + seats - 1) / seats;\n                }\n            }\n            return peopleSum;\n        };\n        dfs(0, -1);\n        return res;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    long res = 0;\n\n    public long minimumFuelCost(int[][] roads, int seats) {\n        int n = roads.length;\n        List<Integer>[] g = new List[n + 1];\n        for (int i = 0; i <= n; i++) {\n            g[i] = new ArrayList<Integer>();\n        }\n        for (int[] e : roads) {\n            g[e[0]].add(e[1]);\n            g[e[1]].add(e[0]);\n        }\n        dfs(0, -1, seats, g);\n        return res;\n    }\n\n    public int dfs(int cur, int fa, int seats, List<Integer>[] g) {\n        int peopleSum = 1;\n        for (int ne : g[cur]) {\n            if (ne != fa) {\n                int peopleCnt = dfs(ne, cur, seats, g);\n                peopleSum += peopleCnt;\n                res += (peopleCnt + seats - 1) / seats;\n            }\n        }\n        return peopleSum;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    long res = 0;\n\n    public long MinimumFuelCost(int[][] roads, int seats) {\n        int n = roads.Length;\n        IList<int>[] g = new IList<int>[n + 1];\n        for (int i = 0; i <= n; i++) {\n            g[i] = new List<int>();\n        }\n        foreach (int[] e in roads) {\n            g[e[0]].Add(e[1]);\n            g[e[1]].Add(e[0]);\n        }\n        DFS(0, -1, seats, g);\n        return res;\n    }\n\n    public int DFS(int cur, int fa, int seats, IList<int>[] g) {\n        int peopleSum = 1;\n        foreach (int ne in g[cur]) {\n            if (ne != fa) {\n                int peopleCnt = DFS(ne, cur, seats, g);\n                peopleSum += peopleCnt;\n                res += (peopleCnt + seats - 1) / seats;\n            }\n        }\n        return peopleSum;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc minimumFuelCost(roads [][]int, seats int) int64 {\n    g := make([][]int, len(roads) + 1)\n    for _, e := range roads {\n        g[e[0]] = append(g[e[0]], e[1])\n        g[e[1]] = append(g[e[1]], e[0])\n    }\n    var res int64\n    var dfs func(int, int) int\n    dfs = func(cur, fa int) int {\n        peopleSum := 1\n        for _, ne := range g[cur] {\n            if ne != fa {\n                peopleCnt := dfs(ne, cur)\n                peopleSum, res = peopleSum + peopleCnt, res + int64((peopleCnt + seats - 1) / seats)\n            }\n        }\n        return peopleSum\n    }\n    dfs(0, -1)\n    return res\n}\n```\n\n```C [sol1-C]\ntypedef struct ListNode ListNode;\n\nListNode *createListNode(int val) {\n    ListNode *obj = (ListNode *)malloc(sizeof(ListNode));\n    obj->val = val;\n    obj->next = NULL;\n    return obj;\n}\n\nvoid freeList(ListNode *list) {\n    while (list) {\n        ListNode *cur = list;\n        list = list->next;\n        free(cur);\n    }\n}\n\nint dfs(int cur, int fa, int seats, long long *res, const ListNode **g) {\n    int peopleSum = 1;\n    for (ListNode *node = g[cur]; node; node = node->next) {\n        int ne = node->val;\n        if (ne != fa) {\n            int peopleCnt = dfs(ne, cur, seats, res, g);\n            peopleSum += peopleCnt;\n            *res += (peopleCnt + seats - 1) / seats;\n        }\n    }\n    return peopleSum;\n}\n\nlong long minimumFuelCost(int** roads, int roadsSize, int* roadsColSize, int seats) {\n    ListNode **g = (ListNode **)calloc(roadsSize + 1, sizeof(ListNode *));\n    memset(g, 0, sizeof(ListNode *) * (roadsSize + 1));\n    for (int i = 0; i < roadsSize; i++) {\n        int x = roads[i][0];\n        int y = roads[i][1];\n        ListNode *nodex = createListNode(x);\n        ListNode *nodey = createListNode(y);\n        nodex->next = g[y];\n        g[y] = nodex;\n        nodey->next = g[x];\n        g[x] = nodey;\n    }\n   \n    long long res = 0;\n    dfs(0, -1, seats, &res, g);\n    for (int i = 0; i <= roadsSize; i++) {\n        freeList(g[i]);\n    }\n    free(g);\n    return res;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar minimumFuelCost = function(roads, seats) {\n    const n = roads.length;\n    const g = new Array(n + 1).fill(0).map(() => new Array());\n    for (const e of roads) {\n        g[e[0]].push(e[1]);\n        g[e[1]].push(e[0]);\n    }\n    let res = 0;\n    var dfs = function(cur, fa) {\n        let peopleSum = 1;\n        for (const ne of g[cur]) {\n            if (ne != fa) {\n                const peopleCnt = dfs(ne, cur);\n                peopleSum += peopleCnt;\n                res += Math.floor((peopleCnt + seats - 1) / seats);\n            }\n        }\n        return peopleSum;\n    }\n    dfs(0, -1);\n    return res;\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 为数组 $\\textit{roads}$ 的长度。\n- 空间复杂度：$O(n)$，其中 $n$ 为数组 $\\textit{roads}$ 的长度，主要为递归所需要的空间开销。",
+            "slateValue": "",
+            "slug": "dao-da-shou-du-de-zui-shao-you-hao-by-le-v013",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "oqULrS",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 30,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Greedy",
+                    "nameTranslated": "贪心",
+                    "slug": "greedy",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Tree",
+                    "nameTranslated": "树",
+                    "slug": "tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Depth-First Search",
+                    "nameTranslated": "深度优先搜索",
+                    "slug": "depth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Graph",
+                    "nameTranslated": "图",
+                    "slug": "graph",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-12-04T05:42:06.380943+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：贪心 + 深度优先搜索 思路与算法 题目等价于给出了一棵以节点 $0$ 为根结点的树，并且初始树上的每一个节点上都有一个人，现在所有人都需要通过「车子」向结点 $0$ 移动。 对于某一个节点 $x$，$x \\neq 0$，其父节点为 $y$。因为以节点 $x$ 为根结点的子树上的人都需要通过边 $x \\righ",
+            "topic": {
+                "id": 2553190,
+                "subscribed": false,
+                "commentCount": 79,
+                "viewCount": 991,
+                "post": {
+                    "id": 4741009,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 46,
+            "isEditorsPick": false,
+            "hitCount": 18430,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "minimum-fuel-cost-to-report-to-the-capital",
+                "questionFrontendId": "2477"
+            },
+            "next": {
+                "slug": "kao-lu-mei-tiao-bian-shang-zhi-shao-xu-y-uamv",
+                "title": "【图解】没有思路？一张图秒懂！（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

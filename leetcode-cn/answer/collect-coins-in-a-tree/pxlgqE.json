@@ -1,0 +1,132 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "pxlgqE",
+            "title": "收集树中金币",
+            "content": "#### 方法一：两次拓扑排序\n\n**思路与算法**\n\n对于给定无根树中度数为 $1$ 的节点，我们称其为「叶节点」。可以发现，对于每一个「叶节点」$l$，如果 $l$ 上没有金币，那么我们就没有必要走到 $l$。这是因为对于 $l$ 唯一相邻的那个节点 $l'$，它可以收集到在 $l$ 可以收集到的所有金币，那么：\n\n- 如果我们从 $l$ 开始出发，那么可以改成从 $l'$ 开始出发，经过的边数一定减少；\n\n- 如果我们不从 $l$ 开始出发，那么到达 $l'$ 之后不必再走向 $l$，经过的边数一定减少。\n\n因此，我们可以不断地移除给定无根树中没有金币的「叶节点」。当某个「叶节点」被移除后，它唯一相邻的那条边也需要被移除，这样可能会有新的节点变为「叶节点」。我们不断迭代地重复这个过程，直到所有的「叶节点」上都有金币为止。\n\n> 这一步可以使用基于广度优先搜索的拓扑排序解决。我们首先将所有「叶节点」加入队列中，随后不断从队列中取出节点，将它标记为删除，并判断其唯一相邻的节点是否变为「叶节点」。如果是，就将相邻的节点也加入队列中。\n\n当所有的「叶节点」上都有金币时，我们应该如何解决给定的问题呢？我们可以先思考，如果操作变为「收集距离当前节点距离为 $0$ 以内的所有金币」该如何解决。当距离为 $0$ 时，我们必须要走到对应的节点上才能收集金币，而每个「叶节点」上都有金币，因此我们必须**遍历到所有的「叶节点」**，这也意味着我们**遍历了整颗树**。从任一节点出发，遍历整颗树并返回原节点，会经过树上的每条边一次，而树的边数等于点数减一，因此答案为 $2(n'-1)$，其中 $n'$ 时经过上文移除后，无根树中节点的数量。\n\n如果操作变为「收集距离当前节点距离为 $1$ 以内的所有金币」呢？我们可以进一步思考得到：当我们即将遍历到「叶节点」时，可以直接返回，因为此时我们与「叶节点」的距离为 $1$，可以直接收集到金币，不需要走到「叶节点」。因此，我们遍历的范围，就是**将树中所有叶节点以及它们唯一相邻的那条边移除后的新树**。在新树中的金币可以通过遍历获得到，而不在新树中的金币会在遍历到与其距离为 $1$ 的某个节点时获取到。\n\n因此，当操作变为「收集距离当前节点距离为 $2$ 以内的所有金币」时，我们的方法仍然是类似的，我们只需要将**新树**中所有的「叶节点」以及它们唯一相邻的那条边移除，得到的**新新树**就是需要遍历的范围。\n\n> 这一步同样可以使用基于广度优先搜索的拓扑排序解决。我们进行 $2$ 次如下的操作：首先将所有「叶节点」加入初始队列中，随后不断从初始队列中取出节点，将它标记为删除。\n\n**细节**\n\n如果**新新树**中没有任何节点，说明在初始的无根树中，存在一个节点可以直接获取到所有金币，答案为 $0$，否则答案为 $2\\times($ **新新树**中的节点数量 $-1)$。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int collectTheCoins(vector<int>& coins, vector<vector<int>>& edges) {\n        int n = coins.size();\n        vector<vector<int>> g(n);\n        vector<int> degree(n);\n        for (const auto& edge: edges) {\n            int x = edge[0], y = edge[1];\n            g[x].push_back(y);\n            g[y].push_back(x);\n            ++degree[x];\n            ++degree[y];\n        }\n\n        int rest = n;\n        {\n            /* 删除树中所有无金币的叶子节点，直到树中所有的叶子节点都是含有金币的 */\n            queue<int> q;\n            for (int i = 0; i < n; ++i) {\n                if (degree[i] == 1 && !coins[i]) {\n                    q.push(i);\n                }\n            }\n            while (!q.empty()) {\n                int u = q.front();\n                --degree[u];\n                q.pop();\n                --rest;\n                for (int v: g[u]) {\n                    --degree[v];\n                    if (degree[v] == 1 && !coins[v]) {\n                        q.push(v);\n                    }\n                }\n            }\n        }\n        {\n            /* 删除树中所有的叶子节点, 连续删除2次 */\n            for (int _ = 0; _ < 2; ++_) {\n                queue<int> q;\n                for (int i = 0; i < n; ++i) {\n                    if (degree[i] == 1) {\n                        q.push(i);\n                    }\n                }\n                while (!q.empty()) {\n                    int u = q.front();\n                    --degree[u];\n                    q.pop();\n                    --rest;\n                    for (int v: g[u]) {\n                        --degree[v];\n                    }\n                }\n            }\n        }\n\n        return rest == 0 ? 0 : (rest - 1) * 2;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int collectTheCoins(int[] coins, int[][] edges) {\n        int n = coins.length;\n        List<Integer>[] g = new List[n];\n        for (int i = 0; i < n; ++i) {\n            g[i] = new ArrayList<Integer>();\n        }\n        int[] degree = new int[n];\n        for (int[] edge : edges) {\n            int x = edge[0], y = edge[1];\n            g[x].add(y);\n            g[y].add(x);\n            ++degree[x];\n            ++degree[y];\n        }\n\n        int rest = n;\n        /* 删除树中所有无金币的叶子节点，直到树中所有的叶子节点都是含有金币的 */\n        Queue<Integer> queue = new ArrayDeque<Integer>();\n        for (int i = 0; i < n; ++i) {\n            if (degree[i] == 1 && coins[i] == 0) {\n                queue.offer(i);\n            }\n        }\n        while (!queue.isEmpty()) {\n            int u = queue.poll();\n            --degree[u];\n            --rest;\n            for (int v : g[u]) {\n                --degree[v];\n                if (degree[v] == 1 && coins[v] == 0) {\n                    queue.offer(v);\n                }\n            }\n        }\n        /* 删除树中所有的叶子节点, 连续删除2次 */\n        for (int x = 0; x < 2; ++x) {\n            queue = new ArrayDeque<Integer>();\n            for (int i = 0; i < n; ++i) {\n                if (degree[i] == 1) {\n                    queue.offer(i);\n                }\n            }\n            while (!queue.isEmpty()) {\n                int u = queue.poll();\n                --degree[u];\n                --rest;\n                for (int v : g[u]) {\n                    --degree[v];\n                }\n            }\n        }\n\n        return rest == 0 ? 0 : (rest - 1) * 2;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int CollectTheCoins(int[] coins, int[][] edges) {\n        int n = coins.Length;\n        IList<int>[] g = new IList<int>[n];\n        for (int i = 0; i < n; ++i) {\n            g[i] = new List<int>();\n        }\n        int[] degree = new int[n];\n        foreach (int[] edge in edges) {\n            int x = edge[0], y = edge[1];\n            g[x].Add(y);\n            g[y].Add(x);\n            ++degree[x];\n            ++degree[y];\n        }\n\n        int rest = n;\n        /* 删除树中所有无金币的叶子节点，直到树中所有的叶子节点都是含有金币的 */\n        Queue<int> queue = new Queue<int>();\n        for (int i = 0; i < n; ++i) {\n            if (degree[i] == 1 && coins[i] == 0) {\n                queue.Enqueue(i);\n            }\n        }\n        while (queue.Count > 0) {\n            int u = queue.Dequeue();\n            --degree[u];\n            --rest;\n            foreach (int v in g[u]) {\n                --degree[v];\n                if (degree[v] == 1 && coins[v] == 0) {\n                    queue.Enqueue(v);\n                }\n            }\n        }\n        /* 删除树中所有的叶子节点, 连续删除2次 */\n        for (int x = 0; x < 2; ++x) {\n            queue = new Queue<int>();\n            for (int i = 0; i < n; ++i) {\n                if (degree[i] == 1) {\n                    queue.Enqueue(i);\n                }\n            }\n            while (queue.Count > 0) {\n                int u = queue.Dequeue();\n                --degree[u];\n                --rest;\n                foreach (int v in g[u]) {\n                    --degree[v];\n                }\n            }\n        }\n\n        return rest == 0 ? 0 : (rest - 1) * 2;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def collectTheCoins(self, coins: List[int], edges: List[List[int]]) -> int:\n        n = len(coins)\n        g = defaultdict(list)\n        degree = [0] * n\n\n        for x, y in edges:\n            g[x].append(y)\n            g[y].append(x)\n            degree[x] += 1\n            degree[y] += 1\n        \n        rest = n\n        # 删除树中所有无金币的叶子节点，直到树中所有的叶子节点都是含有金币的\n        q = deque(i for i in range(n) if degree[i] == 1 and coins[i] == 0)\n        while q:\n            u = q.popleft()\n            degree[u] -= 1\n            rest -= 1\n            for v in g[u]:\n                degree[v] -= 1\n                if degree[v] == 1 and coins[v] == 0:\n                    q.append(v)\n        \n        # 删除树中所有的叶子节点, 连续删除2次\n        for _ in range(2):\n            q = deque(i for i in range(n) if degree[i] == 1)\n            while q:\n                u = q.popleft()\n                degree[u] -= 1\n                rest -= 1\n                for v in g[u]:\n                    degree[v] -= 1\n        \n        return 0 if rest == 0 else (rest - 1) * 2\n```\n\n```C [sol1-C]\nstruct ListNode *createListNode(int val) {\n    struct ListNode *obj = (struct ListNode*)malloc(sizeof(struct ListNode));\n    obj->val = val;\n    obj->next = NULL;\n    return obj;\n}\n\nvoid freeList(struct ListNode *list) {\n    while (list) {\n        struct ListNode *cur = list;\n        list = list->next;\n        free(cur);\n    }\n}\n\nint collectTheCoins(int* coins, int coinsSize, int** edges, int edgesSize, int* edgesColSize) {\n    int n = coinsSize;\n    struct ListNode *g[n];\n    int degree[n];\n    memset(g, 0, sizeof(g));\n    memset(degree, 0, sizeof(degree));\n    for (int i = 0; i < edgesSize; i++) {\n        int x = edges[i][0], y = edges[i][1];\n        struct ListNode *nodex = createListNode(x);\n        struct ListNode *nodey = createListNode(y);\n        nodex->next = g[y];\n        nodey->next = g[x];\n        g[y] = nodex;\n        g[x] = nodey;\n        ++degree[x];\n        ++degree[y];\n    }\n\n    int rest = n;\n    int queue[n];\n    int head = 0, tail = 0;\n    /* 删除树中所有无金币的叶子节点，直到树中所有的叶子节点都是含有金币的 */\n    for (int i = 0; i < n; ++i) {\n        if (degree[i] == 1 && !coins[i]) {\n            queue[tail++] = i;\n        }\n    }\n    while (head != tail) {\n        int u = queue[head++];\n        --degree[u];\n        --rest;\n        for (struct ListNode *node = g[u]; node; node = node->next) {\n            int v = node->val;\n            --degree[v];\n            if (degree[v] == 1 && !coins[v]) {\n                queue[tail++] = v;\n            }\n        }\n    }\n\n    /* 删除树中所有的叶子节点, 连续删除2次 */\n    for (int j = 0; j < 2; ++j) {\n        head = tail = 0;\n        for (int i = 0; i < n; ++i) {\n            if (degree[i] == 1) {\n                queue[tail++] = i;\n            }\n        }\n        while (head != tail) {\n            int u = queue[head++];\n            --degree[u];\n            --rest;\n            for (struct ListNode *node = g[u]; node; node = node->next) {\n                int v = node->val;\n                --degree[v];\n            }\n        }\n    }\n    for (int i = 0; i < n; i++) {\n        freeList(g[i]);\n    }\n\n\n    return rest == 0 ? 0 : (rest - 1) * 2;\n}\n```\n\n```Go [sol1-Go]\nfunc collectTheCoins(coins []int, edges [][]int) int {\n    n := len(coins)\n    g := make([][]int, n)\n    degree := make([]int, n)\n    for _, edge := range edges {\n        x, y := edge[0], edge[1]\n        g[x] = append(g[x], y)\n        g[y] = append(g[y], x)\n        degree[x]++\n        degree[y]++\n    }\n\n    rest := n\n    // 删除树中所有无金币的叶子节点，直到树中所有的叶子节点都是含有金币的 \n    q := []int{}\n    for i := 0; i < n; i++ {\n        if degree[i] == 1 && coins[i] == 0 {\n            q = append(q, i)\n        }\n    }\n    for len(q) > 0 {\n        u := q[0]\n        q = q[1:]\n        degree[u]--\n        rest--\n        for _, v := range g[u] {\n            degree[v]--\n            if degree[v] == 1 && coins[v] == 0 {\n                q = append(q, v)\n            }\n        }\n    }\n\n    // 删除树中所有的叶子节点, 连续删除2次\n    for j := 0; j < 2; j++ {\n        q := []int{}\n        for i := 0; i < n; i++ {\n            if degree[i] == 1 {\n                q = append(q, i)\n            }\n        }\n        for len(q) > 0 {\n            u := q[0]\n            q = q[1:]\n            degree[u]--\n            rest--\n            for _, v := range g[u] {\n                degree[v]--\n            }\n        }\n    }\n\n    if rest == 0 {\n        return 0\n    }\n    return (rest - 1) * 2\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar collectTheCoins = function(coins, edges) {\n    n = coins.length\n    g = new Array(n).fill(0).map(() => new Array());\n    degree = new Array(n).fill(0);\n    for (const edge of edges) {\n        let x = edge[0], y = edge[1];\n        g[x].push(y);\n        g[y].push(x);\n        degree[x]++;\n        degree[y]++;\n    }\n    \n    let rest = n;\n    let q = [];\n    // 删除树中所有无金币的叶子节点，直到树中所有的叶子节点都是含有金币的 \n    for (let i = 0; i < n; i++) {\n        if (degree[i] == 1 && coins[i] == 0) {\n            q.push(i);\n        }\n    }\n    while (q.length > 0) {\n        const u = q.shift();\n        degree[u]--;\n        rest--;\n        for (const v of g[u]) {\n            degree[v]--;\n            if (degree[v] == 1 && coins[v] == 0) {\n                q.push(v)\n            }\n        }\n    }\n\n    // 删除树中所有的叶子节点, 连续删除2次\n    for (let j = 0; j < 2; j++) {\n        let q = [];\n        for (let i = 0; i < n; i++) {\n            if (degree[i] == 1) {\n                q.push(i);\n            }\n        }\n        while (q.length > 0) {\n            u = q.shift();\n            degree[u]--;\n            rest--;\n            for (const v of g[u]) {\n                degree[v]--;\n            }\n        }\n    }\n\n    return rest == 0 ? 0 : (rest - 1) * 2;\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$。构造图的邻接表，度数数组以及拓扑排序都需要 $O(n)$ 的时间。\n\n- 空间复杂度：$O(n)$。即为图的邻接表，度数数组以及拓扑排序中的队列需要使用的空间。",
+            "slateValue": "",
+            "slug": "shou-ji-shu-zhong-jin-bi-by-leetcode-sol-kaah",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "pxlgqE",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 51,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Tree",
+                    "nameTranslated": "树",
+                    "slug": "tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Breadth-First Search",
+                    "nameTranslated": "广度优先搜索",
+                    "slug": "breadth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Graph",
+                    "nameTranslated": "图",
+                    "slug": "graph",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Topological Sort",
+                    "nameTranslated": "拓扑排序",
+                    "slug": "topological-sort",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-09-20T08:30:26.284886+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：两次拓扑排序 思路与算法 对于给定无根树中度数为 $1$ 的节点，我们称其为「叶节点」。可以发现，对于每一个「叶节点」$l$，如果 $l$ 上没有金币，那么我们就没有必要走到 $l$。这是因为对于 $l$ 唯一相邻的那个节点 $l'$，它可以收集到在 $l$ 可以收集到的所有金币，那么： 如果我们从 $l$ 开",
+            "topic": {
+                "id": 2451073,
+                "subscribed": false,
+                "commentCount": 38,
+                "viewCount": 1023,
+                "post": {
+                    "id": 4582309,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 57,
+            "isEditorsPick": false,
+            "hitCount": 3647,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "collect-coins-in-a-tree",
+                "questionFrontendId": "2603"
+            },
+            "next": {
+                "slug": "tuo-bu-pai-xu-ji-lu-ru-dui-shi-jian-pyth-6uli",
+                "title": "拓扑排序（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

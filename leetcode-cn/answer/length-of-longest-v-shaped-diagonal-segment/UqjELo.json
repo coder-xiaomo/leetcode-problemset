@@ -1,0 +1,150 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "UqjELo",
+            "title": "最长 V 形对角线段的长度",
+            "content": "#### 方法一：记忆化搜索\n\n**思路与算法**\n\n根据题意可知，对于 $\\text{V}$ 形对角线段定义如下：\n\n+ $\\text{V}$ 形对角线段的起始元素一定是 $1$，且后续元素按照 $[2,0,2,0,\\cdots]$ 交替出现，即元素的**访问序列**一定为 $[1,2,0,2,0,\\cdots]$；\n+ 起始于某个对角方向（左上到右下、右下到左上、右上到左下或左下到右上），且沿着相同的对角方向继续前进，在保持 **序列模式** 的前提下，最多允许 **一次顺时针 $90$ 度转向** 另一个对角方向；\n\n根据题意可以知道对角方向一共有 $4$ 个，分别是：左上到右下、右上到左下、右下到左上、左下到右上，对应的二维坐标偏移量即为：$(1, 1),(1, -1),(-1,-1),(-1, 1)$，我们用下标 $0$ 到 $3$ 分别代表 $4$ 个不同方向，如果当前方向 $d$，顺时针选旋转 $90$ 度后则对角度方向变为 $(d + 1) \\bmod 4$。仔细分析可知，当确定 $\\text{V}$ 形对角线段的起始置与起始对角方向后，则当前对角线段的最大长度取决于以下一个位置可以前进的最大线段长度，此时我们可以使用动态规划计算以每个点作为起始位置的 $\\text{V}$ 形对角线段的最大长度。\n\n为方便计算我们采用自顶向下的记忆化搜索，用 $\\text{dfs}(x,y,\\textit{direction},\\textit{turn}, \\textit{target})$ 表示上一个位置是 $(x,y)$，当前对角方向是 $\\textit{direction}$ ，当前元素目标值为 $\\textit{target}$ 且当前旋转状态为 $\\textit{turn}$ 时的 $\\text{V}$ 形对角线段的最大长度，同时用 $\\textit{memo}$ 记录所有子状态的最大值，为了方便计算，所有初始状态均为 $-1$。由于 $\\text{V}$ 形对角线段中的相邻元素存在约束，此时需要根据上一个元素的值检测当前元素的值是否合法，此时也需要考虑该细节，$\\text{dfs}(x,y,\\textit{direction},\\textit{turn}, \\textit{target})$ 计算过程如下：\n\n+ 由于上一个位置为 $(x,y)$，且在当前方向为 $\\textit{direction}$ 的情况下，累加坐标偏移即可计算出当前元素的位置为 $(\\textit{nx},\\textit{ny})$，此时需要检测当前位置 $(\\textit{nx},\\textit{ny})$ 是否越界与值合法，此时检查 $\\textit{grid}[\\textit{nx}][\\textit{ny}]$ 是否与目标值 $\\textit{target}$ 相等即可，如果越界或值不合法则表示当前路径不合法则直接返回 $0$；\n\n+ 如果当前位置 $(\\textit{nx},\\textit{ny})$ 不进行旋转，则下一个元素仍沿着之前的对角方向前进，则从下一个元素为起始位置的最大长度即为 $\\text{dfs}(\\textit{nx},\\textit{ny},\\textit{direction},\\textit{turn}, 2 - \\textit{target})$；如果当前位置 $(\\textit{nx},\\textit{ny})$ 进行旋转，则下一个元素则沿着旋转后的对角方向前进，则从下一个元素为起始位置的最大长度即为 $\\text{dfs}(\\textit{nx},\\textit{ny},(\\textit{direction} + 1) \\bmod 4,\\textit{turn}, 2 - \\textit{target})$，从当前位置 $(\\textit{nx},\\textit{ny})$ 起始的最大长度则为上述两种情况的最大值加 $1$，此时可知递推公式为:\n  $$\n  \\text{dfs}(x,y,\\textit{direction},\\textit{turn}, \\textit{target}) = \\max(\\text{dfs}(\\textit{nx},\\textit{ny},\\textit{direction},\\textit{turn}, 2 - \\textit{target}),\\text{dfs}(\\textit{nx},\\textit{ny},(\\textit{direction} + 1) \\bmod 4,\\textit{turn}, 2 - \\textit{target})) + 1\n  $$\n  由于每次元素的目标值 $\\textit{target}$，可以直接根据上一个元素位置得到，实际在用 $\\textit{memo}$ 记录所有子状态的最大值时无需记录 $\\textit{target}$，上述递推公式可以去掉参数 $\\textit{target}$，递推公式可以进一步优化为：\n  $$\n  \\text{dfs}(x,y,\\textit{direction},\\textit{turn}) = \\max(\\text{dfs}(\\textit{nx},\\textit{ny},\\textit{direction},\\textit{turn}),\\text{dfs}(\\textit{nx},\\textit{ny},(\\textit{direction} + 1) \\bmod 4,\\textit{turn})) + 1\n  $$\n\n 根据题意可以知道 $\\text{V}$ 形对角线定义，起点元素必须为 $1$，此时我们遍历矩阵 $\\textit{grid}$，从所有元素为 $1$ 的位置开始进行 $\\text{DFS}$，即可得到矩阵 $\\textit{grid}$ 中的 $\\text{V}$ 形对角线段的最大长度。\n\n\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int lenOfVDiagonal(vector<vector<int>>& grid) {\n        int m = grid.size(), n = grid[0].size();\n        int dirs[4][2] = {{1, 1}, {1, -1}, {-1, -1}, {-1, 1}};\n        int memo[m][n][4][2];\n        memset(memo, -1, sizeof(memo));\n        \n        function<int(int, int, int, bool, int)> dfs = [&](int cx, int cy, int direction, bool turn, int target) -> int {\n            int nx = cx + dirs[direction][0];\n            int ny = cy + dirs[direction][1];\n            /* 如果超出边界或者下一个节点值不是目标值，则返回 */\n            if (nx < 0 || ny < 0 || nx >= m || ny >= n || grid[nx][ny] != target) {\n                return 0;\n            }\n            if (memo[nx][ny][direction][turn] != -1) {\n                return memo[nx][ny][direction][turn];\n            }\n\n            /* 按照原来的方向继续行走 */\n            int maxStep = dfs(nx, ny, direction, turn, 2 - target);\n            if (turn) {\n                /* 顺时针旋转 90 度转向 */\n                maxStep = fmax(maxStep, dfs(nx, ny, (direction + 1) % 4, false, 2 - target));\n            }\n            memo[nx][ny][direction][turn] = maxStep + 1;\n            return maxStep + 1;\n        };\n        \n        int res = 0;\n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j) {\n                if (grid[i][j] == 1) {\n                    for (int direction = 0; direction < 4; ++direction) {\n                        res = fmax(res, dfs(i, j, direction, true, 2) + 1);\n                    }\n                }\n            }\n        }\n\n        return res;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    private static final int[][] DIRS = {{1, 1}, {1, -1}, {-1, -1}, {-1, 1}};\n    private int[][][][] memo;\n    private int[][] grid;\n    private int m, n;\n\n    public int lenOfVDiagonal(int[][] grid) {\n        this.grid = grid;\n        this.m = grid.length;\n        this.n = grid[0].length;\n        this.memo = new int[m][n][4][2];\n        \n        for (int i = 0; i < m; i++) {\n            for (int j = 0; j < n; j++) {\n                for (int k = 0; k < 4; k++) {\n                    Arrays.fill(memo[i][j][k], -1);\n                }\n            }\n        }\n\n        int res = 0;\n        for (int i = 0; i < m; i++) {\n            for (int j = 0; j < n; j++) {\n                if (grid[i][j] == 1) {\n                    for (int direction = 0; direction < 4; direction++) {\n                        res = Math.max(res, dfs(i, j, direction, true, 2) + 1);\n                    }\n                }\n            }\n        }\n        return res;\n    }\n\n    private int dfs(int cx, int cy, int direction, boolean turn, int target) {\n        int nx = cx + DIRS[direction][0];\n        int ny = cy + DIRS[direction][1];\n        /* 如果超出边界或者下一个节点值不是目标值，则返回 */\n        if (nx < 0 || ny < 0 || nx >= m || ny >= n || grid[nx][ny] != target) {\n            return 0;\n        }\n        \n        int turnInt = turn ? 1 : 0;\n        if (memo[nx][ny][direction][turnInt] != -1) {\n            return memo[nx][ny][direction][turnInt];\n        }\n\n        /* 按照原来的方向继续行走 */\n        int maxStep = dfs(nx, ny, direction, turn, 2 - target);\n        if (turn) {\n            /* 顺时针旋转 90 度转向 */\n            maxStep = Math.max(maxStep, dfs(nx, ny, (direction + 1) % 4, false, 2 - target));\n        }\n        memo[nx][ny][direction][turnInt] = maxStep + 1;\n        return maxStep + 1;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    private readonly int[][] DIRS = new int[][] {\n        new int[] {1, 1}, new int[] {1, -1}, \n        new int[] {-1, -1}, new int[] {-1, 1}\n    };\n    private int[,,,] memo;\n    private int[][] grid;\n    private int m, n;\n\n    public int LenOfVDiagonal(int[][] grid) {\n        this.grid = grid;\n        m = grid.Length;\n        n = grid[0].Length;\n        memo = new int[m, n, 4, 2];\n        \n        for (int i = 0; i < m; i++) {\n            for (int j = 0; j < n; j++) {\n                for (int k = 0; k < 4; k++) {\n                    for (int l = 0; l < 2; l++) {\n                        memo[i, j, k, l] = -1;\n                    }\n                }\n            }\n        }\n\n        int res = 0;\n        for (int i = 0; i < m; i++) {\n            for (int j = 0; j < n; j++) {\n                if (grid[i][j] == 1) {\n                    for (int direction = 0; direction < 4; direction++) {\n                        res = Math.Max(res, Dfs(i, j, direction, true, 2) + 1);\n                    }\n                }\n            }\n        }\n        return res;\n    }\n\n    private int Dfs(int cx, int cy, int direction, bool turn, int target) {\n        int nx = cx + DIRS[direction][0];\n        int ny = cy + DIRS[direction][1];\n        /* 如果超出边界或者下一个节点值不是目标值，则返回 */\n        if (nx < 0 || ny < 0 || nx >= m || ny >= n || grid[nx][ny] != target) {\n            return 0;\n        }\n        \n        int turnInt = turn ? 1 : 0;\n        if (memo[nx, ny, direction, turnInt] != -1) {\n            return memo[nx, ny, direction, turnInt];\n        }\n\n        /* 按照原来的方向继续行走 */\n        int maxStep = Dfs(nx, ny, direction, turn, 2 - target);\n        if (turn) {\n            /* 顺时针旋转 90 度转向 */\n            maxStep = Math.Max(maxStep, Dfs(nx, ny, (direction + 1) % 4, false, 2 - target));\n        }\n        memo[nx, ny, direction, turnInt] = maxStep + 1;\n        return maxStep + 1;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc lenOfVDiagonal(grid [][]int) int {\n    dirs := [4][2]int{{1, 1}, {1, -1}, {-1, -1}, {-1, 1}}\n    m, n := len(grid), len(grid[0])\n    memo := make([][][4][2]int, m)\n    for i := range memo {\n        memo[i] = make([][4][2]int, n)\n        for j := range memo[i] {\n            for k := range memo[i][j] {\n                for l := range memo[i][j][k] {\n                    memo[i][j][k][l] = -1\n                }\n            }\n        }\n    }\n\n    var dfs func(cx, cy, direction int, turn bool, target int) int\n    dfs = func(cx, cy, direction int, turn bool, target int) int {\n        nx, ny := cx+dirs[direction][0], cy+dirs[direction][1]\n        /* 如果超出边界或者下一个节点值不是目标值，则返回 */\n        if nx < 0 || ny < 0 || nx >= m || ny >= n || grid[nx][ny] != target {\n            return 0\n        }\n        \n        turnInt := 0\n        if turn {\n            turnInt = 1\n        }\n        if memo[nx][ny][direction][turnInt] != -1 {\n            return memo[nx][ny][direction][turnInt]\n        }\n\n        /* 按照原来的方向继续行走 */\n        maxStep := dfs(nx, ny, direction, turn, 2-target)\n        if turn {\n            /* 顺时针旋转 90 度转向 */\n            maxStep = max(maxStep, dfs(nx, ny, (direction+1)%4, false, 2-target))\n        }\n        memo[nx][ny][direction][turnInt] = maxStep + 1\n        return maxStep + 1\n    }\n\n    res := 0\n    for i := 0; i < m; i++ {\n        for j := 0; j < n; j++ {\n            if grid[i][j] == 1 {\n                for direction := 0; direction < 4; direction++ {\n                    res = max(res, dfs(i, j, direction, true, 2)+1)\n                }\n            }\n        }\n    }\n    return res\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def lenOfVDiagonal(self, grid: List[List[int]]) -> int:\n        DIRS = [(1, 1), (1, -1), (-1, -1), (-1, 1)]\n        m, n = len(grid), len(grid[0])\n        \n        @cache\n        def dfs(cx, cy, direction, turn, target):\n            nx, ny = cx + DIRS[direction][0], cy + DIRS[direction][1]\n            # 如果超出边界或者下一个节点值不是目标值，则返回 \n            if nx < 0 or ny < 0 or nx >= m or ny >= n or grid[nx][ny] != target:\n                return 0\n            turn_int = 1 if turn else 0\n            # 按照原来的方向继续行走\n            max_step = dfs(nx, ny, direction, turn, 2 - target)\n            if turn:\n                # 顺时针旋转 90 度转向\n                max_step = max(max_step, dfs(nx, ny, (direction + 1) % 4, False, 2 - target))\n            return max_step + 1\n        \n        res = 0\n        for i in range(m):\n            for j in range(n):\n                if grid[i][j] == 1:\n                    for direction in range(4):\n                        res = max(res, dfs(i, j, direction, True, 2) + 1)\n        return res\n```\n\n```C [sol1-C]\n#define MAX_N 500\n\nconst int dirs[4][2] = {{1, 1}, {1, -1}, {-1, -1}, {-1, 1}};\nint memo[MAX_N][MAX_N][4][2][3];\n\nint dfs(int cx, int cy, int direction, int turn, int target, int **grid, int m, int n) {\n    int nx = cx + dirs[direction][0];\n    int ny = cy + dirs[direction][1];\n    /* 如果超出边界或者下一个节点值不是目标值，则返回 */\n    if (nx < 0 || ny < 0 || nx >= m || ny >= n || grid[nx][ny] != target) {\n        return 0;\n    }\n    if (memo[nx][ny][direction][turn][2 - target] != -1) {\n        return memo[nx][ny][direction][turn][2 - target];\n    }\n    /* 按照原来的方向继续行走 */\n    int maxStep = dfs(nx, ny, direction, turn, 2 - target, grid, m, n);\n    if (turn) {\n        /* 顺时针旋转 90 度转向 */\n        maxStep = fmax(maxStep, dfs(nx, ny, (direction + 1) % 4, 0, 2 - target, grid, m, n));\n    }\n    memo[nx][ny][direction][turn][2 - target] = maxStep + 1;\n    return maxStep + 1;\n}\n\nint lenOfVDiagonal(int** grid, int gridSize, int* gridColSize) {\n    int m = gridSize, n = gridColSize[0];\n    memset(memo, -1, sizeof(memo));\n\n    int res = 0;\n    for (int i = 0; i < m; i++) {\n        for (int j = 0; j < n; j++) {\n            if (grid[i][j] == 1) {\n                for (int direction = 0; direction < 4; direction++) {\n                    res = fmax(res, dfs(i, j, direction, 1, 2, grid, m, n) + 1);\n                }\n            }\n        }\n    }\n\n    return res;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar lenOfVDiagonal = function(grid) {\n    const DIRS = [[1, 1], [1, -1], [-1, -1], [-1, 1]];\n    const m = grid.length, n = grid[0].length;\n    const memo = new Array(m * n * 8).fill(-1);\n\n    function dfs(cx, cy, direction, turn, target) {\n        const nx = cx + DIRS[direction][0];\n        const ny = cy + DIRS[direction][1];\n        /* 如果超出边界或者下一个节点值不是目标值，则返回 */\n        if (nx < 0 || ny < 0 || nx >= m || ny >= n || grid[nx][ny] != target) {\n            return 0;\n        }\n        \n        const turnInt = turn ? 1 : 0;\n        const index = nx * n * 8 + ny * 8 + direction * 2 + turnInt;\n        if (memo[index] !== -1) {\n            return memo[index];\n        }\n\n        /* 按照原来的方向继续行走 */\n        let maxStep = dfs(nx, ny, direction, turn, 2 - target);\n        if (turn) {\n            /* 顺时针旋转 90 度转向 */\n            maxStep = Math.max(maxStep, dfs(nx, ny, (direction + 1) % 4, false, 2 - target));\n        }\n        memo[index] = maxStep + 1;\n        return maxStep + 1;\n    }\n\n    let res = 0;\n    for (let i = 0; i < m; i++) {\n        for (let j = 0; j < n; j++) {\n            if (grid[i][j] === 1) {\n                for (let direction = 0; direction < 4; direction++) {\n                    res = Math.max(res, dfs(i, j, direction, true, 2) + 1);\n                }\n            }\n        }\n    }\n    return res;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction lenOfVDiagonal(grid: number[][]): number {\n    const DIRS = [[1, 1], [1, -1], [-1, -1], [-1, 1]];\n    const m = grid.length, n = grid[0].length;\n    const memo: number[] = new Array(m * n * 8).fill(-1);\n\n    function dfs(cx: number, cy: number, direction: number, turn: boolean, target: number): number {\n        const nx = cx + DIRS[direction][0];\n        const ny = cy + DIRS[direction][1];\n        /* 如果超出边界或者下一个节点值不是目标值，则返回 */\n        if (nx < 0 || ny < 0 || nx >= m || ny >= n || grid[nx][ny] !== target) {\n            return 0;\n        }\n        \n        const turnInt = turn ? 1 : 0;\n        const index = nx * n * 8 + ny * 8 + direction * 2 + turnInt;\n        if (memo[index] !== -1) {\n            return memo[index];\n        }\n\n        /* 按照原来的方向继续行走 */\n        let maxStep = dfs(nx, ny, direction, turn, 2 - target);\n        if (turn) {\n            /* 顺时针旋转 90 度转向 */\n            maxStep = Math.max(maxStep, dfs(nx, ny, (direction + 1) % 4, false, 2 - target));\n        }\n        memo[index] = maxStep + 1;\n        return maxStep + 1;\n    }\n\n    let res = 0;\n    for (let i = 0; i < m; i++) {\n        for (let j = 0; j < n; j++) {\n            if (grid[i][j] === 1) {\n                for (let direction = 0; direction < 4; direction++) {\n                    res = Math.max(res, dfs(i, j, direction, true, 2) + 1);\n                }\n            }\n        }\n    }\n    return res;\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn len_of_v_diagonal(grid: Vec<Vec<i32>>) -> i32 {\n        let dirs = [[1, 1], [1, -1], [-1, -1], [-1, 1]];\n        let m = grid.len();\n        let n = grid[0].len();\n        let mut memo = vec![vec![vec![vec![-1; 2]; 4]; n]; m];\n        \n        fn dfs(\n            cx: usize, \n            cy: usize, \n            direction: usize, \n            turn: bool, \n            target: i32,\n            grid: &Vec<Vec<i32>>,\n            memo: &mut Vec<Vec<Vec<Vec<i32>>>>,\n            dirs: &[[i32; 2]; 4]\n        ) -> i32 {\n            let m = grid.len();\n            let n = grid[0].len();\n            let nx = (cx as i32 + dirs[direction][0]) as usize;\n            let ny = (cy as i32 + dirs[direction][1]) as usize;\n            /* 如果超出边界或者下一个节点值不是目标值，则返回 */\n            if nx >= m || ny >= n || grid[nx][ny] != target {\n                return 0;\n            }\n            \n            let turn_int = if turn { 1 } else { 0 };\n            if memo[nx][ny][direction][turn_int] != -1 {\n                return memo[nx][ny][direction][turn_int];\n            }\n\n            /* 按照原来的方向继续行走 */\n            let mut max_step = dfs(nx, ny, direction, turn, 2 - target, grid, memo, dirs);\n            if turn {\n                /* 顺时针旋转 90 度转向 */\n                max_step = max_step.max(dfs(nx, ny, (direction + 1) % 4, false, 2 - target, grid, memo, dirs));\n            }\n            memo[nx][ny][direction][turn_int] = max_step + 1;\n            max_step + 1\n        }\n\n        let mut res = 0;\n        for i in 0..m {\n            for j in 0..n {\n                if grid[i][j] == 1 {\n                    for direction in 0..4 {\n                        res = res.max(dfs(i, j, direction, true, 2, &grid, &mut memo, &dirs) + 1);\n                    }\n                }\n            }\n        }\n        res\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(mn)$，其中 $m,n$ 表示给定矩阵 $\\textit{grid}$ 的行数与列数。记忆化搜索一共存在 $O(nm)$ 个子状态，每个状态的计算时间是 $O(1)$，因此总的时间复杂度是 $O(nm)$。\n\n- 空间复杂度：$O(mn)$，其中 $m,n$ 表示给定矩阵 $\\textit{grid}$ 的行数与列数。记忆化搜索递归调用栈的深度和需要存储的子状态数是 $O(nm)$。",
+            "slateValue": "",
+            "slug": "zui-chang-v-xing-dui-jiao-xian-duan-de-c-3pul",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "UqjELo",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 6,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Memoization",
+                    "nameTranslated": "记忆化",
+                    "slug": "memoization",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Matrix",
+                    "nameTranslated": "矩阵",
+                    "slug": "matrix",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2025-08-18T03:24:59.125635+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：记忆化搜索 思路与算法 根据题意可知，对于 [latex] 形对角线段定义如下： [latex] 形对角线段的起始元素一定是 [latex]，且后续元素按照 [latex] 交替出现，即元素的访问序列一定为 [latex]； 起始于某个对角方向（左上到右下、右下到左上、右上到左下或左下到右上），且沿着相同的对角",
+            "topic": {
+                "id": 3756168,
+                "subscribed": false,
+                "commentCount": 30,
+                "viewCount": 33,
+                "post": {
+                    "id": 6859201,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 21,
+            "isEditorsPick": false,
+            "hitCount": 5640,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "length-of-longest-v-shaped-diagonal-segment",
+                "questionFrontendId": "3459"
+            },
+            "next": {
+                "slug": "ji-yi-hua-sou-suo-pythonjavacgo-by-endle-jrjj",
+                "title": "记忆化搜索+最优性剪枝（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

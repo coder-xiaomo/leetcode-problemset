@@ -1,0 +1,136 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "6cDVfd",
+            "title": "保证文件名唯一",
+            "content": "#### 方法一：哈希表\n\n对于需要被创建的文件名 $\\textit{name}$，如果文件系统中不存在名为 $\\textit{name}$ 的文件夹，那么直接创建即可，否则我们需要从 $k=1$ 开始，尝试使用添加后缀 $k$ 的新文件名创建新文件夹。\n\n使用哈希表 $\\textit{index}$ 记录已创建的文件夹的下一后缀序号，遍历 $\\textit{names}$ 数组，记当前遍历的文件名为 $\\textit{name}$：\n\n+ 如果 $\\textit{name}$ 不在哈希表中，那么说明文件系统不存在名为 $\\textit{name}$ 的文件夹，我们直接创建该文件夹，并且记录对应文件夹的下一后缀序号为 $1$。\n\n+ 如果 $\\textit{name}$ 在哈希表中，那么说明文件系统已经存在名为 $\\textit{name}$ 的文件夹，我们在哈希表找到 $\\textit{name}$ 的下一后缀序号 $k$，逐一尝试直到添加后缀 $k$ 的新文件名不存在于哈希表中，然后创建该文件夹。需要注意的是，创建该文件夹后，有两个文件名的下一后缀序号需要修改，首先文件名 $\\textit{name}$ 的下一后缀序号为 $k+1$，其次，文件名 $\\textit{name}$ 添加后缀 $k$ 的新文件名的下一后缀序号为 $1$。\n\n```Python [sol1-Python3]\nclass Solution:\n    def getFolderNames(self, names: List[str]) -> List[str]:\n        ans = []\n        index = {}\n        for name in names:\n            if name not in index:\n                ans.append(name)\n                index[name] = 1\n            else:\n                k = index[name]\n                while name + '(' + str(k) + ')' in index:\n                    k += 1\n                t = name + '(' + str(k) + ')'\n                ans.append(t)\n                index[name] = k + 1\n                index[t] = 1\n        return ans\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    string addSuffix(string name, int k) {\n        return name + \"(\" + to_string(k) + \")\";\n    }\n\n    vector<string> getFolderNames(vector<string>& names) {\n        unordered_map<string, int> index;\n        vector<string> res;\n        for (const auto &name : names) {\n            if (!index.count(name)) {\n                res.push_back(name);\n                index[name] = 1;\n            } else {\n                int k = index[name];\n                while (index.count(addSuffix(name, k))) {\n                    k++;\n                }\n                res.push_back(addSuffix(name, k));\n                index[name] = k + 1;\n                index[addSuffix(name, k)] = 1;\n            }\n        }\n        return res;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public String[] getFolderNames(String[] names) {\n        Map<String, Integer> index = new HashMap<String, Integer>();\n        int n = names.length;\n        String[] res = new String[n];\n        for (int i = 0; i < n; i++) {\n            String name = names[i];\n            if (!index.containsKey(name)) {\n                res[i] = name;\n                index.put(name, 1);\n            } else {\n                int k = index.get(name);\n                while (index.containsKey(addSuffix(name, k))) {\n                    k++;\n                }\n                res[i] = addSuffix(name, k);\n                index.put(name, k + 1);\n                index.put(addSuffix(name, k), 1);\n            }\n        }\n        return res;\n    }\n\n    public String addSuffix(String name, int k) {\n        return name + \"(\" + k + \")\";\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public string[] GetFolderNames(string[] names) {\n        IDictionary<string, int> index = new Dictionary<string, int>();\n        int n = names.Length;\n        string[] res = new string[n];\n        for (int i = 0; i < n; i++) {\n            string name = names[i];\n            if (!index.ContainsKey(name)) {\n                res[i] = name;\n                index.Add(name, 1);\n            } else {\n                int k = index[name];\n                while (index.ContainsKey(AddSuffix(name, k))) {\n                    k++;\n                }\n                res[i] = AddSuffix(name, k);\n                index[name] = k + 1;\n                index.Add(AddSuffix(name, k), 1);\n            }\n        }\n        return res;\n    }\n\n    public string AddSuffix(string name, int k) {\n        return name + \"(\" + k + \")\";\n    }\n}\n```\n\n```C [sol1-C]\ntypedef struct {\n    char *key;\n    int val;\n    UT_hash_handle hh;\n} HashItem;\n\nHashItem *hashFindItem(HashItem **obj, char *key) {\n    HashItem *pEntry = NULL;\n    HASH_FIND_STR(*obj, key, pEntry);\n    return pEntry;\n}\n\nbool hashAddItem(HashItem **obj, char *key, int val) {\n    if (hashFindItem(obj, key)) {\n        return false;\n    }\n    HashItem *pEntry = (HashItem *)malloc(sizeof(HashItem));\n    pEntry->key = (char *)calloc(sizeof(char), strlen(key) + 1);\n    strcpy(pEntry->key, key);\n    pEntry->val = val;\n    HASH_ADD_STR(*obj, key, pEntry);\n    return true;\n}\n\nbool hashSetItem(HashItem **obj, const char *key, int val) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        hashAddItem(obj, key, val);\n    } else {\n        pEntry->val = val;\n    }\n    return true;\n}\n\nint hashGetItem(HashItem **obj, char *key, int defaultVal) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        return defaultVal;\n    }\n    return pEntry->val;\n}\n\nvoid hashFree(HashItem **obj) {\n    HashItem *curr = NULL, *tmp = NULL;\n    HASH_ITER(hh, *obj, curr, tmp) {\n        HASH_DEL(*obj, curr);  \n        free(curr->key);\n        free(curr);             \n    }\n}\n\nchar ** getFolderNames(char ** names, int namesSize, int* returnSize) {\n    HashItem *index = NULL;\n    char **res = (char **)calloc(sizeof(char *), namesSize);\n    int pos = 0;\n    for (int i = 0; i < namesSize; i++) {\n        if (!hashFindItem(&index, names[i])) {\n            res[pos] = (char *)calloc(sizeof(char), strlen(names[i]) + 1);\n            strcpy(res[pos], names[i]);\n            pos++;\n            hashAddItem(&index, names[i], 1);\n        } else {\n            int k = hashGetItem(&index, names[i], 0);\n            char str[strlen(names[i]) + 16];\n            sprintf(str, \"%s(%d)\", names[i], k);\n            while (hashFindItem(&index, str)) {\n                k++;\n                sprintf(str, \"%s(%d)\", names[i], k);\n            }\n            res[pos] = (char *)calloc(sizeof(char), strlen(str) + 1);\n            strcpy(res[pos], str);\n            pos++;\n            hashSetItem(&index, names[i], k + 1);\n            hashAddItem(&index, str, 1);\n        }\n    }\n    *returnSize = pos;\n    hashFree(&index);\n    return res;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar getFolderNames = function(names) {\n    const index = new Map();\n    const n = names.length;\n    const res = new Array(n).fill(0);\n    for (let i = 0; i < n; i++) {\n        const name = names[i];\n        if (!index.has(name)) {\n            res[i] = name;\n            index.set(name, 1);\n        } else {\n            let k = index.get(name);\n            while (index.has(addSuffix(name, k))) {\n                k++;\n            }\n            res[i] = addSuffix(name, k);\n            index.set(name, k + 1);\n            index.set(addSuffix(name, k), 1);\n        }\n    }\n    return res;\n}\n\nconst addSuffix = (name, k) => {\n    return name + \"(\" + k + \")\";\n};\n```\n\n```go [sol1-Golang]\nfunc getFolderNames(names []string) []string {\n    ans := make([]string, len(names))\n    index := map[string]int{}\n    for p, name := range names {\n        i := index[name]\n        if i == 0 {\n            index[name] = 1\n            ans[p] = name\n            continue\n        }\n        for index[name+\"(\"+strconv.Itoa(i)+\")\"] > 0 {\n            i++\n        }\n        t := name + \"(\" + strconv.Itoa(i) + \")\"\n        ans[p] = t\n        index[name] = i + 1\n        index[t] = 1\n    }\n    return ans\n}\n```\n\n**复杂度分析**\n\n+ 时间复杂度：$O(\\sum_{i=0}^{n-1} m_i)$，其中 $m_i$ 表示字符串 $\\textit{names}[i]$ 的长度，$n$ 表示数组 $\\textit{names}$ 的长度。外层循环每次运行时间为 $O(m_i)$，总时间复杂度为 $O(\\sum_{i=0}^{n-1} m_i)$；内层循环的总运行次数不超过 $n$ 次，总时间复杂度为 $O(\\sum_{i=0}^{n-1} m_i)$。\n\n+ 空间复杂度：$O(\\sum_{i=0}^{n-1}{m_i})$。保存哈希表需要 $O(\\sum_{i=0}^{n-1}{m_i})$ 的空间。",
+            "slateValue": "",
+            "slug": "bao-zheng-wen-jian-ming-wei-yi-by-leetco-gw0i",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "6cDVfd",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 27,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 0,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-03-02T01:59:33.436328+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：哈希表 对于需要被创建的文件名 $\\textit{name}$，如果文件系统中不存在名为 $\\textit{name}$ 的文件夹，那么直接创建即可，否则我们需要从 $k=1$ 开始，尝试使用添加后缀 $k$ 的新文件名创建新文件夹。 使用哈希表 $\\textit{index}$ 记录已创建的文件夹的下一后缀序",
+            "topic": {
+                "id": 2142111,
+                "subscribed": false,
+                "commentCount": 96,
+                "viewCount": 1278,
+                "post": {
+                    "id": 4081301,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 25,
+            "isEditorsPick": false,
+            "hitCount": 19218,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "making-file-names-unique",
+                "questionFrontendId": "1487"
+            },
+            "next": {
+                "slug": "python3javacgo-yi-ti-yi-jie-ha-xi-biao-b-tv5h",
+                "title": "[Python3/Java/C++/Go] 一题一解：哈希表"
+            },
+            "prev": null
+        }
+    }
+}

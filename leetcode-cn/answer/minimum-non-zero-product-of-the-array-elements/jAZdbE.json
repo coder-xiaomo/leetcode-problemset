@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "jAZdbE",
+            "title": "数组元素的最小非零乘积",
+            "content": "#### 方法一：贪心\n\n**思路与算法**\n\n我们先思考一个简单的问题，假设给定三个正整数 $a,b,c$，满足 $a < b < c$，此时需要将某个数缩小 $1$，另外一个数增加 $1$，使得 $abc$ 最小，如何选择才是最优选择?\n\n+ 缩小时优先**缩小最小**的元素：当选择 $a$ 缩小 $1$ 时，此时三者乘积为 $(a-1)bc$，整体较 $abc$ 缩小了 $bc$；当选择缩小 $c$ 时，三者乘积为 $ab(c-1)$，整体较 $abc$ 缩小了 $ab$，此时 $ab < bc$，因此缩小时优先缩小最小的元素；\n\n+ 增加时优先**增加最大**的元素：缩小 $a$ 然后选择某个元素进行增加，当选择 $b$ 增加 $1$ 时，此时三者乘积为 $(a-1)(b + 1)c$，整体较 $(a-1)bc$ 增加了 $(a-1)c$；当选择增加 $c$ 时，三者乘积为 $(a-1)b(c+1)$，整体较 $(a-1)bc$ 增加了 $(a-1)b$，此时 $(a-1)b < (a-1)c$，因此增加时优先增加最大的元素；\n\n回到本题，两个数在进行相同的位交换时，本质即将一个元素缩小 $2^k$，另外一个元素增加 $2^k$。根据上述分析，我们可以知道一种贪心思路：进行相同位交换时，优先**缩小数组中最小的元素**，再**增加数组中最大的元素**。设当前数组为：\n\n$$[1,2,3,\\cdots,2^p-2,2^p-1]$$\n\n缩小时按照从小到大考虑每个元素：\n+ 首先考虑 $1$，此时需要将 $1$ 减少 $1$，此时从右向左依次考虑最大的元素，由于 $2^p-1$ 每一位均为 $1$ 无法再增加；接着考虑 $2^p-2$，此时将最低位变为 $1$，数组变为：$[0,2,3,\\cdots, 2^p-3,2^p-1,2^p-1]$；\n\n+ 接着考虑 $2$，此时需要将 $2$ 减少 $2$，此时从右向左依次考虑最大的元素，由于 $2^p-1$ 每一位均为 $1$ 无法再增加；接着考虑 $2^p-3$，此时将第 $2$ 位变为 $1$，数组变为：$[0,0,3,\\cdots, 2^p-1,2^p-1,2^p-1]$；\n\n+ 然后接着考虑 $3, 4, 5, \\cdots$，按照上述最优变换原则，数组最终变换为 $[0,0,0,\\cdots,2^p-1,\\cdots, 2^p-1]$，由于最小乘积不能为 $0$，所有元素均不能为 $0$，此时则需要从所有 $2^p-1$ 中移除最低位的 $1$ 补充到 $0$ 上，此时数组最终变换为 $[\\underbrace{1,1,1,\\cdots,1}_{2^{p-1}-1},\\underbrace{2^p-2,\\cdots,2^p-2}_{2^{p-1}-1},2^p-1]$，最终的返回值即为 $(2^p-1)\\times(2^p-2)^{2^{p-1}-1}$；\n\n由于计算时幂数较大，此时需要用到快速幂，可以参考「[计算快速幂](https://oi-wiki.org/math/binary-exponentiation/)」的相关资料。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    long long fastPow(long long x, long long n, long long mod) {\n        long long res = 1;\n        for (; n != 0; n >>= 1) {\n            if (n & 1) {\n                res = res * x % mod;\n            }\n            x = x * x % mod;\n        }\n        return res;\n    }\n    \n    int minNonZeroProduct(int p) {\n        if (p == 1) {\n            return 1;\n        }\n        long long mod = 1e9 + 7;\n        long long x = fastPow(2, p, mod) - 1;\n        long long y = (long long) 1 << (p - 1);\n        return fastPow(x - 1, y - 1, mod) * x % mod;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int minNonZeroProduct(int p) {\n        if (p == 1) {\n            return 1;\n        }\n        long mod = 1000000007;\n        long x = fastPow(2, p, mod) - 1;\n        long y = (long) 1 << (p - 1);\n        return (int) (fastPow(x - 1, y - 1, mod) * x % mod);\n    }\n\n    public long fastPow(long x, long n, long mod) {\n        long res = 1;\n        for (; n != 0; n >>= 1) {\n            if ((n & 1) != 0) {\n                res = res * x % mod;\n            }\n            x = x * x % mod;\n        }\n        return res;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MinNonZeroProduct(int p) {\n        if (p == 1) {\n            return 1;\n        }\n        long mod = 1000000007;\n        long x = FastPow(2, p, mod) - 1;\n        long y = (long) 1 << (p - 1);\n        return (int) (FastPow(x - 1, y - 1, mod) * x % mod);\n    }\n\n    public long FastPow(long x, long n, long mod) {\n        long res = 1;\n        for (; n != 0; n >>= 1) {\n            if ((n & 1) != 0) {\n                res = res * x % mod;\n            }\n            x = x * x % mod;\n        }\n        return res;\n    }\n}\n```\n\n```C [sol1-C]\nlong long fastPow(long long x, long long n, long long mod) {\n    long long res = 1;\n    for (; n != 0; n >>= 1) {\n        if (n & 1) {\n            res = res * x % mod;\n        }\n        x = x * x % mod;\n    }\n    return res;\n}\n\nint minNonZeroProduct(int p) {\n    if (p == 1) {\n        return 1;\n    }\n    long long mod = 1e9 + 7;\n    long long x = fastPow(2, p, mod) - 1;\n    long long y = (long long) 1 << (p - 1);\n    return fastPow(x - 1, y - 1, mod) * x % mod;\n}\n```\n\n```Python [sol1-Python]\nclass Solution:\n    def minNonZeroProduct(self, p: int) -> int:\n        if p == 1:\n            return 1\n        mod = 10**9 + 7\n        return  pow(2 ** p - 2, 2 ** (p - 1) - 1, mod) * (2 ** p - 1) % mod\n```\n\n```Go [sol1-Go]\nfunc minNonZeroProduct(p int) int {\n    if p == 1 {\n        return 1\n    }\n    mod := int64(1e9 + 7)\n    x := fastPow(2, int64(p), mod) - 1\n    y := int64(1) << uint(p - 1)\n    return int(fastPow(x - 1, y - 1, mod) * x % mod)\n}\n\nfunc fastPow(x, n, mod int64) int64 {\n    res := int64(1)\n    for n != 0 {\n        if n & 1 == 1 {\n            res = (res * x) % mod\n        }\n        x = (x * x) % mod\n        n >>= 1\n    }\n    return res\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar minNonZeroProduct = function(p) {\n    if (p === 1) {\n        return 1;\n    }\n    const mod = BigInt(1e9 + 7);\n    const x = fastpow(2n, BigInt(p), mod) - 1n;\n    const y = 1n << BigInt(p - 1);\n    return fastpow(x - 1n, y - 1n, mod) * x % mod;\n};\n\nfunction fastpow(x, n, mod) {\n    let res = BigInt(1);\n    while (n > 0) {\n        if (n & 1n) {\n            res = (res * x) % mod;\n        }\n        x = (x * x) % mod;\n        n >>= 1n;\n    }\n    return res;\n}\n```\n\n```TypeScript [sol1-TypeScript]\nfunction minNonZeroProduct(p: number): number {\n    if (p === 1) {\n        return 1;\n    }\n    const mod = BigInt(1e9 + 7);\n    const x = fastpow(BigInt(2), BigInt(p), mod) - BigInt(1);\n    const y = BigInt(1) << BigInt(p - 1);\n    return Number((fastpow(x - BigInt(1), y - BigInt(1), mod) * x) % mod);\n};\n\nconst fastpow = (x: bigint, n: bigint, mod: bigint): bigint => {\n    let res: bigint = BigInt(1);\n    while (n > BigInt(0)) {\n        if (n & BigInt(1)) {\n            res = (res * x) % mod;\n        }\n        x = (x * x) % mod;\n        n >>= BigInt(1);\n    }\n    return res;\n};\n```\n\n```Rust [sol1-Rust]\nimpl Solution { \n    pub fn min_non_zero_product(p: i32) -> i32 {\n        fn fast_pow(mut x: i64, mut n: i64, mod_val: i64) -> i64 {\n            let mod_val = mod_val as i64;\n            let mut res = 1;\n            while n != 0 {\n                if n & 1 == 1 {\n                    res = (res * x ) % mod_val;\n                }\n                x = (x * x) % mod_val;\n                n >>= 1;\n            }\n            res\n        }\n\n        if p == 1 {\n            return 1;\n        }\n        let mod_val = 1_000_000_007;\n        let x = fast_pow(2, p as i64, mod_val) - 1;\n        let y = 1i64 << (p - 1);\n        (fast_pow(x - 1, y - 1, mod_val) * x % mod_val) as i32\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(p)$，其中 $p$ 表示给定的数 $p$。利用快速幂求 $2$ 需要的时间刚好为 $O(p)$。\n\n- 空间复杂度：$O(1)$。",
+            "slateValue": "",
+            "slug": "shu-zu-yuan-su-de-zui-xiao-fei-ling-chen-xti0",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "jAZdbE",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 28,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Greedy",
+                    "nameTranslated": "贪心",
+                    "slug": "greedy",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2024-03-15T09:19:32.432745+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：贪心 思路与算法 我们先思考一个简单的问题，假设给定三个正整数 $a,b,c$，满足 $a < b < c$，此时需要将某个数缩小 $1$，另外一个数增加 $1$，使得 $abc$ 最小，如何选择才是最优选择? 缩小时优先缩小最小的元素：当选择 $a$ 缩小 $1$ 时，此时三者乘积为 $(a-1)bc$，整体",
+            "topic": {
+                "id": 2688955,
+                "subscribed": false,
+                "commentCount": 114,
+                "viewCount": 1068,
+                "post": {
+                    "id": 4943981,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 97,
+            "isEditorsPick": false,
+            "hitCount": 17455,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "minimum-non-zero-product-of-the-array-elements",
+                "questionFrontendId": "1969"
+            },
+            "next": {
+                "slug": "tan-xin-ji-qi-shu-xue-zheng-ming-by-endl-uumv",
+                "title": "贪心+构造（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

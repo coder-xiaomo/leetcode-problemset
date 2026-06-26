@@ -1,0 +1,146 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "chC2lj",
+            "title": "从仓库到码头运输箱子",
+            "content": "#### 方法一：动态规划 + 单调队列优化\n\n**前言**\n\n为了叙述方便，我们记箱子的数量为 $n$，它们的目的地分别为 $p_1, \\cdots, p_n$，重量分别为 $w_1, \\cdots, w_n$。\n\n记 $W_i$ 表示 $w$ 的前缀和，即：\n\n$$\nW_i = \\left\\{\n\\begin{aligned}\n& 0, && i = 0 \\\\\n& \\sum_{k=1}^i w_i, && i > 0\n\\end{aligned} \\right.\n$$\n\n这样我们可以用 $W_i - W_{j-1}$ 方便地表示第 $i$ 个到第 $j$ 个箱子的重量，并与 $\\textit{maxWeight}$ 进行比较。\n\n记示性函数 $\\mathbb{I}(i)$ 表示 $p_i$ 和 $p_{i+1}$ 是否**不等**，即：\n\n$$\n\\mathbb{I}(i) = \\begin{cases}\n0, \\quad p_i = p_{i+1} \\\\\n1, \\quad p_i \\neq p_{i+1}\n\\end{cases}\n$$\n\n记 $\\textit{neg}(i, j)$ 表示 $p_i, \\cdots, p_j$ 相邻两项不等的次数，即：\n\n$$\n\\textit{neg}(i, j) = \\sum_{k=i}^{j-1} \\mathbb{I}(k)\n$$\n\n这样我们可以用 $\\textit{neg}(i, j) + 2$ 方便地求出**一次性**运送第 $i$ 个到第 $j$ 个箱子需要的行程次数，这里的 $+2$ 表示来回需要的 $2$ 次。\n\n为了便于快速计算 $\\textit{neg}(i, j)$，我们也可以使用前缀和的方式进行存储。记 $\\textit{neg}_i = \\textit{neg}(1, i)$ 表示前缀和，那么 $\\textit{neg}(i, j) = \\textit{neg}_j - \\textit{neg}_{i}$ 可以在 $O(1)$ 的时间求出。\n\n> 注意：这里是 $\\textit{neg}_j - \\textit{neg}_{i}$ 而不是 $\\textit{neg}_j - \\textit{neg}_{i-1}$，读者可以思考一下其原因。\n\n**思路与算法**\n\n我们可以使用动态规划解决本题。\n\n记 $f_i$ 表示**运送前 $i$ 个箱子需要的最少行程次数**，这里的「前 $i$ 个箱子」指的是目的地为 $p_1, \\cdots, p_i$ 的 $i$ 个箱子。我们可以写出状态转移方程：\n\n$$\n\\begin{aligned}\n& f_i = \\min \\big\\{  f_j + \\textit{neg}(j+1,i) + 2 \\big\\} \\\\\\\\\n\\text{subject to} \\quad &\n\\begin{cases} 0 \\leq j < i \\\\\ni-j \\leq \\textit{maxBoxes} \\\\\nW_i-W_j \\leq \\textit{maxWeight}\n\\end{cases}\n\\end{aligned}\n$$\n\n即枚举上一次运送的最后一个箱子为 $j$（这里的 $j$ 可以为 $0$，表示这一次是第一次运送箱子），那么这一次运送的箱子为 $[j+1, i]$。箱子的数量不超过 $\\textit{maxBoxes}$，重量之和不能超过 $\\textit{maxWeight}$。运送的行程次数即为 $p_{j+1}, \\cdots, p_i$ 相邻两项不等的次数 $\\textit{neg}(j+1, i)$ 加上来回的 $2$ 次。\n\n边界条件为 $f_0 = 0$，最终答案即为 $f_n$。\n\n**优化**\n\n然而上述动态规划的时间复杂度为 $O(n^2)$，我们需要进行优化。我们将 $\\textit{neg}(j+1, i)$ 拆分成两个前缀和的差，即：\n\n$$\n\\textit{neg}(j+1, i) = \\textit{neg}_i - \\textit{neg}_{j+1}\n$$\n\n带入原状态转移方程：\n\n$$\n\\begin{aligned}\nf_i &= \\min \\big\\{  f_j + \\textit{neg}(j+1,i) + 2 \\big\\} \\\\\n&= \\min \\big\\{  f_j + \\textit{neg}_i - \\textit{neg}_{j+1} + 2 \\big\\} \\\\\n&= \\min \\big\\{  f_j - \\textit{neg}_{j+1} \\big\\} + \\textit{neg}_i + 2\n\\end{aligned}\n$$\n\n由于 $\\textit{neg}_i$ 和 $2$ 都是与 $j$ 无关的项，因此可以从 $\\min\\{ \\cdot \\}$ 中提取出来。\n\n记 $g_j = f_j - \\textit{neg}_{j+1}$，状态转移方程即为：\n\n$$\nf_i = \\min \\{ g_j \\} + \\textit{neg}(i) + 2\n$$\n\n如果只有 $0 \\leq j < i$ 的限制条件，那么我们实时维护 $g_j$ 的最小值进行 $O(1)$ 的转移即可。但现在有 $i-j \\leq \\textit{maxBoxes}$ 和 $W_i-W_j \\leq \\textit{maxWeight}$ 这两个额外的限制条件，最小的 $g_j$ 对应的 $j$ 不一定满足限制。\n\n我们可以将两个额外的限制看成：\n\n$$\n\\begin{cases}\nj \\geq i - \\textit{maxBoxes} \\\\\nW_j \\geq W_i - \\textit{maxWeight} \n\\end{cases}\n$$\n\n注意到两个不等式右侧的值都是随着 $i$ 的递增而递增的，因此如果当 $i=i_0$ 时，某个 $j_0$ 不满足不等式限制，那么当 $i>i_0$ 时，$j_0$ 将永远不可能重新满足条件。\n\n因此我们就可以使用单调队列对动态规划进行优化，对于两个可以进行转移的 $g_{j_0}$ 和 $g_{j_1}$，在 $j_0 < j_1$ 的前提下：\n\n- 如果 $g_{j_0} < g_{j_1}$，那么我们需要将 $g_{j_0}$ 和 $g_{j_1}$ 都保留下来，这是因为当 $j_0$ 还满足限制时，$g_{j_0}$ 比 $g_{j_1}$ 更优；而当 $j_0$ 不满足限制后，$g_{j_1}$ 可能会代替 $g_{j_0}$，成为新的最优转移；\n\n- 如果 $g_{j_0} \\geq g_{j_1}$，那么我们只需要将 $g_{j_1}$ 保留下来即可。这是因为当 $j_0$ 还满足限制时，选择 $g_{j_1}$ 并不会更差，并且 $j_1$ 可以满足限制的时间（即随着 $i$ 的递增）更久。\n\n因此，我们使用一个队列存储所有需要被保留的 $g_j$（存储下标 $j$ 即可），从队首到队尾，$j$ 的值单调递增，$g_j$ 的值也单调递增。在进行状态转移求解 $f_i$ 时：\n\n- 首先我们不断从队首弹出元素，直到队首的 $j$ 是满足额外限制的；\n\n- 使用队首的 $j$ 进行转移，得到 $f_i$；\n\n- 计算出 $g_i$，并不断从队尾弹出元素，直到队列为空或者队尾元素对应的 $g$ 值严格小与 $g_i$；\n\n- 将 $g_i$ 放入队列。\n\n状态转移需要的时间为 $O(1)$。而对于单调队列的部分，每一个 $g_i$ 会被加入队列恰好一次，并且被从队列中弹出最多一次，因此均摊时间为 $O(1)$。这样一来，动态规划的时间复杂度降低为 $O(n)$。\n\n**代码**\n\n代码中很多变量都是为了和文字部分保持一致而添加的，如果熟练了掌握了本题使用的方法，可以优化掉一些变量。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int boxDelivering(vector<vector<int>>& boxes, int portsCount, int maxBoxes, int maxWeight) {\n        int n = boxes.size();\n        vector<int> p(n + 1), w(n + 1), neg(n + 1);\n        vector<long long> W(n + 1);\n        for (int i = 1; i <= n; ++i) {\n            p[i] = boxes[i - 1][0];\n            w[i] = boxes[i - 1][1];\n            if (i > 1) {\n                neg[i] = neg[i - 1] + (p[i - 1] != p[i]);\n            }\n            W[i] = W[i - 1] + w[i];\n        }\n        \n        deque<int> opt = {0};\n        vector<int> f(n + 1), g(n + 1);\n        \n        for (int i = 1; i <= n; ++i) {\n            while (i - opt.front() > maxBoxes || W[i] - W[opt.front()] > maxWeight) {\n                opt.pop_front();\n            }\n            \n            f[i] = g[opt.front()] + neg[i] + 2;\n            \n            if (i != n) {\n                g[i] = f[i] - neg[i + 1];\n                while (!opt.empty() && g[i] <= g[opt.back()]) {\n                    opt.pop_back();\n                }\n                opt.push_back(i);\n            }\n        }\n        \n        return f[n];\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int boxDelivering(int[][] boxes, int portsCount, int maxBoxes, int maxWeight) {\n        int n = boxes.length;\n        int[] p = new int[n + 1];\n        int[] w = new int[n + 1];\n        int[] neg = new int[n + 1];\n        long[] W = new long[n + 1];\n        for (int i = 1; i <= n; ++i) {\n            p[i] = boxes[i - 1][0];\n            w[i] = boxes[i - 1][1];\n            if (i > 1) {\n                neg[i] = neg[i - 1] + (p[i - 1] != p[i] ? 1 : 0);\n            }\n            W[i] = W[i - 1] + w[i];\n        }\n\n        Deque<Integer> opt = new ArrayDeque<Integer>();\n        opt.offerLast(0);\n        int[] f = new int[n + 1];\n        int[] g = new int[n + 1];\n\n        for (int i = 1; i <= n; ++i) {\n            while (i - opt.peekFirst() > maxBoxes || W[i] - W[opt.peekFirst()] > maxWeight) {\n                opt.pollFirst();\n            }\n\n            f[i] = g[opt.peekFirst()] + neg[i] + 2;\n\n            if (i != n) {\n                g[i] = f[i] - neg[i + 1];\n                while (!opt.isEmpty() && g[i] <= g[opt.peekLast()]) {\n                    opt.pollLast();\n                }\n                opt.offerLast(i);\n            }\n        }\n\n        return f[n];\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def boxDelivering(self, boxes: List[List[int]], portsCount: int, maxBoxes: int, maxWeight: int) -> int:\n        def getArray() -> List[int]:\n            return [0] * (n + 1)\n        \n        n = len(boxes)\n        p, w, neg, W = getArray(), getArray(), getArray(), getArray()\n\n        for i in range(1, n + 1):\n            p[i], w[i] = boxes[i - 1]\n            if i > 1:\n                neg[i] = neg[i - 1] + (p[i - 1] != p[i])\n            W[i] = W[i - 1] + w[i]\n        \n        opt = deque([0])\n        f, g = getArray(), getArray()\n        \n        for i in range(1, n + 1):\n            while i - opt[0] > maxBoxes or W[i] - W[opt[0]] > maxWeight:\n                opt.popleft()\n            \n            f[i] = g[opt[0]] + neg[i] + 2\n            \n            if i != n:\n                g[i] = f[i] - neg[i + 1]\n                while opt and g[i] <= g[opt[-1]]:\n                    opt.pop()\n                opt.append(i)\n        \n        return f[n]\n```\n\n```C [sol1-C]\ntypedef struct {\n    int *elements;\n    int rear, front;\n    int capacity;\n} MyCircularDeque;\n\nMyCircularDeque* myCircularDequeCreate(int k) {\n    MyCircularDeque *obj = (MyCircularDeque *)malloc(sizeof(MyCircularDeque));\n    obj->capacity = k + 1;\n    obj->rear = obj->front = 0;\n    obj->elements = (int *)malloc(sizeof(int) * obj->capacity);\n    return obj;\n}\n\nbool myCircularDequeInsertFront(MyCircularDeque* obj, int value) {\n    if ((obj->rear + 1) % obj->capacity == obj->front) {\n        return false;\n    }\n    obj->front = (obj->front - 1 + obj->capacity) % obj->capacity;\n    obj->elements[obj->front] = value;\n    return true;\n}\n\nbool myCircularDequeInsertLast(MyCircularDeque* obj, int value) {\n    if ((obj->rear + 1) % obj->capacity == obj->front) {\n        return false;\n    }\n    obj->elements[obj->rear] = value;\n    obj->rear = (obj->rear + 1) % obj->capacity;\n    return true;\n}\n\nbool myCircularDequeDeleteFront(MyCircularDeque* obj) {\n    if (obj->rear == obj->front) {\n        return false;\n    }\n    obj->front = (obj->front + 1) % obj->capacity;\n    return true;\n}\n\nbool myCircularDequeDeleteLast(MyCircularDeque* obj) {\n    if (obj->rear == obj->front) {\n        return false;\n    }\n    obj->rear = (obj->rear - 1 + obj->capacity) % obj->capacity;\n    return true;\n}\n\nint myCircularDequeGetFront(MyCircularDeque* obj) {\n    if (obj->rear == obj->front) {\n        return -1;\n    }\n    return obj->elements[obj->front];\n}\n\nint myCircularDequeGetRear(MyCircularDeque* obj) {\n    if (obj->rear == obj->front) {\n        return -1;\n    }\n    return obj->elements[(obj->rear - 1 + obj->capacity) % obj->capacity];\n}\n\nbool myCircularDequeIsEmpty(MyCircularDeque* obj) {\n    return obj->rear == obj->front;\n}\n\nbool myCircularDequeIsFull(MyCircularDeque* obj) {\n    return (obj->rear + 1) % obj->capacity == obj->front;\n}\n\nvoid myCircularDequeFree(MyCircularDeque* obj) {\n    free(obj->elements);\n    free(obj);\n}\n\nint boxDelivering(int** boxes, int boxesSize, int* boxesColSize, int portsCount, int maxBoxes, int maxWeight) {\n    int n = boxesSize;\n    int p[n + 1], w[n + 1], neg[n + 1];\n    long long W[n + 1];\n    memset(neg, 0, sizeof(neg));\n    memset(W, 0, sizeof(W));\n    for (int i = 1; i <= n; ++i) {\n        p[i] = boxes[i - 1][0];\n        w[i] = boxes[i - 1][1];\n        if (i > 1) {\n            neg[i] = neg[i - 1] + (p[i - 1] != p[i]);\n        }\n        W[i] = W[i - 1] + w[i];\n    }\n    \n    int f[n + 1], g[n + 1];    \n    memset(f, 0, sizeof(f));\n    memset(g, 0, sizeof(g));\n    MyCircularDeque *opt =  myCircularDequeCreate(n + 1);\n    myCircularDequeInsertLast(opt, 0);\n    for (int i = 1; i <= n; ++i) {\n        while (i - myCircularDequeGetFront(opt) > maxBoxes || \n               W[i] - W[myCircularDequeGetFront(opt)] > maxWeight) {\n            myCircularDequeDeleteFront(opt);\n        }\n        \n        f[i] = g[myCircularDequeGetFront(opt)] + neg[i] + 2;\n        if (i != n) {\n            g[i] = f[i] - neg[i + 1];\n            while (!myCircularDequeIsEmpty(opt) && g[i] <= g[myCircularDequeGetRear(opt)]) {\n                myCircularDequeDeleteLast(opt);\n            }\n            myCircularDequeInsertLast(opt, i);\n        }\n    }\n    myCircularDequeFree(opt);\n    return f[n];\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar boxDelivering = function(boxes, portsCount, maxBoxes, maxWeight) {\n    const n = boxes.length;\n    const p = new Array(n + 1).fill(0);\n    const w = new Array(n + 1).fill(0);\n    const neg = new Array(n + 1).fill(0);\n    const W = new Array(n + 1).fill(0);\n    for (let i = 1; i <= n; ++i) {\n        p[i] = boxes[i - 1][0];\n        w[i] = boxes[i - 1][1];\n        if (i > 1) {\n            neg[i] = neg[i - 1] + (p[i - 1] != p[i] ? 1 : 0);\n        }\n        W[i] = W[i - 1] + w[i];\n    }\n\n    const opt = [0];\n    const f = new Array(n + 1).fill(0);\n    const g = new Array(n + 1).fill(0);\n    for (let i = 1; i <= n; ++i) {\n        while (i - opt[0] > maxBoxes || W[i] - W[opt[0]] > maxWeight) {\n            opt.shift();\n        }\n\n        f[i] = g[opt[0]] + neg[i] + 2;\n\n        if (i !== n) {\n            g[i] = f[i] - neg[i + 1];\n            while (opt.length && g[i] <= g[opt[opt.length - 1]]) {\n                opt.pop();\n            }\n            opt.push(i);\n        }\n    }\n\n    return f[n];\n};\n```\n\n```go [sol1-Golang]\nfunc boxDelivering(boxes [][]int, portsCount int, maxBoxes int, maxWeight int) int {\n    n := len(boxes)\n    p := make([]int, n+1)\n    w := make([]int, n+1)\n    neg := make([]int, n+1)\n    W := make([]int, n+1)\n    for i := 1; i <= n; i++ {\n        p[i] = boxes[i-1][0]\n        w[i] = boxes[i-1][1]\n        if i > 1 {\n            neg[i] = neg[i-1]\n            if p[i-1] != p[i] {\n                neg[i]++\n            }\n        }\n        W[i] = W[i-1] + w[i]\n    }\n\n    opt := []int{0}\n    f := make([]int, n+1)\n    g := make([]int, n+1)\n\n    for i := 1; i <= n; i++ {\n        for i-opt[0] > maxBoxes || W[i]-W[opt[0]] > maxWeight {\n            opt = opt[1:]\n        }\n\n        f[i] = g[opt[0]] + neg[i] + 2\n\n        if i != n {\n            g[i] = f[i] - neg[i+1]\n            for len(opt) > 0 && g[i] <= g[opt[len(opt)-1]] {\n                opt = opt[:len(opt)-1]\n            }\n            opt = append(opt, i)\n        }\n    }\n\n    return f[n]\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是数组 $\\textit{boxes}$ 的长度。\n\n- 空间复杂度：$O(n)$，即为动态规划的数组 $f$ 和 $g$，单调队列以及前缀和数组需要使用的空间。",
+            "slateValue": "",
+            "slug": "cong-cang-ku-dao-ma-tou-yun-shu-xiang-zi-4uya",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "chC2lj",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 55,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 4,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 3,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Queue",
+                    "nameTranslated": "队列",
+                    "slug": "queue",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Prefix Sum",
+                    "nameTranslated": "前缀和",
+                    "slug": "prefix-sum",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Monotonic Queue",
+                    "nameTranslated": "单调队列",
+                    "slug": "monotonic-queue",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2022-12-04T09:32:14.324586+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 + 单调队列优化\n前言\n为了叙述方便，我们记箱子的数量为 n，它们的目的地分别为 p_1, \\cdots, p_n，重量分别为 w_1, \\cdots, w_n。\n记 W_i 表示 w 的前缀和，即：\nW_i = \\left\\{\n\\begin{aligned}\n& 0, && i = 0 \\\\\n&",
+            "topic": {
+                "id": 2005717,
+                "subscribed": false,
+                "commentCount": 74,
+                "viewCount": 7634,
+                "post": {
+                    "id": 3859862,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 66,
+            "isEditorsPick": false,
+            "hitCount": 14992,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "delivering-boxes-from-storage-to-ports",
+                "questionFrontendId": "1687"
+            },
+            "next": {
+                "slug": "cong-cang-ku-dao-ma-tou-yun-shu-xiang-zi-dqnq",
+                "title": "从仓库到码头运输箱子"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,150 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "gqdvNF",
+            "title": "划分数组得到最小的值之和",
+            "content": "#### 方法一：深度优先搜索\n\n**思路与算法**\n\n我们使用「深度优先搜索」来解决这个这个问题，编写子函数 $\\textit{dfs}(i, j, \\textit{cur})$。\n\n其中每个状态包含三个变量，$i$ 为 $\\textit{nums}$ 中下一个元素，$j$ 为 $\\textit{andValues}$ 中下一个匹配元素，$\\textit{cur}$ 为当前子数组元素的按位与运算结果。\n\n在每一次搜索中，我们计算更新 $\\textit{cur}$。\n\n- 如果当前 $\\textit{cur}$ 小于 $\\textit{andValues}[j]$，则匹配失败。\n- 如果当前 $\\textit{cur}$ 大于 $\\textit{andValues}[j]$，则还需继续进行与运算，进入下一轮搜索。\n- 如果当前 $\\textit{cur}$ 等于 $\\textit{andValues}[j]$，可以继续进行与运算，也可以开始匹配 $\\textit{andValues}[j + 1]$。\n\n每次搜索，我们返回找到的最小值，并存入记忆化搜索的数组中，以避免重复计算。\n\n最后在主程序中调用，返回可能的最小子数组值之和。如果无法完成这样的划分，则返回 $-1$。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int minimumValueSum(vector<int>& nums, vector<int>& andValues) {\n        int n = nums.size(), m = andValues.size();\n        memo.resize(m * n);\n        int res = dfs(0, 0, INF, nums, andValues);\n        return res < INF ? res : -1;\n    }\n\nprivate:\n    static const int INF = (1 << 20) - 1;\n    vector<unordered_map<int, int>> memo;\n    int dfs(int i, int j, int cur, vector<int>& nums, vector<int>& andValues) {\n        int n = nums.size(), m = andValues.size(), key = i * m + j;\n        if (i == n && j == m) return 0;\n        if (i == n || j == m) return INF;\n        if (memo[key].count(cur)) return memo[key][cur];\n\n        cur &= nums[i];\n        if ((cur & andValues[j]) < andValues[j]) return INF;\n\n        int res = dfs(i + 1, j, cur, nums, andValues);\n        if (cur == andValues[j]) {\n            res = min(res, dfs(i + 1, j + 1, INF, nums, andValues) + nums[i]);\n        }\n        memo[key][cur] = res;\n        return res;\n    }\n};\n```\n\n```C [sol1-C]\nconst int INF = (1 << 20) - 1;\n\ntypedef struct {\n    int key;\n    int val;\n    UT_hash_handle hh;\n} HashItem; \n\nHashItem *hashFindItem(HashItem **obj, int key) {\n    HashItem *pEntry = NULL;\n    HASH_FIND_INT(*obj, &key, pEntry);\n    return pEntry;\n}\n\nbool hashAddItem(HashItem **obj, int key, int val) {\n    if (hashFindItem(obj, key)) {\n        return false;\n    }\n    HashItem *pEntry = (HashItem *)malloc(sizeof(HashItem));\n    pEntry->key = key;\n    pEntry->val = val;\n    HASH_ADD_INT(*obj, key, pEntry);\n    return true;\n}\n\nint hashGetItem(HashItem **obj, int key, int defaultVal) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        return defaultVal;\n    }\n    return pEntry->val;\n}\n\nvoid hashFree(HashItem **obj) {\n    HashItem *curr = NULL, *tmp = NULL;\n    HASH_ITER(hh, *obj, curr, tmp) {\n        HASH_DEL(*obj, curr);  \n        free(curr);\n    }\n}\n\nint dfs(int i, int j, int cur, const int *nums, int numsSize,  const int *andValues, int andValuesSize, HashItem **memo) {\n    int n = numsSize, m = andValuesSize, key = i * m + j;\n    if (i == n && j == m) {\n        return 0;\n    }\n    if (i == n || j == m) {\n        return INF;\n    }\n    if (hashFindItem(&memo[key], cur)) {\n        return hashGetItem(&memo[key], cur, 0);\n    }\n\n    cur &= nums[i];\n    if ((cur & andValues[j]) < andValues[j]) {\n        return INF;\n    }\n    int res = dfs(i + 1, j, cur, nums, numsSize, andValues, andValuesSize, memo);\n    if (cur == andValues[j]) {\n        res = fmin(res, dfs(i + 1, j + 1, INF, nums, numsSize, andValues, andValuesSize, memo) + nums[i]);\n    }\n    hashAddItem(&memo[key], cur, res);\n    return res;\n}\n\nint minimumValueSum(int* nums, int numsSize, int* andValues, int andValuesSize) {\n    int n = numsSize, m = andValuesSize;\n    HashItem *memo[m * n];\n    for (int i = 0; i < m * n; i++) {\n        memo[i] = NULL;\n    }\n    int res = dfs(0, 0, INF, nums, numsSize, andValues, andValuesSize, memo);\n    for (int i = 0; i < m * n; i++) {\n        hashFree(&memo[i]);\n    }\n    return res < INF ? res : -1;\n}\n```\n\n```Java [sol1-Java]\nclass Solution {\n    private static final int INF = (1 << 20) - 1;\n    private HashMap<Integer, Integer>[] memo;\n\n    public int minimumValueSum(int[] nums, int[] andValues) {\n        int n = nums.length, m = andValues.length;\n        memo = new HashMap[m * n];\n        for (int i = 0; i < m * n; ++i) {\n            memo[i] = new HashMap<Integer, Integer>();\n        }\n        int res = dfs(0, 0, INF, nums, andValues);\n        return res < INF ? res : -1;\n    }\n\n    private int dfs(int i, int j, int cur, int[] nums, int[] andValues) {\n        int n = nums.length, m = andValues.length, key = i * m + j;\n        if (i == nums.length && j == andValues.length) {\n            return 0;\n        }\n        if (i == nums.length || j == andValues.length) {\n            return INF;\n        }\n        if (memo[key].containsKey(cur)) {\n            return memo[key].get(cur);\n        }\n        cur &= nums[i];\n        if ((cur & andValues[j]) < andValues[j]) {\n            return INF;\n        }\n        int res = dfs(i + 1, j, cur, nums, andValues);\n        if (cur == andValues[j]) {\n            res = Math.min(res, dfs(i + 1, j + 1, INF, nums, andValues) + nums[i]);\n        }\n        memo[key].put(cur, res);\n        return res;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def minimumValueSum(self, nums: List[int], andValues: List[int]) -> int:\n        inf = (1 << 20) - 1\n\n        @cache\n        def dfs(i, j, cur):\n            if i == len(nums) and j == len(andValues):\n                return 0\n            if i == len(nums) or j == len(andValues):\n                return inf\n            cur &= nums[i]\n            if cur & andValues[j] < andValues[j]:\n                return inf\n            res = dfs(i + 1, j, cur)\n            if cur == andValues[j]:\n                res = min(res, dfs(i + 1, j + 1, inf) + nums[i])\n            return res\n\n        res = dfs(0, 0, inf)\n        return res if res < inf else -1\n```\n\n```JavaScript [sol1-JavaScript]\nvar minimumValueSum = function(nums, andValues) {\n    const INF = (1 << 20) - 1;\n    const n = nums.length, m = andValues.length;\n    const memo = new Array(n * m).fill(null).map(() => new Map());\n\n    function dfs(i, j, cur) {\n        const key = i * andValues.length + j;\n        if (i === nums.length && j === andValues.length) {\n            return 0;\n        }\n        if (i === nums.length || j === andValues.length) {\n            return INF;\n        }\n        if (memo[key].has(cur)) {\n            return memo[key].get(cur);\n        }\n\n        cur &= nums[i];\n        if ((cur & andValues[j]) < andValues[j]) {\n            return INF;\n        }\n        let res = dfs(i + 1, j, cur);\n        if (cur === andValues[j]) {\n            res = Math.min(res, dfs(i + 1, j + 1, INF) + nums[i]);\n        }\n        memo[key].set(cur, res);\n        return res;\n    }\n\n    const res = dfs(0, 0, INF);\n    return res < INF ? res : -1;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction minimumValueSum(nums: number[], andValues: number[]): number {\n    const INF = (1 << 20) - 1;\n    const n = nums.length, m = andValues.length;\n    const memo = new Array(n * m).fill(null).map(() => new Map());\n\n    function dfs(i, j, cur) {\n        const key = i * andValues.length + j;\n        if (i === nums.length && j === andValues.length) {\n            return 0;\n        }\n        if (i === nums.length || j === andValues.length) {\n            return INF;\n        }\n        if (memo[key].has(cur)) {\n            return memo[key].get(cur);\n        }\n\n        cur &= nums[i];\n        if ((cur & andValues[j]) < andValues[j]) {\n            return INF;\n        }\n        let res = dfs(i + 1, j, cur);\n        if (cur === andValues[j]) {\n            res = Math.min(res, dfs(i + 1, j + 1, INF) + nums[i]);\n        }\n        memo[key].set(cur, res);\n        return res;\n    }\n\n    const res = dfs(0, 0, INF);\n    return res < INF ? res : -1;\n};\n```\n\n```Go [sol1-Go]\nfunc minimumValueSum(nums []int, andValues []int) int {\n    const INF = (1 << 20) - 1\n    n := len(nums)\n    m := len(andValues)\n    memo := make([]map[int]int, n * m)\n    for i := range memo {\n        memo[i] = make(map[int]int)\n    }\n\n    var dfs func(i, j, cur int) int\n    dfs = func(i, j, cur int) int {\n        key := i * m + j\n        if i == n && j == m {\n            return 0\n        }\n        if i == n || j == m {\n            return INF\n        }\n        if val, ok := memo[key][cur]; ok {\n            return val\n        }\n\n        cur &= nums[i]\n        if cur&andValues[j] < andValues[j] {\n            return INF\n        }\n\n        res := dfs(i + 1, j, cur)\n        if cur == andValues[j] {\n            res = min(res, dfs(i + 1, j + 1, INF) + nums[i])\n        }\n        memo[key][cur] = res\n        return res\n    }\n\n    res := dfs(0, 0, INF)\n    if res < INF {\n        return res\n    }\n    return -1\n}\n```\n\n```C# [sol1-C#]\nclass Solution {\n    private static final int INF = (1 << 20) - 1;\n    private HashMap<Integer, Integer>[] memo;\n\n    public int minimumValueSum(int[] nums, int[] andValues) {\n        int n = nums.length, m = andValues.length;\n        memo = new HashMap[m * n];\n        for (int i = 0; i < m * n; ++i) {\n            memo[i] = new HashMap<Integer, Integer>();\n        }\n        int res = dfs(0, 0, INF, nums, andValues);\n        return res < INF ? res : -1;\n    }\n\n    private int dfs(int i, int j, int cur, int[] nums, int[] andValues) {\n        int n = nums.length, m = andValues.length, key = i * m + j;\n        if (i == nums.length && j == andValues.length) {\n            return 0;\n        }\n        if (i == nums.length || j == andValues.length) {\n            return INF;\n        }\n        if (memo[key].containsKey(cur)) {\n            return memo[key].get(cur);\n        }\n        cur &= nums[i];\n        if ((cur & andValues[j]) < andValues[j]) {\n            return INF;\n        }\n        int res = dfs(i + 1, j, cur, nums, andValues);\n        if (cur == andValues[j]) {\n            res = Math.min(res, dfs(i + 1, j + 1, INF, nums, andValues) + nums[i]);\n        }\n        memo[key].put(cur, res);\n        return res;\n    }\n}\n```\n\n```Rust [sol1-Rust]\nuse std::collections::HashMap;\nconst INF: i32 = (1 << 20) - 1;\n\nimpl Solution {\n    pub fn minimum_value_sum(nums: Vec<i32>, and_values: Vec<i32>) -> i32 {\n        let n = nums.len();\n        let m = and_values.len();\n        let mut memo: Vec<HashMap<i32, i32>> = vec![HashMap::new(); n * m];\n        let res = Self::dfs(0, 0, INF, &nums, &and_values, &mut memo);\n        if res < INF { res } else { -1 }\n    }\n\n    fn dfs(i: usize, j: usize, cur: i32, nums: &[i32], and_values: &[i32], memo: &mut Vec<HashMap<i32, i32>>) -> i32 {\n        let n = nums.len();\n        let m = and_values.len();\n        let key = i * m + j;\n        if i == n && j == m {\n            return 0;\n        }\n        if i == n || j == m {\n            return INF;\n        }\n\n        if let Some(&value) = memo[key].get(&cur) {\n            return value;\n        }\n\n        let new_cur = cur & nums[i];\n        if (new_cur & and_values[j]) < and_values[j] {\n            return INF;\n        }\n        let mut res = Self::dfs(i + 1, j, new_cur, nums, and_values, memo);\n        if new_cur == and_values[j] {\n            res = res.min(Self::dfs(i + 1, j + 1, INF, nums, and_values, memo) + nums[i]);\n        }\n\n        memo[key].insert(cur, res);\n        res\n    }\n}\n```\n\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\times m \\times \\log V)$，其中 $V$ 是数组 $\\textit{nums}$ 的最大值。\n\n- 空间复杂度：$O(n \\times m \\times \\log V)$。",
+            "slateValue": "",
+            "slug": "hua-fen-shu-zu-de-dao-zui-xiao-de-zhi-zh-dcik",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "gqdvNF",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 6,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Bit Manipulation",
+                    "nameTranslated": "位运算",
+                    "slug": "bit-manipulation",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Memoization",
+                    "nameTranslated": "记忆化",
+                    "slug": "memoization",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2024-08-12T01:47:48.954794+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：深度优先搜索思路与算法我们使用「深度优先搜索」来解决这个这个问题，编写子函数 dfs(i,j,cur)。其中每个状态包含三个变量，i 为 nums 中下一个元素，j 为 andValues 中下一个匹配元素，cur 为当前子数组元素的按位与运算结果。在每一次搜索中，我们计算更新 cur。\n如果当前 cur 小于",
+            "topic": {
+                "id": 2877228,
+                "subscribed": false,
+                "commentCount": 39,
+                "viewCount": 643,
+                "post": {
+                    "id": 5236357,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 30,
+            "isEditorsPick": false,
+            "hitCount": 8596,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "minimum-sum-of-values-by-dividing-array",
+                "questionFrontendId": "3117"
+            },
+            "next": {
+                "slug": "ji-yi-hua-sou-suo-jian-ji-xie-fa-by-endl-728z",
+                "title": "多维 DP：如何定义状态？（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

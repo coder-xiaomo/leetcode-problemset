@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "u9acGr",
+            "title": "魔塔游戏",
+            "content": "#### 方法一：贪心 + 优先队列\n\n**思路**\n\n我们按照原计划访问所有房间。当访问到第 $i$ 个房间时，如果生命值小于等于 $0$，那么我们必须要对房间顺序进行调整：\n\n- 显然选择第 $i$ 个房间之后的房间是没有意义的，它并不会改变当前的生命值；\n\n- 因此我们只能选择第 $i$ 个房间及之前的房间。对于所有可选的房间，无论将哪个房间调整至末尾，都不会改变最终的生命值（因为数组 $\\textit{nums}$ 的和不会变化）。由于我们希望调整的次数最少，因此应当贪心地选择最小的那个 $\\textit{nums}[j]$ 调整至末尾，使得当前的生命值尽可能高。\n\n**算法**\n\n在遍历房间的过程中，如果 $\\textit{nums}[i]$ 为负数，我们将其放入一个小根堆（优先队列）中。当计算完第 $i$ 个房间的生命值影响后，如果生命值小于等于 $0$，那么我们取出堆顶元素，表示将该房间调整至末尾，并将其补回生命值中。由于一定会从小根堆中取出一个小于等于 $\\textit{nums}[i]$ 的值，因此调整完成后，生命值一定大于 $0$。\n\n当所有房间遍历完成后，我们还需要将所有从堆中取出元素的和重新加入生命值，如果生命值小于等于 $0$，说明无解。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int magicTower(vector<int>& nums) {\n        priority_queue<int, vector<int>, greater<int>> q;\n        int ans = 0;\n        long long hp = 1, delay = 0;\n        for (int num: nums) {\n            if (num < 0) {\n                q.push(num);\n            }\n            hp += num;\n            if (hp <= 0) {\n                ++ans;\n                delay += q.top();\n                hp -= q.top();\n                q.pop();\n            }\n        }\n        hp += delay;\n        return hp <= 0 ? -1 : ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int magicTower(int[] nums) {\n        PriorityQueue<Integer> pq = new PriorityQueue<Integer>();\n        int ans = 0;\n        long hp = 1, delay = 0;\n        for (int num : nums) {\n            if (num < 0) {\n                pq.offer(num);\n            }\n            hp += num;\n            if (hp <= 0) {\n                ++ans;\n                int curr = pq.poll();\n                delay += curr;\n                hp -= curr;\n            }\n        }\n        hp += delay;\n        return hp <= 0 ? -1 : ans;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MagicTower(int[] nums) {\n        PriorityQueue<int, int> pq = new PriorityQueue<int, int>();\n        int ans = 0;\n        long hp = 1, delay = 0;\n        foreach (int num in nums) {\n            if (num < 0) {\n                pq.Enqueue(num, num);\n            }\n            hp += num;\n            if (hp <= 0) {\n                ++ans;\n                int curr = pq.Dequeue();\n                delay += curr;\n                hp -= curr;\n            }\n        }\n        hp += delay;\n        return hp <= 0 ? -1 : ans;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def magicTower(self, nums: List[int]) -> int:\n        q = list()\n        ans, hp, delay = 0, 1, 0\n        for num in nums:\n            if num < 0:\n                heapq.heappush(q, num)\n            hp += num\n            if hp <= 0:\n                ans += 1\n                delay += q[0]\n                hp -= heapq.heappop(q)\n        hp += delay\n        return -1 if hp <= 0 else ans\n```\n\n```Go [sol1-Go]\ntype PriorityQueue struct {\n    sort.IntSlice\n}\n\nfunc (pq *PriorityQueue) Less(i, j int) bool {\n    return pq.IntSlice[i] < pq.IntSlice[j]\n}\n\nfunc (pq *PriorityQueue) Push(v interface{}) {\n    pq.IntSlice = append(pq.IntSlice, v.(int))\n}\n\nfunc (pq *PriorityQueue) Pop() interface{} {\n    arr := pq.IntSlice\n    v := arr[len(arr) - 1]\n    pq.IntSlice = arr[:len(arr) - 1]\n    return v\n}\n\nfunc magicTower(nums []int) int {\n    q := &PriorityQueue{}\n    ans, hp, delay := 0, int64(1), int64(0)\n    for _, num := range nums {\n        if num < 0 {\n            heap.Push(q, num)\n        }\n        hp += int64(num)\n        if hp <= 0 {\n            ans++\n            delay += int64(q.IntSlice[0])\n            hp -= int64(heap.Pop(q).(int))\n        }\n    }\n    if hp + delay <= 0 {\n        return -1\n    }\n    return ans\n}\n```\n\n```C [sol1-C]\nvoid swap(int *nums, int i, int j) {\n    int x = nums[i];\n    nums[i] = nums[j];\n    nums[j] = x;\n}\n\nvoid down(int *nums, int size, int i) {\n    for (int k = 2 * i + 1; k < size; k = 2 * k + 1) {\n        // 父节点 (k - 1) / 2，左子节点 k，右子节点 k + 1\n        if (k + 1 < size && nums[k] > nums[k + 1]) {\n            k++;\n        }\n        if (nums[k] > nums[(k - 1) / 2]) {\n            break;\n        }\n        swap(nums, k, (k - 1) / 2);\n    }\n}\n\nvoid push(int *nums, int size, int x) {\n    nums[size] = x;\n    for (int i = size; i > 0 && nums[(i - 1) / 2] > nums[i]; i = (i - 1) / 2) {\n        swap(nums, i, (i - 1) / 2);\n    }\n}\n\nint pop(int *nums, int size) {\n    swap(nums, 0, size - 1);\n    down(nums, size - 1, 0);\n    return nums[size - 1];\n}\n\nint magicTower(int *nums, int numsSize){\n    int *q = (int *)malloc(sizeof(int) * numsSize);\n    int qn = 0;\n    int ans = 0;\n    long long hp = 1, delay = 0;\n    for (int i = 0; i < numsSize; i++) {\n        int num = nums[i];\n        if (num < 0) {\n            push(q, qn, num);\n            qn++;\n        }\n        hp += num;\n        if (hp <= 0) {\n            ans++;\n            delay += q[0];\n            hp -= pop(q, qn);\n            qn--;\n        }\n    }\n    free(q);\n    return hp + delay <= 0 ? -1 : ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar magicTower = function(nums) {\n    const q = new MinPriorityQueue();\n    let ans = 0;\n    let hp = 1, delay = 0;\n    for (const num of nums) {\n        if (num < 0) {\n            q.enqueue(num);\n        }\n        hp += num;\n        if (hp <= 0) {\n            ++ans;\n            delay += q.front().element;\n            hp -= q.front().element;\n            q.dequeue();\n        }\n    }\n    hp += delay;\n    return hp <= 0 ? -1 : ans;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction magicTower(nums: number[]): number {\n    const q = new MinPriorityQueue();\n    let ans = 0;\n    let hp = 1, delay = 0;\n    for (const num of nums) {\n        if (num < 0) {\n            q.enqueue(num);\n        }\n        hp += num;\n        if (hp <= 0) {\n            ++ans;\n            delay += q.front().element;\n            hp -= q.front().element;\n            q.dequeue();\n        }\n    }\n    hp += delay;\n    return hp <= 0 ? -1 : ans;\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log n)$。数组 $\\textit{nums}$ 中的每个元素至多进入和退出优先队列各一次，每一次优先队列操作的时间复杂度为 $O(\\log n)$。\n\n- 空间复杂度：$O(n)$，即为优先队列需要的空间。",
+            "slateValue": "",
+            "slug": "mo-ta-you-xi-by-leetcode-solution-gkmj",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "u9acGr",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 18,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Greedy",
+                    "nameTranslated": "贪心",
+                    "slug": "greedy",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Heap (Priority Queue)",
+                    "nameTranslated": "堆（优先队列）",
+                    "slug": "heap-priority-queue",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2024-02-02T02:30:32.817706+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：贪心 + 优先队列 思路 我们按照原计划访问所有房间。当访问到第 $i$ 个房间时，如果生命值小于等于 $0$，那么我们必须要对房间顺序进行调整： 显然选择第 $i$ 个房间之后的房间是没有意义的，它并不会改变当前的生命值； 因此我们只能选择第 $i$ 个房间及之前的房间。对于所有可选的房间，无论将哪个房间调整",
+            "topic": {
+                "id": 2628589,
+                "subscribed": false,
+                "commentCount": 51,
+                "viewCount": 831,
+                "post": {
+                    "id": 4856022,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 42,
+            "isEditorsPick": false,
+            "hitCount": 13399,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "p0NxJO",
+                "questionFrontendId": "LCP 30"
+            },
+            "next": {
+                "slug": "fan-hui-tan-xin-fu-ti-dan-pythonjavacgoj-hxup",
+                "title": "反悔贪心（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

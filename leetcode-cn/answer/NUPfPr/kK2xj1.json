@@ -1,0 +1,120 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "kK2xj1",
+            "title": "分割等和子集",
+            "content": "#### 前言\n\n**作者在这里希望读者认真阅读前言部分。**\n\n本题是经典的「[NP 完全问题](https://baike.baidu.com/item/NP%E5%AE%8C%E5%85%A8%E9%97%AE%E9%A2%98)」，也就是说，如果你发现了该问题的一个[多项式算法](https://baike.baidu.com/item/%E5%A4%9A%E9%A1%B9%E5%BC%8F%E7%AE%97%E6%B3%95)，那么恭喜你证明出了 P=NP，可以期待一下图灵奖了。\n\n正因如此，我们不应期望该问题有多项式时间复杂度的解法。我们能想到的，例如基于贪心算法的「将数组降序排序后，依次将每个元素添加至当前元素和较小的子集中」之类的方法都是错误的，可以轻松地举出反例。因此，我们必须尝试非多项式时间复杂度的算法，例如时间复杂度与元素大小相关的**动态规划**。\n\n#### 方法一：动态规划\n\n**思路与算法**\n\n这道题可以换一种表述：给定一个只包含正整数的非空数组 $\\textit{nums}[0]$，判断是否可以从数组中选出一些数字，使得这些数字的和等于整个数组的元素和的一半。因此这个问题可以转换成「$0-1$ 背包问题」。这道题与传统的「$0-1$ 背包问题」的区别在于，传统的「$0-1$ 背包问题」要求选取的物品的重量之和**不能超过**背包的总容量，这道题则要求选取的数字的和**恰好等于**整个数组的元素和的一半。类似于传统的「$0-1$ 背包问题」，可以使用动态规划求解。\n\n在使用动态规划求解之前，首先需要进行以下判断。\n\n- 根据数组的长度 $n$ 判断数组是否可以被划分。如果 $n<2$，则不可能将数组分割成元素和相等的两个子集，因此直接返回 $\\text{false}$。\n\n- 计算整个数组的元素和 $\\textit{sum}$ 以及最大元素 $\\textit{maxNum}$。如果 $\\textit{sum}$ 是奇数，则不可能将数组分割成元素和相等的两个子集，因此直接返回 $\\text{false}$。如果 $\\textit{sum}$ 是偶数，则令 $\\textit{target}=\\frac{\\textit{sum}}{2}$，需要判断是否可以从数组中选出一些数字，使得这些数字的和等于 $\\textit{target}$。如果 $\\textit{maxNum}>\\textit{target}$，则除了 $\\textit{maxNum}$ 以外的所有元素之和一定小于 $\\textit{target}$，因此不可能将数组分割成元素和相等的两个子集，直接返回 $\\text{false}$。\n\n创建二维数组 $\\textit{dp}$，包含 $n$ 行 $\\textit{target}+1$ 列，其中 $\\textit{dp}[i][j]$ 表示从数组的 $[0,i]$ 下标范围内选取若干个正整数（可以是 $0$ 个），是否存在一种选取方案使得被选取的正整数的和等于 $j$。初始时，$\\textit{dp}$ 中的全部元素都是 $\\text{false}$。\n\n在定义状态之后，需要考虑边界情况。以下两种情况都属于边界情况。\n\n- 如果不选取任何正整数，则被选取的正整数等于 $0$。因此对于所有 $0 \\le i < n$，都有 $\\textit{dp}[i][0]=\\text{true}$。\n\n- 当 $i==0$ 时，只有一个正整数 $\\textit{nums}[0]$ 可以被选取，因此 $\\textit{dp}[0][\\textit{nums}[0]]=\\text{true}$。\n\n对于 $i>0$ 且 $j>0$ 的情况，如何确定 $\\textit{dp}[i][j]$ 的值？需要分别考虑以下两种情况。\n\n- 如果 $j \\ge \\textit{nums}[i]$，则对于当前的数字 $\\textit{nums}[i]$，可以选取也可以不选取，两种情况只要有一个为 $\\text{true}$，就有 $\\textit{dp}[i][j]=\\text{true}$。\n   - 如果不选取 $\\textit{nums}[i]$，则 $\\textit{dp}[i][j]=\\textit{dp}[i-1][j]$；\n   - 如果选取 $\\textit{nums}[i]$，则 $\\textit{dp}[i][j]=\\textit{dp}[i-1][j-\\textit{nums}[i]]$。\n\n- 如果 $j < \\textit{nums}[i]$，则在选取的数字的和等于 $j$ 的情况下无法选取当前的数字 $\\textit{nums}[i]$，因此有 $\\textit{dp}[i][j]=\\textit{dp}[i-1][j]$。\n\n状态转移方程如下：\n\n$$\n\\textit{dp}[i][j]=\\begin{cases}\n\\textit{dp}[i-1][j]~|~\\textit{dp}[i-1][j-\\textit{nums}[i]], & j \\ge \\textit{nums}[i] \\\\\n\\textit{dp}[i-1][j], & j < \\textit{nums}[i]\n\\end{cases}\n$$\n\n最终得到 $\\textit{dp}[n-1][\\textit{target}]$ 即为答案。\n\n<![ppt1](https://assets.leetcode.cn/solution-static/jianzhi_II_101/1.png),![ppt2](https://assets.leetcode.cn/solution-static/jianzhi_II_101/2.png),![ppt3](https://assets.leetcode.cn/solution-static/jianzhi_II_101/3.png),![ppt4](https://assets.leetcode.cn/solution-static/jianzhi_II_101/4.png),![ppt5](https://assets.leetcode.cn/solution-static/jianzhi_II_101/5.png),![ppt6](https://assets.leetcode.cn/solution-static/jianzhi_II_101/6.png),![ppt7](https://assets.leetcode.cn/solution-static/jianzhi_II_101/7.png),![ppt8](https://assets.leetcode.cn/solution-static/jianzhi_II_101/8.png),![ppt9](https://assets.leetcode.cn/solution-static/jianzhi_II_101/9.png),![ppt10](https://assets.leetcode.cn/solution-static/jianzhi_II_101/10.png),![ppt11](https://assets.leetcode.cn/solution-static/jianzhi_II_101/11.png),![ppt12](https://assets.leetcode.cn/solution-static/jianzhi_II_101/12.png)>\n\n```Java [sol0-Java]\nclass Solution {\n    public boolean canPartition(int[] nums) {\n        int n = nums.length;\n        if (n < 2) {\n            return false;\n        }\n        int sum = 0, maxNum = 0;\n        for (int num : nums) {\n            sum += num;\n            maxNum = Math.max(maxNum, num);\n        }\n        if (sum % 2 != 0) {\n            return false;\n        }\n        int target = sum / 2;\n        if (maxNum > target) {\n            return false;\n        }\n        boolean[][] dp = new boolean[n][target + 1];\n        for (int i = 0; i < n; i++) {\n            dp[i][0] = true;\n        }\n        dp[0][nums[0]] = true;\n        for (int i = 1; i < n; i++) {\n            int num = nums[i];\n            for (int j = 1; j <= target; j++) {\n                if (j >= num) {\n                    dp[i][j] = dp[i - 1][j] | dp[i - 1][j - num];\n                } else {\n                    dp[i][j] = dp[i - 1][j];\n                }\n            }\n        }\n        return dp[n - 1][target];\n    }\n}\n```\n\n```C++ [sol0-C++]\nclass Solution {\npublic:\n    bool canPartition(vector<int>& nums) {\n        int n = nums.size();\n        if (n < 2) {\n            return false;\n        }\n        int sum = accumulate(nums.begin(), nums.end(), 0);\n        int maxNum = *max_element(nums.begin(), nums.end());\n        if (sum & 1) {\n            return false;\n        }\n        int target = sum / 2;\n        if (maxNum > target) {\n            return false;\n        }\n        vector<vector<int>> dp(n, vector<int>(target + 1, 0));\n        for (int i = 0; i < n; i++) {\n            dp[i][0] = true;\n        }\n        dp[0][nums[0]] = true;\n        for (int i = 1; i < n; i++) {\n            int num = nums[i];\n            for (int j = 1; j <= target; j++) {\n                if (j >= num) {\n                    dp[i][j] = dp[i - 1][j] | dp[i - 1][j - num];\n                } else {\n                    dp[i][j] = dp[i - 1][j];\n                }\n            }\n        }\n        return dp[n - 1][target];\n    }\n};\n```\n\n```JavaScript [sol0-JavaScript]\nvar canPartition = function(nums) {\n    const n = nums.length;\n    if (n < 2) {\n        return false;\n    }\n    let sum = 0, maxNum = 0;\n    for (const num of nums) {\n        sum += num;\n        maxNum = maxNum > num ? maxNum : num;\n    }\n    if (sum & 1) {\n        return false;\n    }\n    const target = Math.floor(sum / 2);\n    if (maxNum > target) {\n        return false;\n    }\n    const dp = new Array(n).fill(0).map(v => new Array(target + 1, false));\n    for (let i = 0; i < n; i++) {\n        dp[i][0] = true;\n    }\n    dp[0][nums[0]] = true;\n    for (let i = 1; i < n; i++) {\n        const num = nums[i];\n        for (let j = 1; j <= target; j++) {\n            if (j >= num) {\n                dp[i][j] = dp[i - 1][j] | dp[i - 1][j - num];\n            } else {\n                dp[i][j] = dp[i - 1][j];\n            }\n        }\n    }\n    return dp[n - 1][target];\n};\n```\n\n```Golang [sol0-Golang]\nfunc canPartition(nums []int) bool {\n    n := len(nums)\n    if n < 2 {\n        return false\n    }\n\n    sum, max := 0, 0\n    for _, v := range nums {\n        sum += v\n        if v > max {\n            max = v\n        }\n    }\n    if sum%2 != 0 {\n        return false\n    }\n\n    target := sum / 2\n    if max > target {\n        return false\n    }\n\n    dp := make([][]bool, n)\n    for i := range dp {\n        dp[i] = make([]bool, target+1)\n    }\n    for i := 0; i < n; i++ {\n        dp[i][0] = true\n    }\n    dp[0][nums[0]] = true\n    for i := 1; i < n; i++ {\n        v := nums[i]\n        for j := 1; j <= target; j++ {\n            if j >= v {\n                dp[i][j] = dp[i-1][j] || dp[i-1][j-v]\n            } else {\n                dp[i][j] = dp[i-1][j]\n            }\n        }\n    }\n    return dp[n-1][target]\n}\n```\n\n```C [sol0-C]\nbool canPartition(int* nums, int numsSize) {\n    if (numsSize < 2) {\n        return false;\n    }\n    int sum = 0, maxNum = 0;\n    for (int i = 0; i < numsSize; ++i) {\n        sum += nums[i];\n        maxNum = fmax(maxNum, nums[i]);\n    }\n    if (sum & 1) {\n        return false;\n    }\n    int target = sum / 2;\n    if (maxNum > target) {\n        return false;\n    }\n    int dp[numsSize][target + 1];\n    memset(dp, 0, sizeof(dp));\n    for (int i = 0; i < numsSize; i++) {\n        dp[i][0] = true;\n    }\n    dp[0][nums[0]] = true;\n    for (int i = 1; i < numsSize; i++) {\n        int num = nums[i];\n        for (int j = 1; j <= target; j++) {\n            if (j >= num) {\n                dp[i][j] = dp[i - 1][j] | dp[i - 1][j - num];\n            } else {\n                dp[i][j] = dp[i - 1][j];\n            }\n        }\n    }\n    return dp[numsSize - 1][target];\n}\n```\n\n```Python [sol0-Python3]\nclass Solution:\n    def canPartition(self, nums: List[int]) -> bool:\n        n = len(nums)\n        if n < 2:\n            return False\n        \n        total = sum(nums)\n        maxNum = max(nums)\n        if total & 1:\n            return False\n        \n        target = total // 2\n        if maxNum > target:\n            return False\n        \n        dp = [[False] * (target + 1) for _ in range(n)]\n        for i in range(n):\n            dp[i][0] = True\n        \n        dp[0][nums[0]] = True\n        for i in range(1, n):\n            num = nums[i]\n            for j in range(1, target + 1):\n                if j >= num:\n                    dp[i][j] = dp[i - 1][j] | dp[i - 1][j - num]\n                else:\n                    dp[i][j] = dp[i - 1][j]\n        \n        return dp[n - 1][target]\n```\n\n上述代码的空间复杂度是 $O(n \\times \\textit{target})$。但是可以发现在计算 $\\textit{dp}$ 的过程中，每一行的 $dp$ 值都只与上一行的 $dp$ 值有关，因此只需要一个一维数组即可将空间复杂度降到 $O(\\textit{target})$。此时的转移方程为：\n$$\n\\textit{dp}[j]=\\textit{dp}[j]\\ |\\ dp[j-\\textit{nums}[i]]\n$$\n且需要注意的是第二层的循环我们需要**从大到小计算**，因为如果我们从小到大更新 $\\textit{dp}$ 值，那么在计算 $\\textit{dp}[j]$ 值的时候，$\\textit{dp}[j-\\textit{nums}[i]]$ 已经是被更新过的状态，不再是上一行的 $\\textit{dp}$ 值。\n\n**代码**\n\n```Java [sol1-Java]\nclass Solution {\n    public boolean canPartition(int[] nums) {\n        int n = nums.length;\n        if (n < 2) {\n            return false;\n        }\n        int sum = 0, maxNum = 0;\n        for (int num : nums) {\n            sum += num;\n            maxNum = Math.max(maxNum, num);\n        }\n        if (sum % 2 != 0) {\n            return false;\n        }\n        int target = sum / 2;\n        if (maxNum > target) {\n            return false;\n        }\n        boolean[] dp = new boolean[target + 1];\n        dp[0] = true;\n        for (int i = 0; i < n; i++) {\n            int num = nums[i];\n            for (int j = target; j >= num; --j) {\n                dp[j] |= dp[j - num];\n            }\n        }\n        return dp[target];\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    bool canPartition(vector<int>& nums) {\n        int n = nums.size();\n        if (n < 2) {\n            return false;\n        }\n        int sum = 0, maxNum = 0;\n        for (auto& num : nums) {\n            sum += num;\n            maxNum = max(maxNum, num);\n        }\n        if (sum & 1) {\n            return false;\n        }\n        int target = sum / 2;\n        if (maxNum > target) {\n            return false;\n        }\n        vector<int> dp(target + 1, 0);\n        dp[0] = true;\n        for (int i = 0; i < n; i++) {\n            int num = nums[i];\n            for (int j = target; j >= num; --j) {\n                dp[j] |= dp[j - num];\n            }\n        }\n        return dp[target];\n    }\n};\n```\n\n```JavaScript [sol1-JavaScript]\nvar canPartition = function(nums) {\n    const n = nums.length;\n    if (n < 2) {\n        return false;\n    }\n    let sum = 0, maxNum = 0;\n    for (const num of nums) {\n        sum += num;\n        maxNum = maxNum > num ? maxNum : num;\n    }\n    if (sum & 1) {\n        return false;\n    }\n    const target = Math.floor(sum / 2);\n    if (maxNum > target) {\n        return false;\n    }\n    const dp = new Array(target + 1).fill(false);\n    dp[0] = true;\n    for (const num of nums) {\n        for (let j = target; j >= num; --j) {\n            dp[j] |= dp[j - num];\n        }\n    }\n    return dp[target];\n};\n```\n\n```Golang [sol1-Golang]\nfunc canPartition(nums []int) bool {\n    n := len(nums)\n    if n < 2 {\n        return false\n    }\n\n    sum, max := 0, 0\n    for _, v := range nums {\n        sum += v\n        if v > max {\n            max = v\n        }\n    }\n    if sum%2 != 0 {\n        return false\n    }\n\n    target := sum / 2\n    if max > target {\n        return false\n    }\n\n    dp := make([]bool, target+1)\n    dp[0] = true\n    for i := 0; i < n; i++ {\n        v := nums[i]\n        for j := target; j >= v; j-- {\n            dp[j] = dp[j] || dp[j-v]\n        }\n    }\n    return dp[target]\n}\n```\n\n```C [sol1-C]\nbool canPartition(int* nums, int numsSize) {\n    if (numsSize < 2) {\n        return false;\n    }\n    int sum = 0, maxNum = 0;\n    for (int i = 0; i < numsSize; ++i) {\n        sum += nums[i];\n        maxNum = fmax(maxNum, nums[i]);\n    }\n    if (sum & 1) {\n        return false;\n    }\n    int target = sum / 2;\n    if (maxNum > target) {\n        return false;\n    }\n    int dp[target + 1];\n    memset(dp, 0, sizeof(dp));\n    dp[0] = true;\n    for (int i = 0; i < numsSize; i++) {\n        int num = nums[i];\n        for (int j = target; j >= num; --j) {\n            dp[j] |= dp[j - num];\n        }\n    }\n    return dp[target];\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def canPartition(self, nums: List[int]) -> bool:\n        n = len(nums)\n        if n < 2:\n            return False\n        \n        total = sum(nums)\n        if total % 2 != 0:\n            return False\n        \n        target = total // 2\n        dp = [True] + [False] * target\n        for i, num in enumerate(nums):\n            for j in range(target, num - 1, -1):\n                dp[j] |= dp[j - num]\n        \n        return dp[target]\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\times \\textit{target})$，其中 $n$ 是数组的长度，$\\textit{target}$ 是整个数组的元素和的一半。需要计算出所有的状态，每个状态在进行转移时的时间复杂度为 $O(1)$。\n\n- 空间复杂度：$O(\\textit{target})$，其中 $\\textit{target}$ 是整个数组的元素和的一半。空间复杂度取决于 $\\textit{dp}$ 数组，在不进行空间优化的情况下，空间复杂度是 $O(n \\times \\textit{target})$，在进行空间优化的情况下，空间复杂度可以降到 $O(\\textit{target})$。",
+            "slateValue": "",
+            "slug": "fen-ge-deng-he-zi-ji-by-leetcode-solutio-re1t",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "kK2xj1",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 31,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-04-13T06:55:17.485191+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "前言 作者在这里希望读者认真阅读前言部分。 本题是经典的「NP 完全问题」，也就是说，如果你发现了该问题的一个多项式算法，那么恭喜你证明出了 P=NP，可以期待一下图灵奖了。 正因如此，我们不应期望该问题有多项式时间复杂度的解法。我们能想到的，例如基于贪心算法的「将数组降序排序后，依次将每个元素添加至当前元素和较小的子",
+            "topic": {
+                "id": 1417796,
+                "subscribed": false,
+                "commentCount": 54,
+                "viewCount": 8921,
+                "post": {
+                    "id": 2921570,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 104,
+            "isEditorsPick": false,
+            "hitCount": 29077,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "NUPfPr",
+                "questionFrontendId": "LCR 101"
+            },
+            "next": {
+                "slug": "by-flix-c3fv",
+                "title": "『 一文搞懂 0-1背包问题 』记忆化搜索、动态规划 + 空间优化"
+            },
+            "prev": null
+        }
+    }
+}

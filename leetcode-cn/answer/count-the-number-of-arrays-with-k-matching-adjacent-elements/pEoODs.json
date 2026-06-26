@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "pEoODs",
+            "title": "统计恰好有 K 个相等相邻元素的数组数目",
+            "content": "#### 方法一：组合数学\n\n**思路与算法**\n\n题目要求我们构造长度为 $n$ 的数组，其中每个数字都在 $[1,m]$ 中，并且恰好有 $k$ 对相邻元素相同，求可以构造多少个这样的数组。\n\n首先，长度为 $n$ 的数组中共有 $n-1$ 对相邻元素，其中需要有 $k$ 对相邻元素相同，剩下的 $n-1-k$ 对相邻元素不同。我们可以把这 $n-1-k$ 对不同的相邻元素看作隔板，将整个数组分隔为 $n-k$ 段子数组，每段子数组的元素都相同。我们可以先分隔数组，然后再填入数字。接下来计算方案数：\n\n1. 在 $n-1$ 个空位中选择 $n-1-k$ 个插入隔板，共有 $\\binom{n-1}{n-1-k}=\\binom{n-1}{k}$ 种方案。\n2. 第一段中所有元素都一样，且取值没有限制，所以第一段有 $m$ 种。\n3. 第二段以及后面的所有段需要和前一段取值不同，有 $m-1$ 种取值。共有 $n-k-1$ 段，所以有 $(m-1)^{n-k-1}$ 种。\n\n综上，根据乘法原理，答案是 $m\\times \\binom{n-1}{k}\\times (m-1)^{n-1-k}$。要计算这个式子，需要使用组合数公式 $\\binom{a}{b}=\\frac{a!}{b!\\times(a-b)!}$ 与 [线性求逆元公式](https://oi-wiki.org/math/number-theory/inverse/)，以及 [快速幂](https://oi-wiki.org/math/binary-exponentiation/)。\n\n**代码**\n\n```C++ [sol1-C++]\nconst int MOD = 1e9 + 7;\nconst int MX = 1e5;\n\nlong long fact[MX];\nlong long inv_fact[MX];\n\nclass Solution {\n    long long qpow(long long x, int n) {\n        long long res = 1;\n        while (n) {\n            if (n & 1) {\n                res = res * x % MOD;\n            }\n            x = x * x % MOD;\n            n >>= 1;\n        }\n        return res;\n    }\n\n    long long comb(int n, int m) {\n        return fact[n] * inv_fact[m] % MOD * inv_fact[n - m] % MOD;\n    }\n    void init() {\n        if (fact[0]) {\n            return;\n        }\n        fact[0] = 1;\n        for (int i = 1; i < MX; i++) {\n            fact[i] = fact[i - 1] * i % MOD;\n        }\n\n        inv_fact[MX - 1] = qpow(fact[MX - 1], MOD - 2);\n        for (int i = MX - 1; i; i--) {\n            inv_fact[i - 1] = inv_fact[i] * i % MOD;\n        }\n    }\n\npublic:\n    int countGoodArrays(int n, int m, int k) {\n        init();\n        return comb(n - 1, k) * m % MOD * qpow(m - 1, n - k - 1) % MOD;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    static final int MOD = (int)1e9 + 7;\n    static final int MX = 100000;\n    static long[] fact = new long[MX];\n    static long[] invFact = new long[MX];\n\n    static long qpow(long x, int n) {\n        long res = 1;\n        while (n > 0) {\n            if ((n & 1) == 1) {\n                res = res * x % MOD;\n            }\n            x = x * x % MOD;\n            n >>= 1;\n        }\n        return res;\n    }\n\n    static {\n        fact[0] = 1;\n        for (int i = 1; i < MX; i++) {\n            fact[i] = fact[i - 1] * i % MOD;\n        }\n        invFact[MX - 1] = qpow(fact[MX - 1], MOD - 2);\n        for (int i = MX - 1; i > 0; i--) {\n            invFact[i - 1] = invFact[i] * i % MOD;\n        }\n    }\n\n    long comb(int n, int m) {\n        return fact[n] * invFact[m] % MOD * invFact[n - m] % MOD;\n    }\n\n    public int countGoodArrays(int n, int m, int k) {\n        return (int)(comb(n - 1, k) * m % MOD * qpow(m - 1, n - k - 1) % MOD);\n    }\n}\n```\n\n```Python [sol1-Python3]\nMOD = 10**9 + 7\nMX = 10**5\n\nfact = [0] * MX\ninv_fact = [0] * MX\n\n\ndef qpow(x, n):\n    res = 1\n    while n:\n        if n & 1:\n            res = res * x % MOD\n        x = x * x % MOD\n        n >>= 1\n    return res\n\n\ndef init():\n    if fact[0] != 0:\n        return\n    fact[0] = 1\n    for i in range(1, MX):\n        fact[i] = fact[i - 1] * i % MOD\n    inv_fact[MX - 1] = qpow(fact[MX - 1], MOD - 2)\n    for i in range(MX - 1, 0, -1):\n        inv_fact[i - 1] = inv_fact[i] * i % MOD\n\n\ndef comb(n, m):\n    return fact[n] * inv_fact[m] % MOD * inv_fact[n - m] % MOD\n\n\nclass Solution:\n    def countGoodArrays(self, n: int, m: int, k: int) -> int:\n        init()\n        return comb(n - 1, k) * m % MOD * qpow(m - 1, n - k - 1) % MOD\n\n```\n\n```Go [sol1-Go]\nconst MOD = 1e9 + 7\nconst MX = 100000\n\nvar fact = make([]int64, MX)\nvar invFact = make([]int64, MX)\n\nfunc qpow(x int64, n int) int64 {\n\tres := int64(1)\n\tfor n > 0 {\n\t\tif n&1 == 1 {\n\t\t\tres = res * x % MOD\n\t\t}\n\t\tx = x * x % MOD\n\t\tn >>= 1\n\t}\n\treturn res\n}\n\nfunc initFact() {\n\tif fact[0] != 0 {\n\t\treturn\n\t}\n\tfact[0] = 1\n\tfor i := 1; i < MX; i++ {\n\t\tfact[i] = fact[i-1] * int64(i) % MOD\n\t}\n\tinvFact[MX-1] = qpow(fact[MX-1], MOD-2)\n\tfor i := MX - 1; i > 0; i-- {\n\t\tinvFact[i-1] = invFact[i] * int64(i) % MOD\n\t}\n}\n\nfunc comb(n, m int) int64 {\n\treturn fact[n] * invFact[m] % MOD * invFact[n-m] % MOD\n}\n\nfunc countGoodArrays(n, m, k int) int {\n\tinitFact()\n\treturn int(comb(n-1, k) * int64(m) % MOD * qpow(int64(m-1), n-k-1) % MOD)\n}\n```\n\n```C [sol1-C]\nconst int MOD = 1000000007;\nconst int MX = 100000;\n\nlong long fact[100000];\nlong long inv_fact[100000];\n\nlong long qpow(long long x, int n) {\n    long long res = 1;\n    while (n) {\n        if (n & 1) {\n            res = res * x % MOD;\n        }\n        x = x * x % MOD;\n        n >>= 1;\n    }\n    return res;\n}\n\nvoid init() {\n    if (fact[0]) {\n        return;\n    }\n    fact[0] = 1;\n    for (int i = 1; i < MX; i++) {\n        fact[i] = fact[i - 1] * i % MOD;\n    }\n    inv_fact[MX - 1] = qpow(fact[MX - 1], MOD - 2);\n    for (int i = MX - 1; i > 0; i--) {\n        inv_fact[i - 1] = inv_fact[i] * i % MOD;\n    }\n}\n\nlong long comb(int n, int m) {\n    return fact[n] * inv_fact[m] % MOD * inv_fact[n - m] % MOD;\n}\n\nint countGoodArrays(int n, int m, int k) {\n    init();\n    return comb(n - 1, k) * m % MOD * qpow(m - 1, n - k - 1) % MOD;\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    const int MOD = 1_000_000_007;\n    const int MX = 100000;\n    static long[] fact = new long[MX];\n    static long[] invFact = new long[MX];\n\n    long qpow(long x, int n) {\n        long res = 1;\n        while (n > 0) {\n            if ((n & 1) == 1) {\n                res = res * x % MOD;\n            }\n            x = x * x % MOD;\n            n >>= 1;\n        }\n        return res;\n    }\n\n    void init() {\n        if (fact[0] != 0) {\n            return;\n        }\n        fact[0] = 1;\n        for (int i = 1; i < MX; i++) {\n            fact[i] = fact[i - 1] * i % MOD;\n        }\n        invFact[MX - 1] = qpow(fact[MX - 1], MOD - 2);\n        for (int i = MX - 1; i > 0; i--) {\n            invFact[i - 1] = invFact[i] * i % MOD;\n        }\n    }\n\n    long comb(int n, int m) {\n        return fact[n] * invFact[m] % MOD * invFact[n - m] % MOD;\n    }\n\n    public int CountGoodArrays(int n, int m, int k) {\n        init();\n        return (int)(comb(n - 1, k) * m % MOD * qpow(m - 1, n - k - 1) % MOD);\n    }\n}\n```\n\n```JavaScript [sol1-JavaScript]\nconst MOD = BigInt(1e9 + 7);\nconst MX = 100000;\nconst fact = Array(MX).fill(0n);\nconst invFact = Array(MX).fill(0n);\n\nfunction qpow(x, n) {\n    x = BigInt(x);\n    n = BigInt(n);\n    let res = 1n;\n    while (n > 0n) {\n        if (n & 1n) {\n            res = res * x % MOD;\n        }\n        x = x * x % MOD;\n        n >>= 1n;\n    }\n    return res;\n}\n\nfunction init() {\n    if (fact[0] != 0) {\n        return;\n    }\n    fact[0] = 1n;\n    for (let i = 1; i < MX; i++) {\n        fact[i] = fact[i - 1] * BigInt(i) % MOD;\n    }\n    invFact[MX - 1] = qpow(fact[MX - 1], MOD - 2n);\n    for (let i = MX - 2; i >= 0; i--) {\n        invFact[i] = invFact[i + 1] * BigInt(i + 1) % MOD;\n    }\n}\n\nfunction comb(n, m) {\n    if (m < 0 || m > n) {\n        return 0n;\n    }\n    return fact[n] * invFact[m] % MOD * invFact[n - m] % MOD;\n}\n\nfunction countGoodArrays(n, m, k) {\n    init();\n    let res = comb(n - 1, k);\n    res = res * BigInt(m) % MOD;\n    res = res * qpow(m - 1, n - k - 1) % MOD;\n    return Number(res);\n}\n```\n\n```TypeScript [sol1-TypeScript]\nconst MOD: bigint = BigInt(1e9 + 7);\nconst MX: number = 100000;\n\nconst fact: bigint[] = new Array(MX).fill(0n);\nconst invFact: bigint[] = new Array(MX).fill(0n);\nlet built: boolean = false;\n\nfunction qpow(x: number | bigint, n: number | bigint): bigint {\n    x = BigInt(x);\n    n = BigInt(n);\n    let res = 1n;\n    while (n > 0n) {\n        if (n & 1n) {\n            res = (res * x) % MOD;\n        }\n        x = (x * x) % MOD;\n        n >>= 1n;\n    }\n    return res;\n}\n\nfunction init(): void {\n    if (fact[0] != 0n) {\n        return;\n    }\n    fact[0] = 1n;\n    for (let i = 1; i < MX; i++) {\n        fact[i] = (fact[i - 1] * BigInt(i)) % MOD;\n    }\n\n    invFact[MX - 1] = qpow(fact[MX - 1], MOD - 2n);\n    for (let i = MX - 2; i >= 0; i--) {\n        invFact[i] = (invFact[i + 1] * BigInt(i + 1)) % MOD;\n    }\n}\n\nfunction comb(n: number, m: number): bigint {\n    if (m < 0 || m > n) {\n        return 0n;\n    }\n    return fact[n] * invFact[m] % MOD * invFact[n - m] % MOD;\n}\n\nfunction countGoodArrays(n: number, m: number, k: number): number {\n    init();\n    let res = comb(n - 1, k);\n    res = (res * BigInt(m)) % MOD;\n    res = (res * qpow(m - 1, n - k - 1)) % MOD;\n    return Number(res);\n}\n```\n\n```Rust [sol1-Rust]\nconst MOD: i64 = 1_000_000_007;\nconst MX: usize = 100000;\n\nstatic mut FACT: [i64; MX] = [0; MX];\nstatic mut INV_FACT: [i64; MX] = [0; MX];\n\nfn qpow(mut x: i64, mut n: i32) -> i64 {\n    let mut res = 1;\n    while n > 0 {\n        if n & 1 == 1 {\n            res = res * x % MOD;\n        }\n        x = x * x % MOD;\n        n >>= 1;\n    }\n    res\n}\n\nfn init() {\n    unsafe {\n        if FACT[0] != 0 { return; }\n        FACT[0] = 1;\n        for i in 1..MX {\n            FACT[i] = FACT[i - 1] * (i as i64) % MOD;\n        }\n        INV_FACT[MX - 1] = qpow(FACT[MX - 1], MOD as i32 - 2);\n        for i in (1..MX).rev() {\n            INV_FACT[i - 1] = INV_FACT[i] * (i as i64) % MOD;\n        }\n    }\n}\n\nfn comb(n: usize, m: usize) -> i64 {\n    unsafe {\n        FACT[n] * INV_FACT[m] % MOD * INV_FACT[n - m] % MOD\n    }\n}\n\nimpl Solution {\n    pub fn count_good_arrays(n: i32, m: i32, k: i32) -> i32 {\n        init();\n        (comb((n - 1)as usize, k as usize) * m as i64 % MOD * qpow((m - 1) as i64, (n - k - 1) as i32) % MOD) as i32\n    }\n}\n```\n\n**复杂度分析**\n\n忽略预处理的时间和空间复杂度。\n\n- 时间复杂度：$O(\\log(n-k))$。主要是快速幂所需的时间。\n- 空间复杂度：$O(1)$。",
+            "slateValue": "",
+            "slug": "tong-ji-qia-hao-you-k-ge-xiang-deng-xian-uxt4",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "pEoODs",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 5,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Combinatorics",
+                    "nameTranslated": "组合数学",
+                    "slug": "combinatorics",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2025-06-05T01:20:42.884816+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：组合数学 思路与算法 题目要求我们构造长度为 [latex] 的数组，其中每个数字都在 [latex] 中，并且恰好有 [latex] 对相邻元素相同，求可以构造多少个这样的数组。 首先，长度为 [latex] 的数组中共有 [latex] 对相邻元素，其中需要有 [latex] 对相邻元素相同，剩下的 [la",
+            "topic": {
+                "id": 3693518,
+                "subscribed": false,
+                "commentCount": 12,
+                "viewCount": 52,
+                "post": {
+                    "id": 6744939,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 22,
+            "isEditorsPick": false,
+            "hitCount": 6224,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "count-the-number-of-arrays-with-k-matching-adjacent-elements",
+                "questionFrontendId": "3405"
+            },
+            "next": {
+                "slug": "chun-shu-xue-ti-pythonjavacgo-by-endless-mxj7",
+                "title": "纯数学题（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

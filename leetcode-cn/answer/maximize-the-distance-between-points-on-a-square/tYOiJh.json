@@ -1,0 +1,144 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "tYOiJh",
+            "title": "正方形上的点之间的最大距离",
+            "content": "#### 方法一：二分查找\n\n**思路与算法**\n\n这道题要求在正方形边界上选择 $k$ 个点，使得选中的点集中任意两点之间的**最小距离最大化**，经典的**最大化最小值**或**最小化最大值**问题一般都可以尝试使用二分查找。由于 $k$ 个点分布在正方形的边界上，题目给定 $k$ 的范围为: $k \\ge 4$，此时可知选中的 $k$ 个点之间的**最小**曼哈顿距离一定不会超过 $\\textit{side}$，原因分析如下：\n\n+ 假设当 $k > 4$ 时，此时 $k$ 个点无论如何分布，总会有两个点在同一条边上，此时同一条边上两个点的曼哈顿距离一定小于等于 $\\textit{side}$；\n\n+ 假设当 $k = 4$ 时，如果 $k$ 个点刚好处于正方形的四个顶点上时，此时最小的曼哈顿距离等于 $\\textit{side}$，其他情况下依然会有两个点在同一条边上，此时同一条边上的两个点的曼哈顿距离一定小于等于 $\\textit{side}$；\n\n综上，因此 $k$ 个点之间的**最小**曼哈顿距离一定不会超过 $\\textit{side}$。\n\n我们直接计算 $k$ 个点的所有曼哈顿距离似乎比较麻烦，但注意到题目要求**最小**曼哈顿距离**最大化**，因此只需要找到$k$ 个点的**最小曼哈顿**距离即可，而不必求出所有点的曼哈顿距离。我们注意到在选中的 $k$ 个点集中，**最小曼哈顿距离**的两个点一定在同一条边上或者相邻的边上，如果两点出现在对边（左右、上下）上，此时两点的曼哈顿距离一定大于等于 $\\textit{side}$，此时可以忽略。为了计算方便，在寻找 $k$ 个点的最小曼哈顿时，可将正方形进行按照左、上、右、下顺时针方向进行折叠展开，此时四条边可以按照顺序展开的原因如下：\n\n+ 答案一定不超过 $\\textit{side}$；\n\n+ 如果两个点原来在同一条边上或者相邻的边上，展开之后它们的距离等于原先的曼哈顿距离；\n\n+ 如果两个点原来在对边上，折叠之后它们的距离大于原先的曼哈顿距离，但原先处于对边上两点的曼哈顿距离至少为 $\\textit{side}$，不影响答案；\n\n我们将 $k$ 个点转换为一维，此时最小曼哈顿距离一定在展开后的一维相邻（考虑循环）两个点之间，可以用反证法来证明，在此不再详述。\n \n假设给定的 $\\textit{side} = 2$，此时给定的 $k$ 个点为：$[[0,0],[0,1],[0,2],[1,2],[2,0],[2,2],[2,1]]$，此时在正方形上分为如下：\n\n![3](https://assets.leetcode.cn/solution-static/3464/3464_4.png)\n\n如上图所示，我们可以将正方形的边按照左、上、右、下顺时针方向进行展开，将二维正方形边界上的点映射到一维数轴上，展开规则如下：\n- 左边 $(x=0)$，距离 = $y$；\n- 上边 $(y=\\textit{side})$: 距离 = $\\textit{side} + x$；\n- 右边 $(x=\\textit{side})$: 距离 = $3 \\cdot \\textit{side} - y$；\n- 下边 $(y=0)$: 距离 = $4 \\cdot \\textit{side} - x$；\n\n展开后如下：\n\n![1](https://assets.leetcode.cn/solution-static/3464/3464_5.png)\n\n上图展开后的一维坐标为：$[0,1,2,3,4,5,6]$。如果我们将所有的点转换为一维，假定给定的距离为 $x$， 则此时问题转化为：\n\n+ 能否在一维数组 $\\textit{arr}$ 中选 $k$ 个数，且满足任意两个相邻元素相差至少为 $x$，且最后一个数和第一个数相差至多 $\\textit{side} \\cdot 4 − \\textit{x}$；\n\n+ 相差 $\\textit{side} \\cdot 4−x$ 是因为 $\\textit{arr}$ 是个环形数组，设数组第一个点为 $a$，数组最后一个点为 $b$。对于第一个点 $a$ 来说，$b$ 在循环数组中可以视作负方向上的 $b− \\textit{side} \\cdot 4$，此时要求 $a−(b− \\textit{side} \\cdot 4) \\ge x$，解得 $b−a \\le \\textit{side} \\cdot 4 − x$。\n\n我们利用二分查找，来找到**最小距离的最大值**，此时二分查找的下限为 $1$，根据前述推论，二分查找上限可设为 $\\textit{side}$，实际算法过程如下：\n\n+ 首先我们将所有二维坐标的点，按照左、上、右、下顺时针方向进行展开为一维坐标数组 $\\textit{arr}$，$\\textit{arr}$ 按照一维坐标大小进行排序；\n\n+ 其次进行二分查找，假设当前给定的距离为 $\\textit{limit}$，判定过程为：数组 $\\textit{arr}$ 从左向右开始枚举第一个数，不断向后二分查找相距至少为 $\\textit{limit}$ 的元素，即在数组中找到 $k$ 个元素，满足相邻元素之间的距离大于等于 $\\textit{limit}$，当查找到数组末尾或满足第一个数和最后一个数相差超过 $\\textit{side} \\cdot 4− \\textit{limit}$ 时则停止查找；\n\n+ 如果给定的距离 $\\textit{limit}$ 可以满足要求则提高二分查找下限，否则降低上限，直到找到目标答案为止；\n\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int maxDistance(int side, vector<vector<int>>& points, int k) {\n        vector<long long> arr;\n\n        for (auto& p : points) {\n            int x = p[0], y = p[1];\n            if (x == 0) {\n                arr.push_back(y);\n            } else if (y == side) {\n                arr.push_back(side + x);\n            } else if (x == side) {\n                arr.push_back(side * 3LL - y);\n            } else {\n                arr.push_back(side * 4LL - x);\n            }\n        }\n        sort(arr.begin(), arr.end());\n\n        auto check = [&](long long limit) -> bool {\n            for (long long start : arr) {\n                long long end = start + side * 4LL - limit;\n                long long cur = start;\n                for (int i = 0; i < k - 1; i++) {\n                    auto it = ranges::lower_bound(arr, cur + limit);\n                    if (it == arr.end() || *it > end) {\n                        cur = -1;\n                        break;\n                    }\n                    cur = *it;\n                }\n                if (cur >= 0) {\n                    return true;\n                }\n            }\n            return false;\n        };\n\n        long long lo = 1, hi = side;\n        int ans = 0;\n        while (lo <= hi) {\n            long long mid = (lo + hi) / 2;\n            if (check(mid)) {\n                lo = mid + 1;\n                ans = mid;\n            } else {\n                hi = mid - 1;\n            }\n        }\n\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int maxDistance(int side, int[][] points, int k) {\n        List<Long> arr = new ArrayList<>();\n        \n        for (int[] p : points) {\n            int x = p[0], y = p[1];\n            if (x == 0) {\n                arr.add((long) y);\n            } else if (y == side) {\n                arr.add((long) side + x);\n            } else if (x == side) {\n                arr.add(side * 3L - y);\n            } else {\n                arr.add(side * 4L - x);\n            }\n        }\n        Collections.sort(arr);\n        \n        long lo = 1, hi = side;\n        int ans = 0;\n        \n        while (lo <= hi) {\n            long mid = (lo + hi) / 2;\n            if (check(arr, side, k, mid)) {\n                lo = mid + 1;\n                ans = (int) mid;\n            } else {\n                hi = mid - 1;\n            }\n        }\n        return ans;\n    }\n    \n    private boolean check(List<Long> arr, int side, int k, long limit) {\n        long perimeter = side * 4L;\n        \n        for (long start : arr) {\n            long end = start + perimeter - limit;\n            long cur = start;\n            \n            for (int i = 0; i < k - 1; i++) {\n                int idx = lowerBound(arr, cur + limit);\n                if (idx == arr.size() || arr.get(idx) > end) {\n                    cur = -1;\n                    break;\n                }\n                cur = arr.get(idx);\n            }\n            \n            if (cur >= 0) {\n                return true;\n            }\n        }\n        return false;\n    }\n    \n    private int lowerBound(List<Long> arr, long target) {\n        int left = 0, right = arr.size();\n        while (left < right) {\n            int mid = left + (right - left) / 2;\n            if (arr.get(mid) < target) {\n                left = mid + 1;\n            } else {\n                right = mid;\n            }\n        }\n        return left;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MaxDistance(int side, int[][] points, int k) {\n        List<long> arr = new List<long>();\n        \n        foreach (var p in points) {\n            int x = p[0], y = p[1];\n            if (x == 0) {\n                arr.Add(y);\n            } else if (y == side) {\n                arr.Add(side + (long)x);\n            } else if (x == side) {\n                arr.Add(side * 3L - y);\n            } else {\n                arr.Add(side * 4L - x);\n            }\n        }\n        arr.Sort();\n        \n        long lo = 1, hi = side;\n        int ans = 0;\n        \n        while (lo <= hi) {\n            long mid = (lo + hi) / 2;\n            if (Check(arr, side, k, mid)) {\n                lo = mid + 1;\n                ans = (int)mid;\n            } else {\n                hi = mid - 1;\n            }\n        }\n        return ans;\n    }\n    \n    private bool Check(List<long> arr, int side, int k, long limit) {\n        long perimeter = side * 4L;\n        \n        foreach (long start in arr) {\n            long end = start + perimeter - limit;\n            long cur = start;\n            \n            for (int i = 0; i < k - 1; i++) {\n                int idx = LowerBound(arr, cur + limit);\n                if (idx == arr.Count || arr[idx] > end) {\n                    cur = -1;\n                    break;\n                }\n                cur = arr[idx];\n            }\n            \n            if (cur >= 0) {\n                return true;\n            }\n        }\n        return false;\n    }\n    \n    private int LowerBound(List<long> arr, long target) {\n        int left = 0, right = arr.Count;\n        while (left < right) {\n            int mid = left + (right - left) / 2;\n            if (arr[mid] < target) {\n                left = mid + 1;\n            } else {\n                right = mid;\n            }\n        }\n        return left;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc maxDistance(side int, points [][]int, k int) int {\n\tarr := make([]int64, 0, len(points))\n\t\n\tfor _, p := range points {\n\t\tx, y := p[0], p[1]\n\t\tif x == 0 {\n\t\t\tarr = append(arr, int64(y))\n\t\t} else if y == side {\n\t\t\tarr = append(arr, int64(side + x))\n\t\t} else if x == side {\n\t\t\tarr = append(arr, int64(side * 3 - y))\n\t\t} else {\n\t\t\tarr = append(arr, int64(side * 4 - x))\n\t\t}\n\t}\n\tsort.Slice(arr, func(i, j int) bool { return arr[i] < arr[j] })\n\t\n\tlo, hi := int64(1), int64(side)\n\tans := 0\n\tfor lo <= hi {\n\t\tmid := (lo + hi) / 2\n\t\tif check(arr, int64(side), k, mid) {\n\t\t\tlo = mid + 1\n\t\t\tans = int(mid)\n\t\t} else {\n\t\t\thi = mid - 1\n\t\t}\n\t}\n\treturn ans\n}\n\nfunc check(arr []int64, side int64, k int, limit int64) bool {\n\tperimeter := side * 4\n\t\n\tfor _, start := range arr {\n\t\tend := start + perimeter - limit\n\t\tcur := start\n\t\t\n\t\tfor i := 0; i < k-1; i++ {\n\t\t\tidx := lowerBound(arr, cur+limit)\n\t\t\tif idx == len(arr) || arr[idx] > end {\n\t\t\t\tcur = -1\n\t\t\t\tbreak\n\t\t\t}\n\t\t\tcur = arr[idx]\n\t\t}\n\t\t\n\t\tif cur >= 0 {\n\t\t\treturn true\n\t\t}\n\t}\n\treturn false\n}\n\nfunc lowerBound(arr []int64, target int64) int {\n\tleft, right := 0, len(arr)\n\tfor left < right {\n\t\tmid := left + (right - left) / 2\n\t\tif arr[mid] < target {\n\t\t\tleft = mid + 1\n\t\t} else {\n\t\t\tright = mid\n\t\t}\n\t}\n\treturn left\n}\n```\n\n```Python [sol1-Python]\nclass Solution:\n    def maxDistance(self, side: int, points: List[List[int]], k: int) -> int:\n        arr = []\n        \n        for x, y in points:\n            if x == 0:\n                arr.append(y)\n            elif y == side:\n                arr.append(side + x)\n            elif x == side:\n                arr.append(side * 3 - y)\n            else:\n                arr.append(side * 4 - x)\n        \n        arr.sort()\n        \n        def check(limit: int) -> bool:\n            perimeter = side * 4\n            for start in arr:\n                end = start + perimeter - limit\n                cur = start\n                for _ in range(k - 1):\n                    idx = bisect_left(arr, cur + limit)\n                    if idx == len(arr) or arr[idx] > end:\n                        cur = -1\n                        break\n                    cur = arr[idx]\n                if cur >= 0:\n                    return True\n            return False\n        \n        lo, hi = 1, side\n        ans = 0\n        \n        while lo <= hi:\n            mid = (lo + hi) // 2\n            if check(mid):\n                lo = mid + 1\n                ans = mid\n            else:\n                hi = mid - 1\n                \n        return ans\n```\n\n```C [sol1-C]\nint lower_bound(long long* arr, int size, long long target) {\n    int left = 0, right = size;\n    while (left < right) {\n        int mid = left + (right - left) / 2;\n        if (arr[mid] < target) {\n            left = mid + 1;\n        } else {\n            right = mid;\n        }\n    }\n    \n    return left;\n}\n\nint compare(const void* a, const void* b) {\n    long long la = *(const long long*)a;\n    long long lb = *(const long long*)b;\n    return (la > lb) - (la < lb);\n}\n\nint check(long long* arr, int size, int side, int k, long long limit) {\n    long long perimeter = side * 4LL;\n    \n    for (int i = 0; i < size; i++) {\n        long long start = arr[i];\n        long long end = start + perimeter - limit;\n        long long cur = start;\n        \n        for (int j = 0; j < k - 1; j++) {\n            int idx = lower_bound(arr, size, cur + limit);\n            if (idx == size || arr[idx] > end) {\n                cur = -1;\n                break;\n            }\n            cur = arr[idx];\n        }\n        \n        if (cur >= 0) {\n            return 1;\n        }\n    }\n    return 0;\n}\n\nint maxDistance(int side, int** points, int pointsSize, int* pointsColSize, int k) {\n    long long* arr = (long long*)malloc(pointsSize * sizeof(long long));\n    \n    for (int i = 0; i < pointsSize; i++) {\n        int x = points[i][0], y = points[i][1];\n        if (x == 0) {\n            arr[i] = y;\n        } else if (y == side) {\n            arr[i] = side + (long long)x;\n        } else if (x == side) {\n            arr[i] = side * 3LL - y;\n        } else {\n            arr[i] = side * 4LL - x;\n        }\n    }\n    \n    qsort(arr, pointsSize, sizeof(long long), compare);\n    \n    long long lo = 1, hi = side;\n    int ans = 0;\n    while (lo <= hi) {\n        long long mid = (lo + hi) / 2;\n        if (check(arr, pointsSize, side, k, mid)) {\n            lo = mid + 1;\n            ans = (int)mid;\n        } else {\n            hi = mid - 1;\n        }\n    }\n    \n    free(arr);\n    return ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar maxDistance = function(side, points, k) {\n    const arr = [];\n    \n    for (const [x, y] of points) {\n        if (x === 0) {\n            arr.push(y);\n        } else if (y === side) {\n            arr.push(side + x);\n        } else if (x === side) {\n            arr.push(side * 3 - y);\n        } else {\n            arr.push(side * 4 - x);\n        }\n    }\n    \n    arr.sort((a, b) => a - b);\n    \n    const lowerBound = (target) => {\n        let left = 0, right = arr.length;\n        while (left < right) {\n            const mid = Math.floor((left + right) / 2);\n            if (arr[mid] < target) {\n                left = mid + 1;\n            } else {\n                right = mid;\n            }\n        }\n        return left;\n    };\n    \n    const check = (limit) => {\n        const perimeter = side * 4;\n        for (const start of arr) {\n            const end = start + perimeter - limit;\n            let cur = start;\n            for (let i = 0; i < k - 1; i++) {\n                const idx = lowerBound(cur + limit);\n                if (idx === arr.length || arr[idx] > end) {\n                    cur = -1;\n                    break;\n                }\n                cur = arr[idx];\n            }\n            if (cur >= 0) return true;\n        }\n        return false;\n    };\n    \n    let lo = 1, hi = side;\n    let ans = 0;\n    \n    while (lo <= hi) {\n        const mid = Math.floor((lo + hi) / 2);\n        if (check(mid)) {\n            lo = mid + 1;\n            ans = mid;\n        } else {\n            hi = mid - 1;\n        }\n    }\n    \n    return ans;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction maxDistance(side: number, points: number[][], k: number): number {\n    const arr: number[] = [];\n    \n    for (const [x, y] of points) {\n        if (x === 0) {\n            arr.push(y);\n        } else if (y === side) {\n            arr.push(side + x);\n        } else if (x === side) {\n            arr.push(side * 3 - y);\n        } else {\n            arr.push(side * 4 - x);\n        }\n    }\n    \n    arr.sort((a, b) => a - b);\n    \n    const lowerBound = (target: number): number => {\n        let left = 0, right = arr.length;\n        while (left < right) {\n            const mid = Math.floor((left + right) / 2);\n            if (arr[mid] < target) {\n                left = mid + 1;\n            } else {\n                right = mid;\n            }\n        }\n        return left;\n    };\n    \n    const check = (limit: number): boolean => {\n        const perimeter = side * 4;\n        for (const start of arr) {\n            const end = start + perimeter - limit;\n            let cur = start;\n            for (let i = 0; i < k - 1; i++) {\n                const idx = lowerBound(cur + limit);\n                if (idx === arr.length || arr[idx] > end) {\n                    cur = -1;\n                    break;\n                }\n                cur = arr[idx];\n            }\n            if (cur >= 0) return true;\n        }\n        return false;\n    };\n    \n    let lo = 1, hi = side;\n    let ans = 0;\n    \n    while (lo <= hi) {\n        const mid = Math.floor((lo + hi) / 2);\n        if (check(mid)) {\n            lo = mid + 1;\n            ans = mid;\n        } else {\n            hi = mid - 1;\n        }\n    }\n    \n    return ans;\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn max_distance(side: i32, points: Vec<Vec<i32>>, k: i32) -> i32 {\n        let mut arr: Vec<i64> = Vec::new();\n        \n        for p in points {\n            let x = p[0];\n            let y = p[1];\n            if x == 0 {\n                arr.push(y as i64);\n            } else if y == side {\n                arr.push(side as i64 + x as i64);\n            } else if x == side {\n                arr.push(side as i64 * 3 - y as i64);\n            } else {\n                arr.push(side as i64 * 4 - x as i64);\n            }\n        }\n        \n        arr.sort_unstable();\n        \n        let lower_bound = |target: i64| -> usize {\n            let mut left = 0;\n            let mut right = arr.len();\n            while left < right {\n                let mid = left + (right - left) / 2;\n                if arr[mid] < target {\n                    left = mid + 1;\n                } else {\n                    right = mid;\n                }\n            }\n            left\n        };\n        \n        let check = |limit: i64| -> bool {\n            let perimeter = side as i64 * 4;\n            for &start in &arr {\n                let end = start + perimeter - limit;\n                let mut cur = start;\n                for _ in 0..(k - 1) {\n                    let idx = lower_bound(cur + limit);\n                    if idx == arr.len() || arr[idx] > end {\n                        cur = -1;\n                        break;\n                    }\n                    cur = arr[idx];\n                }\n                if cur >= 0 {\n                    return true;\n                }\n            }\n            false\n        };\n        \n        let mut lo = 1i64;\n        let mut hi = side as i64;\n        let mut ans = 0;\n        \n        while lo <= hi {\n            let mid = (lo + hi) / 2;\n            if check(mid) {\n                lo = mid + 1;\n                ans = mid as i32;\n            } else {\n                hi = mid - 1;\n            }\n        }\n        \n        ans\n    }\n}\n```\n\n\n**复杂度分析**\n\n- 时间复杂度：$O(nk \\cdot \\log \\textit{side} \\cdot \\log n)$，其中 $n$ 表示给定数组 $\\textit{points}$ 的长度，$k$ 表示给定整数 $k$，$\\textit{side}$ 表示正方形的边长。$n$ 个点的排序时间复杂度为 $O(n \\log n)$，每次二分查找的时间复杂度为 $O(nk \\cdot \\log n)$，最多进行 $\\log \\textit{side}$ 次二分查找，因此二分查找的总时间复杂度为 $O(nk \\cdot \\log \\textit{side} \\cdot \\log n)$，总的时间复杂度为 $O(n \\log n + nk \\cdot \\log \\textit{side} \\cdot \\log n) = O(nk \\cdot \\log \\textit{side} \\cdot \\log n)$。\n\n- 空间复杂度：$O(n)$，其中 $n$ 表示给定数组 $\\textit{points}$ 的长度。存储所有坐标的长度需要 $n$ 的数组。",
+            "slateValue": "",
+            "slug": "zheng-fang-xing-shang-de-dian-zhi-jian-d-vqlb",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "tYOiJh",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 7,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Sorting",
+                    "nameTranslated": "排序",
+                    "slug": "sorting",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2026-04-23T03:44:00.376099+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：二分查找 思路与算法 这道题要求在正方形边界上选择 [latex] 个点，使得选中的点集中任意两点之间的最小距离最大化，经典的最大化最小值或最小化最大值问题一般都可以尝试使用二分查找。由于 [latex] 个点分布在正方形的边界上，题目给定 [latex] 的范围为: [latex]，此时可知选中的 [late",
+            "topic": {
+                "id": 3957467,
+                "subscribed": false,
+                "commentCount": 4,
+                "viewCount": 12,
+                "post": {
+                    "id": 7212732,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 16,
+            "isEditorsPick": false,
+            "hitCount": 3675,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "maximize-the-distance-between-points-on-a-square",
+                "questionFrontendId": "3464"
+            },
+            "next": {
+                "slug": "zhuan-cheng-qie-bi-xue-fu-ju-chi-er-fen-nthy1",
+                "title": "五种方法：二分套二分 / k 指针 / 倍增 / DFS / 动态规划（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

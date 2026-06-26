@@ -1,0 +1,126 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "sHpinm",
+            "title": "带传送的最小路径成本",
+            "content": "#### 方法一：动态规划\n\n根据题意，我们使用 $\\textit{costs}[t][i][j]$ 表示恰好使用 $t$ 次传送，从 $(i, j)$ 移动到 $(m - 1, n - 1)$ 的最小移动总成本。考虑从 $(i, j)$ 首次移动的两种情况：\n\n1. 不使用传送，可以从 $(i, j)$ 移动到 $(i + 1, j)$ 或 $(i, j + 1)$，转移方程为：\n\n$$\n\\textit{costs}[t][i][j] = \\min(\\textit{costs}[t][i + 1][j] + \\textit{grid}[i + 1][j], \\textit{costs}[t][i][j + 1] + \\textit{grid}[i][j + 1])\n$$\n\n2. 使用传送，可以传送到所有 $(x, y)$ 且 $\\textit{grid}[x][y] \\le \\textit{grid}[i][j]$，转移方程为：\n\n$$\n\\textit{costs}[t][i][j] = \\min_{\\textit{grid}[x][y] \\le \\textit{grid}[i][j]} \\textit{costs}[t - 1][x][y]\n$$\n\n第二种情况需要计算所有 $(x, y)$ 且 $\\textit{grid}[x][y] \\le \\textit{grid}[i][j]$ 在 $\\textit{costs}[t - 1]$ 上的最小值 $T(t - 1, i, j)$。\n\n因此，我们使用 $\\textit{points}$ 存放所有单元格坐标，并按 $\\textit{grid}$ 值升序排序。遍历 $\\textit{points}$，用双指针记录值相同的区间 $[j, i]$，并维护已遍历单元格在 $\\textit{costs}[t - 1]$ 的最小值 $\\textit{minCost}$，然后更新区间内所有单元格 $\\textit{points}[r] = (x_r, y_r)$ 的 $T(t - 1, x_r, y_r)$ 值为 $\\textit{minCost}$。\n\n由于 $\\textit{costs}[t]$ 只依赖 $\\textit{costs}[t - 1]$，可以省略 $t$ 这一维度，直接用二维数组 $\\textit{costs}[i][j]$，降低空间复杂度。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int minCost(vector<vector<int>>& grid, int k) {\n        int m = grid.size(), n = grid[0].size();\n        vector<pair<int, int>> points;\n        for (int i = 0; i < m; i++) {\n            for (int j = 0; j < n; j++) {\n                points.push_back({i, j});\n            }\n        }\n        sort(points.begin(), points.end(), [&](const auto& p1, const auto& p2) -> bool {\n            return grid[p1.first][p1.second] < grid[p2.first][p2.second];\n        });\n        vector<vector<int>> costs(m, vector<int>(n, INT_MAX));\n        for (int t = 0; t <= k; t++) {\n            int minCost = INT_MAX;\n            for (int i = 0, j = 0; i < points.size(); i++) {\n                minCost = min(minCost, costs[points[i].first][points[i].second]);\n                if (i + 1 < points.size() && grid[points[i].first][points[i].second] == grid[points[i + 1].first][points[i + 1].second]) {\n                    continue;\n                }\n                for (int r = j; r <= i; r++) {\n                    costs[points[r].first][points[r].second] = minCost;\n                }\n                j = i + 1;\n            }\n            for (int i = m - 1; i >= 0; i--) {\n                for (int j = n - 1; j >= 0; j--) {\n                    if (i == m - 1 && j == n - 1) {\n                        costs[i][j] = 0;\n                        continue;\n                    }\n                    if (i != m - 1) {\n                        costs[i][j] = min(costs[i][j], costs[i + 1][j] + grid[i + 1][j]);\n                    }\n                    if (j != n - 1) {\n                        costs[i][j] = min(costs[i][j], costs[i][j + 1] + grid[i][j + 1]);\n                    }\n                }\n            }\n        }\n        return costs[0][0];\n    }\n};\n```\n\n```Go [sol1-Go]\nfunc minCost(grid [][]int, k int) int {\n    m, n := len(grid), len(grid[0])\n    type point struct{ x, y int }\n    points := make([]point, 0, m * n)\n    for i := 0; i < m; i++ {\n        for j := 0; j < n; j++ {\n            points = append(points, point{ i, j })\n        }\n    }\n    sort.Slice(points, func(i, j int) bool {\n        return grid[points[i].x][points[i].y] < grid[points[j].x][points[j].y]\n    })\n    costs := make([][]int, m)\n    for i := range costs {\n        costs[i] = make([]int, n)\n        for j := range costs[i] {\n            costs[i][j] = math.MaxInt\n        }\n    }\n    for t := 0; t <= k; t++ {\n        minCost := math.MaxInt\n        for i, j := 0, 0; i < len(points); i++ {\n            minCost = min(minCost, costs[points[i].x][points[i].y])\n            if i + 1 < len(points) && grid[points[i].x][points[i].y] == grid[points[i + 1].x][points[i + 1].y] {\n                continue\n            }\n            for r := j; r <= i; r++ {\n                costs[points[r].x][points[r].y] = minCost\n            }\n            j = i + 1\n        }\n        for i := m - 1; i >= 0; i-- {\n            for j := n - 1; j >= 0; j-- {\n                if i == m - 1 && j == n - 1 {\n                    costs[i][j] = 0\n                    continue\n                }\n                if i != m - 1 {\n                    costs[i][j] = min(costs[i][j], costs[i + 1][j] + grid[i + 1][j])\n                }\n                if j != n - 1 {\n                    costs[i][j] = min(costs[i][j], costs[i][j + 1] + grid[i][j + 1])\n                }\n            }\n        }\n    }\n    return costs[0][0]\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def minCost(self, grid: list[list[int]], k: int) -> int:\n        m, n = len(grid), len(grid[0])\n        points = [(i, j) for i in range(m) for j in range(n)]\n        points.sort(key=lambda p: grid[p[0]][p[1]])\n        costs = [[float('inf')] * n for _ in range(m)]\n        for t in range(k + 1):\n            minCost = float('inf')\n            j = 0\n            for i in range(len(points)):\n                minCost = min(minCost, costs[points[i][0]][points[i][1]])\n                if i + 1 < len(points) and grid[points[i][0]][points[i][1]] == grid[points[i + 1][0]][points[i + 1][1]]:\n                    i += 1\n                    continue\n                for r in range(j, i + 1):\n                    costs[points[r][0]][points[r][1]] = minCost\n                j = i + 1\n            for i in range(m - 1, -1, -1):\n                for j in range(n - 1, -1, -1):\n                    if i == m - 1 and j == n - 1:\n                        costs[i][j] = 0\n                        continue\n                    if i != m - 1:\n                        costs[i][j] = min(costs[i][j], costs[i + 1][j] + grid[i + 1][j])\n                    if j != n - 1:\n                        costs[i][j] = min(costs[i][j], costs[i][j + 1] + grid[i][j + 1])\n        return costs[0][0]\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int minCost(int[][] grid, int k) {\n        int m = grid.length, n = grid[0].length;\n        List<int[]> points = new ArrayList<>();\n        for (int i = 0; i < m; i++) {\n            for (int j = 0; j < n; j++) {\n                points.add(new int[]{i, j});\n            }\n        }\n        points.sort(Comparator.comparingInt(p -> grid[p[0]][p[1]]));\n        int[][] costs = new int[m][n];\n        for (int[] row : costs) {\n            Arrays.fill(row, Integer.MAX_VALUE);\n        }\n        for (int t = 0; t <= k; t++) {\n            int minCost = Integer.MAX_VALUE;\n            for (int i = 0, j = 0; i < points.size(); i++) {\n                minCost = Math.min(minCost, costs[points.get(i)[0]][points.get(i)[1]]);\n                if (i + 1 < points.size() && grid[points.get(i)[0]][points.get(i)[1]] == grid[points.get(i + 1)[0]][points.get(i + 1)[1]]) {\n                    continue;\n                }\n                for (int r = j; r <= i; r++) {\n                    costs[points.get(r)[0]][points.get(r)[1]] = minCost;\n                }\n                j = i + 1;\n            }\n            for (int i = m - 1; i >= 0; i--) {\n                for (int j = n - 1; j >= 0; j--) {\n                    if (i == m - 1 && j == n - 1) {\n                        costs[i][j] = 0;\n                        continue;\n                    }\n                    if (i != m - 1) {\n                        costs[i][j] = Math.min(costs[i][j], costs[i + 1][j] + grid[i + 1][j]);\n                    }\n                    if (j != n - 1) {\n                        costs[i][j] = Math.min(costs[i][j], costs[i][j + 1] + grid[i][j + 1]);\n                    }\n                }\n            }\n        }\n        return costs[0][0];\n    }\n}\n```\n\n```TypeScript [sol1-TypeScript]\nfunction minCost(grid: number[][], k: number): number {\n    const m = grid.length, n = grid[0].length;\n    const points: [number, number][] = [];\n    for (let i = 0; i < m; i++) {\n        for (let j = 0; j < n; j++) {\n            points.push([i, j]);\n        }\n    }\n    points.sort((a, b) => grid[a[0]][a[1]] - grid[b[0]][b[1]]);\n    const costs = Array.from({ length: m }, () => Array(n).fill(Number.MAX_SAFE_INTEGER));\n    for (let t = 0; t <= k; t++) {\n        let minCost = Number.MAX_SAFE_INTEGER;\n        for (let i = 0, j = 0; i < points.length; i++) {\n            minCost = Math.min(minCost, costs[points[i][0]][points[i][1]]);\n            if (i + 1 < points.length && grid[points[i][0]][points[i][1]] === grid[points[i + 1][0]][points[i + 1][1]]) {\n                continue;\n            }\n            for (let r = j; r <= i; r++) {\n                costs[points[r][0]][points[r][1]] = minCost;\n            }\n            j = i + 1;\n        }\n        for (let i = m - 1; i >= 0; i--) {\n            for (let j = n - 1; j >= 0; j--) {\n                if (i === m - 1 && j === n - 1) {\n                    costs[i][j] = 0;\n                    continue;\n                }\n                if (i !== m - 1) {\n                    costs[i][j] = Math.min(costs[i][j], costs[i + 1][j] + grid[i + 1][j]);\n                }\n                if (j !== n - 1) {\n                    costs[i][j] = Math.min(costs[i][j], costs[i][j + 1] + grid[i][j + 1]);\n                }\n            }\n        }\n    }\n    return costs[0][0];\n}\n```\n\n```JavaScript [sol1-JavaScript]\nfunction minCost(grid, k) {\n    const m = grid.length, n = grid[0].length;\n    const points = [];\n    for (let i = 0; i < m; i++) {\n        for (let j = 0; j < n; j++) {\n            points.push([i, j]);\n        }\n    }\n    points.sort((a, b) => grid[a[0]][a[1]] - grid[b[0]][b[1]]);\n    const costs = Array.from({ length: m }, () => Array(n).fill(Number.MAX_SAFE_INTEGER));\n    for (let t = 0; t <= k; t++) {\n        let minCost = Number.MAX_SAFE_INTEGER;\n        for (let i = 0, j = 0; i < points.length; i++) {\n            minCost = Math.min(minCost, costs[points[i][0]][points[i][1]]);\n            if (i + 1 < points.length && grid[points[i][0]][points[i][1]] === grid[points[i + 1][0]][points[i + 1][1]]) {\n                continue;\n            }\n            for (let r = j; r <= i; r++) {\n                costs[points[r][0]][points[r][1]] = minCost;\n            }\n            j = i + 1;\n        }\n        for (let i = m - 1; i >= 0; i--) {\n            for (let j = n - 1; j >= 0; j--) {\n                if (i === m - 1 && j === n - 1) {\n                    costs[i][j] = 0;\n                    continue;\n                }\n                if (i !== m - 1) {\n                    costs[i][j] = Math.min(costs[i][j], costs[i + 1][j] + grid[i + 1][j]);\n                }\n                if (j !== n - 1) {\n                    costs[i][j] = Math.min(costs[i][j], costs[i][j + 1] + grid[i][j + 1]);\n                }\n            }\n        }\n    }\n    return costs[0][0];\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MinCost(int[][] grid, int k) {\n        int m = grid.Length, n = grid[0].Length;\n        var points = new List<(int, int)>();\n        for (int i = 0; i < m; i++) {\n            for (int j = 0; j < n; j++) {\n                points.Add((i, j));\n            }\n        }\n        points.Sort((p1, p2) => grid[p1.Item1][p1.Item2].CompareTo(grid[p2.Item1][p2.Item2]));\n        int[,] costs = new int[m, n];\n        for (int i = 0; i < m; i++) {\n            for (int j = 0; j < n; j++) {\n                costs[i, j] = int.MaxValue;\n            }\n        }\n        for (int t = 0; t <= k; t++) {\n            int minCost = int.MaxValue;\n            for (int i = 0, j = 0; i < points.Count; i++) {\n                minCost = Math.Min(minCost, costs[points[i].Item1, points[i].Item2]);\n                if (i + 1 < points.Count && grid[points[i].Item1][points[i].Item2] == grid[points[i + 1].Item1][points[i + 1].Item2]) {\n                    continue;\n                }\n                for (int r = j; r <= i; r++) {\n                    costs[points[r].Item1, points[r].Item2] = minCost;\n                }\n                j = i + 1;\n            }\n            for (int i = m - 1; i >= 0; i--) {\n                for (int j = n - 1; j >= 0; j--) {\n                    if (i == m - 1 && j == n - 1) {\n                        costs[i, j] = 0;\n                        continue;\n                    }\n                    if (i != m - 1) {\n                        costs[i, j] = Math.Min(costs[i, j], costs[i + 1, j] + grid[i + 1][j]);\n                    }\n                    if (j != n - 1) {\n                        costs[i, j] = Math.Min(costs[i, j], costs[i, j + 1] + grid[i][j + 1]);\n                    }\n                }\n            }\n        }\n        return costs[0, 0];\n    }\n}\n```\n\n```C [sol1-C]\nstatic int** gridPtr = NULL;\n\nstatic int cmp(const void* a, const void* b) {\n    int* pa = (int*)a;\n    int* pb = (int*)b;\n    return gridPtr[pa[0]][pa[1]] - gridPtr[pb[0]][pb[1]];\n}\n\nint minCost(int** grid, int gridSize, int* gridColSize, int k){\n    int m = gridSize, n = gridColSize[0];\n    gridPtr = grid;\n    int points[m * n][2], idx = 0;\n    for (int i = 0; i < m; i++) {\n        for (int j = 0; j < n; j++) {\n            points[idx][0] = i, points[idx++][1] = j;\n        }\n    }\n    qsort(points, m*n, sizeof(points[0]), cmp);\n    int costs[m][n];\n    for (int i = 0; i < m; i++) {\n        for (int j = 0; j < n; j++) {\n            costs[i][j] = INT_MAX;\n        }\n    }\n    for (int t = 0; t <= k; t++) {\n        int minCost = INT_MAX;\n        for (int i = 0, j = 0; i < m * n; i++) {\n            minCost = fmin(minCost, costs[points[i][0]][points[i][1]]);\n            if (i + 1 < m * n && grid[points[i][0]][points[i][1]] == grid[points[i + 1][0]][points[i + 1][1]]) {\n                continue;\n            }\n            for (int r = j; r <= i; r++) {\n                costs[points[r][0]][points[r][1]] = minCost;\n            }\n            j = i + 1;\n        }\n        for (int i = m - 1; i >= 0; i--) {\n            for (int j = n - 1; j >= 0; j--) {\n                if (i == m - 1 && j == n - 1) {\n                    costs[i][j] = 0;\n                    continue;\n                }\n                if (i != m - 1) {\n                    costs[i][j] = fmin(costs[i][j], costs[i+1][j] + grid[i+1][j]);\n                }\n                if (j != n - 1) {\n                    costs[i][j] = fmin(costs[i][j], costs[i][j+1] + grid[i][j+1]);\n                }\n            }\n        }\n    }\n    return costs[0][0];\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn min_cost(grid: Vec<Vec<i32>>, k: i32) -> i32 {\n        let m = grid.len();\n        let n = grid[0].len();\n        let mut points = vec![];\n        for i in 0..m {\n            for j in 0..n {\n                points.push((i, j));\n            }\n        }\n        points.sort_by_key(|&(i, j)| grid[i][j]);\n        let mut costs = vec![vec![i32::MAX; n]; m];\n        for _ in 0..=k {\n            let mut min_cost = i32::MAX;\n            let mut i = 0;\n            let mut j = 0;\n            while i < points.len() {\n                min_cost = min_cost.min(costs[points[i].0][points[i].1]);\n                if i + 1 < points.len() && grid[points[i].0][points[i].1] == grid[points[i + 1].0][points[i + 1].1] {\n                    i += 1;\n                    continue;\n                }\n                for r in j..=i {\n                    let p = points[r];\n                    costs[p.0][p.1] = min_cost;\n                }\n                j = i + 1;\n                i += 1;\n            }\n            for i in (0..m).rev() {\n                for j in (0..n).rev() {\n                    if i == m - 1 && j == n - 1 {\n                        costs[i][j] = 0;\n                        continue;\n                    }\n                    if i != m - 1 {\n                        costs[i][j] = costs[i][j].min(costs[i + 1][j] + grid[i + 1][j]);\n                    }\n                    if j != n - 1 {\n                        costs[i][j] = costs[i][j].min(costs[i][j + 1] + grid[i][j + 1]);\n                    }\n                }\n            }\n        }\n        costs[0][0]\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O((k + \\log mn) \\times mn)$，其中 $m$ 和 $n$ 分别是 $\\textit{grid}$ 的行数和列数，$k$ 是最多传送的次数。\n\n- 空间复杂度：$O(mn)$。",
+            "slateValue": "",
+            "slug": "dai-chuan-song-de-zui-xiao-lu-jing-cheng-gc8s",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "sHpinm",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 5,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2026-01-19T03:04:55.988377+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 根据题意，我们使用 [latex] 表示恰好使用 [latex] 次传送，从 [latex] 移动到 [latex] 的最小移动总成本。考虑从 [latex] 首次移动的两种情况： 不使用传送，可以从 [latex] 移动到 [latex] 或 [latex]，转移方程为： [latex] 使用传送，",
+            "topic": {
+                "id": 3883954,
+                "subscribed": false,
+                "commentCount": 14,
+                "viewCount": 19,
+                "post": {
+                    "id": 7085121,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 21,
+            "isEditorsPick": false,
+            "hitCount": 5233,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "minimum-cost-path-with-teleportations",
+                "questionFrontendId": "3651"
+            },
+            "next": {
+                "slug": "wang-ge-tu-dp-hou-zhui-zui-xiao-zhi-you-b014t",
+                "title": "网格图 DP + 后缀最小值优化 + 收敛优化（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

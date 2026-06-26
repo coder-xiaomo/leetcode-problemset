@@ -1,0 +1,132 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "potsNj",
+            "title": "计算器",
+            "content": "#### 方法一：栈\n\n**思路**\n\n由于乘除优先于加减计算，因此不妨考虑先进行所有乘除运算，并将这些乘除运算后的整数值放回原表达式的相应位置，则随后整个表达式的值，就等于一系列整数加减后的值。\n\n基于此，我们可以用一个栈，保存这些（进行乘除运算后的）整数的值。对于加减号后的数字，将其直接压入栈中；对于乘除号后的数字，可以直接与栈顶元素计算，并替换栈顶元素为计算后的结果。\n\n具体来说，遍历字符串 $s$，并用变量 $\\textit{preSign}$ 记录每个数字之前的运算符，对于第一个数字，其之前的运算符视为加号。每次遍历到数字末尾时，根据 $\\textit{preSign}$ 来决定计算方式：\n\n- 加号：将数字压入栈；\n- 减号：将数字的相反数压入栈；\n- 乘除号：计算数字与栈顶元素，并将栈顶元素替换为计算结果。\n\n代码实现中，若读到一个运算符，或者遍历到字符串末尾，即认为是遍历到了数字末尾。处理完该数字后，更新 $\\textit{preSign}$ 为当前遍历的字符。\n\n遍历完字符串 $s$ 后，将栈中元素累加，即为该字符串表达式的值。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int calculate(string s) {\n        vector<int> stk;\n        char preSign = '+';\n        int num = 0;\n        int n = s.length();\n        for (int i = 0; i < n; ++i) {\n            if (isdigit(s[i])) {\n                num = num * 10 + int(s[i] - '0');\n            }\n            if (!isdigit(s[i]) && s[i] != ' ' || i == n - 1) {\n                switch (preSign) {\n                    case '+':\n                        stk.push_back(num);\n                        break;\n                    case '-':\n                        stk.push_back(-num);\n                        break;\n                    case '*':\n                        stk.back() *= num;\n                        break;\n                    default:\n                        stk.back() /= num;\n                }\n                preSign = s[i];\n                num = 0;\n            }\n        }\n        return accumulate(stk.begin(), stk.end(), 0);\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int calculate(String s) {\n        Deque<Integer> stack = new ArrayDeque<Integer>();\n        char preSign = '+';\n        int num = 0;\n        int n = s.length();\n        for (int i = 0; i < n; ++i) {\n            if (Character.isDigit(s.charAt(i))) {\n                num = num * 10 + s.charAt(i) - '0';\n            }\n            if (!Character.isDigit(s.charAt(i)) && s.charAt(i) != ' ' || i == n - 1) {\n                switch (preSign) {\n                case '+':\n                    stack.push(num);\n                    break;\n                case '-':\n                    stack.push(-num);\n                    break;\n                case '*':\n                    stack.push(stack.pop() * num);\n                    break;\n                default:\n                    stack.push(stack.pop() / num);\n                }\n                preSign = s.charAt(i);\n                num = 0;\n            }\n        }\n        int ans = 0;\n        while (!stack.isEmpty()) {\n            ans += stack.pop();\n        }\n        return ans;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int Calculate(string s) {\n        Stack<int> stack = new Stack<int>();\n        char preSign = '+';\n        int num = 0;\n        int n = s.Length;\n        for (int i = 0; i < n; ++i) {\n            if (char.IsDigit(s[i])) {\n                num = num * 10 + s[i] - '0';\n            }\n            if (!char.IsDigit(s[i]) && s[i] != ' ' || i == n - 1) {\n                switch (preSign) {\n                case '+':\n                    stack.Push(num);\n                    break;\n                case '-':\n                    stack.Push(-num);\n                    break;\n                case '*':\n                    stack.Push(stack.Pop() * num);\n                    break;\n                default:\n                    stack.Push(stack.Pop() / num);\n                    break;\n                }\n                preSign = s[i];\n                num = 0;\n            }\n        }\n        int ans = 0;\n        while (stack.Count > 0) {\n            ans += stack.Pop();\n        }\n        return ans;\n    }\n}\n```\n\n```go [sol1-Golang]\nfunc calculate(s string) (ans int) {\n    stack := []int{}\n    preSign := '+'\n    num := 0\n    for i, ch := range s {\n        isDigit := '0' <= ch && ch <= '9'\n        if isDigit {\n            num = num*10 + int(ch-'0')\n        }\n        if !isDigit && ch != ' ' || i == len(s)-1 {\n            switch preSign {\n            case '+':\n                stack = append(stack, num)\n            case '-':\n                stack = append(stack, -num)\n            case '*':\n                stack[len(stack)-1] *= num\n            default:\n                stack[len(stack)-1] /= num\n            }\n            preSign = ch\n            num = 0\n        }\n    }\n    for _, v := range stack {\n        ans += v\n    }\n    return\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar calculate = function(s) {\n    s = s.trim();\n    const stack = new Array();\n    let preSign = '+';\n    let num = 0;\n    const n = s.length;\n    for (let i = 0; i < n; ++i) {\n        if (!isNaN(Number(s[i])) && s[i] !== ' ') {\n            num = num * 10 + s[i].charCodeAt() - '0'.charCodeAt();\n        }\n        if (isNaN(Number(s[i])) || i === n - 1) {\n            switch (preSign) {\n                case '+':\n                    stack.push(num);\n                    break;\n                case '-':\n                    stack.push(-num);\n                    break;\n                case '*':\n                    stack.push(stack.pop() * num);\n                    break;\n                default:\n                    stack.push(stack.pop() / num | 0);\n            }   \n            preSign = s[i];\n            num = 0;\n        }\n    }\n    let ans = 0;\n    while (stack.length) {\n        ans += stack.pop();\n    }\n    return ans;\n};\n```\n\n```C [sol1-C]\nint calculate(char* s) {\n    int n = strlen(s);\n    int stk[n], top = 0;\n    char preSign = '+';\n    int num = 0;\n    for (int i = 0; i < n; ++i) {\n        if (isdigit(s[i])) {\n            num = num * 10 + (int)(s[i] - '0');\n        }\n        if (!isdigit(s[i]) && s[i] != ' ' || i == n - 1) {\n            switch (preSign) {\n                case '+':\n                    stk[top++] = num;\n                    break;\n                case '-':\n                    stk[top++] = -num;\n                    break;\n                case '*':\n                    stk[top - 1] *= num;\n                    break;\n                default:\n                    stk[top - 1] /= num;\n            }\n            preSign = s[i];\n            num = 0;\n        }\n    }\n    int ret = 0;\n    for (int i = 0; i < top; i++) {\n        ret += stk[i];\n    }\n    return ret;\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def calculate(self, s: str) -> int:\n        n = len(s)\n        stack = []\n        preSign = '+'\n        num = 0\n        for i in range(n):\n            if s[i] != ' ' and s[i].isdigit():\n                num = num * 10 + ord(s[i]) - ord('0')\n            if i == n - 1 or s[i] in '+-*/':\n                if preSign == '+':\n                    stack.append(num)\n                elif preSign == '-':\n                    stack.append(-num)\n                elif preSign == '*':\n                    stack.append(stack.pop() * num)\n                else:\n                    stack.append(int(stack.pop() / num))\n                preSign = s[i]\n                num = 0\n        return sum(stack)\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 为字符串 $s$ 的长度。需要遍历字符串 $s$ 一次，计算表达式的值。\n\n- 空间复杂度：$O(n)$，其中 $n$ 为字符串 $s$ 的长度。空间复杂度主要取决于栈的空间，栈的元素个数不超过 $n$。",
+            "slateValue": "",
+            "slug": "ji-suan-qi-by-leetcode-solution-o1fd",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "potsNj",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 37,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Stack",
+                    "nameTranslated": "栈",
+                    "slug": "stack",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-08-03T01:50:04.841854+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：栈 思路 由于乘除优先于加减计算，因此不妨考虑先进行所有乘除运算，并将这些乘除运算后的整数值放回原表达式的相应位置，则随后整个表达式的值，就等于一系列整数加减后的值。 基于此，我们可以用一个栈，保存这些（进行乘除运算后的）整数的值。对于加减号后的数字，将其直接压入栈中；对于乘除号后的数字，可以直接与栈顶元素计算",
+            "topic": {
+                "id": 1718019,
+                "subscribed": false,
+                "commentCount": 21,
+                "viewCount": 3072,
+                "post": {
+                    "id": 3402271,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 64,
+            "isEditorsPick": false,
+            "hitCount": 18136,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "calculator-lcci",
+                "questionFrontendId": "面试题 16.26"
+            },
+            "next": {
+                "slug": "dan-diao-zhan-by-you-min-k-34gb",
+                "title": "单调栈"
+            },
+            "prev": null
+        }
+    }
+}

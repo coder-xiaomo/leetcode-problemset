@@ -1,0 +1,144 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "PdNkzn",
+            "title": "统计整数数目",
+            "content": "#### 方法一：数位动态规划\n\n**思路与算法**\n\n题目要求求解数值范围在 $\\textit{nums}_1$ 到 $\\textit{nums}_2$ 之间，并且数位和在 $\\textit{min\\_sum}$ 到 $\\textit{max\\_sum}$ 之间的整数个数，其中 $\\textit{nums}_1$ 和 $\\textit{nums}_2$ 以字符串形式给出。\n\n此类题目通常使用数位动态规划来求解，关于数位动态规划的详细介绍可以参考「[数位DP(OI Wiki)](https://oi-wiki.org/dp/number/)」，类似的题目有「[233. 数字 1 的个数](https://leetcode.cn/problems/number-of-digit-one/description/)」、「[600. 不含连续1的非负整数](https://leetcode.cn/problems/non-negative-integers-without-consecutive-ones/description/)」和「[1012. 至少有 1 位重复的数字](https://leetcode.cn/problems/numbers-with-repeated-digits/description/)」等。\n\n定义函数 $\\textit{get}(\\textit{num})$，用于求解 $1 \\sim \\textit{num}$ 范围内有多少整数数位和介于 $\\textit{min\\_sum} \\sim \\textit{max\\_sum}$ 之间，那么原问题就转换为求解 $\\textit{get}(\\textit{num}_2) - \\textit{get}(\\textit{num}_1 - 1)$。因此下文将着重讨论如何求解 $\\textit{get}(\\textit{num})$。\n\n设 $\\textit{num}$ 共有 $n$ 位，我们从最高位（即第 $n-1$ 位）开始遍历，目前聚焦于第 $\\textit{i}$ 位，前面第 $n-1$ 位到第 $i + 1$ 位的数位和为 $\\textit{sum}$，现在需要考虑第 $i$ 位填充的数字 $x$。通常 $x$ 可以取 $0\\sim 9$ 中的任意一个数字，但当第 $n-1$ 位到第 $i + 1$ 位放置的数字都与 $\\textit{num}$ 一样时，$x$ 的取值范围缩小至 $0 \\sim \\textit{num}[i]$，在代码中，当 $\\textit{limit}$ 为 $\\textit{true}$ 时，表示这一特殊情况发生。\n\n试想，如果 $\\textit{limit}$ 标识为 $\\textit{false}$，$x$ 取值范围为 $0 \\sim 9$，那么后续的第 $i - 1$ 到第 $0$ 位的取值范围都是 $0 \\sim 9$。这样一来，子问题就与 $\\textit{num}$ 的值无关。我们定义状态 $d[i][j]$ 表示还剩第 $i$ 位到第 $0$ 位的数字未填，而已填的数字位数之和为 $j$ 时，符合条件的数字个数有多少个。在求解时，子问题与 $n$ 的值无关，也与 $num$ 无关，因此只有当 $\\textit{limit}$ 为 $\\textit{false}$ 可以使用或更新 $d[i][j]$。\n\n当然，$\\textit{limit}$ 这一维度也可以加入到状态中，但 $\\textit{limit}$ 为 $true$ 的子问题只会被调用一次，将答案记忆化存储毫无意义，并且每次重新调用 $\\textit{get}$ 时都需要重新计算所有状态答案，得不偿失。因此定义函数 $\\textit{dfs}(i, j, limit)$ 用于问题求解，在 $\\textit{limit}$ 为 $\\textit{false}$ 时借助 $\\textit{d}[i][j]$ 防止重复计算，加快执行速度。\n\n**细节**\n\n我们采用记忆化搜索的方式实现数位动态规划，将所有 $d[i][j]$ 的初始值设置为 $-1$。递归过程：\n\n- 若 $\\textit{limit}$ 为 $\\textit{true}$ 时，在 $0 \\sim \\textit{num}[i]$ 范围内遍历 $x$，并递归调用 $\\textit{dfs}(i - 1, j + x, \\textit{limit} \\&\\& x == \\textit{nums}[i])$，统计所有返回值的和作为答案。\n- 若 $\\textit{limit}$ 为 $\\textit{false}$ 时，若 $d[i][j] \\neq -1$，则直接返回 $d[i][j]$，否则在 $0 \\sim 9$ 范围内遍历 $x$，并递归调用 $\\textit{dfs}(i - 1, j + x, \\textit{false})$，统计所有返回值的和并更新 $d[i][j]$。 \n\n若 $j$ 已经大于 $\\textit{max\\_sum}$，可以剪枝，直接返回 $0$。当 $i$ 等于 $-1$ 时，递归结束，此时若 $j \\ge \\textit{min\\_sum}$ 则返回 $1$，否则返回 $0$。\n\n需要注意的是，由于上文中第 $n - 1$ 位表示数字的最高位，第 $0$ 位表示数字的最低位（即个位），因此需要将题目中输入的数字翻转。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\n    static constexpr int N = 23;\n    static constexpr int M = 401;\n    static constexpr int MOD = 1e9 + 7;\n    int d[N][M];\n    string num;\n    int min_sum;\n    int max_sum;\n\n    int dfs(int i, int j, bool limit) {\n        if (j > max_sum) {\n            return 0;\n        }\n        if (i == -1) {\n            return j >= min_sum;\n        }\n        if (!limit && d[i][j] != -1) {\n            return d[i][j];\n        }\n        int res = 0;\n        int up = limit ? num[i] - '0' : 9;\n        for (int x = 0; x <= up; x++) {\n            res = (res + dfs(i - 1, j + x, limit && x == up)) % MOD;\n        }\n        if (!limit) {\n            d[i][j] = res;\n        }\n        return res;\n    }\n\n    int get(string num) {\n        reverse(num.begin(), num.end());\n        this->num = num;\n        return dfs(num.size() - 1, 0, true);\n    }\n\n    // 求解 num - 1，先把最后一个非 0 字符减去 1，再把后面的 0 字符变为 9\n    string sub(string num) {\n        int i = num.size() - 1;\n        while (num[i] == '0') {\n            i--;\n        }\n        num[i]--;\n        i++;\n        while (i < num.size()) {\n            num[i] = '9';\n            i++;\n        }\n        return num;\n    }\npublic:\n    int count(string num1, string num2, int min_sum, int max_sum) {\n        memset(d, -1, sizeof d);\n        this->min_sum = min_sum;\n        this->max_sum = max_sum;\n        return (get(num2) - get(sub(num1)) + MOD) % MOD;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    static final int N = 23;\n    static final int M = 401;\n    static final int MOD = 1000000007;\n    int[][] d;\n    String num;\n    int min_sum;\n    int max_sum;\n\n    public int count(String num1, String num2, int min_sum, int max_sum) {\n        d = new int[N][M];\n        for (int i = 0; i < N; i++) {\n            Arrays.fill(d[i], -1);\n        }\n        this.min_sum = min_sum;\n        this.max_sum = max_sum;\n        return (get(num2) - get(sub(num1)) + MOD) % MOD;\n    }\n\n    public int get(String num) {\n        this.num = new StringBuffer(num).reverse().toString();\n        return dfs(num.length() - 1, 0, true);\n    }\n\n    // 求解 num - 1，先把最后一个非 0 字符减去 1，再把后面的 0 字符变为 9\n    public String sub(String num) {\n        char[] arr = num.toCharArray();\n        int i = arr.length - 1;\n        while (arr[i] == '0') {\n            i--;\n        }\n        arr[i]--;\n        i++;\n        while (i < arr.length) {\n            arr[i] = '9';\n            i++;\n        }\n        return new String(arr);\n    }\n\n    public int dfs(int i, int j, boolean limit) {\n        if (j > max_sum) {\n            return 0;\n        }\n        if (i == -1) {\n            return j >= min_sum ? 1 : 0;\n        }\n        if (!limit && d[i][j] != -1) {\n            return d[i][j];\n        }\n        int res = 0;\n        int up = limit ? num.charAt(i) - '0' : 9;\n        for (int x = 0; x <= up; x++) {\n            res = (res + dfs(i - 1, j + x, limit && x == up)) % MOD;\n        }\n        if (!limit) {\n            d[i][j] = res;\n        }\n        return res;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    const int N = 23;\n    const int M = 401;\n    const int MOD = 1000000007;\n    int[][] d;\n    string num;\n    int min_sum;\n    int max_sum;\n\n    public int Count(string num1, string num2, int min_sum, int max_sum) {\n        d = new int[N][];\n        for (int i = 0; i < N; i++) {\n            d[i] = new int[M];\n            Array.Fill(d[i], -1);\n        }\n        this.min_sum = min_sum;\n        this.max_sum = max_sum;\n        return (Get(num2) - Get(Sub(num1)) + MOD) % MOD;\n    }\n\n    public int Get(string num) {\n        StringBuilder sb = new StringBuilder();\n        for (int i = num.Length - 1; i >= 0; i--) {\n            sb.Append(num[i]);\n        }\n        this.num = sb.ToString();\n        return DFS(num.Length - 1, 0, true);\n    }\n\n    // 求解 num - 1，先把最后一个非 0 字符减去 1，再把后面的 0 字符变为 9\n    public string Sub(string num) {\n        char[] arr = num.ToCharArray();\n        int i = arr.Length - 1;\n        while (arr[i] == '0') {\n            i--;\n        }\n        arr[i]--;\n        i++;\n        while (i < arr.Length) {\n            arr[i] = '9';\n            i++;\n        }\n        return new string(arr);\n    }\n\n    public int DFS(int i, int j, bool limit) {\n        if (j > max_sum) {\n            return 0;\n        }\n        if (i == -1) {\n            return j >= min_sum ? 1 : 0;\n        }\n        if (!limit && d[i][j] != -1) {\n            return d[i][j];\n        }\n        int res = 0;\n        int up = limit ? num[i] - '0' : 9;\n        for (int x = 0; x <= up; x++) {\n            res = (res + DFS(i - 1, j + x, limit && x == up)) % MOD;\n        }\n        if (!limit) {\n            d[i][j] = res;\n        }\n        return res;\n    }\n}\n```\n\n```C [sol1-C]\nconst int N = 23;\nconst int M = 401;\nconst int MOD = 1000000007;\n\nint dfs(char *num, int i, int j, int limit, int **d, int min_sum, int max_sum) {\n    if (j > max_sum) {\n        return 0;\n    }\n    if (i == -1) {\n        return j >= min_sum;\n    }\n    if (!limit && d[i][j] != -1) {\n        return d[i][j];\n    }\n    int res = 0;\n    int up = limit ? num[i] - '0' : 9;\n    for (int x = 0; x <= up; x++) {\n        res = (res + dfs(num, i - 1, j + x, limit && x == up, d, min_sum, max_sum)) % MOD;\n    }\n    if (!limit) {\n        d[i][j] = res;\n    }\n    return res;\n}\n\nint get(char *num, int **d, int min_sum, int max_sum) {\n    int len = strlen(num);\n    for (int i = 0, j = len - 1; i < j; i++, j--) {\n        char ch = num[i];\n        num[i] = num[j];\n        num[j] = ch;\n    }\n    return dfs(num, len - 1, 0, 1, d, min_sum, max_sum);\n}\n\nchar* sub(char *num) {\n    int len = strlen(num);\n    int i = len - 1;\n    while (num[i] == '0') {\n        i--;\n    }\n    num[i]--;\n    i++;\n    while (i < len) {\n        num[i] = '9';\n        i++;\n    }\n    return num;\n}\n\nint count(char * num1, char * num2, int min_sum, int max_sum) {\n    int **d = (int **)malloc(sizeof(int *) * N);\n    for (int i = 0; i < N; i++) {\n        d[i] = (int *)malloc(sizeof(int) * M);\n        for (int j = 0; j < M; j++) {\n            d[i][j] = -1;\n        }\n    }\n    int ret = (get(num2, d, min_sum, max_sum) - get(sub(num1), d, min_sum, max_sum) + MOD) % MOD;\n    for (int i = 0; i < N; i++) {\n        free(d[i]);\n    }\n    free(d);\n    return ret;\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def count(self, num1: str, num2: str, min_sum: int, max_sum: int) -> int:\n        def dfs(num, i, j, limit) -> int:\n            if j > max_sum:\n                return 0\n            if i == -1:\n                return j >= min_sum\n            if not limit and d[i][j] != -1:\n                return d[i][j]\n            res = 0\n            up = ord(num[i]) - ord('0') if limit > 0 else 9\n            for x in range(up + 1):\n                res = (res + dfs(num, i - 1, j + x, limit and x == up)) % MOD\n            if not limit:\n                d[i][j] = res\n            return res\n\n        def get(num):\n            num = num[::-1]\n            return dfs(num, len(num) - 1, 0, True)\n\n        # 求解 num - 1，先把最后一个非 0 字符减去 1，再把后面的 0 字符变为 9\n        def sub(num):\n            i = len(num) - 1\n            arr = list(num)\n            while arr[i] == '0':\n                i -= 1\n            arr[i] = chr(ord(arr[i]) - 1)\n            i += 1\n            while i < len(num):\n                arr[i] = '9'\n                i += 1\n            return ''.join(arr)\n\n        N, M = 23, 401\n        MOD = 10**9 + 7\n        d = [[-1] * M for _ in range(N)]\n        return (get(num2) - get(sub(num1)) + MOD) % MOD\n```\n\n```Go [sol1-Go]\nconst MOD = 1000000007\nconst N = 23\nconst M = 401\n\nfunc count(num1 string, num2 string, min_sum int, max_sum int) int {\n    d := make([][]int, N)\n\tfor i := range d {\n\t\td[i] = make([]int, M)\n\t\tfor j := range d[i] {\n\t\t\td[i][j] = -1\n\t\t}\n\t}\n\n\tvar dfs func(num string, i int, j int, limit bool) int\n\tdfs = func(num string, i int, j int, limit bool) int {\n\t\tif j > max_sum {\n\t\t\treturn 0\n\t\t}\n\t\tif i == -1 {\n\t\t\tif j >= min_sum {\n\t\t\t\treturn 1\n\t\t\t}\n\t\t\treturn 0\n\t\t}\n\t\tif !limit && d[i][j] != -1 {\n\t\t\treturn d[i][j]\n\t\t}\n\n\t\tres := 0\n\t\tvar up int\n\t\tif limit {\n\t\t\tup = int(num[i] - '0')\n\t\t} else {\n\t\t\tup = 9\n\t\t}\n\n\t\tfor x := 0; x <= up; x++ {\n\t\t\tres = (res + dfs(num, i - 1, j + x, limit && x == up)) % MOD\n\t\t}\n\n\t\tif !limit {\n\t\t\td[i][j] = res\n\t\t}\n\t\treturn res\n\t}\n\n\tget := func(num string) int {\n\t\tnum = reverse(num)\n\t\treturn dfs(num, len(num) - 1, 0, true)\n\t}\n    // 求解 num - 1，先把最后一个非 0 字符减去 1，再把后面的 0 字符变为 9\n\tsub := func(num string) string {\n\t\ti := len(num) - 1\n\t\tarr := []byte(num)\n\t\tfor arr[i] == '0' {\n\t\t\ti--\n\t\t}\n\t\tarr[i]--\n\t\ti++\n\t\tfor ; i < len(num); i++ {\n\t\t\tarr[i] = '9'\n\t\t}\n\t\treturn string(arr)\n\t}\n\n\treturn (get(num2) - get(sub(num1)) + MOD) % MOD\n}\n\nfunc reverse(s string) string {\n\trunes := []rune(s)\n\tfor i, j := 0, len(runes) - 1; i < j; i, j = i+1, j-1 {\n\t\trunes[i], runes[j] = runes[j], runes[i]\n\t}\n\treturn string(runes)\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar count = function(num1, num2, min_sum, max_sum) {\n    const N = 23, M = 401;\n    const MOD = 1000000007;\n    let d = new Array(N).fill(null).map(() => new Array(M).fill(-1));\n\n    function dfs(num, i, j, limit) {\n        if (j > max_sum) {\n            return 0;\n        }\n        if (i === -1) {\n            return j >= min_sum ? 1 : 0;\n        }\n        if (!limit && d[i][j] !== -1) {\n            return d[i][j];\n        }\n        \n        let res = 0;\n        const up = limit ? num.charCodeAt(i) - '0'.charCodeAt(0) : 9;\n        for (let x = 0; x <= up; x++) {\n            res = (res + dfs(num, i - 1, j + x, limit && x === up)) % MOD;\n        }\n\n        if (!limit) {\n            d[i][j] = res;\n        }\n        return res;\n    }\n\n    function get(num) {\n        num = num.split(\"\").reverse().join(\"\");\n        return dfs(num, num.length - 1, 0, true);\n    }\n\n    // 求解 num - 1，先把最后一个非 0 字符减去 1，再把后面的 0 字符变为 9\n    function sub(num) {\n        let i = num.length - 1;\n        let arr = num.split(\"\");\n        while (arr[i] === '0') {\n            i--;\n        }\n        arr[i] = String.fromCharCode(arr[i].charCodeAt(0) - 1);\n        i++;\n        while (i < num.length) {\n            arr[i] = '9';\n            i++;\n        }\n        return arr.join(\"\");\n    }\n\n    return (get(num2) - get(sub(num1)) + MOD) % MOD;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction count(num1: string, num2: string, min_sum: number, max_sum: number): number {\n    const N: number = 23;\n    const M: number = 401;\n    const MOD: number = 1000000007;\n    let d: number[][] = new Array(N).fill(null).map(() => new Array(M).fill(-1));\n\n    const dfs = (num: string, i: number, j: number, limit: boolean): number => {\n        if (j > max_sum) {\n            return 0;\n        }\n        if (i === -1) {\n            return j >= min_sum ? 1 : 0;\n        }\n        if (!limit && d[i][j] !== -1) {\n            return d[i][j];\n        }\n        \n        let res: number = 0;\n        const up: number = limit ? num.charCodeAt(i) - '0'.charCodeAt(0) : 9;\n        for (let x = 0; x <= up; x++) {\n            res = (res + dfs(num, i - 1, j + x, limit && x === up)) % MOD;\n        }\n\n        if (!limit) {\n            d[i][j] = res;\n        }\n        return res;\n    };\n\n    const get = (num: string): number => {\n        num = num.split(\"\").reverse().join(\"\");\n        return dfs(num, num.length - 1, 0, true);\n    };\n\n    // 求解 num - 1，先把最后一个非 0 字符减去 1，再把后面的 0 字符变为 9\n    const sub = (num: string): string => {\n        let i: number = num.length - 1;\n        let arr: string[] = num.split(\"\");\n        while (arr[i] === '0') {\n            i--;\n        }\n        arr[i] = String.fromCharCode(arr[i].charCodeAt(0) - 1);\n        i++;\n        while (i < num.length) {\n            arr[i] = '9';\n            i++;\n        }\n        return arr.join(\"\");\n    };\n\n    return (get(num2) - get(sub(num1)) + MOD) % MOD;\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(10\\times nm)$，其中 $n$ 为 $\\textit{num}_2$ 的长度，$m$ 为 $\\textit{max\\_sum}$。动态规划的状态个数为 $O(nm)$，每个状态求解的时间复杂度为 $O(10)$，因此总的时间复杂度为 $O(10 \\times nm)$。\n\n- 空间复杂度：$O(nm)$。",
+            "slateValue": "",
+            "slug": "tong-ji-zheng-shu-shu-mu-by-leetcode-sol-qxqd",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "PdNkzn",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 22,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Memoization",
+                    "nameTranslated": "记忆化",
+                    "slug": "memoization",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2024-01-12T01:39:16.051658+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：数位动态规划 思路与算法 题目要求求解数值范围在 $\\textit{nums}_1$ 到 $\\textit{nums}_2$ 之间，并且数位和在 $\\textit{min_sum}$ 到 $\\textit{max_sum}$ 之间的整数个数，其中 $\\textit{nums}_1$ 和 $\\textit{num",
+            "topic": {
+                "id": 2601111,
+                "subscribed": false,
+                "commentCount": 37,
+                "viewCount": 1082,
+                "post": {
+                    "id": 4814156,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 82,
+            "isEditorsPick": false,
+            "hitCount": 19698,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "count-of-integers",
+                "questionFrontendId": "2719"
+            },
+            "next": {
+                "slug": "shu-wei-dp-tong-yong-mo-ban-pythonjavacg-9tuc",
+                "title": "两种数位 DP 模板，附题单（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,96 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "QOXj12",
+            "title": "查找给定哈希值的子串",
+            "content": "#### 方法一：数学\n\n**思路与算法**\n\n对于 $s$ 中任意长度为 $k$ 的子串，计算该字串哈希值的时间复杂度为 $O(k)$。如果我们直接计算所有长度为 $k$ 子串的哈希值，并逐个比较，则时间复杂度为 $O(nk)$，不符合数据范围的要求。因此我们需要优化计算不同子串哈希值的时间。\n\n我们可以考虑两个相邻的子串 $s[i..i+k-1]$ 与 $s[i+1..i+k]$，为了方便表示，我们用函数 $h(i, p, m)$ 来表示 $s[i..i+k-1]$ 的哈希值，即\n\n$$\n\\begin{aligned}\nh(i, p, m) &= \\textit{hash}(s[i..i+k-1], p, m)\\\\\n&= (\\textit{val}(s[i]) \\times p^0 + \\textit{val}(s[i+1]) \\times p^1 + \\dots + \\textit{val}(s[i+k-1]) \\times p^{k-1}) \\bmod m.\n\\end{aligned}\n$$\n\n同理，我们有：\n\n$$\nh(i + 1, p, m) = (\\textit{val}(s[i+1]) \\times p^0 + \\textit{val}(s[i+2]) \\times p^1 + \\dots + \\textit{val}(s[i+k]) \\times p^{k-1}) \\bmod m.\n$$\n\n比较上述两式，容易发现：\n\n$$\nh(i, p, m) = (\\textit{val}(s[i]) \\times p^0 + p \\times h(i + 1, p, m) - \\textit{val}(s[i+k]) \\times p^{k}) \\bmod m.\n$$\n\n那么，如果我们预处理 $p^{k} \\bmod m$ 的值（这需要至多 $O(k)$ 的时间复杂度），并计算出了 $h(i + 1, p, m)$ 的取值，那么我们就可以在 $O(1)$ 的时间内得出 $h(i, p, m)$ 的取值。\n\n具体而言，我们假设 $s$ 的长度为 $n$，那么我们首先用 $O(k)$ 的时间预处理 $s$ 中**最后一个长度为 $k$ 子串**的哈希值 $h(n - k, p, m)$ 与 $p^{k} \\bmod m$，就可以用 $O(n - k)$ 的时间依次计算出其余每个长度为 $k$ 子串的哈希值。我们用 $\\textit{pos}$ 来维护第一个哈希值为 $\\textit{hashValue}$ 的长度为 $k$ 子串的起始下标，每当向前遍历到符合要求的子串，我们就将 $\\textit{pos}$ 更新为对应的起始下标。最终，我们返回该下标起始的长度为 $k$ 的子串作为答案。\n\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    string subStrHash(string s, int power, int modulo, int k, int hashValue) {\n        int mult = 1;   // power^k mod modulo\n        int n = s.size();\n        int pos = -1;   // 第一个符合要求子串的起始下标\n        int h = 0;   // 子串哈希值\n        // 预处理计算最后一个子串的哈希值和 power^k mod modulo\n        for (int i = n - 1; i >= n - k; --i) {\n            h = ((long long)h * power + (s[i] - 'a' + 1)) % modulo;\n            if (i != n - k) {\n                mult = (long long)mult * power % modulo;\n            }\n        }\n        if (h == hashValue) {\n            pos = n - k;\n        }\n        // 向前计算哈希值并尝试更新下标\n        for (int i = n - k - 1; i >= 0; --i) {\n            h = ((h - (long long)(s[i+k] - 'a' + 1) * mult % modulo + modulo) * power + (s[i] - 'a' + 1)) % modulo;\n            if (h == hashValue) {\n                pos = i;\n            }\n        }\n        return s.substr(pos, k);\n    }\n};\n```\n\n\n```Python [sol1-Python3]\nclass Solution:\n    def subStrHash(self, s: str, power: int, modulo: int, k: int, hashValue: int) -> str:\n        mult = 1   # power^k mod modulo\n        n = len(s)\n        pos = -1   # 第一个符合要求子串的起始下标\n        h = 0   # 子串哈希值\n        # 预处理计算最后一个子串的哈希值和 power^k mod modulo\n        for i in range(n - 1, n - k - 1, -1):\n            h = (h * power + (ord(s[i]) - ord('a') + 1)) % modulo\n            if i != n - k:\n                mult = mult * power % modulo\n        if h == hashValue:\n            pos = n - k\n        # 向前计算哈希值并尝试更新下标\n        for i in range(n - k - 1, -1, -1):\n            h = ((h - (ord(s[i+k]) - ord('a') + 1) * mult % modulo + modulo) * power + (ord(s[i]) - ord('a') + 1)) % modulo\n            if h == hashValue:\n                pos = i\n        return s[pos:pos+k]\n```\n\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 为 $s$ 的长度。即为预处理与遍历计算长度为 $k$ 的子串的哈希值，并更新符合条件字串起始下标的时间复杂度。\n\n- 空间复杂度：$O(1)$。",
+            "slateValue": "",
+            "slug": "cha-zhao-gei-ding-ha-xi-zhi-de-zi-chuan-fi8jd",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "QOXj12",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 10,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-02-07T02:33:13.114235+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：数学 思路与算法 对于 $s$ 中任意长度为 $k$ 的子串，计算该字串哈希值的时间复杂度为 $O(k)$。如果我们直接计算所有长度为 $k$ 子串的哈希值，并逐个比较，则时间复杂度为 $O(nk)$，不符合数据范围的要求。因此我们需要优化计算不同子串哈希值的时间。 我们可以考虑两个相邻的子串 $s[i..i+",
+            "topic": {
+                "id": 1249153,
+                "subscribed": false,
+                "commentCount": 25,
+                "viewCount": 2387,
+                "post": {
+                    "id": 2615556,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 31,
+            "isEditorsPick": false,
+            "hitCount": 9248,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "find-substring-with-given-hash-value",
+                "questionFrontendId": "2156"
+            },
+            "next": {
+                "slug": "dao-xu-hua-dong-chuang-kou-o1-kong-jian-xpgkp",
+                "title": "倒序滑动窗口 + O(1) 额外空间（Python/Java/C++/C/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

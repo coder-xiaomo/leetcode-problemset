@@ -1,0 +1,150 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "eYFrfz",
+            "title": "等和矩阵分割 II",
+            "content": "#### 方法一：旋转矩阵 + 哈希表 + 枚举上半矩阵之和\n\n**思路与算法**\n\n本题是「[等和矩阵分割 I](https://leetcode.cn/problems/equal-sum-grid-partition-i/description/)」的增强版，在这一题的基础上，添加了 **删除至多一个单元格** 并且 **删除后剩余部分必须保持连通** 的条件。\n\n那么需要进行删除的时候，我们需要考虑两条分割线的选取以及删除分割线哪一边的元素，为了简化思路，假设我们只判断是否存在水平分割线，并且进行删除操作时只删除水平分割线以上的元素。\n\n能够发现，我们将矩阵进行 $3$ 次 $90$ 度的旋转，每次旋转后进行如上述所说的简化操作，就能够覆盖枚举分割线以及枚举删除元素的位置所带来的 $4$ 种不同情况。\n\n接下来分析如何判断：\n\n1. 假设当前 $\\textit{grid}$ 上半矩阵之和为 $\\textit{sum}$，整个矩阵 $\\textit{grid}$ 之和为 $\\textit{total}$，那么 $\\textit{grid}$ 下半矩阵之和为 $\\textit{total} - \\textit{sum}$。\n2. 假设我们要删除的元素为 $x$，那么需要满足 $\\textit{sum} - x == \\textit{total} - \\textit{sum}$，于是有：$x == \\textit{sum} * 2 - \\textit{total}$。\n3. 因此在枚举完每一行之后只需要判断是否存在 $\\textit{grid}[i][j]$ 满足 $\\textit{grid}[i][j] == \\textit{sum} * 2 - \\textit{total}$ 即可。\n\n我们可以使用一个集合来保存出现过的元素，便于判断是否存在满足题目要求的元素，集合中可以预存一个 $0$，这样可以将删除元素与不删除元素合并为一种情况。\n\n特殊情况处理：\n\n1. 矩阵 $\\textit{grid}$ 在遍历第一行的情况：\n   在遍历第一行时能够删除的元素只有第一行的首尾元素，因此在统计完第一行的和之后需要判断 $\\textit{grid}[0][0]$ 或者 $\\textit{grid}[0][n - 1]$ 或者 $0$ 是否满足题目要求。\n2. 矩阵 $\\textit{grid}$ 只有一列的情况：\n   $\\textit{grid}$ 只有一列时能够删除的元素只有首行以及尾行的元素，需要在遍历第 $i$ 行后判断 $\\textit{grid}[0][0]$ 或者 $\\textit{grid}[i][0]$ 或者 $0$ 是否满足题目要求。\n3. 当矩阵 $\\textit{grid}$ 只有一行时可以跳过，因为无法进行水平分割。\n\n其他情况中 $\\textit{grid}$ 上半矩阵中所有的元素均可被删除。\n\n在 $3$ 次旋转后就能够将所有情况覆盖到。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<vector<int>> rotation(vector<vector<int>>& grid) {\n        int m = grid.size(), n = grid[0].size();\n        vector tmp(n, vector<int>(m));\n        for (int i = 0; i < m; i++) {\n            for (int j = 0; j < n; j++) {\n                tmp[j][m - 1 - i] = grid[i][j];\n            }\n        }\n        return tmp;\n    }\n    bool canPartitionGrid(vector<vector<int>>& grid) {\n        long long total = 0;\n        long long sum;\n        long long tag;\n        int m = grid.size();\n        int n = grid[0].size();\n        unordered_set<long long> exist;\n        for (int i = 0; i < m; i++) {\n            for (int j = 0; j < n; j++) {\n                total += grid[i][j];\n            }\n        }\n        for (int k = 0; k < 4; k++) {\n            exist.clear();\n            exist.insert(0);\n            sum = 0;\n            m = grid.size();\n            n = grid[0].size();\n            if (m < 2) {\n                grid = rotation(grid);\n                continue;\n            }\n            if(n == 1){\n                for(int i = 0; i < m - 1; i++){\n                    sum += grid[i][0];\n                    tag = sum * 2 - total;\n                    if(tag == 0 || tag == grid[0][0] || tag == grid[i][0]){\n                        return true;\n                    }\n                }\n                grid = rotation(grid);\n                continue;\n            }\n            for (int i = 0; i < m - 1; i++) {\n                for(int j = 0; j < n; j++){\n                    exist.insert(grid[i][j]);\n                    sum += grid[i][j];\n                }\n                tag = sum * 2 - total;\n                if(i == 0){\n                    if(tag == 0 || tag == grid[0][0] || tag == grid[0][n - 1]){\n                        return true;\n                    }\n                    continue;\n                }\n                if(exist.contains(tag)){\n                    return true;\n                }\n            }\n            grid = rotation(grid);\n        }\n        return false;\n    }\n};\n```\n\n```JavaScript [sol1-JavaScript]\nvar canPartitionGrid = function(grid) {\n    let total = 0;\n    let m = grid.length;\n    let n = grid[0].length;\n    for (let i = 0; i < m; i++) {\n        for (let j = 0; j < n; j++) {\n            total += grid[i][j];\n        }\n    }\n    for (let k = 0; k < 4; k++) {\n        const exist = new Set();\n        exist.add(0);\n        let sum = 0;\n        m = grid.length;\n        n = grid[0].length;\n        if (m < 2) {\n            grid = rotation(grid);\n            continue;\n        }\n        if (n == 1) {\n            for (let i = 0; i < m - 1; i++) {\n                sum += grid[i][0];\n                let tag = sum * 2 - total;\n                if (tag == 0 || tag == grid[0][0] || tag == grid[i][0]) {\n                    return true;\n                }\n            }\n            grid = rotation(grid);\n            continue;\n        }\n        for (let i = 0; i < m - 1; i++) {\n            for (let j = 0; j < n; j++) {\n                exist.add(grid[i][j]);\n                sum += grid[i][j];\n            }\n            let tag = sum * 2 - total;\n            if (i == 0) {\n                if (tag == 0 || tag == grid[0][0] || tag == grid[0][n - 1]) {\n                    return true;\n                }\n                continue;\n            }\n            if (exist.has(tag)) {\n                return true;\n            }\n        }\n        grid = rotation(grid);\n    }\n    return false;\n};\n\nfunction rotation(grid) {\n    const m = grid.length, n = grid[0].length;\n    const tmp = Array.from({ length: n }, () => Array(m).fill(0));\n    for (let i = 0; i < m; i++) {\n        for (let j = 0; j < n; j++) {\n            tmp[j][m - 1 - i] = grid[i][j];\n        }\n    }\n    return tmp;\n}\n```\n\n```TypeScript [sol1-TypeScript]\nfunction canPartitionGrid(grid: number[][]): boolean {\n    let total = 0;\n    let m = grid.length;\n    let n = grid[0].length;\n    for (let i = 0; i < m; i++) {\n        for (let j = 0; j < n; j++) {\n            total += grid[i][j];\n        }\n    }\n    for (let k = 0; k < 4; k++) {\n        const exist = new Set<number>();\n        exist.add(0);\n        let sum = 0;\n        m = grid.length;\n        n = grid[0].length;\n        if (m < 2) {\n            grid = rotation(grid);\n            continue;\n        }\n        if (n == 1) {\n            for (let i = 0; i < m - 1; i++) {\n                sum += grid[i][0];\n                let tag = sum * 2 - total;\n                if (tag == 0 || tag == grid[0][0] || tag == grid[i][0]) {\n                    return true;\n                }\n            }\n            grid = rotation(grid);\n            continue;\n        }\n        for (let i = 0; i < m - 1; i++) {\n            for (let j = 0; j < n; j++) {\n                exist.add(grid[i][j]);\n                sum += grid[i][j];\n            }\n            let tag = sum * 2 - total;\n            if (i == 0) {\n                if (tag == 0 || tag == grid[0][0] || tag == grid[0][n - 1]) {\n                    return true;\n                }\n                continue;\n            }\n            if (exist.has(tag)) {\n                return true;\n            }\n        }\n        grid = rotation(grid);\n    }\n    return false;\n}\n\nfunction rotation(grid: number[][]): number[][] {\n    const m = grid.length, n = grid[0].length;\n    const tmp: number[][] = Array.from({ length: n }, () => Array(m).fill(0));\n    for (let i = 0; i < m; i++) {\n        for (let j = 0; j < n; j++) {\n            tmp[j][m - 1 - i] = grid[i][j];\n        }\n    }\n    return tmp;\n}\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public boolean canPartitionGrid(int[][] grid) {\n        long total = 0;\n        int m = grid.length;\n        int n = grid[0].length;\n        for (int i = 0; i < m; i++) {\n            for (int j = 0; j < n; j++) {\n                total += grid[i][j];\n            }\n        }\n        for (int k = 0; k < 4; k++) {\n            Set<Long> exist = new HashSet<>();\n            exist.add(0L);\n            long sum = 0;\n            m = grid.length;\n            n = grid[0].length;\n            if (m < 2) {\n                grid = rotation(grid);\n                continue;\n            }\n            if (n == 1) {\n                for (int i = 0; i < m - 1; i++) {\n                    sum += grid[i][0];\n                    long tag = sum * 2 - total;\n                    if (tag == 0 || tag == grid[0][0] || tag == grid[i][0]) {\n                        return true;\n                    }\n                }\n                grid = rotation(grid);\n                continue;\n            }\n            for (int i = 0; i < m - 1; i++) {\n                for (int j = 0; j < n; j++) {\n                    exist.add((long) grid[i][j]);\n                    sum += grid[i][j];\n                }\n                long tag = sum * 2 - total;\n                if (i == 0) {\n                    if (tag == 0 || tag == grid[0][0] || tag == grid[0][n - 1]) {\n                        return true;\n                    }\n                    continue;\n                }\n                if (exist.contains(tag)) {\n                    return true;\n                }\n            }\n            grid = rotation(grid);\n        }\n        return false;\n    }\n\n    public int[][] rotation(int[][] grid) {\n        int m = grid.length, n = grid[0].length;\n        int[][] tmp = new int[n][m];\n        for (int i = 0; i < m; i++) {\n            for (int j = 0; j < n; j++) {\n                tmp[j][m - 1 - i] = grid[i][j];\n            }\n        }\n        return tmp;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public bool CanPartitionGrid(int[][] grid) {\n        long total = 0;\n        int m = grid.Length;\n        int n = grid[0].Length;\n        for (int i = 0; i < m; i++) {\n            for (int j = 0; j < n; j++) {\n                total += grid[i][j];\n            }\n        }\n        for (int k = 0; k < 4; k++) {\n            HashSet<long> exist = new HashSet<long>();\n            exist.Add(0);\n            long sum = 0;\n            m = grid.Length;\n            n = grid[0].Length;\n            if (m < 2) {\n                grid = Rotation(grid);\n                continue;\n            }\n            if (n == 1) {\n                for (int i = 0; i < m - 1; i++) {\n                    sum += grid[i][0];\n                    long tag = sum * 2 - total;\n                    if (tag == 0 || tag == grid[0][0] || tag == grid[i][0]) {\n                        return true;\n                    }\n                }\n                grid = Rotation(grid);\n                continue;\n            }\n            for (int i = 0; i < m - 1; i++) {\n                for (int j = 0; j < n; j++) {\n                    exist.Add(grid[i][j]);\n                    sum += grid[i][j];\n                }\n                long tag = sum * 2 - total;\n                if (i == 0) {\n                    if (tag == 0 || tag == grid[0][0] || tag == grid[0][n - 1]) {\n                        return true;\n                    }\n                    continue;\n                }\n                if (exist.Contains(tag)) {\n                    return true;\n                }\n            }\n            grid = Rotation(grid);\n        }\n        return false;\n    }\n\n    public int[][] Rotation(int[][] grid) {\n        int m = grid.Length, n = grid[0].Length;\n        int[][] tmp = new int[n][];\n        for (int i = 0; i < n; i++) {\n            tmp[i] = new int[m];\n        }\n        for (int i = 0; i < m; i++) {\n            for (int j = 0; j < n; j++) {\n                tmp[j][m - 1 - i] = grid[i][j];\n            }\n        }\n        return tmp;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc canPartitionGrid(grid [][]int) bool {\n    var total int64 = 0\n    m, n := len(grid), len(grid[0])\n    for i := 0; i < m; i++ {\n        for j := 0; j < n; j++ {\n            total += int64(grid[i][j])\n        }\n    }\n    for k := 0; k < 4; k++ {\n        exist := make(map[int64]bool)\n        exist[0] = true\n        var sum int64 = 0\n        m, n = len(grid), len(grid[0])\n        if m < 2 {\n            grid = rotation(grid)\n            continue\n        }\n        if n == 1 {\n            for i := 0; i < m-1; i++ {\n                sum += int64(grid[i][0])\n                tag := sum*2 - total\n                if tag == 0 || tag == int64(grid[0][0]) || tag == int64(grid[i][0]) {\n                    return true\n                }\n            }\n            grid = rotation(grid)\n            continue\n        }\n        for i := 0; i < m-1; i++ {\n            for j := 0; j < n; j++ {\n                exist[int64(grid[i][j])] = true\n                sum += int64(grid[i][j])\n            }\n            tag := sum*2 - total\n            if i == 0 {\n                if tag == 0 || tag == int64(grid[0][0]) || tag == int64(grid[0][n-1]) {\n                    return true\n                }\n                continue\n            }\n            if exist[tag] {\n                return true\n            }\n        }\n        grid = rotation(grid)\n    }\n    return false\n}\n\nfunc rotation(grid [][]int) [][]int {\n    m, n := len(grid), len(grid[0])\n    tmp := make([][]int, n)\n    for i := range tmp {\n        tmp[i] = make([]int, m)\n    }\n    for i := 0; i < m; i++ {\n        for j := 0; j < n; j++ {\n            tmp[j][m-1-i] = grid[i][j]\n        }\n    }\n    return tmp\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def canPartitionGrid(self, grid: List[List[int]]) -> bool:\n        total = 0\n        m = len(grid)\n        n = len(grid[0])\n        for i in range(m):\n            for j in range(n):\n                total += grid[i][j]\n        for _ in range(4):\n            exist = set()\n            exist.add(0)\n            sum_val = 0\n            m = len(grid)\n            n = len(grid[0])\n            if m < 2:\n                grid = self.rotation(grid)\n                continue\n            if n == 1:\n                for i in range(m - 1):\n                    sum_val += grid[i][0]\n                    tag = sum_val * 2 - total\n                    if tag == 0 or tag == grid[0][0] or tag == grid[i][0]:\n                        return True\n                grid = self.rotation(grid)\n                continue\n            for i in range(m - 1):\n                for j in range(n):\n                    exist.add(grid[i][j])\n                    sum_val += grid[i][j]\n                tag = sum_val * 2 - total\n                if i == 0:\n                    if tag == 0 or tag == grid[0][0] or tag == grid[0][n - 1]:\n                        return True\n                    continue\n                if tag in exist:\n                    return True\n            grid = self.rotation(grid)\n        return False\n\n    def rotation(self, grid: List[List[int]]) -> List[List[int]]:\n        m = len(grid)\n        n = len(grid[0])\n        tmp = [[0] * m for _ in range(n)]\n        for i in range(m):\n            for j in range(n):\n                tmp[j][m - 1 - i] = grid[i][j]\n        return tmp\n```\n\n```C [sol1-C]\ntypedef struct {\n    long long key;\n    UT_hash_handle hh;\n} HashItem;\n\nstatic inline HashItem* hashFindItem(HashItem **obj, long long key) {\n    HashItem *pEntry = NULL;\n    HASH_FIND(hh, *obj, &key, sizeof(key), pEntry);\n    return pEntry;\n}\n\nbool hashAddItem(HashItem **obj, long long key) {\n    if (hashFindItem(obj, key)) {\n        return false;\n    }\n    HashItem *pEntry = malloc(sizeof(HashItem));\n    if (!pEntry) return false;\n    pEntry->key = key;\n    HASH_ADD(hh, *obj, key, sizeof(key), pEntry);\n    return true;\n}\n\nvoid hashFree(HashItem **obj) {\n    HashItem *curr, *tmp;\n    HASH_ITER(hh, *obj, curr, tmp) {\n        HASH_DEL(*obj, curr);\n        free(curr);\n    }\n    *obj = NULL;\n}\n\n\nint** rotation(int** grid, int m, int n, int* newM, int* newN) {\n    *newM = n;\n    *newN = m;\n    int** tmp = malloc(n * sizeof(int*));\n    int* data = malloc(n * m * sizeof(int));\n    if (!tmp || !data) {\n        free(tmp);\n        free(data);\n        return NULL;\n    }\n    for (int i = 0; i < n; i++) {\n        tmp[i] = data + i * m;\n    }\n    for (int i = 0; i < m; i++) {\n        for (int j = 0; j < n; j++) {\n            tmp[j][m - 1 - i] = grid[i][j];\n        }\n    }\n    return tmp;\n}\n\nvoid freeGrid(int** grid, int rows) {\n    if (grid && grid[0]) {\n        free(grid[0]);\n    }\n    free(grid);\n}\n\nstatic inline bool checkAndReturnTrue(HashItem **exist, int** currentGrid, int currentM, int** originalGrid) {\n    hashFree(exist);\n    if (currentGrid != originalGrid) {\n        freeGrid(currentGrid, currentM);\n    }\n    return true;\n}\n\nstatic inline void rotateAndUpdate(int** *currentGrid, int *currentM, int *currentN, int** originalGrid) {\n    int newM, newN;\n    int** newGrid = rotation(*currentGrid, *currentM, *currentN, &newM, &newN);\n    if (*currentGrid != originalGrid) {\n        freeGrid(*currentGrid, *currentM);\n    }\n    *currentGrid = newGrid;\n    *currentM = newM;\n    *currentN = newN;\n}\n\nbool canPartitionGrid(int** grid, int gridSize, int* gridColSize) {\n    const int m = gridSize;\n    const int n = gridColSize[0];\n    long long total = 0;\n\n    for (int i = 0; i < m; i++) {\n        for (int j = 0; j < n; j++) {\n            total += grid[i][j];\n        }\n    }\n    int currentM = m, currentN = n;\n    int** currentGrid = grid;\n\n    for (int k = 0; k < 4; k++) {\n        HashItem* exist = NULL;\n        hashAddItem(&exist, 0LL);\n        long long sum = 0;\n        if (currentM < 2 || currentN == 1) {\n            if (currentN == 1 && currentM >= 2) {\n                for (int i = 0; i < currentM - 1; i++) {\n                    sum += currentGrid[i][0];\n                    long long tag = sum * 2 - total;\n                    if (tag == 0 || tag == currentGrid[0][0] || tag == currentGrid[i][0]) {\n                        return checkAndReturnTrue(&exist, currentGrid, currentM, grid);\n                    }\n                }\n            }\n            rotateAndUpdate(&currentGrid, &currentM, &currentN, grid);\n            hashFree(&exist);\n            continue;\n        }\n\n        for (int i = 0; i < currentM - 1; i++) {\n            for (int j = 0; j < currentN; j++) {\n                hashAddItem(&exist, (long long)currentGrid[i][j]);\n                sum += currentGrid[i][j];\n            }\n            long long tag = sum * 2 - total;\n            if (i == 0) {\n                if (tag == 0 || tag == currentGrid[0][0] || tag == currentGrid[0][currentN - 1]) {\n                    return checkAndReturnTrue(&exist, currentGrid, currentM, grid);\n                }\n                continue;\n            }\n            if (hashFindItem(&exist, tag)) {\n                return checkAndReturnTrue(&exist, currentGrid, currentM, grid);\n            }\n        }\n\n        rotateAndUpdate(&currentGrid, &currentM, &currentN, grid);\n        hashFree(&exist);\n    }\n\n    if (currentGrid != grid) {\n        freeGrid(currentGrid, currentM);\n    }\n\n    return false;\n}\n```\n\n```Rust [sol1-Rust]\nuse std::collections::HashSet;\n\nimpl Solution {\n    fn rotation(grid: &Vec<Vec<i32>>) -> Vec<Vec<i32>> {\n        let m = grid.len();\n        let n = grid[0].len();\n        let mut tmp = vec![vec![0; m]; n];\n\n        for i in 0..m {\n            for j in 0..n {\n                tmp[j][m - 1 - i] = grid[i][j];\n            }\n        }\n        tmp\n    }\n\n    pub fn can_partition_grid(grid: Vec<Vec<i32>>) -> bool {\n        let mut grid = grid;\n        let mut total: i64 = 0;\n        let mut sum: i64;\n        let mut tag: i64;\n        let mut m = grid.len();\n        let mut n = grid[0].len();\n        for i in 0..m {\n            for j in 0..n {\n                total += grid[i][j] as i64;\n            }\n        }\n\n        let mut exist = HashSet::new();\n\n        for _ in 0..4 {\n            exist.clear();\n            exist.insert(0);\n            sum = 0;\n            m = grid.len();\n            n = grid[0].len();\n            if m < 2 {\n                grid = Self::rotation(&grid);\n                continue;\n            }\n            if n == 1 {\n                for i in 0..m - 1 {\n                    sum += grid[i][0] as i64;\n                    tag = sum * 2 - total;\n                    if tag == 0 || tag == grid[0][0] as i64 || tag == grid[i][0] as i64 {\n                        return true;\n                    }\n                }\n                grid = Self::rotation(&grid);\n                continue;\n            }\n\n            for i in 0..m - 1 {\n                for j in 0..n {\n                    exist.insert(grid[i][j] as i64);\n                    sum += grid[i][j] as i64;\n                }\n\n                tag = sum * 2 - total;\n\n                if i == 0 {\n                    if tag == 0 || tag == grid[0][0] as i64 || tag == grid[0][n - 1] as i64 {\n                        return true;\n                    }\n                    continue;\n                }\n\n                if exist.contains(&tag) {\n                    return true;\n                }\n            }\n\n            grid = Self::rotation(&grid);\n        }\n\n        false\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(mn)$，其中 $m$ 为 $\\textit{grid}$ 矩阵的行数，$n$ 为 $\\textit{grid}$ 矩阵的列数。\n\n- 空间复杂度：$O(mn)$，其中 $m$ 为 $\\textit{grid}$ 矩阵的行数，$n$ 为 $\\textit{grid}$ 矩阵的列数。",
+            "slateValue": "",
+            "slug": "deng-he-ju-zhen-fen-ge-ii-by-leetcode-so-a7zq",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "eYFrfz",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 5,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Enumeration",
+                    "nameTranslated": "枚举",
+                    "slug": "enumeration",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Matrix",
+                    "nameTranslated": "矩阵",
+                    "slug": "matrix",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Prefix Sum",
+                    "nameTranslated": "前缀和",
+                    "slug": "prefix-sum",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2026-03-16T03:36:38.406058+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：旋转矩阵 + 哈希表 + 枚举上半矩阵之和 思路与算法 本题是「等和矩阵分割 I」的增强版，在这一题的基础上，添加了 删除至多一个单元格 并且 删除后剩余部分必须保持连通 的条件。 那么需要进行删除的时候，我们需要考虑两条分割线的选取以及删除分割线哪一边的元素，为了简化思路，假设我们只判断是否存在水平分割线，并",
+            "topic": {
+                "id": 3926925,
+                "subscribed": false,
+                "commentCount": 5,
+                "viewCount": 19,
+                "post": {
+                    "id": 7160088,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 14,
+            "isEditorsPick": false,
+            "hitCount": 4367,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "equal-sum-grid-partition-ii",
+                "questionFrontendId": "3548"
+            },
+            "next": {
+                "slug": "shi-zi-bian-xing-fen-lei-tao-lun-pythonj-2613",
+                "title": "式子变形 + 分类讨论 + 复用代码（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

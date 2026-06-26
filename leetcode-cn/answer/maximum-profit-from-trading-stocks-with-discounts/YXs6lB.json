@@ -1,0 +1,144 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "YXs6lB",
+            "title": "折扣价交易股票的最大利润",
+            "content": "#### 方法一：树形动态规划\n\n**思路与算法**\n\n该方法假设读者已经掌握 「[$0$-$1$ 背包问题](https://oi-wiki.org/dp/knapsack/)」的思路和解法。\n\n首先证明在题设条件下，输入必定为**一颗树**。\n\n因为输入的图保证无环，且员工 $1$ 是所有员工的**直接或间接上司**，故该图不仅是**连通图**，而且一定是以员工 $1$ 为**单一起点**的（唯一入度为 $0$ 的点）**有向无环图**。\n\n又因为该图不存在自环（$u_i \\neq v_i$）和重边，且边数等于节点数减一，由树的性质易证该图就是一棵树。\n\n观察到题设问题对于子树成立，且当前节点信息可以由子树的信息进行转移，故考虑使用树形动态规划求解。\n\n对于当前节点 $u$，设状态 $\\textit{dp}(u, \\,\\textit{state}, \\, b)$：\n\n1. $\\textit{state} = 0$：代表折扣不可用（不购买父节点）的情况下，预算为 $b$ 时以 $u$ 为根节点的子树的最大利润。\n\n2. $\\textit{state} = 1$：代表折扣可用（必须购买父节点）的情况下，预算为 $b$ 时以 $u$ 为根节点的子树的最大利润。\n\n状态转移可以使用 $0$-$1$ 背包问题的思路来求解，我们可以将节点 $u$ 代表的子树拆分为 $u$ 本身和它的子节点两个部分，分别求解它们对整个子树的贡献：\n\n- 计算 $u$ 的所有子节点在预算 $b$ 下的最优利润。\n\n- 计算节点 $u$ 自己在预算 $b$ 下对子树的贡献。\n\n下面首先求解 $u$ 的所有子节点在预算 $b$ 下的最优利润，这里需要先计算一个辅助状态 $\\textit{subProfit}(\\textit{state}, \\,b)$，由于我们在求解以子节点 $v$ 为根的子树的最优利润，因此这里 $\\textit{state}$ 的含义并不代表 $u$ 自身折扣是否可用，而是代表 **$u$ 的购买状态对子节点 $v$ 的状态转移的影响**：\n\n1. $\\textit{state} = 0$：表示不购买节点 $u$ 的情况。此时所有子节点 $v$ 无法享受折扣，根据 $\\textit{dp}(v, \\,0, \\,\\cdots)$ 进行转移。\n\n2. $\\textit{state} = 1$：表示购买节点 $u$ 的情况。此时所有子节点 $v$ 可以享受折扣，根据 $\\textit{dp}(v, \\, 1, \\, \\cdots)$ 进行转移。\n\n将每个子节点 $v$ 所代表的子树看作一件可以放入背包的物品。具体而言，对于每一个子树节点 $v$，我们枚举子树预算 $\\textit{sub}$ 作为重量，$\\textit{dp}(v, \\,\\textit{state}, \\, \\textit{sub})$ 即为子树价值，这样就能将 $v$ 看作一个物品，进行背包问题的求解。\n\n或者也可以将每个子节点 $v$ 看作一个“组”，该组内包含了花费不同预算 $sub$ 所能获得的最大价值。我们在遍历子节点时，本质上是在做**分组背包**的状态转移：\n\n$$\n\\textit{subProfit}(\\textit{state}, \\,i) = \\max_{0 \\le \\textit{sub} \\le i} \\{ \\textit{subProfit}(\\textit{state}, \\,i - \\textit{sub}) + \\textit{dp}(v, \\,\\textit{state}, \\,\\textit{sub}) \\}\n$$\n\n合并完所有子节点的信息后，再根据节点 $u$ 自身的购买情况来计算 $\\textit{dp}(u, \\,\\textit{state}, \\,b)$。这里还是使用了背包问题的求解思路，将节点 $u$ 自身作为一件物品来处理，注意此时的 $\\textit{state}$ 代表的是 $u$ 的父节点是否必须购买，和 $\\textit{subProfit}$ 中的 $\\textit{state}$ 含义不同：\n\n1. 决策一：不购买当前节点 $u$，此时 $u$ 的子节点都无法享受折扣，整个子树的利润为 $\\textit{subProfit}(0, \\,b)$。\n\n2. 决策二：购买当前节点 $u$：\n\n   - 若 $\\textit{state} = 0$，即折扣不可用，此时整个子树的利润为 $\\textit{subProfit}(1, \\,b - \\textit{present}_u) + \\textit{future}_u - \\textit{present}_u$。\n\n   - 若 $\\textit{state} = 1$，即折扣可用，此时整个子树的利润为 $\\textit{subProfit}(1, \\,b - \\left\\lfloor \\frac{\\textit{present}_u}{2} \\right\\rfloor) + \\textit{future}_u - \\left\\lfloor \\frac{\\textit{present}_u}{2} \\right\\rfloor$。\n\n上述两种情况取最大值即可。\n\n最后，根节点的 $\\textit{dp}(0, \\,0, \\,\\textit{budget})$ 即为在预算范围内能获得的最大利润。其中因为根节点没有父节点，所以只能选择折扣不可用的状态。\n\n此外，在代码实现时，还有一些可以优化时空复杂度的点：\n\n- 由于状态数组 $\\textit{dp}$ 在父子节点之间转移，故可以使用类似滚动数组的方式，不再全局存储第一维节点信息，而是在递归时由子节点向父节点传递。\n\n- 子树的预算 $\\textit{sub}$ 上界可能比当前总预算 $b$ 更低，此时增加子树预算并不会带来更优的结果。例如，一个简单的上界估计方法是计算子树节点的 $\\textit{present}$ 总和，后续遍历时取较小的上界即可。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int maxProfit(int n, vector<int>& present, vector<int>& future, vector<vector<int>>& hierarchy, int budget) {\n        vector<vector<int>> g(n);\n\n        for (auto& e : hierarchy) {\n            g[e[0] - 1].push_back(e[1] - 1);\n        }\n\n        auto dfs = [&](auto&& self, int u) -> tuple<vector<int>, vector<int>, int>  {\n            int cost = present[u];\n            int dCost = present[u] / 2; // discounted cost\n\n            // dp[u][state][budget]\n            // state = 0: 不购买父节点, state = 1: 必须购买父节点\n            auto dp0 = vector(budget + 1, 0);\n            auto dp1 = vector(budget + 1, 0);\n\n            // subProfit[state][budget]\n            // state = 0: 优惠不可用, state = 1: 优惠可用\n            auto subProfit0 = vector(budget + 1, 0);\n            auto subProfit1 = vector(budget + 1, 0);\n\n            int uSize = cost;\n\n            for (auto v : g[u]) {\n                auto [subDp0, subDp1, vSize] = self(self, v);\n                uSize += vSize;\n                for (int i = budget; i >= 0; i--) {\n                    for (int sub = 0; sub <= min(vSize, i); sub++) {\n                        subProfit0[i] = max(subProfit0[i], subProfit0[i - sub] + subDp0[sub]);\n                        subProfit1[i] = max(subProfit1[i], subProfit1[i - sub] + subDp1[sub]);\n                    }\n                }\n            }\n\n            for (int i = 0; i <= budget; i++) {\n                dp0[i] = dp1[i] = subProfit0[i];\n\n                if (i >= dCost) {\n                    dp1[i] = max(subProfit0[i], subProfit1[i - dCost] + future[u] - dCost);\n                }\n\n                if (i >= cost) {\n                    dp0[i] = max(subProfit0[i], subProfit1[i - cost] + future[u] - cost);\n                }\n            }\n\n            return {dp0, dp1, uSize};\n        };\n\n        return std::get<0>(dfs(dfs, 0))[budget];\n    }\n};\n```\n\n```JavaScript [sol1-JavaScript]\nvar maxProfit = function (n, present, future, hierarchy, budget) {\n    const g = Array.from({ length: n }, () => []);\n\n    for (const e of hierarchy) {\n        g[e[0] - 1].push(e[1] - 1);\n    }\n\n    const dfs = (u) => {\n        const cost = present[u];\n        const dCost = Math.floor(present[u] / 2); // discounted cost\n\n        // dp[u][state][budget]\n        // state: 0 = 不购买父节点, 1 = 购买父节点\n        const dp0 = new Array(budget + 1).fill(0);\n        const dp1 = new Array(budget + 1).fill(0);\n\n        // subProfit[state][budget]\n        // state = 0: 优惠不可用, state = 1: 优惠可用\n        const subProfit0 = Array(budget + 1).fill(0);\n        const subProfit1 = Array(budget + 1).fill(0);\n\n        let uSize = cost;\n\n        for (const v of g[u]) {\n            const [subDp0, subDp1, vSize] = dfs(v);\n            uSize += vSize;\n\n            for (let i = budget; i >= 0; i--) {\n                for (let sub = 0; sub <= Math.min(vSize, i); sub++) {\n                    subProfit0[i] = Math.max(subProfit0[i], subProfit0[i - sub] + subDp0[sub]);\n                    subProfit1[i] = Math.max(subProfit1[i], subProfit1[i - sub] + subDp1[sub]);\n                }\n            }\n        }\n\n        for (let i = 0; i <= budget; i++) {\n            dp0[i] = dp1[i] = subProfit0[i];\n\n            if (i >= dCost) {\n                dp1[i] = Math.max(subProfit0[i], subProfit1[i - dCost] + future[u] - dCost);\n            }\n\n            if (i >= cost) {\n                dp0[i] = Math.max(subProfit0[i], subProfit1[i - cost] + future[u] - cost);\n            }\n        }\n\n        return [dp0, dp1, uSize];\n    };\n\n    return dfs(0)[0][budget];\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction maxProfit(n: number, present: number[], future: number[], hierarchy: number[][], budget: number): number {\n    const g = Array.from({ length: n }, () => [] as number[]);\n\n    for (const e of hierarchy) {\n        g[e[0] - 1].push(e[1] - 1);\n    }\n\n    const dfs = (u: number) => {\n        const cost = present[u];\n        const dCost = Math.floor(present[u] / 2); // discounted cost\n\n        // dp[u][state][budget]\n        // state: 0 = 不购买父节点, 1 = 购买父节点\n        const dp0: number[] = new Array(budget + 1).fill(0);\n        const dp1: number[] = new Array(budget + 1).fill(0);\n\n        // subProfit[state][budget]\n        // state = 0: 优惠不可用, state = 1: 优惠可用\n        const subProfit0: number[] = Array(budget + 1).fill(0);\n        const subProfit1: number[] = Array(budget + 1).fill(0);\n\n        let uSize = cost;\n\n        for (const v of g[u]) {\n            const [subDp0, subDp1, vSize] = dfs(v);\n            uSize += vSize;\n\n            for (let i = budget; i >= 0; i--) {\n                for (let sub = 0; sub <= Math.min(vSize, i); sub++) {\n                    subProfit0[i] = Math.max(subProfit0[i], subProfit0[i - sub] + subDp0[sub]);\n                    subProfit1[i] = Math.max(subProfit1[i], subProfit1[i - sub] + subDp1[sub]);\n                }\n            }\n        }\n\n        for (let i = 0; i <= budget; i++) {\n            dp0[i] = dp1[i] = subProfit0[i];\n\n            if (i >= dCost) {\n                dp1[i] = Math.max(subProfit0[i], subProfit1[i - dCost] + future[u] - dCost);\n            }\n\n            if (i >= cost) {\n                dp0[i] = Math.max(subProfit0[i], subProfit1[i - cost] + future[u] - cost);\n            }\n        }\n\n        return [dp0, dp1, uSize] as const;\n    };\n\n    return dfs(0)[0][budget];\n};\n```\n\n```Java [sol1-Java]\nclass Result {\n    int[] dp0;\n    int[] dp1;\n    int size;\n    \n    Result(int[] dp0, int[] dp1, int size) {\n        this.dp0 = dp0;\n        this.dp1 = dp1;\n        this.size = size;\n    }\n}\n\nclass Solution {\n    public int maxProfit(int n, int[] present, int[] future, int[][] hierarchy, int budget) {\n        List<Integer>[] g = new ArrayList[n];\n        for (int i = 0; i < n; i++) {\n            g[i] = new ArrayList<>();\n        }\n        for (int[] e : hierarchy) {\n            g[e[0] - 1].add(e[1] - 1);\n        }\n        \n        return dfs(0, present, future, g, budget).dp0[budget];\n    }\n\n    private Result dfs(int u, int[] present, int[] future, List<Integer>[] g, int budget) {\n        int cost = present[u];\n        int dCost = present[u] / 2;\n        // dp[u][state][budget]\n        // state = 0: 不购买父节点, state = 1: 必须购买父节点\n        int[] dp0 = new int[budget + 1];\n        int[] dp1 = new int[budget + 1];\n\n        // subProfit[state][budget]\n        // state = 0: 优惠不可用, state = 1: 优惠可用\n        int[] subProfit0 = new int[budget + 1];\n        int[] subProfit1 = new int[budget + 1];\n        int uSize = cost;\n        \n        for (int v : g[u]) {\n            Result childResult = dfs(v, present, future, g, budget);\n            uSize += childResult.size;\n\n            for (int i = budget; i >= 0; i--) {\n                for (int sub = 0; sub <= Math.min(childResult.size, i); sub++) {\n                    if (i - sub >= 0) {\n                        subProfit0[i] = Math.max(subProfit0[i], subProfit0[i - sub] + childResult.dp0[sub]);\n                        subProfit1[i] = Math.max(subProfit1[i], subProfit1[i - sub] + childResult.dp1[sub]);\n                    }\n                }\n            }\n        }\n        \n        for (int i = 0; i <= budget; i++) {\n            dp0[i] = subProfit0[i];\n            dp1[i] = subProfit0[i];\n            if (i >= dCost) {\n                dp1[i] = Math.max(subProfit0[i], subProfit1[i - dCost] + future[u] - dCost);\n            }\n            if (i >= cost) {\n                dp0[i] = Math.max(subProfit0[i], subProfit1[i - cost] + future[u] - cost);\n            }\n        }\n        \n        return new Result(dp0, dp1, uSize);\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MaxProfit(int n, int[] present, int[] future, int[][] hierarchy, int budget) {\n        List<int>[] g = new List<int>[n];\n        for (int i = 0; i < n; i++) {\n            g[i] = new List<int>();\n        }\n        foreach (var e in hierarchy) {\n            g[e[0] - 1].Add(e[1] - 1);\n        }\n        \n        (int[] dp0, int[] dp1, int size) Dfs(int u) {\n            int cost = present[u];\n            int dCost = present[u] / 2; // discounted cost\n            \n            // dp[u][state][budget]\n            // state = 0: 不购买父节点, state = 1: 必须购买父节点\n            int[] dp0 = new int[budget + 1];\n            int[] dp1 = new int[budget + 1];\n            // subProfit[state][budget]\n            // state = 0: 优惠不可用, state = 1: 优惠可用\n            int[] subProfit0 = new int[budget + 1];\n            int[] subProfit1 = new int[budget + 1];\n            int uSize = cost;\n            \n            foreach (int v in g[u]) {\n                var (childDp0, childDp1, vSize) = Dfs(v);\n                uSize += vSize;\n                for (int i = budget; i >= 0; i--) {\n                    for (int sub = 0; sub <= Math.Min(vSize, i); sub++) {\n                        if (i - sub >= 0) {\n                            subProfit0[i] = Math.Max(subProfit0[i], subProfit0[i - sub] + childDp0[sub]);\n                            subProfit1[i] = Math.Max(subProfit1[i], subProfit1[i - sub] + childDp1[sub]);\n                        }\n                    }\n                }\n            }\n            \n            for (int i = 0; i <= budget; i++) {\n                dp0[i] = subProfit0[i];\n                dp1[i] = subProfit0[i];\n                if (i >= dCost) {\n                    dp1[i] = Math.Max(subProfit0[i], subProfit1[i - dCost] + future[u] - dCost);\n                }\n                if (i >= cost) {\n                    dp0[i] = Math.Max(subProfit0[i], subProfit1[i - cost] + future[u] - cost);\n                }\n            }\n            \n            return (dp0, dp1, uSize);\n        }\n        \n        return Dfs(0).dp0[budget];\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc maxProfit(n int, present []int, future []int, hierarchy [][]int, budget int) int {\n    // 构建邻接表\n    g := make([][]int, n)\n    for i := range g {\n        g[i] = make([]int, 0)\n    }\n    for _, e := range hierarchy {\n        g[e[0] - 1] = append(g[e[0] - 1], e[1] - 1)\n    }\n    \n    var dfs func(int) result\n    dfs = func(u int) result {\n        cost := present[u]\n        dCost := present[u] / 2\n        // dp[u][state][budget]\n        // state = 0: 不购买父节点, state = 1: 必须购买父节点\n        dp0 := make([]int, budget + 1)\n        dp1 := make([]int, budget + 1)\n        // subProfit[state][budget]\n        // state = 0: 优惠不可用, state = 1: 优惠可用\n        subProfit0 := make([]int, budget + 1)\n        subProfit1 := make([]int, budget + 1)\n        \n        uSize := cost\n        for _, v := range g[u] {\n            childResult := dfs(v)\n            uSize += childResult.size\n            for i := budget; i >= 0; i-- {\n                for sub := 0; sub <= min(childResult.size, i); sub++ {\n                    if i-sub >= 0 {\n                        subProfit0[i] = max(subProfit0[i], subProfit0[i-sub] + childResult.dp0[sub])\n                        subProfit1[i] = max(subProfit1[i], subProfit1[i-sub] + childResult.dp1[sub])\n                    }\n                }\n            }\n        }\n        \n        for i := 0; i <= budget; i++ {\n            dp0[i] = subProfit0[i]\n            dp1[i] = subProfit0[i]\n            if i >= dCost {\n                dp1[i] = max(subProfit0[i], subProfit1[i-dCost] + future[u] - dCost)\n            }\n            if i >= cost {\n                dp0[i] = max(subProfit0[i], subProfit1[i-cost] + future[u] - cost)\n            }\n        }\n        \n        return result{dp0, dp1, uSize}\n    }\n    \n    return dfs(0).dp0[budget]\n}\n\ntype result struct {\n    dp0  []int\n    dp1  []int\n    size int\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def maxProfit(self, n: int, present: List[int], future: List[int], \n                 hierarchy: List[List[int]], budget: int) -> int:\n        g = [[] for _ in range(n)]\n        for e in hierarchy:\n            g[e[0] - 1].append(e[1] - 1)\n        \n        def dfs(u: int):\n            cost = present[u]\n            dCost = present[u] // 2\n\n            # dp[u][state][budget]\n            # state = 0: 不购买父节点, state = 1: 必须购买父节点\n            dp0 = [0] * (budget + 1)\n            dp1 = [0] * (budget + 1)\n\n            # subProfit[state][budget]\n            # state = 0: 优惠不可用, state = 1: 优惠可用\n            subProfit0 = [0] * (budget + 1)\n            subProfit1 = [0] * (budget + 1)\n            uSize = cost\n            \n            for v in g[u]:\n                child_dp0, child_dp1, vSize = dfs(v)\n                uSize += vSize\n                for i in range(budget, -1, -1):\n                    for sub in range(min(vSize, i) + 1):\n                        if i - sub >= 0:\n                            subProfit0[i] = max(subProfit0[i], subProfit0[i - sub] + child_dp0[sub])\n                            subProfit1[i] = max(subProfit1[i], subProfit1[i - sub] + child_dp1[sub])\n            \n            for i in range(budget + 1):\n                dp0[i] = subProfit0[i]\n                dp1[i] = subProfit0[i]\n                if i >= dCost:\n                    dp1[i] = max(subProfit0[i], subProfit1[i - dCost] + future[u] - dCost)\n                if i >= cost:\n                    dp0[i] = max(subProfit0[i], subProfit1[i - cost] + future[u] - cost)\n            \n            return dp0, dp1, uSize\n        \n        return dfs(0)[0][budget]\n```\n\n```C [sol1-C]\ntypedef struct {\n    int* dp0;\n    int* dp1;\n    int size;\n} Result;\n\nstruct ListNode *creatListNode(int val) {\n    struct ListNode *obj = (struct ListNode*)malloc(sizeof(struct ListNode));\n    obj->val = val;\n    obj->next = NULL;\n    return obj;\n}\n\nvoid freeList(struct ListNode *list) {\n    while (list) {\n        struct ListNode *p = list;\n        list = list->next;\n        free(p);\n    }\n}\n\nvoid dfs(int u, int n, int* present, int* future, struct ListNode ** g, int budget, Result* result, int* visited) {\n    if (visited[u]) {\n        return;\n    }\n\n    visited[u] = 1;\n    int cost = present[u];\n    int dCost = present[u] / 2;\n    // dp[u][state][budget]\n    // state = 0: 不购买父节点, state = 1: 必须购买父节点\n    int* dp0 = (int*)calloc(budget + 1, sizeof(int));\n    int* dp1 = (int*)calloc(budget + 1, sizeof(int));\n    // subProfit[state][budget]\n    // state = 0: 优惠不可用, state = 1: 优惠可用\n    int* subProfit0 = (int*)calloc(budget + 1, sizeof(int));\n    int* subProfit1 = (int*)calloc(budget + 1, sizeof(int));\n    int uSize = cost;\n    \n    for (struct ListNode *p = g[u]; p; p = p->next) {\n        int v = p->val;\n        Result childResult;\n        childResult.dp0 = NULL;\n        childResult.dp1 = NULL;\n        childResult.size = 0;\n        dfs(v, n, present, future, g, budget, &childResult, visited);\n        \n        uSize += childResult.size;\n        for (int j = budget; j >= 0; j--) {\n            for (int sub = 0; sub <= fmin(childResult.size, j); sub++) {\n                if (j - sub >= 0) {\n                    subProfit0[j] = fmax(subProfit0[j], subProfit0[j - sub] + childResult.dp0[sub]);\n                    subProfit1[j] = fmax(subProfit1[j], subProfit1[j - sub] + childResult.dp1[sub]);\n                }\n            }\n        }\n        \n        free(childResult.dp0);\n        free(childResult.dp1);\n    }\n    \n    for (int i = 0; i <= budget; i++) {\n        dp0[i] = subProfit0[i];\n        dp1[i] = subProfit0[i];\n        if (i >= dCost) {\n            dp1[i] = fmax(subProfit0[i], subProfit1[i - dCost] + future[u] - dCost);\n        }\n        if (i >= cost) {\n            dp0[i] = fmax(subProfit0[i], subProfit1[i - cost] + future[u] - cost);\n        }\n    }\n    \n    result->dp0 = dp0;\n    result->dp1 = dp1;\n    result->size = uSize;\n    \n    free(subProfit0);\n    free(subProfit1);\n}\n\nint maxProfit(int n, int* present, int presentSize, int* future, int futureSize,int** hierarchy, int hierarchySize, int* hierarchyColSize, int budget) {\n    \n    struct ListNode **g = (struct ListNode**)malloc(n * sizeof(struct ListNode*));\n    for (int i = 0; i < n; i++) {\n        g[i] = NULL;\n    }\n    for (int i = 0; i < hierarchySize; i++) {\n        int u = hierarchy[i][0] - 1;\n        int v = hierarchy[i][1] - 1;\n        struct ListNode *p = creatListNode(v);\n        p->next = g[u];\n        g[u] = p;\n    }\n\n    int* visited = (int*)calloc(n, sizeof(int));\n    Result result;\n    result.dp0 = NULL;\n    result.dp1 = NULL;\n    result.size = 0;\n    dfs(0, n, present, future, g, budget, &result, visited);\n\n    int ret = result.dp0[budget];\n    free(result.dp0);\n    free(result.dp1);\n    free(visited);\n    for (int i = 0; i < n; i++) {\n        freeList(g[i]);\n    }\n    free(g);\n    \n    return ret;\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn max_profit(n: i32, present: Vec<i32>, future: Vec<i32>, \n                     hierarchy: Vec<Vec<i32>>, budget: i32) -> i32 {\n        let n = n as usize;\n        let budget = budget as usize;\n        let mut g: Vec<Vec<usize>> = vec![vec![]; n];\n        for e in hierarchy {\n            g[(e[0] - 1) as usize].push((e[1] - 1) as usize);\n        }\n        \n        fn dfs(u: usize, present: &[i32], future: &[i32], g: &[Vec<usize>], budget: usize) -> (Vec<i32>, Vec<i32>, usize) {\n            let cost = present[u] as usize;\n            let d_cost = present[u] as usize / 2;\n            \n            // dp[u][state][budget]\n            // state = 0: 不购买父节点, state = 1: 必须购买父节点\n            let mut dp0 = vec![0; budget + 1];\n            let mut dp1 = vec![0; budget + 1];\n            \n            // subProfit[state][budget]\n            // state = 0: 优惠不可用, state = 1: 优惠可用\n            let mut sub_profit0 = vec![0; budget + 1];\n            let mut sub_profit1 = vec![0; budget + 1];\n            let mut u_size = cost;\n            \n            for &v in &g[u] {\n                let (child_dp0, child_dp1, v_size) = dfs(v, present, future, g, budget);\n                u_size += v_size;\n                \n                for i in (0..=budget).rev() {\n                    for sub in 0..=v_size.min(i) {\n                        if i >= sub {\n                            sub_profit0[i] = sub_profit0[i].max(sub_profit0[i - sub] + child_dp0[sub]);\n                            sub_profit1[i] = sub_profit1[i].max(sub_profit1[i - sub] + child_dp1[sub]);\n                        }\n                    }\n                }\n            }\n            \n            for i in 0..=budget {\n                dp0[i] = sub_profit0[i];\n                dp1[i] = sub_profit0[i];\n                if i >= d_cost {\n                    dp1[i] = dp1[i].max(sub_profit1[i - d_cost] + future[u] - d_cost as i32);\n                }\n                if i >= cost {\n                    dp0[i] = dp0[i].max(sub_profit1[i - cost] + future[u] - cost as i32);\n                }\n            }\n            \n            (dp0, dp1, u_size)\n        }\n        \n        let (dp0, _, _) = dfs(0, &present, &future, &g, budget);\n        dp0[budget]\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\times \\textit{budget}^{2})$。遍历节点需要 $O(n)$，每个节点的状态转移需要 $O(\\textit{budget}^{2})$。\n\n- 空间复杂度：$O(n \\times \\textit{budget})$。遍历节点需要 $O(n \\times \\textit{budget})$，存储状态也需要 $O(n \\times \\textit{budget})$。",
+            "slateValue": "",
+            "slug": "zhe-kou-jie-jiao-yi-gu-piao-de-zui-da-li-c7l9",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "YXs6lB",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 6,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Tree",
+                    "nameTranslated": "树",
+                    "slug": "tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Depth-First Search",
+                    "nameTranslated": "深度优先搜索",
+                    "slug": "depth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2025-12-08T09:29:57.091996+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：树形动态规划 思路与算法 该方法假设读者已经掌握 「[latex]-[latex] 背包问题」的思路和解法。 首先证明在题设条件下，输入必定为一颗树。 因为输入的图保证无环，且员工 [latex] 是所有员工的直接或间接上司，故该图不仅是连通图，而且一定是以员工 [latex] 为单一起点的（唯一入度为 [la",
+            "topic": {
+                "id": 3851959,
+                "subscribed": false,
+                "commentCount": 6,
+                "viewCount": 20,
+                "post": {
+                    "id": 7030258,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 27,
+            "isEditorsPick": false,
+            "hitCount": 5343,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "maximum-profit-from-trading-stocks-with-discounts",
+                "questionFrontendId": "3562"
+            },
+            "next": {
+                "slug": "shu-shang-bei-bao-zhuang-tai-ji-dppython-2q7b",
+                "title": "树上背包 + 状态机 DP，两种写法（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

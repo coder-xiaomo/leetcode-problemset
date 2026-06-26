@@ -1,0 +1,122 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "3D4Irl",
+            "title": "库存管理 III",
+            "content": "#### 方法一：排序\n\n**思路和算法**\n\n对原数组从小到大排序后取出前 $cnt$ 个数即可。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<int> inventoryManagement(vector<int>& stock, int cnt) {\n        vector<int> vec(cnt, 0);\n        sort(stock.begin(), stock.end());\n        for (int i = 0; i < cnt; ++i) {\n            vec[i] = stock[i];\n        }\n        return vec;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int[] inventoryManagement(int[] stock, int cnt) {\n        int[] vec = new int[cnt];\n        stockays.sort(stock);\n        for (int i = 0; i < cnt; ++i) {\n            vec[i] = stock[i];\n        }\n        return vec;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def inventoryManagement(self, stock: List[int], cnt: int) -> List[int]:\n        stock.sort()\n        return stock[:cnt]\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n\\log n)$，其中 $n$ 是数组 `stock` 的长度。算法的时间复杂度即排序的时间复杂度。\n\n- 空间复杂度：$O(\\log n)$，排序所需额外的空间复杂度为 $O(\\log n)$。\n\n#### 方法二：堆\n\n**思路和算法**\n\n我们用一个大根堆实时维护数组的前 $cnt$ 小值。首先将前 $cnt$ 个数插入大根堆中，随后从第 $cnt+1$ 个数开始遍历，如果当前遍历到的数比大根堆的堆顶的数要小，就把堆顶的数弹出，再插入当前遍历到的数。最后将大根堆里的数存入数组返回即可。在下面的代码中，由于 C++ 语言中的堆（即优先队列）为大根堆，我们可以这么做。而 Python 语言中的堆为小根堆，因此我们要对数组中所有的数取其相反数，才能使用小根堆维护前 $cnt$ 小值。\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    vector<int> inventoryManagement(vector<int>& stock, int cnt) {\n        vector<int> vec(cnt, 0);\n        if (cnt == 0) { // 排除 0 的情况\n            return vec;\n        }\n        priority_queue<int> Q;\n        for (int i = 0; i < cnt; ++i) {\n            Q.push(stock[i]);\n        }\n        for (int i = cnt; i < (int)stock.size(); ++i) {\n            if (Q.top() > stock[i]) {\n                Q.pop();\n                Q.push(stock[i]);\n            }\n        }\n        for (int i = 0; i < cnt; ++i) {\n            vec[i] = Q.top();\n            Q.pop();\n        }\n        return vec;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public int[] inventoryManagement(int[] stock, int cnt) {\n        int[] vec = new int[cnt];\n        if (cnt == 0) { // 排除 0 的情况\n            return vec;\n        }\n        PriorityQueue<Integer> queue = new PriorityQueue<Integer>(new Comparator<Integer>() {\n            public int compare(Integer num1, Integer num2) {\n                return num2 - num1;\n            }\n        });\n        for (int i = 0; i < cnt; ++i) {\n            queue.offer(stock[i]);\n        }\n        for (int i = cnt; i < stock.length; ++i) {\n            if (queue.peek() > stock[i]) {\n                queue.poll();\n                queue.offer(stock[i]);\n            }\n        }\n        for (int i = 0; i < cnt; ++i) {\n            vec[i] = queue.poll();\n        }\n        return vec;\n    }\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def inventoryManagement(self, stock: List[int], cnt: int) -> List[int]:\n        if cnt == 0:\n            return list()\n\n        hp = [-x for x in stock[:cnt]]\n        heapq.heapify(hp)\n        for i in range(cnt, len(stock)):\n            if -hp[0] > stock[i]:\n                heapq.heappop(hp)\n                heapq.heappush(hp, -stock[i])\n        ans = [-x for x in hp]\n        return ans\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n\\log cnt)$，其中 $n$ 是数组 `stock` 的长度。由于大根堆实时维护前 $cnt$ 小值，所以插入删除都是 $O(\\log cnt)$ 的时间复杂度，最坏情况下数组里 $n$ 个数都会插入，所以一共需要 $O(n\\log cnt)$ 的时间复杂度。\n\n- 空间复杂度：$O(cnt)$，因为大根堆里最多 $cnt$ 个数。\n\n#### 方法三：快排思想\n\n**思路和算法**\n\n我们可以借鉴快速排序的思想。我们知道快排的划分函数每次执行完后都能将数组分成两个部分，小于等于分界值 `pivot` 的元素的都会被放到数组的左边，大于的都会被放到数组的右边，然后返回分界值的下标。与快速排序不同的是，快速排序会根据分界值的下标递归处理划分的两侧，而这里我们只处理划分的一边。\n\n我们定义函数 `randomized_selected(stock, l, r, cnt)` 表示划分数组 `stock` 的 `[l,r]` 部分，使前 `cnt` 小的数在数组的左侧，在函数里我们调用快排的划分函数，假设划分函数返回的下标是 `pos`（表示分界值 `pivot` 最终在数组中的位置），即 `pivot` 是数组中第 `pos - l + 1` 小的数，那么一共会有三种情况：\n\n- 如果 `pos - l + 1 == cnt`，表示 `pivot` 就是第 $cnt$ 小的数，直接返回即可；\n\n- 如果 `pos - l + 1 < cnt`，表示第 $cnt$ 小的数在 `pivot` 的右侧，因此递归调用 `randomized_selected(stock, pos + 1, r, cnt - (pos - l + 1))`；\n\n- 如果 `pos - l + 1 > cnt`，表示第 $cnt$ 小的数在 `pivot` 的左侧，递归调用 `randomized_selected(stock, l, pos - 1, cnt)`。\n\n函数递归入口为 `randomized_selected(stock, 0, stock.length - 1, cnt)`。在函数返回后，将前 `cnt` 个数放入答案数组返回即可。\n\n```C++ [sol3-C++]\nclass Solution {\n    int partition(vector<int>& nums, int l, int r) {\n        int pivot = nums[r];\n        int i = l - 1;\n        for (int j = l; j <= r - 1; ++j) {\n            if (nums[j] <= pivot) {\n                i = i + 1;\n                swap(nums[i], nums[j]);\n            }\n        }\n        swap(nums[i + 1], nums[r]);\n        return i + 1;\n    }\n\n    // 基于随机的划分\n    int randomized_partition(vector<int>& nums, int l, int r) {\n        int i = rand() % (r - l + 1) + l;\n        swap(nums[r], nums[i]);\n        return partition(nums, l, r);\n    }\n\n    void randomized_selected(vector<int>& stock, int l, int r, int cnt) {\n        if (l >= r) {\n            return;\n        }\n        int pos = randomized_partition(stock, l, r);\n        int num = pos - l + 1;\n        if (cnt == num) {\n            return;\n        } else if (cnt < num) {\n            randomized_selected(stock, l, pos - 1, cnt);\n        } else {\n            randomized_selected(stock, pos + 1, r, cnt - num);\n        }\n    }\n\npublic:\n    vector<int> inventoryManagement(vector<int>& stock, int cnt) {\n        srand((unsigned)time(NULL));\n        randomized_selected(stock, 0, (int)stock.size() - 1, cnt);\n        vector<int> vec;\n        for (int i = 0; i < cnt; ++i) {\n            vec.push_back(stock[i]);\n        }\n        return vec;\n    }\n};\n```\n\n```Java [sol3-Java]\nclass Solution {\n    public int[] inventoryManagement(int[] stock, int cnt) {\n        randomizedSelected(stock, 0, stock.length - 1, cnt);\n        int[] vec = new int[cnt];\n        for (int i = 0; i < cnt; ++i) {\n            vec[i] = stock[i];\n        }\n        return vec;\n    }\n\n    private void randomizedSelected(int[] stock, int l, int r, int cnt) {\n        if (l >= r) {\n            return;\n        }\n        int pos = randomizedPartition(stock, l, r);\n        int num = pos - l + 1;\n        if (cnt == num) {\n            return;\n        } else if (cnt < num) {\n            randomizedSelected(stock, l, pos - 1, cnt);\n        } else {\n            randomizedSelected(stock, pos + 1, r, cnt - num);\n        }\n    }\n\n    // 基于随机的划分\n    private int randomizedPartition(int[] nums, int l, int r) {\n        int i = new Random().nextInt(r - l + 1) + l;\n        swap(nums, r, i);\n        return partition(nums, l, r);\n    }\n\n    private int partition(int[] nums, int l, int r) {\n        int pivot = nums[r];\n        int i = l - 1;\n        for (int j = l; j <= r - 1; ++j) {\n            if (nums[j] <= pivot) {\n                i = i + 1;\n                swap(nums, i, j);\n            }\n        }\n        swap(nums, i + 1, r);\n        return i + 1;\n    }\n\n    private void swap(int[] nums, int i, int j) {\n        int temp = nums[i];\n        nums[i] = nums[j];\n        nums[j] = temp;\n    }\n}\n```\n\n```Python [sol3-Python3]\nclass Solution:\n    def partition(self, nums, l, r):\n        pivot = nums[r]\n        i = l - 1\n        for j in range(l, r):\n            if nums[j] <= pivot:\n                i += 1\n                nums[i], nums[j] = nums[j], nums[i]\n        nums[i + 1], nums[r] = nums[r], nums[i + 1]\n        return i + 1\n\n    def randomized_partition(self, nums, l, r):\n        i = random.randint(l, r)\n        nums[r], nums[i] = nums[i], nums[r]\n        return self.partition(nums, l, r)\n\n    def randomized_selected(self, stock, l, r, cnt):\n        pos = self.randomized_partition(stock, l, r)\n        num = pos - l + 1\n        if cnt < num:\n            self.randomized_selected(stock, l, pos - 1, cnt)\n        elif cnt > num:\n            self.randomized_selected(stock, pos + 1, r, cnt - num)\n\n    def inventoryManagement(self, stock: List[int], cnt: int) -> List[int]:\n        if cnt == 0:\n            return list()\n        self.randomized_selected(stock, 0, len(stock) - 1, cnt)\n        return stock[:cnt]\n```\n\n**复杂度分析**\n\n- 时间复杂度：期望为 $O(n)$ ，由于证明过程很繁琐，所以不在这里展开讲。具体证明可以参考《算法导论》第 9 章第 2 小节。\n\n  最坏情况下的时间复杂度为 $O(n^2)$。情况最差时，每次的划分点都是最大值或最小值，一共需要划分 $n - 1$ 次，而一次划分需要线性的时间复杂度，所以最坏情况下时间复杂度为 $O(n^2)$。\n  \n- 空间复杂度：期望为 $O(\\log n)$，递归调用的期望深度为 $O(\\log n)$，每层需要的空间为 $O(1)$，只有常数个变量。\n\n  最坏情况下的空间复杂度为 $O(n)$。最坏情况下需要划分 $n$ 次，即 `randomized_selected` 函数递归调用最深 $n - 1$ 层，而每层由于需要 $O(1)$ 的空间，所以一共需要 $O(n)$ 的空间复杂度。",
+            "slateValue": "",
+            "slug": "zui-xiao-de-kge-shu-by-leetcode-solution",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "3D4Irl",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 194,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 8,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 3,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Divide and Conquer",
+                    "nameTranslated": "分治",
+                    "slug": "divide-and-conquer",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Quickselect",
+                    "nameTranslated": "快速选择",
+                    "slug": "quickselect",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Heap (Priority Queue)",
+                    "nameTranslated": "堆（优先队列）",
+                    "slug": "heap-priority-queue",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2020-03-19T12:51:03.313845+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：排序 思路和算法 对原数组从小到大排序后取出前 $cnt$ 个数即可。 C++ [sol1-C++] class Solution { public:     vector<int> inventoryManagement(vector<int>& stock, int cnt) {         vecto",
+            "topic": {
+                "id": 159342,
+                "subscribed": false,
+                "commentCount": 271,
+                "viewCount": 188674,
+                "post": {
+                    "id": 454890,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 526,
+            "isEditorsPick": false,
+            "hitCount": 302942,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "zui-xiao-de-kge-shu-lcof",
+                "questionFrontendId": "LCR 159"
+            },
+            "next": {
+                "slug": "jian-zhi-offer-40-zui-xiao-de-k-ge-shu-j-9yze",
+                "title": "LCR 159. 库存管理 III（快速选择，清晰图解）"
+            },
+            "prev": null
+        }
+    }
+}

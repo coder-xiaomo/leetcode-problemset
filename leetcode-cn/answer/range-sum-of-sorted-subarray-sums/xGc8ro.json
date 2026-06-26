@@ -1,0 +1,112 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "xGc8ro",
+            "title": "子数组和排序后的区间和",
+            "content": "#### 方法一：排序\n\n对于长度为 $n$ 的数组，其中的非空连续子数组一共有 $\\frac{n(n+1)}{2}$ 个，对应的子数组的和也一共有 $\\frac{n(n+1)}{2}$ 个。\n\n创建一个长度为 $\\frac{n(n+1)}{2}$ 的数组 $\\textit{sums}$ 存储所有的子数组的和。计算子数组的和时，将 $i$ 从 $0$ 到 $n-1$ 依次遍历，对于每个 $i$，将 $i$ 作为子数组最左侧的下标，分别计算每个子数组的和，将子数组的和存入数组 $\\textit{sums}$ 中。\n\n得到所有的子数组的和之后，对数组 $\\textit{sums}$ 排序，然后计算 $\\textit{sums}$ 中的指定的下标范围内的元素之和。需要注意题目中给的下标 $\\textit{left}$ 和 $\\textit{right}$ 是从 $1$ 开始的，因此应该计算 $\\textit{sums}$ 中的下标 $\\textit{left}-1$ 到下标 $\\textit{right}-1$ 范围内的元素之和，并且计算元素之和的过程中需要对 $10^9+7$ 取模。\n\n```Java [sol1-Java]\nclass Solution {\n    public int rangeSum(int[] nums, int n, int left, int right) {\n        final int MODULO = 1000000007;\n        int sumsLength = n * (n + 1) / 2;\n        int[] sums = new int[sumsLength];\n        int index = 0;\n        for (int i = 0; i < n; i++) {\n            int sum = 0;\n            for (int j = i; j < n; j++) {\n                sum += nums[j];\n                sums[index++] = sum;\n            }\n        }\n        Arrays.sort(sums);\n        int ans = 0;\n        for (int i = left - 1; i < right; i++) {\n            ans = (ans + sums[i]) % MODULO;\n        }\n        return ans;\n    }\n}\n```\n\n```csharp [sol1-C#]\npublic class Solution \n{\n    public int RangeSum(int[] nums, int n, int left, int right) \n    {\n        const int MODULO = 1000000007;\n\n        int sumsLength = n * (n + 1) / 2;\n        int[] sums = new int[sumsLength];\n        int index = 0;\n        for (int i = 0; i < n; i++) \n        {\n            int sum = 0;\n            for (int j = i; j < n; j++) \n            {\n                sum += nums[j];\n                sums[index++] = sum;\n            }\n        }\n\n        Array.Sort(sums);\n        int ans = 0;\n        for (int i = left - 1; i < right; i++) \n        {\n            ans = (ans + sums[i]) % MODULO;\n        }\n\n        return ans;\n    }\n}\n```\n\n```cpp [sol1-C++]\nclass Solution {\npublic:\n    int rangeSum(vector<int>& nums, int n, int left, int right) {\n        const int MODULO = 1000000007;\n        int sumsLength = n * (n + 1) / 2;\n        auto sums = vector <int> (sumsLength);\n        int index = 0;\n        for (int i = 0; i < n; i++) {\n            int sum = 0;\n            for (int j = i; j < n; j++) {\n                sum += nums[j];\n                sums[index++] = sum;\n            }\n        }\n        sort(sums.begin(), sums.end());\n        int ans = 0;\n        for (int i = left - 1; i < right; i++) {\n            ans = (ans + sums[i]) % MODULO;\n        }\n        return ans;\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def rangeSum(self, nums: List[int], n: int, left: int, right: int) -> int:\n        MODULO = 10**9 + 7\n        sumsLength = n * (n + 1) // 2\n        sums = list()\n        index = 0\n\n        for i in range(n):\n            total = 0\n            for j in range(i, n):\n                total += nums[j]\n                sums.append(total)\n        \n        sums.sort()\n        ans = sum(sums[left-1:right]) % MODULO\n        return ans\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n^2 \\log n)$，其中 $n$ 是数组的长度。\n  长度为 $n$ 的数组有 $\\frac{n(n+1)}{2}$ 个非空连续子数组，因此需要计算 $\\frac{n(n+1)}{2}$ 个子数组的和，计算子数组的和的时间复杂度是 $O(n^2)$。\n  得到所有的子数组的和之后需要对子数组的和进行排序，排序的时间复杂度是 $O(n^2 \\log n^2)=O(2n^2 \\log n)=O(n^2 \\log n)$。\n\n- 空间复杂度：$O(n^2)$，其中 $n$ 是数组的长度。需要创建一个长度为 $\\frac{n(n+1)}{2}$ 的数组存储所有的子数组的和。\n\n#### 方法二：二分查找 + 双指针\n\n方法一中，首先计算每个连续子数组的和，然后计算区间和。其实，并不需要计算每个连续子数组的和，而是可以将问题转化成求所有的子数组的和当中的最小的 $k$ 个元素之和，对于这道题，分别计算 $k=\\textit{right}$ 和 $k=\\textit{left}-1$ 的结果，然后计算两者之差，即可得到区间和。\n\n构造两个数组，第一个数组 $\\textit{prefixSums}$ 存储原始数组的前缀和，第二个数组 $\\textit{prefixPrefixSums}$ 存储第一个数组的前缀和。\n\n要求出所有的子数组的和当中的最小的 $k$ 个元素之和，首先需要得到第 $k$ 小的元素，即第 $k$ 小的子数组的和。可以通过对第一个数组使用二分查找 + 双指针的方法得到第 $k$ 小的子数组的和，其思想与「[378. 有序矩阵中第K小的元素](https://leetcode.cn/problems/kth-smallest-element-in-a-sorted-matrix/)」类似。\n\n「有序矩阵中第K小的元素」使用双指针在每行和每列元素均按升序排序的二维矩阵中寻找不超过目标值的元素个数，这道题则是使用双指针借助第一个数组寻找有多少个子数组的和不超过目标值。具体做法是，对于从 $0$ 到 $n-1$ 的每个下标 $i$，找到最大的下标 $j$ 使得原始数组从下标 $i$ 到下标 $j-1$ 范围的子数组的元素之和不超过目标值（子数组的元素之和可以通过第一个数组在 $O(1)$ 的时间内计算得到结果），由于原始数组的元素都是正整数，因此对于任意从下标 $i$ 开始且长度不超过 $j-i$ 的子数组，其元素之和都不超过目标值，这样就能得到 $j-i$ 个和不超过目标值的子数组。遍历完 $i$ 的所有可能取值之后，即可知道有多少个子数组的和不超过目标值。目标值的选取则使用二分查找的方式，目标值的最终取值即为第 $k$ 小的子数组的和。\n\n得到第 $k$ 小的子数组的和之后，即可求所有的子数组的和当中的最小的 $k$ 个值之和。令第 $k$ 小的子数组的和是 $\\textit{num}$，考虑到可能有多个子数组的和都等于第 $k$ 小的子数组的和，因此分成两步计算。\n\n第一步计算所有**严格小于** $\\textit{num}$ 的子数组的和的个数以及它们的和，假设有 $\\textit{count}$ 个**严格小于** $\\textit{num}$ 的子数组的和，它们的和是 $\\textit{sum}$，可以借助构造的两个数组，使用双指针计算得到 $\\textit{count}$ 和 $\\textit{sum}$ 的值。具体做法是，对于从 $0$ 到 $n-1$ 的每个下标 $i$，找到最大的下标 $j$ 使得原始数组从下标 $i$ 到下标 $j-1$ 范围的子数组的元素之和不超过 $\\textit{num}$（子数组的元素之和可以通过第一个数组在 $O(1)$ 的时间内计算得到结果），由于原始数组的元素都是正整数，因此对于任意从下标 $i$ 开始且长度不超过 $j-i$ 的子数组，其元素之和都不超过目标值，这样就能得到 $j-i$ 个和不超过目标值的子数组，这些子数组的和之和计算如下：\n\n$$\n\\textit{prefixPrefixSums}[j] - \\textit{prefixPrefixSums}[i] - \\textit{prefixSums}[i] \\times (j-i)\n$$\n\n其中，$\\textit{prefixPrefixSums}[j] - \\textit{prefixPrefixSums}[i]$ 的结果等价于 $\\textit{prefixSums}$ 从下标 $i+1$ 到下标 $j$ 范围内的所有元素之和，对于 $i+1 \\le m \\le j$，$\\textit{prefixSums}[m]$ 表示原始数组从下标 $0$ 到下标 $m-1$ 范围内的所有元素之和，因此，$\\textit{prefixPrefixSums}[j] - \\textit{prefixPrefixSums}[i]$ 的结果为原始数组的 $j-i$ 个前缀之和，每个前缀的结束下标依次从 $i$ 到 $j-1$。由于只需要计算原始数组的从下标 $i$ 开始且长度不超过 $j-i$ 的子数组，因此还需要对这 $j-1$ 个前缀中的每一项减去原始数组从下标 $0$ 到下标 $i-1$ 范围内的所有元素之和才能得到对应的子数组之和，原始数组从下标 $0$ 到下标 $i-1$ 范围内的所有元素之和为 $\\textit{prefixSums}[i]$，因此要减去 $\\textit{prefixSums}[i] \\times (j-i)$，才能得到 $j-i$ 个和不超过目标值的子数组的和之和。\n\n遍历完 $i$ 的所有可能取值之后，即可得到所有**严格小于** $\\textit{num}$ 的子数组的和的个数以及它们的和。\n\n第二步考虑最小的 $k$ 个子数组的和当中剩下的等于 $\\textit{num}$ 的子数组的和，这些子数组的和之和等于 $\\textit{num} \\times (k-\\textit{count})$。在第一步计算得到的 $\\textit{sum}$ 的基础上令 $\\textit{sum}=\\textit{sum}+\\textit{num} \\times (k-\\textit{count})$，则 $\\textit{sum}$ 的值即为所有的子数组的和当中的最小的 $k$ 个元素之和。\n\n```Java [sol2-Java]\nclass Solution {\n    static final int MODULO = 1000000007;\n\n    public int rangeSum(int[] nums, int n, int left, int right) {\n        int[] prefixSums = new int[n + 1];\n        prefixSums[0] = 0;\n        for (int i = 0; i < n; i++) {\n            prefixSums[i + 1] = prefixSums[i] + nums[i];\n        }\n        int[] prefixPrefixSums = new int[n + 1];\n        prefixPrefixSums[0] = 0;\n        for (int i = 0; i < n; i++) {\n            prefixPrefixSums[i + 1] = prefixPrefixSums[i] + prefixSums[i + 1];\n        }\n        return (getSum(prefixSums, prefixPrefixSums, n, right) - getSum(prefixSums, prefixPrefixSums, n, left - 1)) % MODULO;\n    }\n\n    public int getSum(int[] prefixSums, int[] prefixPrefixSums, int n, int k) {\n        int num = getKth(prefixSums, n, k);\n        int sum = 0;\n        int count = 0;\n        for (int i = 0, j = 1; i < n; i++) {\n            while (j <= n && prefixSums[j] - prefixSums[i] < num) {\n                j++;\n            }\n            j--;\n            sum = (sum + prefixPrefixSums[j] - prefixPrefixSums[i] - prefixSums[i] * (j - i)) % MODULO;\n            count += j - i;\n        }\n        sum = (sum + num * (k - count)) % MODULO;\n        return sum;\n    }\n\n    public int getKth(int[] prefixSums, int n, int k) {\n        int low = 0, high = prefixSums[n];\n        while (low < high) {\n            int mid = (high - low) / 2 + low;\n            int count = getCount(prefixSums, n, mid);\n            if (count < k) {\n                low = mid + 1;\n            } else {\n                high = mid;\n            }\n        }\n        return low;\n    }\n\n    public int getCount(int[] prefixSums, int n, int x) {\n        int count = 0;\n        for (int i = 0, j = 1; i < n; i++) {\n            while (j <= n && prefixSums[j] - prefixSums[i] <= x) {\n                j++;\n            }\n            j--;\n            count += j - i;\n        }\n        return count;\n    }\n}\n```\n\n```csharp [sol2-C#]\npublic class Solution \n{\n    public int RangeSum(int[] nums, int n, int left, int right) \n    {\n        const int MODULO = 1000000007;\n        int[] prefixSums = new int[n + 1];\n        prefixSums[0] = 0;\n        for (int i = 0; i < n; i++) \n        {\n            prefixSums[i + 1] = prefixSums[i] + nums[i];\n        }\n\n        int[] prefixPrefixSums = new int[n + 1];\n        prefixPrefixSums[0] = 0;\n        for (int i = 0; i < n; i++) \n        {\n            prefixPrefixSums[i + 1] = prefixPrefixSums[i] + prefixSums[i + 1];\n        }\n\n        return (GetSum(prefixSums, prefixPrefixSums, n, right) - GetSum(prefixSums, prefixPrefixSums, n, left - 1)) % MODULO;\n    }\n\n    public int GetSum(int[] prefixSums, int[] prefixPrefixSums, int n, int k) \n    {\n        int num = GetKth(prefixSums, n, k);\n        int sum = 0;\n        int count = 0;\n        for (int i = 0, j = 1; i < n; i++) \n        {\n            while (j <= n && prefixSums[j] - prefixSums[i] < num) \n            {\n                j++;\n            }\n\n            j--;\n            sum += prefixPrefixSums[j] - prefixPrefixSums[i] - prefixSums[i] * (j - i);\n            sum %= MODULO;\n            count += j - i;\n        }\n\n        sum += num * (k - count);\n        return sum;\n    }\n\n    public int GetKth(int[] prefixSums, int n, int k) \n    {\n        int low = 0, high = prefixSums[n];\n        while (low < high) \n        {\n            int mid = (high - low) / 2 + low;\n            int count = GetCount(prefixSums, n, mid);\n            if (count < k) \n            {\n                low = mid + 1;\n            }\n            else \n            {\n                high = mid;\n            }\n        }\n        return low;\n    }\n\n    public int GetCount(int[] prefixSums, int n, int x) \n    {\n        int count = 0;\n        for (int i = 0, j = 1; i < n; i++) \n        {\n            while (j <= n && prefixSums[j] - prefixSums[i] <= x) \n            {\n                j++;\n            }\n\n            j--;\n            count += j - i;\n        }\n        \n        return count;\n    }\n}\n```\n\n```cpp [sol2-C++]\nclass Solution {\npublic:\n    static constexpr int MODULO = 1000000007;\n\n    int rangeSum(vector<int>& nums, int n, int left, int right) {\n        vector<int> prefixSums = vector<int>(n + 1);\n        prefixSums[0] = 0;\n        for (int i = 0; i < n; i++) {\n            prefixSums[i + 1] = prefixSums[i] + nums[i];\n        }\n        vector<int> prefixPrefixSums = vector<int>(n + 1);\n        prefixPrefixSums[0] = 0;\n        for (int i = 0; i < n; i++) {\n            prefixPrefixSums[i + 1] = prefixPrefixSums[i] + prefixSums[i + 1];\n        }\n        return (getSum(prefixSums, prefixPrefixSums, n, right) - getSum(prefixSums, prefixPrefixSums, n, left - 1)) % MODULO;\n    }\n\n    int getSum(vector<int>& prefixSums, vector<int>& prefixPrefixSums, int n, int k) {\n        int num = getKth(prefixSums, n, k);\n        int sum = 0;\n        int count = 0;\n        for (int i = 0, j = 1; i < n; i++) {\n            while (j <= n && prefixSums[j] - prefixSums[i] < num) {\n                j++;\n            }\n            j--;\n            sum += prefixPrefixSums[j] - prefixPrefixSums[i] - prefixSums[i] * (j - i);\n            sum %= MODULO;\n            count += j - i;\n        }\n        sum += num * (k - count);\n        return sum;\n    }\n\n    int getKth(vector<int>& prefixSums, int n, int k) {\n        int low = 0, high = prefixSums[n];\n        while (low < high) {\n            int mid = (high - low) / 2 + low;\n            int count = getCount(prefixSums, n, mid);\n            if (count < k) {\n                low = mid + 1;\n            } else {\n                high = mid;\n            }\n        }\n        return low;\n    }\n\n    int getCount(vector<int>& prefixSums, int n, int x) {\n        int count = 0;\n        for (int i = 0, j = 1; i < n; i++) {\n            while (j <= n && prefixSums[j] - prefixSums[i] <= x) {\n                j++;\n            }\n            j--;\n            count += j - i;\n        }\n        return count;\n    }\n};\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def rangeSum(self, nums: List[int], n: int, left: int, right: int) -> int:\n        MODULO = 10**9 + 7\n        prefixSums = [0]\n        for i in range(n):\n            prefixSums.append(prefixSums[-1] + nums[i])\n        \n        prefixPrefixSums = [0]\n        for i in range(n):\n            prefixPrefixSums.append(prefixPrefixSums[-1] + prefixSums[i + 1])\n\n        def getCount(x: int) -> int:\n            count = 0\n            j = 1\n            for i in range(n):\n                while j <= n and prefixSums[j] - prefixSums[i] <= x:\n                    j += 1\n                j -= 1\n                count += j - i\n            return count\n\n        def getKth(k: int) -> int:\n            low, high = 0, prefixSums[n]\n            while low < high:\n                mid = (low + high) // 2\n                count = getCount(mid)\n                if count < k:\n                    low = mid + 1\n                else:\n                    high = mid\n            return low\n\n        def getSum(k: int) -> int:\n            num = getKth(k)\n            total, count = 0, 0\n            j = 1\n            for i in range(n):\n                while j <= n and prefixSums[j] - prefixSums[i] < num:\n                    j += 1\n                j -= 1\n                total += prefixPrefixSums[j] - prefixPrefixSums[i] - prefixSums[i] * (j - i)\n                count += j - i\n            total += num * (k - count)\n            return total\n\n        return (getSum(right) - getSum(left - 1)) % MODULO\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log S)$，其中 $n$ 是数组的长度，$S$ 是数组中的元素之和。\n  时间复杂度主要取决于二分查找的部分。每次二分查找的上界是 $S$，因此迭代次数是 $O(\\log S)$，每次迭代需要通过双指针进行计数，时间复杂度为 $O(n)$，因此二分查找的总时间复杂度是 $O(n \\log S)$。\n  除了二分查找以外，双指针操作的时间复杂度是 $O(n)$。\n\n- 空间复杂度：$O(n)$，其中 $n$ 是数组的长度。需要创建两个长度为 $n+1$ 的数组，分别用于存储原始数组的前缀和与前缀和的前缀和。",
+            "slateValue": "",
+            "slug": "zi-shu-zu-he-pai-xu-hou-de-qu-jian-he-by-leetcode-",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "xGc8ro",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 16,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Two Pointers",
+                    "nameTranslated": "双指针",
+                    "slug": "two-pointers",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-08-12T02:37:08.409064+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：排序 对于长度为 $n$ 的数组，其中的非空连续子数组一共有 $\\frac{n(n+1)}{2}$ 个，对应的子数组的和也一共有 $\\frac{n(n+1)}{2}$ 个。 创建一个长度为 $\\frac{n(n+1)}{2}$ 的数组 $\\textit{sums}$ 存储所有的子数组的和。计算子数组的和时，将 ",
+            "topic": {
+                "id": 371273,
+                "subscribed": false,
+                "commentCount": 28,
+                "viewCount": 6068,
+                "post": {
+                    "id": 913186,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 67,
+            "isEditorsPick": false,
+            "hitCount": 14715,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "range-sum-of-sorted-subarray-sums",
+                "questionFrontendId": "1508"
+            },
+            "next": {
+                "slug": "-by-mkdir700-l90o",
+                "title": "【眼见为实】图解二分查找 + 前缀和，前缀和与矩阵的关系"
+            },
+            "prev": null
+        }
+    }
+}

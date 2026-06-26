@@ -1,0 +1,130 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "y2Oh48",
+            "title": "只出现一次的数字",
+            "content": "#### 方法一：哈希表\n\n**思路与算法**\n\n我们可以使用哈希映射统计数组中每个元素的出现次数。对于哈希映射中的每个键值对，键表示一个元素，值表示其出现的次数。\n\n在统计完成后，我们遍历哈希映射即可找出只出现一次的元素。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int singleNumber(vector<int>& nums) {\n        unordered_map<int, int> freq;\n        for (int num: nums) {\n            ++freq[num];\n        }\n        int ans = 0;\n        for (auto [num, occ]: freq) {\n            if (occ == 1) {\n                ans = num;\n                break;\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int singleNumber(int[] nums) {\n        Map<Integer, Integer> freq = new HashMap<Integer, Integer>();\n        for (int num : nums) {\n            freq.put(num, freq.getOrDefault(num, 0) + 1);\n        }\n        int ans = 0;\n        for (Map.Entry<Integer, Integer> entry : freq.entrySet()) {\n            int num = entry.getKey(), occ = entry.getValue();\n            if (occ == 1) {\n                ans = num;\n                break;\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def singleNumber(self, nums: List[int]) -> int:\n        freq = collections.Counter(nums)\n        ans = [num for num, occ in freq.items() if occ == 1][0]\n        return ans\n```\n\n```JavaScript [sol1-JavaScript]\nvar singleNumber = function(nums) {\n    const freq = new Map();\n    for (const num of nums) {\n        freq.set(num, (freq.get(num) || 0) + 1);\n    }\n    let ans = 0;\n    for (const [num, occ] of freq.entries()) {\n        if (occ === 1) {\n            ans = num;\n            break;\n        }\n    }\n    return ans;\n};\n```\n\n```go [sol1-Golang]\nfunc singleNumber(nums []int) int {\n    freq := map[int]int{}\n    for _, v := range nums {\n        freq[v]++\n    }\n    for num, occ := range freq {\n        if occ == 1 {\n            return num\n        }\n    }\n    return 0 // 不会发生，数据保证有一个元素仅出现一次\n}\n```\n\n```C [sol1-C]\nstruct HashTable {\n    int key, val;\n    UT_hash_handle hh;\n};\n\nint singleNumber(int *nums, int numsSize) {\n    struct HashTable *hashTable = NULL;\n    for (int i = 0; i < numsSize; i++) {\n        struct HashTable *tmp;\n        HASH_FIND_INT(hashTable, &nums[i], tmp);\n        if (tmp == NULL) {\n            tmp = malloc(sizeof(struct HashTable));\n            tmp->key = nums[i];\n            tmp->val = 1;\n            HASH_ADD_INT(hashTable, key, tmp);\n        } else {\n            tmp->val++;\n        }\n    }\n    int ans = 0;\n    struct HashTable *iter, *tmp;\n    HASH_ITER(hh, hashTable, iter, tmp) {\n        if (iter->val == 1) {\n            ans = iter->key;\n            break;\n        }\n    }\n    return ans;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是数组的长度。\n\n- 空间复杂度：$O(n)$。哈希映射中包含最多 $\\lfloor n/3 \\rfloor + 1$ 个元素，即需要的空间为 $O(n)$。\n\n#### 方法二：依次确定每一个二进制位\n\n**思路与算法**\n\n为了方便叙述，我们称「只出现了一次的元素」为「答案」。\n\n由于数组中的元素都在 $\\texttt{int}$（即 $32$ 位整数）范围内，因此我们可以依次计算答案的每一个二进制位是 $0$ 还是 $1$。\n\n具体地，考虑答案的第 $i$ 个二进制位（$i$ 从 $0$ 开始编号），它可能为 $0$ 或 $1$。对于数组中非答案的元素，每一个元素都出现了 $3$ 次，对应着第 $i$ 个二进制位的 $3$ 个 $0$ 或 $3$ 个 $1$，无论是哪一种情况，它们的和都是 $3$ 的倍数（即和为 $0$ 或 $3$）。因此：\n\n> 答案的第 $i$ 个二进制位就是数组中所有元素的第 $i$ 个二进制位之和除以 $3$ 的余数。\n\n这样一来，对于数组中的每一个元素 $x$，我们使用位运算 $\\texttt{(x >> i) \\& 1}$ 得到 $x$ 的第 $i$ 个二进制位，并将它们相加再对 $3$ 取余，得到的结果一定为 $0$ 或 $1$，即为答案的第 $i$ 个二进制位。\n\n**细节**\n\n需要注意的是，如果使用的语言对「有符号整数类型」和「无符号整数类型」没有区分，那么可能会得到错误的答案。这是因为「有符号整数类型」（即 $\\texttt{int}$ 类型）的第 $31$ 个二进制位（即最高位）是补码意义下的符号位，对应着 $-2^{31}$，而「无符号整数类型」由于没有符号，第 $31$ 个二进制位对应着 $2^{31}$。因此在某些语言（例如 $\\texttt{Python}$）中需要对最高位进行特殊判断。\n\n**代码**\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    int singleNumber(vector<int>& nums) {\n        int ans = 0;\n        for (int i = 0; i < 32; ++i) {\n            int total = 0;\n            for (int num: nums) {\n                total += ((num >> i) & 1);\n            }\n            if (total % 3) {\n                ans |= (1 << i);\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public int singleNumber(int[] nums) {\n        int ans = 0;\n        for (int i = 0; i < 32; ++i) {\n            int total = 0;\n            for (int num: nums) {\n                total += ((num >> i) & 1);\n            }\n            if (total % 3 != 0) {\n                ans |= (1 << i);\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def singleNumber(self, nums: List[int]) -> int:\n        ans = 0\n        for i in range(32):\n            total = sum((num >> i) & 1 for num in nums)\n            if total % 3:\n                # Python 这里对于最高位需要特殊判断\n                if i == 31:\n                    ans -= (1 << i)\n                else:\n                    ans |= (1 << i)\n        return ans\n```\n\n```JavaScript [sol2-JavaScript]\nvar singleNumber = function(nums) {\n    let ans = 0;\n    for (let i = 0; i < 32; ++i) {\n        let total = 0;\n        for (const num of nums) {\n            total += ((num >> i) & 1);\n        }\n        if (total % 3 != 0) {\n            ans |= (1 << i);\n        }\n    }\n    return ans;\n};\n```\n\n```go [sol2-Golang]\nfunc singleNumber(nums []int) int {\n    ans := int32(0)\n    for i := 0; i < 32; i++ {\n        total := int32(0)\n        for _, num := range nums {\n            total += int32(num) >> i & 1\n        }\n        if total%3 > 0 {\n            ans |= 1 << i\n        }\n    }\n    return int(ans)\n}\n```\n\n```C [sol2-C]\nint singleNumber(int *nums, int numsSize) {\n    int ans = 0;\n    for (int i = 0; i < 32; ++i) {\n        int total = 0;\n        for (int j = 0; j < numsSize; ++j) {\n            total += ((nums[j] >> i) & 1);\n        }\n        if (total % 3) {\n            ans |= (1u << i);\n        }\n    }\n    return ans;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log C)$，其中 $n$ 是数组的长度，$C$ 是元素的数据范围，在本题中 $\\log C=\\log 2^{32} = 32$，也就是我们需要遍历第 $0\\sim31$ 个二进制位。\n\n- 空间复杂度：$O(1)$。\n\n#### 方法三：数字电路设计\n\n**说明**\n\n方法三以及后续进行优化的方法四需要读者有一定的数字电路设计的基础。读者需要对以下知识：\n\n- 简单的门电路（例如与门、异或门等）\n\n- 给定数字电路输入和输出（真值表），使用门电路设计出一种满足要求的数字电路结构\n\n有一定的了解。\n\n**门电路表示**\n\n我们将会用到四种门电路，使用的符号如下：\n\n- 非门：我们用 $A'$ 表示输入为 $A$ 的非门的输出；\n\n- 与门：我们用 $AB$ 表示输入为 $A$ 和 $B$ 的与门的输出。由于「与运算」具有结合律，因此如果同时用了多个与门（例如将 $A$ 和 $B$ 进行与运算后，再和 $C$ 进行与运算），我们可以将多个输入写在一起（例如 $ABC$）；\n\n- 或门：我们用 $A+B$ 表示输入为 $A$ 和 $B$ 的或门的输出。同样地，多个或门可以写在一起（例如 $A+B+C$）；\n\n- 异或门：我们用 $A\\oplus B$ 表示输入为 $A$ 和 $B$ 的异或门的输出。同样的，多个异或门可以写在一起（例如 $A\\oplus B\\oplus C$）。\n\n**思路与算法**\n\n在方法二中，我们是依次处理每一个二进制位的，那么时间复杂度中就引入了 $O(\\log C)$ 这一项。既然我们在对两个整数进行普通的二元运算时，都是将它们看成整体进行处理的，那么我们是否能以普通的二元运算为基础，同时处理所有的二进制位？\n\n答案是可以的。我们可以使用一个「黑盒」存储当前遍历过的所有整数。「黑盒」的第 $i$ 位为 $\\{ 0, 1, 2 \\}$ 三者之一，表示当前遍历过的所有整数的第 $i$ 位之和除以 $3$ 的余数。但由于二进制表示中只有 $0$ 和 $1$ 而没有 $2$，因此我们可以考虑在「黑盒」中使用两个整数来进行存储，即：\n\n> 黑盒中存储了两个整数 $a$ 和 $b$，且会有三种情况：\n> - $a$ 的第 $i$ 位为 $0$ 且 $b$ 的第 $i$ 位为 $0$，表示 $0$；\n> - $a$ 的第 $i$ 位为 $0$ 且 $b$ 的第 $i$ 位为 $1$，表示 $1$；\n> - $a$ 的第 $i$ 位为 $1$ 且 $b$ 的第 $i$ 位为 $0$，表示 $2$。\n>\n> 为了方便叙述，我们用 $(00)$ 表示 $a$ 的第 $i$ 位为 $0$ 且 $b$ 的第 $i$ 位为 $0$，其余的情况类似。\n\n当我们遍历到一个新的整数 $x$ 时，对于 $x$ 的第 $i$ 位 $x_i$，如果 $x_i=0$，那么 $a$ 和 $b$ 的第 $i$ 位不变；如果 $x_i=1$，那么 $a$ 和 $b$ 的第 $i$ 位按照 $(00)\\to(01)\\to(10)\\to(00)$ 这一循环进行变化。因此我们可以得出下面的真值表：\n\n| $(a_i ~ b_i)$ | $x_i$ | 新的 $(a_i ~ b_i)$ |\n| :-: | :-: | :-: |\n| $00$ | $0$ | $00$ |\n| $00$ | $1$ | $01$ |\n| $01$ | $0$ | $01$ |\n| $01$ | $1$ | $10$ |\n| $10$ | $0$ | $10$ |\n| $10$ | $1$ | $00$ |\n\n当我们考虑输出为 $a_i$ 时：\n\n| $(a_i ~ b_i)$ | $x_i$ | 新的 $a_i$ |\n| :-: | :-: | :-: |\n| $00$ | $0$ | $0$ |\n| $00$ | $1$ | $0$ |\n| $01$ | $0$ | $0$ |\n| $01$ | $1$ | $1$ |\n| $10$ | $0$ | $1$ |\n| $10$ | $1$ | $0$ |\n\n根据真值表可以设计出电路：\n\n$$\na_i = a_i'b_ix_i + a_ib_i'x_i'\n$$\n\n当我们考虑输出为 $b_i$ 时：\n\n| $(a_i ~ b_i)$ | $x_i$ | 新的 $b_i$ |\n| :-: | :-: | :-: |\n| $00$ | $0$ | $0$ |\n| $00$ | $1$ | $1$ |\n| $01$ | $0$ | $1$ |\n| $01$ | $1$ | $0$ |\n| $10$ | $0$ | $0$ |\n| $10$ | $1$ | $0$ |\n\n根据真值表可以设计出电路：\n\n$$\nb_i = a_i'b_i'x_i + a_i'b_ix_i' = a_i'(b_i \\oplus x_i)\n$$\n\n将上面的电路逻辑运算转换为等价的整数位运算，最终的转换规则即为：\n\n$$\n\\begin{cases}\n\\texttt{a = (\\textasciitilde a \\& b \\& x) | (a \\& \\textasciitilde b \\& \\textasciitilde x)} \\\\\n\\texttt{b = \\textasciitilde a \\& (b\\^ x)}\n\\end{cases}\n$$\n\n其中 $\\texttt{\\textasciitilde, \\&, |, \\^ }$ 分别表示按位非、与、或、异或运算。\n\n当我们遍历完数组中的所有元素后，$(a_i b_i)$ 要么是 $(00)$，表示答案的第 $i$ 位是 $0$；要么是 $(01)$，表示答案的第 $i$ 位是 $1$。因此我们只需要返回 $b$ 作为答案即可。\n\n**细节**\n\n由于电路中的 $a_i$ 和 $b_i$ 是「同时」得出结果的，因此我们在计算 $a$ 和 $b$ 时，需要使用临时变量暂存它们之前的值，再使用转换规则进行计算。\n\n**代码**\n\n```C++ [sol3-C++]\nclass Solution {\npublic:\n    int singleNumber(vector<int>& nums) {\n        int a = 0, b = 0;\n        for (int num: nums) {\n            tie(a, b) = pair{(~a & b & num) | (a & ~b & ~num), ~a & (b ^ num)};\n        }\n        return b;\n    }\n};\n```\n\n```Java [sol3-Java]\nclass Solution {\n    public int singleNumber(int[] nums) {\n        int a = 0, b = 0;\n        for (int num : nums) {\n            int aNext = (~a & b & num) | (a & ~b & ~num), bNext = ~a & (b ^ num);\n            a = aNext;\n            b = bNext;\n        }\n        return b;\n    }\n}\n```\n\n```Python [sol3-Python3]\nclass Solution:\n    def singleNumber(self, nums: List[int]) -> int:\n        a = b = 0\n        for num in nums:\n            a, b = (~a & b & num) | (a & ~b & ~num), ~a & (b ^ num)\n        return b\n```\n\n```JavaScript [sol3-JavaScript]\nvar singleNumber = function(nums) {\n    let a = 0, b = 0;\n    for (const num of nums) {\n        const aNext = (~a & b & num) | (a & ~b & ~num), bNext = ~a & (b ^ num);\n        a = aNext;\n        b = bNext;\n    }\n    return b;\n};\n```\n\n```go [sol3-Golang]\nfunc singleNumber(nums []int) int {\n    a, b := 0, 0\n    for _, num := range nums {\n        a, b = b&^a&num|a&^b&^num, (b^num)&^a\n    }\n    return b\n}\n```\n\n```C [sol3-C]\nint singleNumber(int *nums, int numsSize) {\n    int a = 0, b = 0;\n    for (int i = 0; i < numsSize; i++) {\n        int tmp_a = (~a & b & nums[i]) | (a & ~b & ~nums[i]);\n        int tmp_b = ~a & (b ^ nums[i]);\n        a = tmp_a;\n        b = tmp_b;\n    }\n    return b;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是数组的长度。\n\n- 空间复杂度：$O(1)$。\n\n#### 方法四：数字电路设计优化\n\n**思路与算法**\n\n我们发现方法三中计算 $b$ 的规则较为简单，而 $a$ 的规则较为麻烦，因此可以将「同时计算」改为「分别计算」，即先计算出 $b$，再拿新的 $b$ 值计算 $a$。\n\n对于原始的真值表：\n\n| $(a_i ~ b_i)$ | $x_i$ | 新的 $(a_i ~ b_i)$ |\n| :-: | :-: | :-: |\n| $00$ | $0$ | $00$ |\n| $00$ | $1$ | $01$ |\n| $01$ | $0$ | $01$ |\n| $01$ | $1$ | $10$ |\n| $10$ | $0$ | $10$ |\n| $10$ | $1$ | $00$ |\n\n我们将第一列的 $b_i$ 替换新的 $b_i$ 即可得到：\n\n| $(a_i,$ 新的 $b_i)$ | $x_i$ | 新的 $a_i$ |\n| :-: | :-: | :-: |\n| $00$ | $0$ | $0$ |\n| $01$ | $1$ | $0$ |\n| $01$ | $0$ | $0$ |\n| $00$ | $1$ | $1$ |\n| $10$ | $0$ | $1$ |\n| $10$ | $1$ | $0$ |\n\n根据真值表可以设计出电路：\n\n$$\na_i = a_i'b_i'x_i + a_ib_i'x_i' = b_i'(a_i \\oplus x_i)\n$$\n\n这样就与 $b_i$ 的电路逻辑非常类似了。最终的转换规则即为：\n\n$$\n\\begin{cases}\n\\texttt{b = \\textasciitilde a \\& (b\\^ x)} \\\\\n\\texttt{a = \\textasciitilde b \\& (a\\^ x)}\n\\end{cases}\n$$\n\n需要注意先计算 $b$，再计算 $a$。\n\n**代码**\n\n```C++ [sol4-C++]\nclass Solution {\npublic:\n    int singleNumber(vector<int>& nums) {\n        int a = 0, b = 0;\n        for (int num: nums) {\n            b = ~a & (b ^ num);\n            a = ~b & (a ^ num);\n        }\n        return b;\n    }\n};\n```\n\n```Java [sol4-Java]\nclass Solution {\n    public int singleNumber(int[] nums) {\n        int a = 0, b = 0;\n        for (int num : nums) {\n            b = ~a & (b ^ num);\n            a = ~b & (a ^ num);\n        }\n        return b;\n    }\n}\n```\n\n```Python [sol4-Python3]\nclass Solution:\n    def singleNumber(self, nums: List[int]) -> int:\n        a = b = 0\n        for num in nums:\n            b = ~a & (b ^ num)\n            a = ~b & (a ^ num)\n        return b\n```\n\n```JavaScript [sol4-JavaScript]\nvar singleNumber = function(nums) {\n    let a = 0, b = 0;\n    for (const num of nums) {\n        b = ~a & (b ^ num);\n        a = ~b & (a ^ num);\n    }\n    return b;\n};\n```\n\n```go [sol4-Golang]\nfunc singleNumber(nums []int) int {\n    a, b := 0, 0\n    for _, num := range nums {\n        b = (b ^ num) &^ a\n        a = (a ^ num) &^ b\n    }\n    return b\n}\n```\n\n```C [sol4-C]\nint singleNumber(int *nums, int numsSize) {\n    int a = 0, b = 0;\n    for (int i = 0; i < numsSize; i++) {\n        b = ~a & (b ^ nums[i]);\n        a = ~b & (a ^ nums[i]);\n    }\n    return b;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是数组的长度。\n\n- 空间复杂度：$O(1)$。",
+            "slateValue": "",
+            "slug": "zhi-chu-xian-yi-ci-de-shu-zi-by-leetcode-0vrt",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "y2Oh48",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 83,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 4,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Bit Manipulation",
+                    "nameTranslated": "位运算",
+                    "slug": "bit-manipulation",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-10-09T02:32:54.003345+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：哈希表思路与算法我们可以使用哈希映射统计数组中每个元素的出现次数。对于哈希映射中的每个键值对，键表示一个元素，值表示其出现的次数。在统计完成后，我们遍历哈希映射即可找出只出现一次的元素。代码复杂度分析\n\n时间复杂度：O(n)，其中 n 是数组的长度。\n\n\n空间复杂度：O(n)。哈希映射中包含最多 ⌊n/3⌋+1",
+            "topic": {
+                "id": 1037537,
+                "subscribed": false,
+                "commentCount": 81,
+                "viewCount": 32600,
+                "post": {
+                    "id": 2209620,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 142,
+            "isEditorsPick": false,
+            "hitCount": 65455,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "WGki4K",
+                "questionFrontendId": "LCR 004"
+            },
+            "next": {
+                "slug": "jian-zhi-offer-ii-004-zhi-chu-xian-yi-ci-l3ud",
+                "title": "剑指 Offer II 004. 只出现一次的数字（有限状态自动机 + 位运算，清晰图解）"
+            },
+            "prev": null
+        }
+    }
+}

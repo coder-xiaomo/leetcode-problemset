@@ -1,0 +1,150 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "bhqz4U",
+            "title": "关闭分部的可行集合数目",
+            "content": "#### 方法一：Floyd最短路径算法\n\n**思路与算法**\n\n我们用一个 $n$ 位的 整数 $\\textit{opened}$ 来表示开放的分部集合，对于所有情况我们使用 「$\\textit{Floyd}$ 最短路径」算法，来找到两两分部的最短距离。\n\n然后我们检查剩下的分部之间两两互相可以到达且最远距离不超过 $\\textit{maxDistance}$ ， 如果则增加可行方案数目。\n\n最后返回关闭分部的可行方案数目。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int numberOfSets(int n, int maxDistance, vector<vector<int>>& roads) {\n        int res = 0;\n        vector<int> opened(n, 0);\n        vector<vector<int>> d(n, vector<int>(n, 1000000));\n\n        for (int mask = 0; mask < (1 << n); ++mask) {\n            for (int i = 0; i < n; ++i) {\n                opened[i] = mask & (1 << i);\n            }\n            fill(d.begin(), d.end(), vector<int>(n, 1000000));\n            for (const auto& road : roads) {\n                int i = road[0], j = road[1], r = road[2];\n                if (opened[i] > 0 && opened[j] > 0) {\n                    d[i][j] = d[j][i] = min(d[i][j], r);\n                }\n            }\n\n            // Floyd-Warshall algorithm\n            for (int k = 0; k < n; ++k) {\n                if (opened[k] > 0) {\n                    for (int i = 0; i < n; ++i) {\n                        if (opened[i] > 0) {\n                            for (int j = i + 1; j < n; ++j) {\n                                if (opened[j] > 0) {\n                                    d[i][j] = d[j][i] = min(d[i][j], d[i][k] + d[k][j]);\n                                }\n                            }\n                        }\n                    }\n                }\n            }\n\n            // Validate\n            int good = 1;\n            for (int i = 0; i < n; ++i) {\n                if (opened[i] > 0) {\n                    for (int j = i + 1; j < n; ++j) {\n                        if (opened[j] > 0 && d[i][j] > maxDistance) {\n                            good = 0;\n                            break;\n                        }\n                    }\n                    if (!good) {\n                        break;\n                    }\n                }\n            }\n\n            res += good;\n        }\n        return res;\n    }\n};\n```\n\n```Java [sol1-Java]\npublic class Solution {\n\n    public int numberOfSets(int n, int maxDistance, int[][] roads) {\n        int res = 0;\n        int[] opened = new int[n];\n        int[][] d = new int[n][n];\n\n        for (int mask = 0; mask < (1 << n); mask++) {\n            for (int i = 0; i < n; i++) {\n                opened[i] = mask & (1 << i);\n            }\n            for (int[] row : d) {\n                Arrays.fill(row, 1000000);\n            }\n            for (int[] road : roads) {\n                int i = road[0], j = road[1], r = road[2];\n                if (opened[i] > 0 && opened[j] > 0) {\n                    d[i][j] = d[j][i] = Math.min(d[i][j], r);\n                }\n            }\n\n            // Floyd-Warshall algorithm\n            for (int k = 0; k < n; k++) {\n                if (opened[k] > 0) {\n                    for (int i = 0; i < n; i++) {\n                        if (opened[i] > 0) {\n                            for (int j = i + 1; j < n; j++) {\n                                if (opened[j] > 0) {\n                                    d[i][j] = d[j][i] = Math.min(d[i][j], d[i][k] + d[k][j]);\n                                }\n                            }\n                        }\n                    }\n                }\n            }\n\n            // Validate\n            int good = 1;\n            for (int i = 0; i < n; i++) {\n                if (opened[i] > 0) {\n                    for (int j = i + 1; j < n; j++) {\n                        if (opened[j] > 0) {\n                            if (d[i][j] > maxDistance) {\n                                good = 0;\n                                break;\n                            }\n                        }\n                    }\n                    if (good == 0) {\n                        break;\n                    }\n                }\n            }\n            res += good;\n        }\n        return res;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def numberOfSets(self, n: int, maxDistance: int, roads: List[List[int]]) -> int:\n        res = 0\n        opened = [0] * n\n        for mask in range(1 << n):\n            for i in range(n):\n                opened[i] = mask & (1 << i)\n            d = [[1000000] * n for i in range(n)]\n            for i,j,r in roads:\n                if opened[i] > 0 and opened[j] > 0:\n                    d[i][j] = d[j][i] = min(d[i][j], r)\n            for k in range(n):\n                if opened[k] > 0:\n                    for i in range(n):\n                        if opened[i] > 0:\n                            for j in range(i + 1, n):\n                                if opened[j] > 0:\n                                    d[i][j] = d[j][i] = min(d[i][j], d[i][k] + d[k][j])\n            good = 1\n            for i in range(n):\n                if opened[i] > 0:\n                    for j in range(i + 1, n):\n                        if opened[j] > 0:\n                            if d[i][j] > maxDistance:\n                                good = 0\n                                break\n                if good == 0:\n                    break\n            res += good\n        return res\n```\n\n```JavaScript [sol1-JavaScript]\nfunction numberOfSets(n, maxDistance, roads) {\n    let res = 0;\n    let opened = new Array(n).fill(0);\n\n    for (let mask = 0; mask < (1 << n); mask++) {\n        for (let i = 0; i < n; i++) {\n            opened[i] = mask & (1 << i);\n        }\n        let d = new Array(n).fill(0).map(() => new Array(n).fill(1000000));\n\n        for (let [i, j, r] of roads) {\n            if (opened[i] > 0 && opened[j] > 0) {\n                d[i][j] = d[j][i] = Math.min(d[i][j], r);\n            }\n        }\n\n        // Floyd-Warshall algorithm\n        for (let k = 0; k < n; k++) {\n            if (opened[k] > 0) {\n                for (let i = 0; i < n; i++) {\n                    if (opened[i] > 0) {\n                        for (let j = i + 1; j < n; j++) {\n                            if (opened[j] > 0) {\n                                d[i][j] = d[j][i] = Math.min(d[i][j], d[i][k] + d[k][j]);\n                            }\n                        }\n                    }\n                }\n            }\n        }\n\n        // Validate\n        let good = 1;\n        for (let i = 0; i < n; i++) {\n            if (opened[i] > 0) {\n                for (let j = i + 1; j < n; j++) {\n                    if (opened[j] > 0 && d[i][j] > maxDistance) {\n                        good = 0;\n                        break;\n                    }\n                }\n                if (good == 0) {\n                    break;\n                }\n            }\n        }\n        res += good;\n    }\n    return res;\n}\n```\n\n```TypeScript [sol1-TypeScript]\nfunction numberOfSets(n: number, maxDistance: number, roads: number[][]): number {\n    let res = 0;\n    let opened = new Array(n).fill(0);\n\n    for (let mask = 0; mask < (1 << n); mask++) {\n        for (let i = 0; i < n; i++) {\n            opened[i] = mask & (1 << i);\n        }\n        let d = new Array(n).fill(0).map(() => new Array(n).fill(1000000));\n\n        for (let [i, j, r] of roads) {\n            if (opened[i] > 0 && opened[j] > 0) {\n                d[i][j] = d[j][i] = Math.min(d[i][j], r);\n            }\n        }\n\n        // Floyd-Warshall algorithm\n        for (let k = 0; k < n; k++) {\n            if (opened[k] > 0) {\n                for (let i = 0; i < n; i++) {\n                    if (opened[i] > 0) {\n                        for (let j = i + 1; j < n; j++) {\n                            if (opened[j] > 0) {\n                                d[i][j] = d[j][i] = Math.min(d[i][j], d[i][k] + d[k][j]);\n                            }\n                        }\n                    }\n                }\n            }\n        }\n\n        // Validate\n        let good = 1;\n        for (let i = 0; i < n; i++) {\n            if (opened[i] > 0) {\n                for (let j = i + 1; j < n; j++) {\n                    if (opened[j] > 0 && d[i][j] > maxDistance) {\n                        good = 0;\n                        break;\n                    }\n                }\n                if (good == 0) {\n                    break;\n                }\n            }\n        }\n        res += good;\n    }\n    return res;\n};\n```\n\n```Go [sol1-Go]\nfunc numberOfSets(n int, maxDistance int, roads [][]int) int {\n    res := 0\n    opened := make([]int, n)\n    d := make([][]int, n)\n\n    for mask := 0; mask < (1 << n); mask++ {\n        for i := 0; i < n; i++ {\n            opened[i] = mask & (1 << i)\n        }\n        for i := range d {\n            d[i] = make([]int, n)\n            for j := range d[i] {\n                d[i][j] = 1000000\n            }\n        }\n        for _, road := range roads {\n            i, j, r := road[0], road[1], road[2]\n            if opened[i] > 0 && opened[j] > 0 {\n                if r < d[i][j] {\n                    d[i][j] = r\n                    d[j][i] = r\n                }\n            }\n        }\n\n        // Floyd-Warshall algorithm\n        for k := 0; k < n; k++ {\n            if opened[k] > 0 {\n                for i := 0; i < n; i++ {\n                    if opened[i] > 0 {\n                        for j := i + 1; j < n; j++ {\n                            if opened[j] > 0 {\n                                if d[i][k]+d[k][j] < d[i][j] {\n                                    d[i][j] = d[i][k] + d[k][j]\n                                    d[j][i] = d[i][j] // Ensure symmetry\n                                }\n                            }\n                        }\n                    }\n                }\n            }\n        }\n\n        // Validate\n        good := 1\n        for i := 0; i < n; i++ {\n            if opened[i] > 0 {\n                for j := i + 1; j < n; j++ {\n                    if opened[j] > 0 && d[i][j] > maxDistance {\n                        good = 0\n                        break\n                    }\n                }\n                if good == 0 {\n                    break\n                }\n            }\n        }\n        res += good\n    }\n    return res\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int NumberOfSets(int n, int maxDistance, int[][] roads) {\n        int res = 0;\n        int[] opened = new int[n];\n        int[,] d = new int[n, n];\n\n        for (int mask = 0; mask < (1 << n); mask++) {\n            for (int i = 0; i < n; i++) {\n                opened[i] = mask & (1 << i);\n            }\n            for (int i = 0; i < n; i++) {\n                for (int j = 0; j < n; j++) {\n                    d[i, j] = 1000000;\n                }\n            }\n            foreach (int[] road in roads) {\n                int i = road[0], j = road[1], r = road[2];\n                if (opened[i] > 0 && opened[j] > 0) {\n                    d[i, j] = d[j, i] = Math.Min(d[i, j], r);\n                }\n            }\n\n            // Floyd-Warshall algorithm\n            for (int k = 0; k < n; k++) {\n                if (opened[k] > 0) {\n                    for (int i = 0; i < n; i++) {\n                        if (opened[i] > 0) {\n                            for (int j = i + 1; j < n; j++) {\n                                if (opened[j] > 0) {\n                                    d[i, j] = d[j, i] = Math.Min(d[i, j], d[i, k] + d[k, j]);\n                                }\n                            }\n                        }\n                    }\n                }\n            }\n\n            // Validate\n            int good = 1;\n            for (int i = 0; i < n; i++) {\n                if (opened[i] > 0) {\n                    for (int j = i + 1; j < n; j++) {\n                        if (opened[j] > 0) {\n                            if (d[i, j] > maxDistance) {\n                                good = 0;\n                                break;\n                            }\n                        }\n                    }\n                    if (good == 0) {\n                        break;\n                    }\n                }\n            }\n            res += good;\n        }\n        return res;\n    }\n}\n```\n\n```C [sol1-C]\nint numberOfSets(int n, int maxDistance, int** roads, int roadsSize, int* roadsColSize) {\n    int res = 0, opened[n], d[n][n];\n\n    for (int mask = 0; mask < (1 << n); mask++) {\n        for (int i = 0; i < n; i++) {\n            opened[i] = mask & (1 << i);\n        }\n        for (int i = 0; i < n; i++) {\n            for (int j = 0; j < n; j++) {\n                d[i][j] = 1000000;\n            }\n        }\n        for (int k = 0; k < roadsSize; k++) {\n            int i = roads[k][0], j = roads[k][1], r = roads[k][2];\n            if (opened[i] && opened[j]) {\n                d[i][j] = d[j][i] = (d[i][j] < r) ? d[i][j] : r;\n            }\n        }\n\n        // Floyd-Warshall Algorithm\n        for (int k = 0; k < n; k++) {\n            if (opened[k]) {\n                for (int i = 0; i < n; i++) {\n                    if (opened[i]) {\n                        for (int j = 0; j < n; j++) {\n                            if (opened[j]) {\n                                if (d[i][k] + d[k][j] < d[i][j]) {\n                                    d[i][j] = d[i][k] + d[k][j];\n                                }\n                            }\n                        }\n                    }\n                }\n            }\n        }\n\n        // Validate\n        int good = 1;\n        for (int i = 0; i < n; i++) {\n            if (opened[i]) {\n                for (int j = i + 1; j < n; j++) {\n                    if (opened[j] && d[i][j] > maxDistance) {\n                        good = 0;\n                        break;\n                    }\n                }\n                if (!good) {\n                    break;\n                }\n            }\n        }\n        res += good;\n    }\n    return res;\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn number_of_sets(n: i32, max_distance: i32, roads: Vec<Vec<i32>>) -> i32 {\n        let n_usize = n as usize;\n        let max_distance_usize = max_distance as usize;\n        let mut res = 0;\n        let mut opened = vec![0; n_usize];\n\n        for mask in 0..(1 << n) {\n            for i in 0..n_usize {\n                opened[i] = mask & (1 << i);\n            }\n            let mut d = vec![vec![1000000; n_usize]; n_usize];\n            for road in &roads {\n                let i = road[0] as usize;\n                let j = road[1] as usize;\n                let r = road[2] as usize;\n                if opened[i] > 0 && opened[j] > 0 {\n                    d[i][j] = d[i][j].min(r);\n                    d[j][i] = d[j][i].min(r);\n                }\n            }\n\n            // Floyd-Warshall\n            for k in 0..n_usize {\n                if opened[k] > 0 {\n                    for i in 0..n_usize {\n                        if opened[i] > 0 {\n                            for j in (i + 1)..n_usize {\n                                if opened[j] > 0 {\n                                    d[i][j] = d[i][j].min(d[i][k] + d[k][j]);\n                                    d[j][i] = d[i][j];\n                                }\n                            }\n                        }\n                    }\n                }\n            }\n\n            // Validate\n            let mut good = true;\n            for i in 0..n_usize {\n                if opened[i] > 0 {\n                    for j in (i + 1)..n_usize {\n                        if opened[j] > 0 && d[i][j] > max_distance_usize {\n                            good = false;\n                            break;\n                        }\n                    }\n                    if !good {\n                        break;\n                    }\n                }\n            }\n            if good {\n                res += 1;\n            }\n        }\n        res\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(2 ^ n \\times n ^ 3)$, $2 ^ n$ 种情况，每个求最短路需要 $n ^ 3$ 时间。\n\n- 空间复杂度：$O(n ^ 2)$。",
+            "slateValue": "",
+            "slug": "guan-bi-fen-bu-de-ke-xing-ji-he-shu-mu-b-85ov",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "bhqz4U",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 11,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Bit Manipulation",
+                    "nameTranslated": "位运算",
+                    "slug": "bit-manipulation",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Graph",
+                    "nameTranslated": "图",
+                    "slug": "graph",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Enumeration",
+                    "nameTranslated": "枚举",
+                    "slug": "enumeration",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Shortest Path",
+                    "nameTranslated": "最短路",
+                    "slug": "shortest-path",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2024-07-15T02:41:17.601042+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：Floyd最短路径算法 思路与算法 我们用一个 $n$ 位的 整数 $\\textit{opened}$ 来表示开放的分部集合，对于所有情况我们使用 「$\\textit{Floyd}$ 最短路径」算法，来找到两两分部的最短距离。 然后我们检查剩下的分部之间两两互相可以到达且最远距离不超过 $\\textit{max",
+            "topic": {
+                "id": 2844227,
+                "subscribed": false,
+                "commentCount": 21,
+                "viewCount": 639,
+                "post": {
+                    "id": 5183599,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 33,
+            "isEditorsPick": false,
+            "hitCount": 9545,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "number-of-possible-sets-of-closing-branches",
+                "questionFrontendId": "2959"
+            },
+            "next": {
+                "slug": "er-jin-zhi-mei-ju-floydgao-xiao-xie-fa-f-t7ou",
+                "title": "两种方法：二进制枚举 / 状压 DP（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

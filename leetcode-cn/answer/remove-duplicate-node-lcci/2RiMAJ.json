@@ -1,0 +1,128 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "2RiMAJ",
+            "title": "移除重复节点",
+            "content": "### 📺 视频题解  \n![02.01.移除重复节点.mp4](e14212f5-8248-42e3-b84f-63205c361ef9)\n\n### 📖 文字题解\n#### 前言\n\n在本题中，我们需要移除未排序链表中的重复节点。保留最开始出现的节点。在一些语言（例如 `C++`）中，并没有较好的内存回收机制，因此如果在面试中遇到了本题，可以和面试官确认是否需要释放被移除的节点占用的内存空间。本题解给出的 `C++` 代码中默认**不释放**空间。\n\n#### 方法一：哈希表\n\n我们对给定的链表进行一次遍历，并用一个哈希集合（HashSet）来存储所有出现过的节点。由于在大部分语言中，对给定的链表元素直接进行「相等」比较，实际上是对两个链表元素的地址（而不是值）进行比较。因此，我们在哈希集合中存储链表元素的值，方便直接使用等号进行比较。\n\n具体地，我们从链表的头节点 $\\textit{head}$ 开始进行遍历，遍历的指针记为 $\\textit{pos}$。由于头节点一定不会被删除，因此我们可以枚举待移除节点的前驱节点，减少编写代码的复杂度。\n\n> 这样枚举有什么好处？试想一下，如果我们直接枚举待移除节点，那么在将它进行移除时，我们本质上是将它的前驱节点连向后继节点。而由于题目给定的链表结构中，我们无法直接访问一个节点的前驱节点。因此，我们不如直接枚举前驱节点 `u`，那么节点本身就是 `u.next`，后继节点就是 `u.next.next`。\n\n在遍历完成后，我们就得到了最终的答案链表。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    ListNode* removeDuplicateNodes(ListNode* head) {\n        if (head == nullptr) {\n            return head;\n        }\n        unordered_set<int> occurred = {head->val};\n        ListNode* pos = head;\n        // 枚举前驱节点\n        while (pos->next != nullptr) {\n            // 当前待删除节点\n            ListNode* cur = pos->next;\n            if (!occurred.count(cur->val)) {\n                occurred.insert(cur->val);\n                pos = pos->next;\n            } else {\n                pos->next = pos->next->next;\n            }\n        }\n        pos->next = nullptr;\n        return head;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public ListNode removeDuplicateNodes(ListNode head) {\n        if (head == null) {\n            return head;\n        }\n        Set<Integer> occurred = new HashSet<Integer>();\n        occurred.add(head.val);\n        ListNode pos = head;\n        // 枚举前驱节点\n        while (pos.next != null) {\n            // 当前待删除节点\n            ListNode cur = pos.next;\n            if (occurred.add(cur.val)) {\n                pos = pos.next;\n            } else {\n                pos.next = pos.next.next;\n            }\n        }\n        pos.next = null;\n        return head;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def removeDuplicateNodes(self, head: ListNode) -> ListNode:\n        if not head:\n            return head\n        occurred = {head.val}\n        pos = head\n        # 枚举前驱节点\n        while pos.next:\n            # 当前待删除节点\n            cur = pos.next\n            if cur.val not in occurred:\n                occurred.add(cur.val)\n                pos = pos.next\n            else:\n                pos.next = pos.next.next\n        return head\n```\n\n```golang [sol1-Golang]\nfunc removeDuplicateNodes(head *ListNode) *ListNode {\n    if head == nil {\n        return head\n    }\n    occurred := map[int]bool{head.Val: true}\n    pos := head\n    for pos.Next != nil {\n        cur := pos.Next\n        if !occurred[cur.Val] {\n            occurred[cur.Val] = true\n            pos = pos.Next\n        } else {\n            pos.Next = pos.Next.Next\n        }\n    }\n    pos.Next = nil\n    return head\n}\n```\n\n```C [sol1-C]\nstruct ListNode* removeDuplicateNodes(struct ListNode* head) {\n    if (head == NULL) {\n        return head;\n    }\n    int* occurred = (int*)calloc(20001, sizeof(int));\n    occurred[head->val] = 1;\n    struct ListNode* pos = head;\n    // 枚举前驱节点\n    while (pos->next != NULL) {\n        // 当前待删除节点\n        struct ListNode* cur = pos->next;\n        if (!occurred[cur->val]) {\n            occurred[cur->val] = 1;\n            pos = pos->next;\n        } else {\n            pos->next = pos->next->next;\n        }\n    }\n    pos->next = NULL;\n    return head;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(N)$，其中 $N$ 是给定链表中节点的数目。\n\n- 空间复杂度：$O(N)$。在最坏情况下，给定链表中每个节点都不相同，哈希表中需要存储所有的 $N$ 个值。\n\n#### 方法二：两重循环\n\n考虑题目描述中的「进阶」部分，是否存在一种不使用临时缓冲区（也就是方法一中的哈希表）的方法呢？\n\n不幸的是，在保证方法一时间复杂度 $O(N)$ 的前提下，是不存在这样的方法的。因此我们需要增加时间复杂度，使得我们可以仅使用常数的空间来完成本题。一种简单的方法是，我们在给定的链表上使用两重循环，其中第一重循环从链表的头节点开始，枚举一个保留的节点，这是因为我们保留的是「最开始出现的节点」。第二重循环从枚举的保留节点开始，到链表的末尾结束，将所有与保留节点相同的节点全部移除。\n\n方法二的细节部分与方法一类似。第一重循环枚举保留的节点本身，而为了编码方便，第二重循环可以枚举待移除节点的前驱节点，方便我们对节点进行移除。这样一来，我们使用「时间换空间」的方法，就可以不使用临时缓冲区解决本题了。\n\n**注意：** `Python` 语言会超出时间限制，并不能使用方法二通过本题。\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    ListNode* removeDuplicateNodes(ListNode* head) {\n        ListNode* ob = head;\n        while (ob != nullptr) {\n            ListNode* oc = ob;\n            while (oc->next != nullptr) {\n                if (oc->next->val == ob->val) {\n                    oc->next = oc->next->next;\n                } else {\n                    oc = oc->next;\n                }\n            }\n            ob = ob->next;\n        }\n        return head;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public ListNode removeDuplicateNodes(ListNode head) {\n        ListNode ob = head;\n        while (ob != null) {\n            ListNode oc = ob;\n            while (oc.next != null) {\n                if (oc.next.val == ob.val) {\n                    oc.next = oc.next.next;\n                } else {\n                    oc = oc.next;\n                }\n            }\n            ob = ob.next;\n        }\n        return head;\n    }\n}\n```\n\n```golang [sol2-Golang]\nfunc removeDuplicateNodes(head *ListNode) *ListNode {\n    ob := head\n    for ob != nil {\n        oc := ob\n        for oc.Next != nil {\n            if oc.Next.Val == ob.Val {\n                oc.Next = oc.Next.Next\n            } else {\n                oc = oc.Next\n            }\n        }\n        ob = ob.Next\n    }\n    return head\n}\n```\n\n```C [sol2-C]\nstruct ListNode* removeDuplicateNodes(struct ListNode* head) {\n    struct ListNode* ob = head;\n    while (ob != NULL) {\n        struct ListNode* oc = ob;\n        while (oc->next != NULL) {\n            if (oc->next->val == ob->val) {\n                oc->next = oc->next->next;\n            } else {\n                oc = oc->next;\n            }\n        }\n        ob = ob->next;\n    }\n    return head;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(N^2)$，其中 $N$ 是给定链表中节点的数目。\n\n- 空间复杂度：$O(1)$。",
+            "slateValue": "",
+            "slug": "yi-chu-zhong-fu-jie-dian-by-leetcode-solution",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "2RiMAJ",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 50,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 7,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Linked List",
+                    "nameTranslated": "链表",
+                    "slug": "linked-list",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-06-25T13:07:25.791805+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "📺 视频题解\n📖 文字题解\n 前言\n在本题中，我们需要移除未排序链表中的重复节点。保留最开始出现的节点。在一些语言（例如 C++）中，并没有较好的内存回收机制，因此如果在面试中遇到了本题，可以和面试官确认是否需要释放被移除的节点占用的内存空间。本题解给出的 C++ 代码中默认不释放空间。\n 方法一：哈希表\n我们对给定的",
+            "topic": {
+                "id": 303505,
+                "subscribed": false,
+                "commentCount": 181,
+                "viewCount": 44786,
+                "post": {
+                    "id": 764263,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 116,
+            "isEditorsPick": false,
+            "hitCount": 78155,
+            "videosInfo": [
+                {
+                    "videoId": "14670db2cd56410eb0cdefe903803da4",
+                    "coverUrl": "https://video.leetcode.cn/image/cover/F2075504A98D40278ED24B5B13D0C78E-6-2.png?auth_key=1782484427-3159d908641c49159816e92f06177f03-0-3aeb09b47eb8b963ce9fc2642c783e30",
+                    "duration": 584.2133
+                }
+            ],
+            "question": {
+                "titleSlug": "remove-duplicate-node-lcci",
+                "questionFrontendId": "面试题 02.01"
+            },
+            "next": {
+                "slug": "mian-shi-ti-0201-yi-chu-zhong-fu-jie-dia-u619",
+                "title": "面试题 02.01. 移除重复节点（双指针，清晰图解）"
+            },
+            "prev": null
+        }
+    }
+}

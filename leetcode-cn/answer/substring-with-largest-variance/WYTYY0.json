@@ -1,0 +1,150 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "WYTYY0",
+            "title": "最大波动的子字符串",
+            "content": "#### 方法一：枚举最多和最少的字符 + 最大子段和动态规划\n\n**思路与算法**\n\n如果我们枚举给定字符串 $s$ 的所有子串并计算波动值，那么至少需要 $O(n^2)$ 的时间，其中 $n$ 是字符串 $s$ 的长度。这是因为 $s$ 的子串有 $O(n^2)$ 个，然而本题 $n \\leq 10^4$，会超出时间限制。\n\n因此我们可以考虑枚举「出现次数最多的字符」以及「出现次数最少的字符」。如果出现次数最多的字符为 $c_0$，最少的字符为 $c_1$，并且我们可以将字符串 $s$ 映射成一个数组：\n\n- 如果某个字符为 $c_0$，那么映射为 $+1$;\n\n- 如果某个字符为 $c_1$，那么映射为 $-1$；\n\n- 对于其余情况，映射为 $0$。\n\n那么任意一个子串对应的子数组的和，就是「$c_0$ 出现的次数减去 $c_1$ 出现的次数」。我们只要求出映射数组的「最大子段和」（就是和最大的子数组的和），就可以知道在以 $c_0$ 为出现次数最多的字符、$c_1$ 为出现次数最少的字符时，最大的波动值。\n\n对于某个子串，如果 $c_0$ 并非真正出现次数最多的字符，或者 $c_1$ 并非出现次数最少的字符，我们在计算答案时也不会产生影响。例如 $c_0'$ 是真正出现次数最多的字符，我们计算出的最大波动值为「$c_0$ 出现的次数减去 $c_1$ 出现的次数」，而真正的答案「$c_0'$ 出现的次数减去 $c_1$ 出现的次数」只会更大，并且会在枚举 $(c_0', c_1)$ 时计算出来。\n\n**动态规划**\n\n当给定一个只包含 $+1, 0, -1$ 的数组，如何计算最大子段和呢？需要注意的是，满足要求的子数组必须至少包含一个 $+1$ 和一个 $-1$，否则我们会将例如只包含 $c_0$ 而不包含 $c_1$ 的子串计入答案。由于不包含 $+1$ 的子数组一定不是答案（此时子数组的和为负数，而答案一定是非负整数），因此在进行动态规划时，我们只需要一个额外的状态，即「包含 $-1$ 的子数组」。\n\n我们用 $f[i]$ 表示以 $i$ 结尾的子数组的最大和，$g[i]$ 表示以 $i$ 结尾的并且一定包含 $-1$ 的子数组的最大和。初始时 $f[-1] = 0$ 以及 $g[-1] = -\\infty$，因为 $f$ 的定义可以允许一个空的子数组，而 $g$ 不可以（因为一定要包含 $-1$）。记 $d_i$ 表示 $s[i]$ 映射的数值，当 $d_i=0$ 时，状态转移方程为：\n\n$$\n\\begin{cases}\nf[i]=f[i-1] \\\\\ng[i]=g[i-1]\n\\end{cases}\n$$\n\n当 $d_i=1$ 时，状态转移方程为：\n\n$$\n\\begin{cases}\nf[i]=\\max\\{f[i-1], 0\\}+1 \\\\\ng[i]=g[i-1]+1\n\\end{cases}\n$$\n\n当 $d_i=-1$ 时，状态转移方程为：\n\n$$\n\\begin{cases}\nf[i]=\\max\\{f[i-1], 0\\}-1 \\\\\ng[i]=\\max\\{f[i-1], g[i-1], 0\\}-1\n\\end{cases}\n$$\n\n最终的答案为数组 $g$ 中的最大值。\n\n**优化**\n\n上述算法的时间复杂度为 $O(n|\\Sigma|^2)$，其中 $\\Sigma$ 表示字符集。但注意到当 $d_i=0$ 时，我们实际上没有进行任何计算，因此我们可以对动态规划的时间进行优化。\n\n我们使用哈希映射递增地存储每一个字符出现的位置。当枚举到 $(c_0, c_1)$ 时，我们使用类似「合并两个有序列表」的方法进行动态规划，这样就可以完成所有 $d_i = \\pm 1$ 的计算，并且跳过了 $d_i=0$ 的位置。具体实现可以参考下面的代码。\n\n由于每种字符会被枚举到 $2|\\Sigma|-1$ 次，而所有字符的出现次数总和为 $n$，因此优化后的算法的时间复杂度为 $O((2|\\Sigma|-1)n) - O(n|\\Sigma|)$。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int largestVariance(string s) {\n        unordered_map<char, vector<int>> pos;\n        for (int i = 0; i < s.size(); ++i) {\n            pos[s[i]].push_back(i);\n        }\n\n        int ans = 0;\n        for (auto&& [c0, pos0]: pos) {\n            for (auto&& [c1, pos1]: pos) {\n                if (c0 != c1) {\n                    int i = 0, j = 0;\n                    int f = 0, g = INT_MIN;\n                    while (i < pos0.size() || j < pos1.size()) {\n                        if (j == pos1.size() || (i < pos0.size() && pos0[i] < pos1[j])) {\n                            tie(f, g) = tuple{max(f, 0) + 1, g + 1};\n                            ++i;\n                        }\n                        else {\n                            tie(f, g) = tuple{max(f, 0) - 1, max({f, g, 0}) - 1};\n                            ++j;\n                        }\n                        ans = max(ans, g);\n                    }\n                }\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def largestVariance(self, s: str) -> int:\n        pos = defaultdict(list)\n        for i, ch in enumerate(s):\n            pos[ch].append(i)\n\n        ans = 0\n        for c0, pos0 in pos.items():\n            for c1, pos1 in pos.items():\n                if c0 != c1:\n                    i = j = 0\n                    f, g = 0, float(\"-inf\")\n                    while i < len(pos0) or j < len(pos1):\n                        if j == len(pos1) or (i < len(pos0) and pos0[i] < pos1[j]):\n                            f, g = max(f, 0) + 1, g + 1\n                            i += 1\n                        else:\n                            f, g = max(f, 0) - 1, max(f, g, 0) - 1\n                            j += 1\n                        ans = max(ans, g)\n        \n        return ans\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int largestVariance(String s) {\n        Map<Character, List<Integer>> pos = new HashMap<>();\n        for (int i = 0; i < s.length(); ++i) {\n            pos.computeIfAbsent(s.charAt(i), k -> new ArrayList<>()).add(i);\n        }\n\n        int ans = 0;\n        for (char c0 : pos.keySet()) {\n            for (char c1 : pos.keySet()) {\n                if (c0 != c1) {\n                    List<Integer> pos0 = pos.get(c0);\n                    List<Integer> pos1 = pos.get(c1);\n                    int i = 0, j = 0;\n                    int f = 0, g = Integer.MIN_VALUE;\n                    while (i < pos0.size() || j < pos1.size()) {\n                        if (j == pos1.size() || (i < pos0.size() && pos0.get(i) < pos1.get(j))) {\n                            f = Math.max(f, 0) + 1;\n                            g = g + 1;\n                            i++;\n                        } else {\n                            g = Math.max(Math.max(f, g), 0) - 1;\n                            f = Math.max(f, 0) - 1;\n                            j++;\n                        }\n                        ans = Math.max(ans, g);\n                    }\n                }\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```C# [sol1-C#]\nusing System.Collections.Generic;\n\npublic class Solution {\n    public int LargestVariance(string s) {\n        var pos = new Dictionary<char, List<int>>();\n        for (int i = 0; i < s.Length; i++) {\n            char ch = s[i];\n            if (!pos.ContainsKey(ch)) pos[ch] = new List<int>();\n            pos[ch].Add(i);\n        }\n\n        int ans = 0;\n        foreach (var c0 in pos) {\n            foreach (var c1 in pos) {\n                if (c0.Key != c1.Key) {\n                    List<int> pos0 = c0.Value;\n                    List<int> pos1 = c1.Value;\n                    int i = 0, j = 0;\n                    int f = 0, g = int.MinValue;\n                    while (i < pos0.Count || j < pos1.Count) {\n                        if (j == pos1.Count || (i < pos0.Count && pos0[i] < pos1[j])) {\n                            f = Math.Max(f, 0) + 1;\n                            g = g + 1;\n                            i++;\n                        } else {\n                            g = Math.Max(f, Math.Max(g, 0)) - 1;\n                            f = Math.Max(f, 0) - 1;\n                            j++;\n                        }\n                        ans = Math.Max(ans, g);\n                    }\n                }\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc largestVariance(s string) int {\n    pos := make(map[rune][]int)\n    for i, ch := range s {\n        pos[ch] = append(pos[ch], i)\n    }\n\n    ans := 0\n    for c0, pos0 := range pos {\n        for c1, pos1 := range pos {\n            if c0 != c1 {\n                i, j := 0, 0\n                f, g := 0, -1 << 63\n                for i < len(pos0) || j < len(pos1) {\n                    if j == len(pos1) || (i < len(pos0) && pos0[i] < pos1[j]) {\n                        f, g = max(f, 0) + 1, g + 1\n                        i++\n                    } else {\n                        f, g = max(f, 0) -1, max(f, g, 0) - 1\n                        j++\n                    }\n                    ans = max(ans, g)\n                }\n            }\n        }\n    }\n    return ans\n}\n```\n\n```C [sol1-C]\nint max(int a, int b) {\n    return a > b ? a : b;\n}\n\nint largestVariance(char* s) {\n    int n = strlen(s);\n    int pos[26][n];\n    int posSize[26] = {0};\n\n    for (int i = 0; i < n; i++) {\n        int j = s[i] - 'a';\n        pos[j][posSize[j]] = i;\n        posSize[j]++;\n    }\n    \n    int ans = 0;\n    for (int c0 = 0; c0 < 26; c0++) {\n        for (int c1 = 0; c1 < 26; c1++) {\n            if (c0 != c1 && posSize[c0] > 0 && posSize[c1] > 0) {\n                int i = 0, j = 0;\n                int f = 0, g = INT_MIN;\n                while (i < posSize[c0] || j < posSize[c1]) {\n                    if (j == posSize[c1] || (i < posSize[c0] && pos[c0][i] < pos[c1][j])) {\n                        f = max(f, 0) + 1;\n                        g = g + 1;\n                        i++;\n                    } else {\n                        g = max(f, max(g, 0)) - 1;\n                        f = max(f, 0) - 1;\n                        j++;\n                    }\n                    ans = max(ans, g);\n                }\n            }\n        }\n    }\n\n    return ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar largestVariance = function(s) {\n    const pos = {};\n    for (let i = 0; i < s.length; i++) {\n        const ch = s[i];\n        if (!pos[ch]) pos[ch] = [];\n        pos[ch].push(i);\n    }\n\n    let ans = 0;\n    for (let c0 in pos) {\n        for (let c1 in pos) {\n            if (c0 !== c1) {\n                const pos0 = pos[c0];\n                const pos1 = pos[c1];\n                let i = 0, j = 0;\n                let f = 0, g = -Infinity;\n                while (i < pos0.length || j < pos1.length) {\n                    if (j === pos1.length || (i < pos0.length && pos0[i] < pos1[j])) {\n                        f = Math.max(f, 0) + 1;\n                        g = g + 1;\n                        i++;\n                    } else {\n                        g = Math.max(f, Math.max(g, 0)) - 1;\n                        f = Math.max(f, 0) - 1;\n                        j++;\n                    }\n                    ans = Math.max(ans, g);\n                }\n            }\n        }\n    }\n    return ans;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction largestVariance(s: string): number {\n    const pos: { [key: string]: number[] } = {};\n    for (let i = 0; i < s.length; i++) {\n        const ch = s[i];\n        if (!pos[ch]) pos[ch] = [];\n        pos[ch].push(i);\n    }\n\n    let ans = 0;\n    for (let c0 in pos) {\n        for (let c1 in pos) {\n            if (c0 !== c1) {\n                const pos0 = pos[c0];\n                const pos1 = pos[c1];\n                let i = 0, j = 0;\n                let f = 0, g = -Infinity;\n                while (i < pos0.length || j < pos1.length) {\n                    if (j === pos1.length || (i < pos0.length && pos0[i] < pos1[j])) {\n                        f = Math.max(f, 0) + 1;\n                        g = g + 1;\n                        i++;\n                    } else {\n                        g = Math.max(f, Math.max(g, 0)) - 1;\n                        f = Math.max(f, 0) - 1;\n                        j++;\n                    }\n                    ans = Math.max(ans, g);\n                }\n            }\n        }\n    }\n    return ans;\n};\n```\n\n```Rust [sol1-Rust]\nuse std::collections::HashMap;\nuse std::cmp::{max, min};\n\nimpl Solution {\n    pub fn largest_variance(s: String) -> i32 {\n        let mut pos: HashMap<char, Vec<usize>> = HashMap::new();\n        for (i, ch) in s.char_indices() {\n            pos.entry(ch).or_insert(Vec::new()).push(i);\n        }\n        let mut ans = 0;\n        for (&c0, pos0) in &pos {\n            for (&c1, pos1) in &pos {\n                if c0 != c1 {\n                    let mut i = 0;\n                    let mut j = 0;\n                    let mut f = 0;\n                    let mut g = i32::MIN;\n                    while i < pos0.len() || j < pos1.len() {\n                        if j == pos1.len() || (i < pos0.len() && pos0[i] < pos1[j]) {\n                            f = max(f, 0) + 1;\n                            g = g + 1;\n                            i += 1;\n                        } else {\n                            g = max(f, max(g, 0)) - 1;\n                            f = max(f, 0) - 1;\n                            j += 1;\n                        }\n                        ans = max(ans, g);\n                    }\n                }\n            }\n        }\n        ans\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n|\\Sigma|)$，其中 $n$ 是字符串 $s$ 的长度，$\\Sigma$ 是字符集，在本题中 $|\\Sigma|=26$。\n\n- 空间复杂度：$O(n)$，即为哈希映射需要使用的空间。",
+            "slateValue": "",
+            "slug": "zui-da-bo-dong-de-zi-zi-fu-chuan-by-leet-xsnp",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "WYTYY0",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 22,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Enumeration",
+                    "nameTranslated": "枚举",
+                    "slug": "enumeration",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-05-17T14:58:44.185068+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：枚举最多和最少的字符 + 最大子段和动态规划 思路与算法 如果我们枚举给定字符串 [latex] 的所有子串并计算波动值，那么至少需要 [latex] 的时间，其中 [latex] 是字符串 [latex] 的长度。这是因为 [latex] 的子串有 [latex] 个，然而本题 [latex]，会超出时间限制",
+            "topic": {
+                "id": 1501524,
+                "subscribed": false,
+                "commentCount": 32,
+                "viewCount": 3467,
+                "post": {
+                    "id": 3069792,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 59,
+            "isEditorsPick": false,
+            "hitCount": 16391,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "substring-with-largest-variance",
+                "questionFrontendId": "2272"
+            },
+            "next": {
+                "slug": "by-endlesscheng-5775",
+                "title": "最大子数组和 + 状态机 DP（Python/Java/C++/C/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

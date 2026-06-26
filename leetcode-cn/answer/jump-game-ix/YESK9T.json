@@ -1,0 +1,150 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "YESK9T",
+            "title": "跳跃游戏 IX",
+            "content": "#### 方法一：区间分治\n\n**思路与算法**\n\n我们来模拟一下这个元素转移的过程。设 $\\textit{nums}$ 长度为 $n$，首先考虑全局最大值，设为 $r_{\\textit{max}1}$，其所在下标为 $i_1$。\n\n该最大值把整个区间一分为二，容易发现，所有在 $i_1$ 右侧的元素都可以跳到 $r_{\\textit{max}1}$，显然对于这部分元素，这就是全局最优解。\n\n然后考虑 $i_1$ 左侧的元素，我们取左侧这段区间 $[0, i_1-1]$ 的前缀最大值 $r_{\\textit{max}2}$，其所在下标为 $i_2$。这个最大值又将区间 $[0, i_1-1]$ 一分为二，我们还是先考虑这个区间上最大值右侧的元素，即区间 $[i_2, i_1-1]$ 上的元素，设刚刚前一个区间的右侧区间 $[i_1, n-1]$ 上的最小值是 $r_\\textit{min}$，则有以下两种情况：\n\n- 如果 $r_{\\textit{max}2} \\le r_\\textit{min}$，这说明当前区间内的所有元素都不能跳到 $i_1$ 的右侧区间 $[i_1, n-1]$ 上。因此当前右侧区间 $[i_2, i_1-1]$ 的这些元素只能转移到左侧区间 $[0, i_1-1]$ 的最大值 $r_{\\textit{max}2}$ 上，作为这些元素的最优解。\n\n- 反之，若 $r_{\\textit{max}2} \\gt r_\\textit{min}$，则当前右侧区间 $[i_2, i_1-1]$ 上的这些元素均可以先到达 $r_{\\textit{max}2}$，再通过右侧的 $r_\\textit{min}$ 元素中转，最终跳到右侧区间的最大值上，即这些元素的最优解是 $r_{\\textit{max}1}$。\n\n类似地，我们会发现下一个区间 $[0, i_2-1]$ 上求解的过程有着和之前完全一样的子结构，都是要取前缀区间上的最大值，将区间一分为二，然后根据当前的右侧区间能否转移到上一个右侧区间进行分类讨论。故考虑基于区间分治的方法，动态转移右侧区间的最大值与最小值来求解本题。\n\n预先维护前缀最大值，然后进行分治，分治的基本过程在上面的模拟中已经阐明的很详细了，剩下需要细化的是 $r_\\textit{min}$ 和 $r_\\textit{max}$ 的定义，以及如何动态转移。设当前遍历的前缀区间为 $[0, i]$，前缀最大值所在的位置是 $i'$，根据区间 $[i', i]$ 能否转移到之前处理完的右侧区间上，有以下转移策略：\n\n- $r_\\textit{max}$ 表示的是当前区间的目标最大值，也就是答案。对于 $r_\\textit{max}$，若可以转移到之前的右侧区间，则由于前一个区间的 $r_\\textit{max}$ 一定大于等于当前的前缀最大值，最大值直接继承之前的 $r_\\textit{max}$；若不能转移，则需要更新 $r_\\textit{max}$ 为当前的前缀最大值。\n\n- 对于 $r_\\textit{min}$，确切的说，其表示的是 $r_\\textit{max}$ 的对应区间上，能转移到 $r_\\textit{max}$ 的元素中的最小值。因为 $r_\\textit{max}$ 的对应区间一定在当前区间的右侧，因此只要当前的前缀最大值大于 $r_\\textit{min}$，就意味着当前区间 $[i', i]$ 可以转移 $r_\\textit{max}$ 上，此时我们应该取新的 $r_\\textit{min}'$ 为 $\\min(r_\\textit{min}, \\min\\limits_{i' \\le k \\le i}(\\textit{nums}[k]))$，补充当前区间的值来更新 $r_\\textit{min}$。\n\n- 实际上，对于不能转移的情况，我们仍然按上式更新 $r_\\textit{min}$。乍一看这样似乎存在问题，因为若无法转移到之前的右侧区间，则不应该考虑旧的 $r_\\textit{min}$，因为它代表的区间已经不可达了。但此时之前的 $r_\\textit{min}$ 一定大于等于当前区间的前缀最大值，故新的最小值一定在 $[i', i]$ 中产生，旧的 $r_\\textit{min}$ 即便参与计算也一定会被更新掉，相当于抛弃了旧的区间。所以我们更新的时候直接取 $\\min(r_\\textit{min}, \\min\\limits_{i' \\le k \\le i}(\\textit{nums}[k]))$ 即可，本质上这里取的是 $[i', n-1]$ 上的后缀最小值。\n\n按上述流程进行递归即可。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<int> maxValue(vector<int>& nums) {\n        int n = nums.size();\n        vector<int> ans(n, 0);\n\n        // [value, index]\n        using Item = pair<int, int>;\n        vector<Item> prevMax(n);\n\n        Item prev = {INT_MIN, -1};\n        for (int i = 0; i < n; ++i) {\n            if (nums[i] > prev.first) {\n                prev = {nums[i], i};\n            }\n            prevMax[i] = prev;\n        }\n\n        auto process = [&](auto& self, int r, int rightMin, int rightMax) -> void {\n            auto [pMax, pivotIndex] = prevMax[r];\n            int currMax = pMax <= rightMin ? pMax : rightMax;\n\n            int nextRightMin = min(pMax, rightMin);\n            for (int i = pivotIndex; i <= r; ++i) {\n                ans[i] = currMax;\n                nextRightMin = min(nextRightMin, nums[i]);\n            }\n\n            if (pivotIndex == 0) {\n                return;\n            }\n            \n            self(self, pivotIndex - 1, nextRightMin, currMax);\n        };\n\n        process(process, n - 1, INT_MAX, 0);\n\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    // [value, index]\n    record Item(int value, int index) {}\n\n    public int[] maxValue(int[] nums) {\n        int n = nums.length;\n        int[] ans = new int[n];\n        Item[] prevMax = new Item[n];\n\n        Item prev = new Item(Integer.MIN_VALUE, -1);\n        for (int i = 0; i < n; i++) {\n            if (nums[i] > prev.value()) {\n                prev = new Item(nums[i], i);\n            }\n            prevMax[i] = prev;\n        }\n\n        process(n - 1, Integer.MAX_VALUE, 0, prevMax, ans, nums);\n        return ans;\n    }\n\n    private void process(int r, int rightMin, int rightMax, Item[] prevMax, int[] ans, int[] nums) {\n        int pMax = prevMax[r].value();\n        int pivotIndex = prevMax[r].index();\n\n        int currMax = pMax <= rightMin ? pMax : rightMax;\n\n        int nextRightMin = Math.min(pMax, rightMin);\n        for (int i = pivotIndex; i <= r; i++) {\n            ans[i] = currMax;\n            nextRightMin = Math.min(nextRightMin, nums[i]);\n        }\n\n        if (pivotIndex == 0) {\n            return;\n        }\n\n        process(pivotIndex - 1, nextRightMin, currMax, prevMax, ans, nums);\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def maxValue(self, nums: List[int]) -> List[int]:\n        n = len(nums)\n\n        ans = [0] * n\n        # [value, index]\n        prev_max = [(0, 0)] * n\n\n        prev = (-math.inf, -1)\n        for i, value in enumerate(nums):\n            if value > prev[0]:\n                prev = (value, i)\n            prev_max[i] = prev\n\n        def process(r: int, right_min: float, right_max: float) -> None:\n            p_max, pivot_index = prev_max[r]\n            curr_max = p_max if p_max <= right_min else right_max\n\n            next_right_min = min(p_max, right_min)\n            for i in range(pivot_index, r + 1):\n                ans[i] = curr_max\n                next_right_min = min(next_right_min, nums[i])\n\n            if pivot_index == 0:\n                return\n\n            process(pivot_index - 1, next_right_min, curr_max)\n\n        process(n - 1, math.inf, 0)\n\n        return ans\n```\n\n```JavaScript [sol1-JavaScript]\nvar maxValue = function(nums) {\n    const n = nums.length;\n    const ans = new Array(n).fill(0);\n\n    const prevMax = new Array(n);\n\n    nums.reduce(\n        (prev, value, index) => {\n            if (value > prev[0]) {\n                prev = [value, index];\n            }\n            return (prevMax[index] = [...prev]);\n        },\n        [-Infinity, -1],\n    );\n\n    const process = (r, rightMin, rightMax) => {\n        const [pMax, pivotIndex] = prevMax[r];\n        const currMax = pMax <= rightMin ? pMax : rightMax;\n\n        let nextRightMin = Math.min(pMax, rightMin);\n        for (let i = pivotIndex; i <= r; i++) {\n            ans[i] = currMax;\n            nextRightMin = Math.min(nextRightMin, nums[i]);\n        }\n\n        if (pivotIndex === 0) {\n            return;\n        }\n\n        process(pivotIndex - 1, nextRightMin, currMax);\n    };\n\n    process(n - 1, Infinity, 0);\n\n    return ans;\n};\n```\n\n```TypeScript [sol1-TypeScript]\ntype Item = [number, number]; // [value, index]\n\nfunction maxValue(nums: number[]): number[] {\n    const n = nums.length;\n    const ans = new Array<number>(n).fill(0);\n\n    const prevMax: Item[] = new Array(n);\n\n    nums.reduce(\n        (prev, value, index) => {\n            if (value > prev[0]) {\n                prev = [value, index];\n            }\n            return (prevMax[index] = [...prev]);\n        },\n        [-Infinity, -1] as Item,\n    );\n\n    const process = (r: number, rightMin: number, rightMax: number) => {\n        const [pMax, pivotIndex] = prevMax[r];\n        const currMax = pMax <= rightMin ? pMax : rightMax;\n\n        let nextRightMin = Math.min(pMax, rightMin);\n        for (let i = pivotIndex; i <= r; i++) {\n            ans[i] = currMax;\n            nextRightMin = Math.min(nextRightMin, nums[i]);\n        }\n\n        if (pivotIndex === 0) {\n            return;\n        }\n\n        process(pivotIndex - 1, nextRightMin, currMax);\n    };\n\n    process(n - 1, Infinity, 0);\n\n    return ans;\n}\n```\n\n```C# [sol1-C#]\npublic class Solution\n{\n    public int[] MaxValue(int[] nums)\n    {\n        int n = nums.Length;\n        int[] ans = new int[n];\n        // [value, index]\n        (int Value, int Index)[] prevMax = new (int, int)[n];\n\n        (int Value, int Index) prev = (int.MinValue, -1);\n        for (int i = 0; i < n; i++)\n        {\n            if (nums[i] > prev.Value)\n            {\n                prev = (nums[i], i);\n            }\n            prevMax[i] = prev;\n        }\n\n        void Process(int r, int rightMin, int rightMax)\n        {\n            var (pMax, pivotIndex) = prevMax[r];\n            int currMax = pMax <= rightMin ? pMax : rightMax;\n\n            int nextRightMin = Math.Min(pMax, rightMin);\n            for (int i = pivotIndex; i <= r; i++)\n            {\n                ans[i] = currMax;\n                nextRightMin = Math.Min(nextRightMin, nums[i]);\n            }\n\n            if (pivotIndex == 0)\n            {\n                return;\n            }\n\n            Process(pivotIndex - 1, nextRightMin, currMax);\n        }\n\n        Process(n - 1, int.MaxValue, 0);\n        return ans;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc maxValue(nums []int) []int {\n\tn := len(nums)\n\tans := make([]int, n)\n\n\t// [value, index] 对\n\ttype Item struct {\n\t\tvalue int\n\t\tindex int\n\t}\n\tprevMax := make([]Item, n)\n\n\tprev := Item{math.MinInt32, -1}\n\tfor i := 0; i < n; i++ {\n\t\tif nums[i] > prev.value {\n\t\t\tprev = Item{nums[i], i}\n\t\t}\n\t\tprevMax[i] = prev\n\t}\n\n\tvar process func(r int, rightMin int, rightMax int)\n\tprocess = func(r int, rightMin int, rightMax int) {\n\t\tpMax := prevMax[r].value\n\t\tpivotIndex := prevMax[r].index\n\n\t\tcurrMax := pMax\n\t\tif pMax <= rightMin {\n\t\t\tcurrMax = pMax\n\t\t} else {\n\t\t\tcurrMax = rightMax\n\t\t}\n\n\t\tnextRightMin := rightMin\n\t\tif pMax < nextRightMin {\n\t\t\tnextRightMin = pMax\n\t\t}\n\t\tfor i := pivotIndex; i <= r; i++ {\n\t\t\tans[i] = currMax\n\t\t\tif nums[i] < nextRightMin {\n\t\t\t\tnextRightMin = nums[i]\n\t\t\t}\n\t\t}\n\n\t\tif pivotIndex == 0 {\n\t\t\treturn\n\t\t}\n\n\t\tprocess(pivotIndex-1, nextRightMin, currMax)\n\t}\n\n\tprocess(n-1, math.MaxInt32, 0)\n\n\treturn ans\n}\n```\n\n```C [sol1-C]\ntypedef struct {\n    int value;\n    int index;\n} Item;\n\nvoid process(int* nums, int* ans, Item* prevMax, int r, int rightMin, int rightMax) {\n    int pMax = prevMax[r].value;\n    int pivotIndex = prevMax[r].index;\n\n    int currMax = (pMax <= rightMin) ? pMax : rightMax;\n\n    int nextRightMin = (pMax < rightMin) ? pMax : rightMin;\n    for (int i = pivotIndex; i <= r; i++) {\n        ans[i] = currMax;\n        if (nums[i] < nextRightMin) {\n            nextRightMin = nums[i];\n        }\n    }\n\n    if (pivotIndex == 0) {\n        return;\n    }\n\n    process(nums, ans, prevMax, pivotIndex - 1, nextRightMin, currMax);\n}\n\nint* maxValue(int* nums, int numsSize, int* returnSize) {\n    int* ans = (int*)malloc(numsSize * sizeof(int));\n    memset(ans, 0, numsSize * sizeof(int));\n    Item* prevMax = (Item*)malloc(numsSize * sizeof(Item));\n\n    Item prev = {INT_MIN, -1};\n    for (int i = 0; i < numsSize; i++) {\n        if (nums[i] > prev.value) {\n            prev.value = nums[i];\n            prev.index = i;\n        }\n        prevMax[i] = prev;\n    }\n\n    process(nums, ans, prevMax, numsSize - 1, INT_MAX, 0);\n\n    free(prevMax);\n    *returnSize = numsSize;\n    return ans;\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn max_value(nums: Vec<i32>) -> Vec<i32> {\n        let n = nums.len();\n\n        let mut ans = vec![0; n];\n        // [value, index]\n        let mut prev_max = vec![(0, 0_isize); n];\n\n        let mut prev = (std::i32::MIN, -1_isize);\n        for (i, &value) in nums.iter().enumerate() {\n            if value > prev.0 {\n                prev = (value, i as isize);\n            }\n            prev_max[i] = prev;\n        }\n\n        fn process(\n            r: isize,\n            right_min: i32,\n            right_max: i32,\n            nums: &[i32],\n            prev_max: &[(i32, isize)],\n            ans: &mut [i32],\n        ) {\n            let (p_max, pivot_index) = prev_max[r as usize];\n            let curr_max = if p_max <= right_min { p_max } else { right_max };\n\n            let mut next_right_min = p_max.min(right_min);\n            for i in pivot_index..=r {\n                ans[i as usize] = curr_max;\n                next_right_min = next_right_min.min(nums[i as usize]);\n            }\n\n            if pivot_index == 0 {\n                return;\n            }\n\n            process(pivot_index - 1, next_right_min, curr_max, nums, prev_max, ans);\n        }\n\n        process((n - 1) as isize, std::i32::MAX, 0, &nums, &prev_max, &mut ans);\n\n        ans\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是 $\\textit{nums}$ 的长度。预处理前缀最大值需要 $O(n)$；区间分治的区间刚好严格覆盖整个 $\\textit{nums}$，因此区间分治总耗时也是 $O(n)$。\n\n- 空间复杂度：$O(n)$，前缀最大值需要 $O(n)$ 的空间。\n\n#### 方法二：单调栈\n\n**思路与算法**\n\n让我们从另一个角度分析此问题，题设条件实质上可以等价于：若 $\\textit{nums}$ 中的两个元素构成**逆序对**，则可以**互相到达**。维护元素间的连通情况，实质上就是在**维护一个无向图的连通块**。\n\n观察由逆序对构成的连通块，易发现以下关键事实：对于当前元素 $\\textit{nums}[i]$ 和左侧的任意连通块，只要它小于这个连通块内的最大值，就可以与其合并；同时由于连通性是**双向**的，这些连通块也可以由 $\\textit{nums}[i]$ 作为中转而相互到达，最后整体形成了一个新的连通块。\n\n考虑不等式的传递性，假设从左到右已经有两个独立且相邻的连通块 $A$ 和 $B$，则必须满足块 $A$ 的最大值 $a_\\textit{max}$ 小于等于块 $B$ 的最大值 $b_\\textit{max}$，那么当前元素只要能与 $A$ 合并（即 $\\textit{nums}[i] \\lt a_\\textit{max}$），就一定可以与 $B$ 合并（此时有 $\\textit{nums}[i] \\lt a_\\textit{max} \\le b_\\textit{max}$），最后块 $A$、块 $B$ 和当前元素 $\\textit{nums}$ 形成了一个新的大连通块。\n\n这实质上暗示了：由逆序对构成的连通块在原数组 $\\textit{nums}$ 上也一定是**连续**的，相邻连通块上的最大值一定不存在逆序关系（即具有**单调性**）；同时连通性的维护只取决于相邻块上的最大值，且不需要考虑跨越不同块的情况。\n\n基于以上性质，我们就不需要再去考虑到达极值点的具体移动路径，可以配合单调栈实现的区间合并来维护连通性，连通块内的任意元素自然都能到达块内的最大值。\n\n由于我们证明了这些连通块在原数组上一定是连续的，因此可以用一个三元组 $(\\textit{value}, \\textit{left}, \\textit{right})$ 描述每个连通块的最大值和左右边界。维护一个单调栈，从左向右扫描 $\\textit{nums}$，对于遍历到的每个元素 $\\textit{nums}[i]$，不断从栈顶弹出左侧的连通块进行合并，直到合并不了为止，将新的连通块压入单调栈。最后每个连通块内的答案就等于该连通块上的最大值。\n\n**代码**\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    struct Item {\n        int value;\n        int left;\n        int right;\n    };\n\n    vector<int> maxValue(const vector<int>& nums) {\n        int n = nums.size();\n        vector<int> ans(n, 0);\n\n        vector<Item> stack;\n\n        for (int i = 0; i < n; ++i) {\n            Item curr = {nums[i], i, i};\n\n            while (!stack.empty() && stack.back().value > nums[i]) {\n                Item top = stack.back();\n                stack.pop_back();\n                curr.value = max(curr.value, top.value);\n                curr.left = top.left;\n            }\n\n            stack.push_back(curr);\n        }\n\n        for (size_t i = 0; i < stack.size(); ++i) {\n            for (int j = stack[i].left; j <= stack[i].right; ++j) {\n                ans[j] = stack[i].value;\n            }\n        }\n\n        return ans;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    record Item(int value, int left, int right) {}\n\n    public int[] maxValue(int[] nums) {\n        int n = nums.length;\n        int[] ans = new int[n];\n\n        List<Item> stack = new ArrayList<>();\n\n        for (int i = 0; i < n; i++) {\n            Item curr = new Item(nums[i], i, i);\n\n            while (!stack.isEmpty() && stack.getLast().value() > nums[i]) {\n                Item top = stack.removeLast();\n                curr = new Item(Math.max(curr.value(), top.value()), top.left(), curr.right());\n            }\n\n            stack.add(curr);\n        }\n\n        for (int i = 0; i < stack.size(); i++) {\n            for (int j = stack.get(i).left(); j <= stack.get(i).right(); j++) {\n                ans[j] = stack.get(i).value();\n            }\n        }\n\n        return ans;\n    }\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def maxValue(self, nums: List[int]) -> List[int]:\n        n = len(nums)\n        ans = [0] * n\n        # [value, left, right]\n        stack = []\n\n        for i in range(n):\n            curr_val = nums[i]\n            curr_left = i\n            curr_right = i\n\n            while stack and stack[-1][0] > nums[i]:\n                top_val, top_left, top_right = stack.pop()\n                curr_val = max(curr_val, top_val)\n                curr_left = top_left\n\n            stack.append((curr_val, curr_left, curr_right))\n\n        for i in range(len(stack)):\n            for j in range(stack[i][1], stack[i][2] + 1):\n                ans[j] = stack[i][0]\n\n        return ans\n\n```\n\n```JavaScript [sol2-JavaScript]\nvar maxValue = function (nums) {\n    const n = nums.length;\n    const ans = new Array(n);\n\n    const stack = [];\n\n    for (let i = 0; i < n; i++) {\n        let curr = {\n            value: nums[i],\n            left: i,\n            right: i,\n        };\n\n        while (stack.length > 0 && stack.at(-1).value > nums[i]) {\n            const top = stack.pop();\n            curr = {\n                value: Math.max(curr.value, top.value),\n                left: top.left,\n                right: curr.right,\n            };\n        }\n\n        stack.push(curr);\n    }\n\n    for (let i = 0; i < stack.length; i++) {\n        for (let j = stack[i].left; j <= stack[i].right; j++) {\n            ans[j] = stack[i].value;\n        }\n    }\n\n    return ans;\n}\n```\n\n```TypeScript [sol2-TypeScript]\ninterface Item {\n    value: number;\n    left: number;\n    right: number;\n}\n\nfunction maxValue(nums: number[]): number[] {\n    const n = nums.length;\n    const ans = new Array<number>(n);\n\n    const stack: Item[] = [];\n\n    for (let i = 0; i < n; i++) {\n        let curr: Item = {\n            value: nums[i],\n            left: i,\n            right: i,\n        };\n\n        while (stack.length > 0 && stack.at(-1)!.value > nums[i]) {\n            const top = stack.pop()!;\n            curr = {\n                value: Math.max(curr.value, top.value),\n                left: top.left,\n                right: curr.right,\n            };\n        }\n\n        stack.push(curr);\n    }\n\n    for (let i = 0; i < stack.length; i++) {\n        for (let j = stack[i].left; j <= stack[i].right; j++) {\n            ans[j] = stack[i].value;\n        }\n    }\n\n    return ans;\n}\n```\n\n```C# [sol2-C#]\npublic class Solution\n{\n    public int[] MaxValue(int[] nums)\n    {\n        int n = nums.Length;\n        int[] ans = new int[n];\n\n        List<(int Value, int Left, int Right)> stack = new();\n\n        for (int i = 0; i < n; i++)\n        {\n            var curr = (Value: nums[i], Left: i, Right: i);\n\n            while (stack.Count > 0 && stack[^1].Value > nums[i])\n            {\n                var top = stack[^1];\n                stack.RemoveAt(stack.Count - 1);\n                curr = (Math.Max(curr.Value, top.Value), top.Left, curr.Right);\n            }\n\n            stack.Add(curr);\n        }\n\n        for (int i = 0; i < stack.Count; i++)\n        {\n            for (int j = stack[i].Left; j <= stack[i].Right; j++)\n            {\n                ans[j] = stack[i].Value;\n            }\n        }\n\n        return ans;\n    }\n}\n```\n\n```Go [sol2-Go]\nfunc maxValue(nums []int) []int {\n\tn := len(nums)\n\tans := make([]int, n)\n\n\ttype Item struct {\n\t\tvalue int\n\t\tleft  int\n\t\tright int\n\t}\n\n\tstack := make([]Item, 0)\n\tfor i := 0; i < n; i++ {\n\t\tcurr := Item{nums[i], i, i}\n\n\t\tfor len(stack) > 0 && stack[len(stack)-1].value > nums[i] {\n\t\t\ttop := stack[len(stack)-1]\n\t\t\tstack = stack[:len(stack)-1]\n\t\t\tif top.value > curr.value {\n\t\t\t\tcurr.value = top.value\n\t\t\t}\n\t\t\tcurr.left = top.left\n\t\t}\n\n\t\tstack = append(stack, curr)\n\t}\n\n\tfor i := 0; i < len(stack); i++ {\n\t\tfor j := stack[i].left; j <= stack[i].right; j++ {\n\t\t\tans[j] = stack[i].value\n\t\t}\n\t}\n\n\treturn ans\n}\n```\n\n```C [sol2-C]\ntypedef struct {\n    int value;\n    int left;\n    int right;\n} Item;\n\nint* maxValue(const int* nums, int numsSize, int* returnSize) {\n    int* ans = (int*)malloc(numsSize * sizeof(int));\n    memset(ans, 0, numsSize * sizeof(int));\n\n    Item* stack = (Item*)malloc(numsSize * sizeof(Item));\n    int stackSize = 0;\n    for (int i = 0; i < numsSize; i++) {\n        Item curr = {nums[i], i, i};\n        while (stackSize > 0 && stack[stackSize - 1].value > nums[i]) {\n            Item top = stack[stackSize - 1];\n            stackSize--;\n            curr.value = (top.value > curr.value) ? top.value : curr.value;\n            curr.left = top.left;\n        }\n\n        stack[stackSize++] = curr;\n    }\n\n    for (int i = 0; i < stackSize; i++) {\n        for (int j = stack[i].left; j <= stack[i].right; j++) {\n            ans[j] = stack[i].value;\n        }\n    }\n\n    free(stack);\n    *returnSize = numsSize;\n    return ans;\n}\n```\n\n```Rust [sol2-Rust]\nimpl Solution {\n    pub fn max_value(nums: Vec<i32>) -> Vec<i32> {\n        let n = nums.len();\n\n        let mut ans = vec![0; n];\n\n        struct Item {\n            value: i32,\n            left: usize,\n            right: usize,\n        }\n\n        let mut stack: Vec<Item> = Vec::new();\n\n        for i in 0..n {\n            let mut curr = Item {\n                value: nums[i],\n                left: i,\n                right: i,\n            };\n\n            while let Some(top) = stack.last() {\n                if top.value > nums[i] {\n                    let top = stack.pop().unwrap();\n                    curr.value = curr.value.max(top.value);\n                    curr.left = top.left;\n                } else {\n                    break;\n                }\n            }\n\n            stack.push(curr);\n        }\n\n        for i in 0..stack.len() {\n            for j in stack[i].left..=stack[i].right {\n                ans[j] = stack[i].value;\n            }\n        }\n\n        ans\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是 $\\textit{nums}$ 的长度，单调栈的进出次数对应 $\\textit{nums}$ 元素个数，累计后最多等于 $2n$，故所需时间严格为 $O(n)$。此外，根据单调栈维护的连通区间计算答案需要 $O(n)$，故总时间复杂度为 $O(n)$。\n\n- 空间复杂度：$O(n)$，单调栈需要 $O(n)$ 的空间。",
+            "slateValue": "",
+            "slug": "tiao-yue-you-xi-ix-by-leetcode-solution-mbzp",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "YESK9T",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 6,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Divide and Conquer",
+                    "nameTranslated": "分治",
+                    "slug": "divide-and-conquer",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Monotonic Stack",
+                    "nameTranslated": "单调栈",
+                    "slug": "monotonic-stack",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2026-04-29T02:39:48.815800+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：区间分治 思路与算法 我们来模拟一下这个元素转移的过程。设 [latex] 长度为 [latex]，首先考虑全局最大值，设为 [latex]，其所在下标为 [latex]。 该最大值把整个区间一分为二，容易发现，所有在 [latex] 右侧的元素都可以跳到 [latex]，显然对于这部分元素，这就是全局最优解。",
+            "topic": {
+                "id": 3961012,
+                "subscribed": false,
+                "commentCount": 12,
+                "viewCount": 10,
+                "post": {
+                    "id": 7219104,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 23,
+            "isEditorsPick": false,
+            "hitCount": 4834,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "jump-game-ix",
+                "questionFrontendId": "3660"
+            },
+            "next": {
+                "slug": "jie-lun-ti-pythonjavacgo-by-endlesscheng-x2qu",
+                "title": "结论 + 动态规划（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

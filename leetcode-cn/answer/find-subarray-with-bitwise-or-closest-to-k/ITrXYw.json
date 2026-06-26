@@ -1,0 +1,150 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "ITrXYw",
+            "title": "找到按位或最接近 K 的子数组",
+            "content": "#### 方法一：枚举\n\n**思路与算法**\n\n题目给定一个数组 $\\textit{nums}$ 和一个整数 $k$。我们需要找到 $\\textit{nums}$ 的一个非空子数组，要求其所有元素的或运算结果与 $k$ 值尽可能接近。\n\n根据或运算的性质，当我们固定子数组的右端点，不断地向左延伸左端点时，子数组或运算结果逐渐增加，并且结果种类数不超过 $\\log (\\max(\\textit{nums})) + 1$ 种。因为或运算结果每次增加对应于二进制表示中某些位上由 $0$ 变为 $1$，因此增加的种类数受到数值范围的限制。\n\n因此，我们从左到右遍历 $\\textit{nums}$，并在过程中记录每个二进制上的 $1$ 出现的最晚的位置。这些位置用于我们在延伸左端点时，遍历所有种类的或运算结果。具体的，我们用 $\\textit{bits\\_max\\_pos}[j]$ 来表示第 $j$ 个二进制为 $1$ 出现的最晚位置，在固定右端点后，将所有的二元组 $(\\textit{bits\\_max\\_pos}[j], j)$ 从大到小排序，然后依次遍历这些二元组。遍历时将或运算结果与 $2^{j}$ 做或运算，得到新的结果，并计算其与 $k$ 的差值。最终答案取所有差值的最小值。\n\n需要注意的是，对于不同的 $j$，其 $\\textit{bits\\_max\\_pos}[j]$ 可能相同，在计算区间或运算结果时需要将它们都考虑到，因此这里需要双指针去更新或运算结果。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int minimumDifference(vector<int>& nums, int k) {\n        int n = nums.size();\n        vector<int> bits_max_pos(31, -1);\n        vector<pair<int, int>> pos_to_bit;\n        int res = INT_MAX;\n        for (int i = 0; i < n; i++) {\n            for (int j = 0; j <= 30; j++) {\n                if (nums[i] >> j & 1) {\n                    bits_max_pos[j] = i;\n                }\n            }\n            pos_to_bit.clear();\n            for (int j = 0; j <= 30; j++) {\n                if (bits_max_pos[j] != -1) {\n                    pos_to_bit.push_back(make_pair(bits_max_pos[j], j));\n                }\n            }\n            sort(pos_to_bit.begin(), pos_to_bit.end(), greater<pair<int, int>>());\n            int val = 0;\n            for (int j = 0, p = 0; j < pos_to_bit.size(); ) {\n                while (j < pos_to_bit.size() && pos_to_bit[j].first == pos_to_bit[p].first) {\n                    val |= 1 << pos_to_bit[j].second;\n                    j++;\n                }\n                res = min(res, abs(val - k));\n                p = j;\n            }\n        }\n        return res;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int minimumDifference(int[] nums, int k) {\n        int n = nums.length;\n        int[] bitsMaxPos = new int[31];\n        Arrays.fill(bitsMaxPos, -1);\n        List<int[]> posToBit = new ArrayList<int[]>();\n        int res = Integer.MAX_VALUE;\n        for (int i = 0; i < n; i++) {\n            for (int j = 0; j <= 30; j++) {\n                if ((nums[i] >> j & 1) != 0) {\n                    bitsMaxPos[j] = i;\n                }\n            }\n            posToBit.clear();\n            for (int j = 0; j <= 30; j++) {\n                if (bitsMaxPos[j] != -1) {\n                    posToBit.add(new int[]{bitsMaxPos[j], j});\n                }\n            }\n            Collections.sort(posToBit, (a, b) -> a[0] != b[0] ? b[0] - a[0] : b[1] - a[1]);\n            int val = 0;\n            for (int j = 0, p = 0; j < posToBit.size(); ) {\n                while (j < posToBit.size() && posToBit.get(j)[0] == posToBit.get(p)[0]) {\n                    val |= 1 << posToBit.get(j)[1];\n                    j++;\n                }\n                res = Math.min(res, Math.abs(val - k));\n                p = j;\n            }\n        }\n        return res;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MinimumDifference(int[] nums, int k) {\n        int n = nums.Length;\n        int[] bitsMaxPos = new int[31];\n        Array.Fill(bitsMaxPos, -1);\n        IList<Tuple<int, int>> posToBit = new List<Tuple<int, int>>();\n        int res = int.MaxValue;\n        for (int i = 0; i < n; i++) {\n            for (int j = 0; j <= 30; j++) {\n                if ((nums[i] >> j & 1) != 0) {\n                    bitsMaxPos[j] = i;\n                }\n            }\n            posToBit.Clear();\n            for (int j = 0; j <= 30; j++) {\n                if (bitsMaxPos[j] != -1) {\n                    posToBit.Add(new Tuple<int, int>(bitsMaxPos[j], j));\n                }\n            }\n            ((List<Tuple<int, int>>) posToBit).Sort((a, b) => a.Item1 != b.Item1 ? b.Item1 - a.Item1 : b.Item2 - a.Item2);\n            int val = 0;\n            for (int j = 0, p = 0; j < posToBit.Count; ) {\n                while (j < posToBit.Count && posToBit[j].Item1 == posToBit[p].Item1) {\n                    val |= 1 << posToBit[j].Item2;\n                    j++;\n                }\n                res = Math.Min(res, Math.Abs(val - k));\n                p = j;\n            }\n        }\n        return res;\n    }\n}\n```\n\n```Python [sol1-Python]\nclass Solution:\n    def minimumDifference(self, nums: List[int], k: int) -> int:\n        n = len(nums)\n        bits_max_pos = [-1] * 31\n        res = inf\n        \n        for i in range(n):\n            for j in range(31):\n                if nums[i] >> j & 1:\n                    bits_max_pos[j] = i\n            pos_to_bit = [(bits_max_pos[j], j) for j in range(31) if bits_max_pos[j] != -1]\n            pos_to_bit.sort(reverse = True, key = lambda x: x[0])\n            \n            j, val = 0, 0\n            while j < len(pos_to_bit):\n                p = j\n                while j < len(pos_to_bit) and pos_to_bit[j][0] == pos_to_bit[p][0]:\n                    val |= 1 << pos_to_bit[j][1]\n                    j += 1\n                res = min(res, abs(val - k))\n        \n        return res\n```\n\n```Go [sol1-Go]\nfunc minimumDifference(nums []int, k int) int {\n    n := len(nums)\n\tbitsMaxPos := make([]int, 31)\n\tfor i := range bitsMaxPos {\n\t\tbitsMaxPos[i] = -1\n\t}\n\n\tres := math.MaxInt\n\tfor i := 0; i < n; i++ {\n\t\tfor j := 0; j <= 30; j++ {\n\t\t\tif nums[i]>>j & 1 == 1 {\n\t\t\t\tbitsMaxPos[j] = i\n\t\t\t}\n\t\t}\n\t\t\n\t\tposToBit := make([][2]int, 0)\n\t\tfor j := 0; j <= 30; j++ {\n\t\t\tif bitsMaxPos[j] != -1 {\n\t\t\t\tposToBit = append(posToBit, [2]int{bitsMaxPos[j], j})\n\t\t\t}\n\t\t}\n\t\tsort.Slice(posToBit, func(a, b int) bool {\n\t\t\treturn posToBit[a][0] > posToBit[b][0]\n\t\t})\n\t\t\n\t\tval := 0\n\t\tfor j, p := 0, 0; j < len(posToBit); p = j {\n\t\t\tfor j < len(posToBit) && posToBit[j][0] == posToBit[p][0] {\n\t\t\t\tval |= 1 << posToBit[j][1]\n\t\t\t\tj++\n\t\t\t}\n            res = min(res, int(math.Abs(float64(val - k))))\n\t\t}\n\t}\n\treturn res\n}\n```\n\n```C [sol1-C]\nstatic int cmp(const void *a, const void *b) {\n    return ((int*)b)[0] - ((int *)a)[0];\n}\n\nint minimumDifference(int* nums, int numsSize, int k) {\n    int bits_max_pos[31];\n    for (int i = 0; i < 31; i++) {\n        bits_max_pos[i] = -1;\n    }\n\n    int res = INT_MAX;\n    for (int i = 0; i < numsSize; i++) {\n        for (int j = 0; j <= 30; j++) {\n            if (nums[i] >> j & 1) {\n                bits_max_pos[j] = i;\n            }\n        }\n    \n        int pos_to_bit[31][2];\n        int size = 0;\n        for (int j = 0; j <= 30; j++) {\n            if (bits_max_pos[j] != -1) {\n                pos_to_bit[size][0] = bits_max_pos[j];\n                pos_to_bit[size][1] = j;\n                size++;\n            }\n        }\n        \n        qsort(pos_to_bit, size, sizeof(pos_to_bit[0]), cmp); \n        int val = 0;\n        for (int j = 0, p = 0; j < size; p = j) {\n            while (j < size && pos_to_bit[j][0] == pos_to_bit[p][0]) {\n                val |= 1 << pos_to_bit[j][1];\n                j++;\n            }\n            res = fmin(res, abs(val - k));\n        }\n    }\n    return res;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar minimumDifference = function(nums, k) {\n    const n = nums.length;\n    const bitsMaxPos = new Array(31).fill(-1);\n    let res = Number.MAX_SAFE_INTEGER;\n\n    for (let i = 0; i < n; i++) {\n        for (let j = 0; j <= 30; j++) {\n            if (nums[i] >> j & 1) {\n                bitsMaxPos[j] = i;\n            }\n        }\n        \n        const posToBit = [];\n        for (let j = 0; j <= 30; j++) {\n            if (bitsMaxPos[j] !== -1) {\n                posToBit.push([bitsMaxPos[j], j]);\n            }\n        }\n        \n        posToBit.sort((a, b) => b[0] - a[0]);\n        let val = 0, j = 0;\n        for (let j = 0, p = 0; j < posToBit.length; p = j) {\n            while (j < posToBit.length && posToBit[j][0] === posToBit[p][0]) {\n                val |= 1 << posToBit[j][1];\n                j++;\n            }\n            res = Math.min(res, Math.abs(val - k));\n        }\n    }\n    return res;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction minimumDifference(nums: number[], k: number): number {\n    const n = nums.length;\n    const bitsMaxPos = new Array(31).fill(-1);\n    let res = Number.MAX_SAFE_INTEGER;\n\n    for (let i = 0; i < n; i++) {\n        for (let j = 0; j <= 30; j++) {\n            if (nums[i] >> j & 1) {\n                bitsMaxPos[j] = i;\n            }\n        }\n        const posToBit: [number, number][] = [];\n        for (let j = 0; j <= 30; j++) {\n            if (bitsMaxPos[j] !== -1) {\n                posToBit.push([bitsMaxPos[j], j]);\n            }\n        }   \n        posToBit.sort((a, b) => b[0] - a[0]);\n        let val = 0;\n        for (let j = 0, p = 0; j < posToBit.length; p = j) {\n            while (j < posToBit.length && posToBit[j][0] === posToBit[p][0]) {\n                val |= 1 << posToBit[j][1];\n                j++;\n            }\n            res = Math.min(res, Math.abs(val - k));\n        }\n    }\n    return res;\n};\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn minimum_difference(nums: Vec<i32>, k: i32) -> i32 {\n        let n = nums.len();\n        let mut bits_max_pos = vec![-1; 31];\n        let mut res = i32::MAX;\n\n        for i in 0..n {\n            for j in 0..=30 {\n                if nums[i] >> j & 1 == 1 {\n                    bits_max_pos[j] = i as i32;\n                }\n            }\n            \n            let mut pos_to_bit = Vec::new();\n            for j in 0..=30 {\n                if bits_max_pos[j] != -1 {\n                    pos_to_bit.push((bits_max_pos[j], j as i32));\n                }\n            }\n            pos_to_bit.sort_by(|a, b| b.0.cmp(&a.0));\n            let mut val = 0;\n            let mut j = 0;\n            while j < pos_to_bit.len() {\n                let p = j;\n                while j < pos_to_bit.len() && pos_to_bit[j].0 == pos_to_bit[p].0 {\n                    val |= 1 << pos_to_bit[j].1;\n                    j += 1;\n                }\n                res = std::cmp::min(res, (val - k).abs());\n            }\n        }\n        res\n    }\n}\n```\n\n```Cangjie [sol1-Cangjie]\nimport std.collection.*\nimport std.sort.*\nimport std.math.*\n\nclass Solution {\n    func minimumDifference(nums: Array<Int64>, k: Int64): Int64 {\n        let n = nums.size\n        let bits_max_pos = Array<Int>(31, { _ => -1 })\n        let pos_to_bit = ArrayList<(Int, Int)>()\n        var res = Int.Max\n        for (i in 0..n) {\n            for (j in 0..=30) {\n                if ((nums[i] >> j & 1) == 1) {\n                    bits_max_pos[j] = i\n                }\n            }\n            pos_to_bit.clear()\n            for (j in 0..=30) {\n                if (bits_max_pos[j] != -1) {\n                    pos_to_bit.append((bits_max_pos[j], j))\n                }\n            }\n            pos_to_bit.sortBy(stable: true){ x: (Int, Int), y: (Int, Int) =>\n                if (x[0] == y[0]) {\n                    if(x[1] < y[1]){\n                        return Ordering.GT\n                    } else if(x[1] > y[1]){\n                        return Ordering.LT\n                    } else{\n                        return Ordering.EQ\n                    }\n                } else if (x[0] < y[0]){\n                    return Ordering.GT\n                } else {\n                    return Ordering.LT\n                }\n            }\n            var val = 0\n            var j = 0\n            while (j < pos_to_bit.size) {\n                let p = j\n                while (j < pos_to_bit.size && pos_to_bit[j][0] == pos_to_bit[p][0]) {\n                    val |= 1 << pos_to_bit[j][1]\n                    j++\n                }\n                res = min(res, abs(val - k))\n            }\n        }\n        return res\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n\\log N \\log \\log N)$, 其中 $n$ 是 $\\textit{nums}$ 的长度, $N$ 为 $\\textit{nums}$ 中的最大值。每次固定右端点后需要对所有的二元组进行排序，排序的复杂度为 $\\log N \\log \\log N$，因此总体时间复杂度为 $O(n\\log N \\log \\log N)$。\n\n- 空间复杂度：$O(\\log N)$。",
+            "slateValue": "",
+            "slug": "zhao-dao-an-wei-huo-zui-jie-jin-k-de-zi-gianx",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "ITrXYw",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 14,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Bit Manipulation",
+                    "nameTranslated": "位运算",
+                    "slug": "bit-manipulation",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Two Pointers",
+                    "nameTranslated": "双指针",
+                    "slug": "two-pointers",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Enumeration",
+                    "nameTranslated": "枚举",
+                    "slug": "enumeration",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Cangjie",
+                    "nameTranslated": "",
+                    "slug": "cangjie",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2024-10-08T00:54:04.651665+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：枚举 思路与算法 题目给定一个数组 [latex] 和一个整数 [latex]。我们需要找到 [latex] 的一个非空子数组，要求其所有元素的或运算结果与 [latex] 值尽可能接近。 根据或运算的性质，当我们固定子数组的右端点，不断地向左延伸左端点时，子数组或运算结果逐渐增加，并且结果种类数不超过 [la",
+            "topic": {
+                "id": 2942313,
+                "subscribed": false,
+                "commentCount": 30,
+                "viewCount": 797,
+                "post": {
+                    "id": 5339946,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 28,
+            "isEditorsPick": false,
+            "hitCount": 10095,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "find-subarray-with-bitwise-or-closest-to-k",
+                "questionFrontendId": "3171"
+            },
+            "next": {
+                "slug": "li-yong-and-de-xing-zhi-pythonjavacgo-by-gg4d",
+                "title": "两种方法：LogTrick/滑动窗口+栈（Python/Java/C++/C/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

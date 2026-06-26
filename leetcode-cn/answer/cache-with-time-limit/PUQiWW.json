@@ -1,0 +1,84 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "PUQiWW",
+            "title": "具有时间限制的缓存",
+            "content": "[TOC]\n\n---\n# 解决方案\n\n## 概述\n\n这个问题要求你实现一个键值存储，但其中的每个条目在一定时间后会过期。\n\n### 具有时间限制的缓存的用途\n\n想象一下，你正在维护一个从数据库中获取文件的缓存。你可以加载每个文件一次并将其无限期地保存在内存中。问题是，如果数据库中的文件发生了更新，缓存将包含过时的数据。另一个选择是每次访问文件时都不断重新下载文件（或至少发送一个请求询问文件是否更改）。但这可能效率低下且速度较慢，特别是如果遇到了文件很少更改的情况。\n\n如果可以接受数据有时会有点过时，一个很好的折衷方案是为数据设置一个到期时间。这在性能和拥有最新数据之间提供了良好的平衡。这种类型的缓存在同一键被快速连续访问时最有效。\n\n以下是如何使用这种类型的缓存的一些代码示例：\n\n```javascript\nconst cache = new TimeLimitedCache();\n\nasync function getFileWithCache(filename) {\n  let content = cache.get(filename);\n  if (content !== -1) return content;\n  content = await loadFileContents(filename);\n  const ONE_HOUR = 60 * 60 * 1000;\n  cache.set(filename, content, ONE_HOUR);\n  return content;\n}\n```\n\n在上面的代码中，`getFileWithCache` 首先尝试从缓存中加载数据。如果缓存命中，它会立即返回结果。否则，它会下载数据并在返回下载的数据之前填充缓存。\n\n---\n\n### 方法 1：setTimeout + clearTimeout + 类语法\n\n每次将键值对放入缓存时，我们还可以创建一个定时器，用于在过期时间到期后删除该键。然而，我们需要谨慎处理这种方法，因为如果在时间到期之前覆盖了现有键会发生什么？这将导致新键过早被删除。因此，我们需要保留对定时器的引用，以便在键被覆盖时清除它。\n\n  1. 当创建 TimeLimitedCache 的新实例时，会创建一个新的 Map。请注意，这里省略了构造函数功能。或者，我们可以将 `this.cache = new Map();` 放在构造函数中，它将导致相同的行为。\n\n  2. 在 `set` 方法中，我们获取键的相关值。如果键不存在，则 `valueInCache` 为 `undefined`。如果 `valueInCache` 不是 `undefined`，我们会取消定时器，该定时器将删除旧键，以便它不会删除新键。然后，我们创建一个新的定时器，用于删除新键。最后，我们将值和对定时器的引用存储在 `Map` 中，然后返回是否找到值。\n\n  3. 在 `get` 方法中，我们使用三元表达式返回值（如果存在）或 -1（如果不存在）。\n\n  4. 在 `count` 方法中，我们只需返回 `Map` 的大小。由于所有键一旦过期就会被删除，所以我们知道这个值是准确的。\n\n```javascript []\nclass TimeLimitedCache {\n  cache = new Map();\n\n  set(key, value, duration) {\n    const valueInCache = this.cache.get(key);\n    if (valueInCache) {\n      clearTimeout(valueInCache.timeout);\n    }\n    const timeout = setTimeout(() => this.cache.delete(key), duration);\n    this.cache.set(key, { value, timeout });\n    return Boolean(valueInCache);\n  }\n\n  get(key) {\n    return this.cache.has(key) ? this.cache.get(key).value : -1;\n  }\n\n  count() {\n    return this.cache.size;\n  }\n};\n```\n\n```typescript []\ntype MapEntry = { value: number, timeout: NodeJS.Timeout };\n\nclass TimeLimitedCache {\n  cache = new Map<number, MapEntry>();\n\n  set(key: number, value: number, duration: number) {\n    const valueInCache = this.cache.get(key);\n    if (valueInCache) {\n      clearTimeout(valueInCache.timeout);\n    }\n    const timeout = setTimeout(() => this.cache.delete(key), duration);\n    this.cache.set(key, { value, timeout });\n    return Boolean(valueInCache);\n  }\n\n  get(key: number) {\n    return this.cache.has(key) ? this.cache.get(key).value : -1;\n  }\n\n  count() {\n    return this.cache.size;\n  }\n};\n```\n\n### 方法 2：setTimeout + clearTimeout + 函数语法\n\n这种方法的逻辑与方法 1 完全相同，但我们使用函数而不是类。类语法更现代，通常被认为是最佳实践，但了解在旧代码库中如何使用函数作为构造函数也很重要。你可以在这里了解有关这种较旧语法机制的更多信息。\n\n在 `TimeLimitedCache` 构造函数中，我们创建了一个新的 Map。\n\n在 `set` 方法中，我们获取键的相关值。如果键存在，我们需要稍后返回这个值，以便后面使用。如果键已经存在，我们需要将 `overwritten` 标志设置为 `true`，以便 `handleExpiredData` 不会错误地删除数据。然后，我们可以定义一个包含所有相关信息的对象（键、值、覆盖标志）并将其添加到队列和缓存中。\n\n在 `get` 方法中，我们首先需要调用 `handleExpiredData`。然后，只需返回缓存中的值（如果存在），否则返回 -1。\n\n在 `count` 方法中，与往常一样，我们首先需要调用 `handleExpiredData`。由于我们一直在维护一个大小属性，所以只需返回它。\n\n这种实现非常高效。所有方法调用的平均时间复杂度为 $O(logN)$。但在最坏的情况下，即所有键都已过期且需要删除时，时间复杂度为 $O(NlogN)$。\n\n虽然这种实现有助于解决内存泄漏问题，但它并不能完全解决它。为了理解为什么，想象一下，你一遍又一遍地写入相同的键值对并给它们一个长时间的到期时间。队列将不断变得不必要地更长。解决这个问题的方法可能是使用二叉搜索树，它允许在队列中删除元素，而不仅仅是在队列的前面。然而，在 JavaScript 中，LeetCode 并没有内置实现这种功能。\n\n```javascript []\nfunction TimeLimitedCache() {\n  this.cache = new Map();\n}\n\nTimeLimitedCache.prototype.set = function(key, value, duration) {\n    const valueInCache = this.cache.get(key);\n    if (valueInCache) {\n      clearTimeout(valueInCache.timeout);\n    }\n    const timeout = setTimeout(() => this.cache.delete(key), duration);\n    this.cache.set(key, { value, timeout });\n    return Boolean(valueInCache);\n}\n\nTimeLimitedCache.prototype.get = function(key) {\n    return this.cache.has(key) ? this.cache.get(key).value : -1;\n}\n\nTimeLimitedCache.prototype.count = function() {\n    return this.cache.size;\n}\n```\n```typescript []\n/**\n * 请注意，函数语法并不能很好地处理类型安全问题\n * 使用类代替\n */\nfunction TimeLimitedCache() {\n  this.cache = new Map();\n}\n\nTimeLimitedCache.prototype.set = function(key, value, duration) {\n    const valueInCache = this.cache.get(key);\n    if (valueInCache) {\n      clearTimeout(valueInCache.timeout);\n    }\n    const timeout = setTimeout(() => this.cache.delete(key), duration);\n    this.cache.set(key, { value, timeout });\n    return Boolean(valueInCache);\n}\n\nTimeLimitedCache.prototype.get = function(key) {\n    return this.cache.has(key) ? this.cache.get(key).value : -1;\n}\n\nTimeLimitedCache.prototype.count = function() {\n    return this.cache.size;\n}\n```\n\n---\n\n### 方法 3：维护到期时间\n\n#### 实现思路\n\n- 与维护删除键的定时器不同，我们可以存储到期时间。当要求计算未过期键的数量时，我们只需筛选出其中满足 `Date.now() < expirationTime` 条件的键。\n\n#### 具体步骤\n\n1. 创建一个 `TimeLimitedCache` 类。\n2. 类中使用一个普通对象来存储键值对，其中键是缓存的键，值是一个对象，包括值和到期时间。\n3. 实现 `set` 方法，用于将键值对存入缓存。在该方法中，首先通过检查值是否存在且未过期来将 `hasUnexpiredValue` 设置为布尔值。然后，添加一个新值，确保包括到期时间。\n4. 实现 `get` 方法，用于获取键的值。如果键不存在或已过期，立即返回 -1。否则，返回与键关联的值。\n5. 实现 `count` 方法，首先需要检查每个条目以查看它是否已过期。`Object.values` 返回与对象中的键关联的值的列表。\n\n#### 类实现示例\n\n```javascript []\nclass TimeLimitedCache {\n  cache = {};\n\n  set(key, value, duration) {\n    const hasUnexpiredValue = key in this.cache && Date.now() < this.cache[key].expiration;\n    this.cache[key] = { value, expiration: Date.now() + duration };\n    return hasUnexpiredValue;\n  }\n\n  get(key) {\n    if (this.cache[key] === undefined) return -1;\n    if (Date.now() > this.cache[key].expiration) return -1;\n    return this.cache[key].value;\n  }\n\n  count() {\n    let count = 0;\n    for (const entry of Object.values(this.cache)) {\n        if (Date.now() < entry.expiration) {\n            count += 1;\n        }\n    }\n    return count;\n  }\n}\n```\n\n#### 类实现示例（TypeScript）\n\n```typescript []\ntype Entry = { value: any, expiration: number };\n\nclass TimeLimitedCache {\n  cache: Record<string, Entry> = {};\n\n  set(key: string, value: any, duration: number) {\n    const hasUnexpiredValue = key in this.cache && Date.now() < this.cache[key].expiration;\n    this.cache[key] = { value, expiration: Date.now() + duration };\n    return hasUnexpiredValue;\n  }\n\n  get(key: string) {\n    if (this.cache[key] === undefined) return -1;\n    if (Date.now() > this.cache[key].expiration) return -1;\n    return this.cache[key].value;\n  }\n\n  count() {\n    let count = 0;\n    for (const entry of Object.values(this.cache)) {\n        if (Date.now() < entry.expiration) {\n            count += 1;\n        }\n    }\n    return count;\n  }\n}\n```\n\n### 方法 4：维护到期时间 + 优先级队列\n\n#### 实现思路\n\n方法 3 有一些问题：\n  - 即使在过期后，值仍然存储在内存中，这可能被视为内存泄漏。\n  - 计算未过期键的数量是一个 $O(N)$ 操作，与缓存的大小成正比。我们可以通过在优先级队列中维护所有到期时间的排序列表来解决这些问题，从而允许以 $O(logN)$ 的时间移除过期元素。\n\n#### 具体步骤\n\n1. 创建一个 `TimeLimitedCache` 类。\n2. 类中使用一个普通对象来存储键值对，其中键是缓存的键，值是一个对象，包括值和到期时间。\n3. 类中使用一个优先级队列来存储到期时间，从而实现按到期时间排序的列表。这允许我们以 $O(logN)$ 的时间移除已过期的元素。\n4. 实现 `handleExpiredData` 方法，用于从队列的前端弹出所有已过期的元素。然后删除这些已过期的元素。但如果键在队列中，我们知道它在某个时间点被覆盖，那么我们不应该从缓存中删除它。处理已覆盖的标志将在 `set` 方法中处理。\n5. 实现 `set` 方法，首先必须调用 `handleExpiredData`。然后，检查键是否存在于缓存中，以便稍后返回这个值。如果键已存在，我们需要将 `overwritten` 标志设置为 `true`，以避免 `handleExpiredData` 错误地删除数据。然后，定义一个包含所有相关信息的对象（键、值、到期时间、覆盖标志）并将其添加到队列和缓存中。\n6. 实现 `get` 方法，首先必须调用 `handleExpiredData`。然后，只需返回缓存中的值（如果存在），否则返回 -1。\n7. 实现 `count` 方法，与往常一样，首先必须调用 `handleExpiredData`。由于一直在维护一个大小属性，只需返回它。\n\n#### 类实现示例\n\n```javascript []\nclass TimeLimitedCache {\n  cache = new Map();\n  queue = new MinPriorityQueue((x) => x.exp);\n  size = 0;\n  token = 0;\n\n  handleExpiredData() {\n    const now = Date.now();\n    while (this.queue.size() > 0 && this.queue.front().exp <= now) {\n      const node = this.queue.dequeue();\n      const cur = this.cache.get(node.key);\n      if (cur && cur.exp === node.exp && cur.token === node.token) {\n        this.cache.delete(node.key);\n        this.size -= 1;\n      }\n    }\n  };\n\n  set(key, value, duration) {\n    this.handleExpiredData();\n    const hasVal = this.cache.has(key);\n    if (!hasVal) {\n      this.size += 1;\n    }\n    const exp = Date.now() + duration;\n    const token = ++this.token;\n    this.cache.set(key, { value, exp, token });\n    this.queue.enqueue({ key, exp, token });\n    return hasVal;\n  }\n\n  get(key) {\n    this.handleExpiredData();\n    const cur = this.cache.get(key);\n    return cur ? cur.value : -1;\n  }\n\n  count() {\n    this.handleExpiredData();\n    return this.size;\n  }\n}\n```\n\n#### 类实现示例（TypeScript）\n\n```typescript []\ntype Entry = { key: string, value: any, expiration: number, overwritten: boolean };\n\nclass TimeLimitedCache {\n  cache: Record<string, Entry> = {};\n  queue = new MinPriorityQueue();\n  size = 0;\n\n  handleExpiredData() {\n    const now = Date.now();\n    while (this.queue.size() > 0 && this.queue.front().priority < now) {\n      const entry = this.queue\n\n.dequeue().element;\n      if (!entry.overwritten) {\n        delete this.cache[entry.key];\n        this.size -= 1;\n      }\n    }\n  }\n\n  set(key: string, value: any, duration: number) {\n    this.handleExpiredData();\n    const hasVal = key in this.cache\n    if (hasVal) {\n      this.cache[key].overwritten = true\n    } else {\n      this.size += 1;\n    }\n    const expiration = Date.now() + duration;\n    const entry = { key, value, expiration, overwritten: false }\n    this.cache[key] = entry\n    this.queue.enqueue(entry, expiration);\n    return hasVal;\n  }\n\n  get(key: string) {\n    this.handleExpiredData();\n    if (this.cache[key] === undefined) return -1;\n    return this.cache[key].value;\n  }\n\n  count() {\n    this.handleExpiredData();\n    return this.size;\n  }\n}\n```\n\n### 方法 5：Map + Generator\n\n#### 实现思路\n\n- 在方法 3 的基础上，使用一个 Map 存储到期时间，并使用一个生成器函数来迭代并清理过期元素。\n\n#### 具体步骤\n\n1. 创建一个 `TimeLimitedCache` 类。\n2. 类中使用一个 Map 来存储键值对，其中键是缓存的键，值是一个对象，包括值和到期时间。\n3. 实现 `handleExpiredData` 方法，它包括一个生成器函数，该生成器函数会迭代缓存中的所有元素，并清理过期元素。生成器函数遍历 Map 来获取键和到期时间，然后检查到期时间是否小于当前时间。如果是，表示元素已过期，因此删除它。\n4. 实现 `set` 方法，首先必须调用 `handleExpiredData`。然后，检查键是否存在于缓存中，以便稍后返回这个值。如果键已存在，我们需要将 `overwritten` 标志设置为 `true`，以避免 `handleExpiredData` 错误地删除数据。然后，定义一个包含所有相关信息的对象（键、值、到期时间、覆盖标志）并将其添加到 Map 中。\n5. 实现 `get` 方法，首先必须调用 `handleExpiredData`。然后，只需返回缓存中的值（如果存在），否则返回 -1。\n6. 实现 `count` 方法，与往常一样，首先必须调用 `handleExpiredData`。由于一直在维护 Map 的大小属性，只需返回它。\n\n#### 类实现示例\n\n```javascript []\nclass TimeLimitedCache {\n  cache = new Map();\n\n  *handleExpiredData() {\n    const now = Date.now();\n    for (const [key, { expiration, overwritten }] of this.cache) {\n      if (!overwritten && expiration < now) {\n        this.cache.delete(key);\n      }\n    }\n  }\n\n  set(key, value, duration) {\n    this.handleExpiredData().next();\n    const hasVal = this.cache.has(key);\n    this.cache.set(key, { value, expiration: Date.now() + duration, overwritten: false });\n    return hasVal;\n  }\n\n  get(key) {\n    this.handleExpiredData().next();\n    if (!this.cache.has(key) || this.cache.get(key).expiration < Date.now()) {\n      return -1;\n    }\n    return this.cache.get(key).value;\n  }\n\n  count() {\n    this.handleExpiredData().next();\n    return this.cache.size;\n  }\n}\n```\n\n#### 类实现示例（TypeScript）\n\n```typescript []\ntype Entry = { value: any, expiration: number, overwritten: boolean };\n\nclass TimeLimitedCache {\n  cache = new Map<string, Entry>();\n\n  *handleExpiredData() {\n    const now = Date.now();\n    for (const [key, { expiration, overwritten }] of this.cache) {\n      if (!overwritten && expiration < now) {\n        this.cache.delete(key);\n      }\n    }\n  }\n\n  set(key: string, value: any, duration: number) {\n    this.handleExpiredData().next();\n    const hasVal = this.cache.has(key);\n    this.cache.set(key, { value, expiration: Date.now() + duration, overwritten: false });\n    return hasVal;\n  }\n\n  get(key: string) {\n    this.handleExpiredData().next();\n    if (!this.cache.has(key) || this.cache.get(key).expiration < Date.now()) {\n      return -1;\n    }\n    return this.cache.get(key).value;\n  }\n\n  count() {\n    this.handleExpiredData().next();\n    return this.cache.size;\n  }\n}\n```\n\n## 性能分析\n\n每种实现方法的性能取决于不同的因素，例如缓存中的数据量和操作的频率。以下是每种实现方法的性能特点：\n\n- 方法 1 和方法 2 使用了 `setTimeout` 和 `clearTimeout`，但在删除过期数据时性能较差。它们的时间复杂度在最坏情况下为 $O(NlogN)$。\n- 方法 3 使用了一个普通对象和线性搜索来删除过期数据，因此性能较差。时间复杂度为 $O(N)$，其中 $N$ 是未过期数据的数量。\n- 方法 4 和方法 5 都使用了优先级队列或 Map 与生成器函数，因此可以高效地删除过期数据。它们的时间复杂度在删除过期数据时为 $O(logN)$，其中 $N$ 是未过期数据的数量。\n\n你应根据具体的使用情况和性能要求选择适合你的实现方法。\n\n## 总结\n\n在本教程中，我们介绍了四种不同的实现方法来创建具有时间限制的缓存。每种方法都有自己的特点和性能特点。你可以根据你的需求选择适合你的方法。无论你选择哪种方法，确保正确处理缓存中的数据过期，以免出现内存泄漏问题。同时，测试你的实现以确保其性能满足你的需求。\n\n此外，对于不同的编程语言和环境，还可以使用各种工具和库来实现具有时间限制的缓存，这些工具和库通常已经经过了广\n\n泛测试和优化。根据你的项目需求和可用工具，你还可以考虑使用第三方库或框架来实现缓存。",
+            "slateValue": "",
+            "slug": "ju-you-shi-jian-xian-zhi-de-huan-cun-by-vrax0",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "PUQiWW",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 6,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-10-31T03:27:05.530065+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "解决方案 概述 这个问题要求你实现一个键值存储，但其中的每个条目在一定时间后会过期。 具有时间限制的缓存的用途 想象一下，你正在维护一个从数据库中获取文件的缓存。你可以加载每个文件一次并将其无限期地保存在内存中。问题是，如果数据库中的文件发生了更新，缓存将包含过时的数据。另一个选择是每次访问文件时都不断重新下载文件（或",
+            "topic": {
+                "id": 2506140,
+                "subscribed": false,
+                "commentCount": 9,
+                "viewCount": 279,
+                "post": {
+                    "id": 4669049,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 31,
+            "isEditorsPick": false,
+            "hitCount": 6601,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "cache-with-time-limit",
+                "questionFrontendId": "2622"
+            },
+            "next": {
+                "slug": "2622-you-shi-jian-xian-zhi-de-huan-cun-s-pwcd",
+                "title": "2622. 有时间限制的缓存。使用哈希表存储缓存，另外使用一个obj来存储有效时间"
+            },
+            "prev": null
+        }
+    }
+}

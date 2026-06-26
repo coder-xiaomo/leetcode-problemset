@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "0y9gG6",
+            "title": "出租车的最大盈利",
+            "content": "#### 方法一：动态规划 + 二分查找\n\n将 $\\textit{rides}$ 按照 $\\textit{end}_i$ 从小到大进行排序，记 $m$ 为 $\\textit{rides}$ 的大小，$\\textit{dp}_{i+1}$ 表示只接区间 $[0, i]$ 内的乘客的最大盈利，显然 $\\textit{dp}_0 = 0$，而对于 $i \\in [0, m]$，有两种情况：\n\n1. 对第 $i$ 位乘客接单，由于前面已经对 $\\textit{rides}$ 进行排序，因此我们可以通过二分查找来找到满足 $\\textit{end}_j \\le \\textit{start}_i$ 最大的 $j$，那么 $\\textit{dp}_{i + 1} = \\textit{dp}_j + \\textit{end}_i - \\textit{start}_i + \\textit{tip}_i$。\n\n2. 对第 $i$ 位乘客不接单，那么有 $\\textit{dp}_{i + 1} = \\textit{dp}_i$。\n\n根据以上情况，对于 $i \\in [0, m]$，有转移方程为：\n\n$$\n\\textit{dp}_{i + 1} = \\max (\\textit{dp}_i, \\textit{dp}_j + \\textit{end}_i - \\textit{start}_i + \\textit{tip}_i)\n$$\n\n其中 $j$ 为满足 $\\textit{end}_j \\le \\textit{start}_i$ 最大的 $j$，那么 $\\textit{dp}[m]$ 即为结果。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    long long maxTaxiEarnings(int n, vector<vector<int>>& rides) {\n        sort(rides.begin(), rides.end(), [&](const vector<int> &r1, const vector<int> &r2) -> bool {\n            return r1[1] < r2[1];\n        });\n        int m = rides.size();\n        vector<long long> dp(m + 1);\n        for (int i = 0; i < m; i++) {\n            int j = upper_bound(rides.begin(), rides.begin() + i, rides[i][0], [](int x, const vector<int> &r) -> bool {\n                return x < r[1];\n            }) - rides.begin();\n            dp[i + 1] = max(dp[i], dp[j] + rides[i][1] - rides[i][0] + rides[i][2]);\n        }\n        return dp[m];\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public long maxTaxiEarnings(int n, int[][] rides) {\n        Arrays.sort(rides, (a, b) -> a[1] - b[1]);\n        int m = rides.length;\n        long[] dp = new long[m + 1];\n        for (int i = 0; i < m; i++) {\n            int j = binarySearch(rides, i, rides[i][0]);\n            dp[i + 1] = Math.max(dp[i], dp[j] + rides[i][1] - rides[i][0] + rides[i][2]);\n        }\n        return dp[m];\n    }\n\n    public int binarySearch(int[][] rides, int high, int target) {\n        int low = 0;\n        while (low < high) {\n            int mid = low + (high - low) / 2;\n            if (rides[mid][1] > target) {\n                high = mid;\n            } else {\n                low = mid + 1;\n            }\n        }\n        return low;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public long MaxTaxiEarnings(int n, int[][] rides) {\n        Array.Sort(rides, (a, b) => a[1] - b[1]);\n        int m = rides.Length;\n        long[] dp = new long[m + 1];\n        for (int i = 0; i < m; i++) {\n            int j = BinarySearch(rides, i, rides[i][0]);\n            dp[i + 1] = Math.Max(dp[i], dp[j] + rides[i][1] - rides[i][0] + rides[i][2]);\n        }\n        return dp[m];\n    }\n\n    public int BinarySearch(int[][] rides, int high, int target) {\n        int low = 0;\n        while (low < high) {\n            int mid = low + (high - low) / 2;\n            if (rides[mid][1] > target) {\n                high = mid;\n            } else {\n                low = mid + 1;\n            }\n        }\n        return low;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc maxTaxiEarnings(n int, rides [][]int) int64 {\n    sort.Slice(rides, func(i, j int) bool {\n        return rides[i][1] < rides[j][1]\n    })\n    m := len(rides)\n    dp := make([]int64, m + 1)\n    for i := 0; i < m; i++ {\n        j := sort.Search(i + 1, func(k int) bool {\n            return rides[k][1] > rides[i][0]\n        })\n        dp[i + 1] = max(dp[i], dp[j] + int64(rides[i][1] - rides[i][0] + rides[i][2]))\n    }\n    return dp[m]\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def maxTaxiEarnings(self, n: int, rides: List[List[int]]) -> int:\n        rides.sort(key=lambda r: r[1])\n        m = len(rides)\n        dp = [0] * (m + 1)\n        for i in range(m):\n            j = bisect_right(rides, rides[i][0], hi=i, key=lambda r:r[1])\n            dp[i + 1] = max(dp[i], dp[j] + rides[i][1] - rides[i][0] + rides[i][2])\n        return dp[m]\n```\n\n```C [sol1-C]\nstatic int cmp(const void *a, const void *b) {\n    return (*(int **)a)[1] - (*(int **)b)[1];\n}\n\nint binarySearch(int **rides, int high, int target) {\n    int low = 0;\n    while (low < high) {\n        int mid = low + (high - low) / 2;\n        if (rides[mid][1] > target) {\n            high = mid;\n        } else {\n            low = mid + 1;\n        }\n    }\n    return low;\n}\n\nlong long maxTaxiEarnings(int n, int** rides, int ridesSize, int* ridesColSize) {\n    qsort(rides, ridesSize, sizeof(rides[0]), cmp);\n    int m = ridesSize;\n    long long dp[m + 1];\n    memset(dp, 0, sizeof(dp));\n    for (int i = 0; i < m; i++) {\n        int j = binarySearch(rides, i, rides[i][0]);\n        dp[i + 1] = fmax(dp[i], dp[j] + rides[i][1] - rides[i][0] + rides[i][2]);\n    }\n    return dp[m];\n}\n```\n\n```JavaScript [sol1-JavaScript]\nconst binarySearch = function(arr, high, target) {\n    let low = 0;\n    while (low < high) {\n        let mid = low + Math.floor((high - low) / 2);\n        if (arr[mid][1] > target) {\n            high = mid;\n        } else {\n            low = mid + 1;\n        }\n    }\n    return low;\n}\n\nvar maxTaxiEarnings = function(n, rides) {\n    rides.sort((a, b) => a[1] - b[1]);\n    const m = rides.length;\n    const dp = new Array(m + 1).fill(0);\n    for (let i = 0; i < m; i++) {\n        let j = binarySearch(rides, i, rides[i][0]);\n        dp[i + 1] = Math.max(dp[i], dp[j] + rides[i][1] - rides[i][0] + rides[i][2]);\n    }\n    return dp[m];\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(m \\log m)$，其中 $m$ 是 $\\textit{rides}$ 的长度。二分查找需要 $O(\\log m)$，总共执行 $m$ 次二分查找。\n\n- 空间复杂度：$O(m)$。动态规划需要保存 $O(m)$ 个状态。\n\n#### 方法二：动态规划 + 哈希表\n\n使用哈希表 $\\textit{rideMap}[\\textit{end}]$ 记录终点为 $\\textit{end}$ 的所有乘客信息。不同于方法一，我们使用 $\\textit{dp}_{i}$ 表示到达第 $i$ 个地点时，能获取的最大盈利，显然有 $\\textit{dp}_0 = 0$，而对于 $i \\in [1, n]$，有两种情况：\n\n1. 选择一个终点为第 $i$ 个地点的乘客 $j$，那么最大盈利为 $\\textit{dp}_i = \\textit{dp}_{start_j} + \\textit{end}_j - \\textit{start}_j + \\textit{tip}_j$。\n\n2. 没有乘客在第 $i$ 个地点下车，那么 $\\textit{dp}_i = \\textit{dp}_{i - 1}$。\n\n根据以上情况，对于 $i \\in [1, n]$，有转移方程为：\n\n$$\n\\textit{dp}_i = \\max(\\textit{dp}_{i - 1}, \\max_{j \\in T_i}(\\textit{dp}_{start_j} + \\textit{end}_j - \\textit{start}_j + \\textit{tip}_j))\n$$\n\n其中 $T_i$ 表示终点为第 $i$ 个地点的所有乘客，此时 $\\textit{dp}[n]$ 即为结果。\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    long long maxTaxiEarnings(int n, vector<vector<int>> &rides) {\n        vector<long long> dp(n + 1);\n        unordered_map<int, vector<vector<int>>> rideMap;\n        for (const auto &ride : rides) {\n            rideMap[ride[1]].push_back(ride);\n        }\n        for (int i = 1; i <= n; i++) {\n            dp[i] = dp[i - 1];\n            for (const auto &ride : rideMap[i]) {\n                dp[i] = max(dp[i], dp[ride[0]] + ride[1] - ride[0] + ride[2]);\n            }\n        }\n        return dp[n];\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public long maxTaxiEarnings(int n, int[][] rides) {\n        long[] dp = new long[n + 1];\n        Map<Integer, List<int[]>> rideMap = new HashMap<Integer, List<int[]>>();\n        for (int[] ride : rides) {\n            rideMap.putIfAbsent(ride[1], new ArrayList<int[]>());\n            rideMap.get(ride[1]).add(ride);\n        }\n        for (int i = 1; i <= n; i++) {\n            dp[i] = dp[i - 1];\n            for (int[] ride : rideMap.getOrDefault(i, new ArrayList<int[]>())) {\n                dp[i] = Math.max(dp[i], dp[ride[0]] + ride[1] - ride[0] + ride[2]);\n            }\n        }\n        return dp[n];\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    public long MaxTaxiEarnings(int n, int[][] rides) {\n        long[] dp = new long[n + 1];\n        IDictionary<int, IList<int[]>> rideDictionary = new Dictionary<int, IList<int[]>>();\n        foreach (int[] ride in rides) {\n            rideDictionary.TryAdd(ride[1], new List<int[]>());\n            rideDictionary[ride[1]].Add(ride);\n        }\n        for (int i = 1; i <= n; i++) {\n            dp[i] = dp[i - 1];\n            IList<int[]> list = rideDictionary.ContainsKey(i) ? rideDictionary[i] : new List<int[]>();\n            foreach (int[] ride in list) {\n                dp[i] = Math.Max(dp[i], dp[ride[0]] + ride[1] - ride[0] + ride[2]);\n            }\n        }\n        return dp[n];\n    }\n}\n```\n\n```Go [sol2-Go]\nfunc maxTaxiEarnings(n int, rides [][]int) int64 {\n    dp := make([]int64, n + 1)\n    rideMap := map[int][][]int{}\n    for _, ride := range rides {\n        rideMap[ride[1]] = append(rideMap[ride[1]], ride)\n    }\n    for i := 1; i <= n; i++ {\n        dp[i] = dp[i - 1]\n        for _, ride := range rideMap[i] {\n            dp[i] = max(dp[i], dp[ride[0]] + int64(ride[1] - ride[0] + ride[2]))\n        }\n    }\n    return dp[n]\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def maxTaxiEarnings(self, n: int, rides: List[List[int]]) -> int:\n        dp = [0] * (n + 1)\n        rideMap = {}\n        for ride in rides:\n            if ride[1] not in rideMap:\n                rideMap[ride[1]] = []\n            rideMap[ride[1]].append(ride)\n        for i in range(1, n + 1):\n            dp[i] = dp[i - 1]\n            if i not in rideMap:\n                continue\n            for ride in rideMap[i]:\n                dp[i] = max(dp[i], dp[ride[0]] + ride[1] - ride[0] + ride[2])\n        return dp[n]\n```\n\n```C [sol2-C]\ntypedef struct Node {\n    int *arr;\n    struct Node *next;\n} Node;\n\nNode *creatNode(int *val) {\n    Node *obj = (Node *)malloc(sizeof(Node));\n    obj->arr = val;\n    obj->next = NULL;\n    return obj;\n}\n\nvoid freeList(Node *list) {\n    while (list) {\n        Node *cur = list;\n        list = list->next;\n    }\n    free(list);\n}\n\n\nlong long maxTaxiEarnings(int n, int** rides, int ridesSize, int* ridesColSize) {\n    long long dp[n + 1];\n    Node *rideMap[n + 1];\n    memset(dp, 0, sizeof(dp));\n    memset(rideMap, 0, sizeof(rideMap));\n    for (int i = 0; i < ridesSize; i++) {\n        int *ride = rides[i];\n        Node *node = creatNode(ride);\n        node->next = rideMap[ride[1]];\n        rideMap[ride[1]] = node;\n    }\n    for (int i = 1; i <= n; i++) {\n        dp[i] = dp[i - 1];\n        for (Node *node = rideMap[i]; node; node = node->next) {\n            int *ride = node->arr;\n            dp[i] = fmax(dp[i], dp[ride[0]] + ride[1] - ride[0] + ride[2]);\n        }\n    }\n    for (int i = 0; i <= n; i++) {\n        freeList(rideMap[i]);\n    }\n    return dp[n];\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar maxTaxiEarnings = function(n, rides) {\n    const dp = new Array(n + 1).fill(0);\n    const rideMap = new Map();\n    for (const ride of rides) {\n        if (rideMap.has(ride[1])) {\n            rideMap.set(ride[1], [...rideMap.get(ride[1]), ride])\n        } else {\n            rideMap.set(ride[1], [ride]);\n        }\n    }\n    for (let i = 1; i <= n; i++) {\n        dp[i] = dp[i - 1];\n        if (rideMap.has(i)) {\n            for (const ride of rideMap.get(i)) {\n                dp[i] = Math.max(dp[i], dp[ride[0]] + ride[1] - ride[0] + ride[2]);\n            }\n        }\n    }\n    return dp[n];\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(m + n)$，其中 $m$ 是 $\\textit{rides}$ 的长度，$n$ 是地点数目。动态规划转移需要 $O(n)$ 的时间，查询乘客信息需要 $O(m)$ 的时间。\n\n- 空间复杂度：$O(m + n)$。动态规划需要保存 $n$ 个状态，哈希表需要保存 $m$ 个乘客信息。",
+            "slateValue": "",
+            "slug": "chu-zu-che-de-zui-da-ying-li-by-leetcode-ol41",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "0y9gG6",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 37,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-12-06T02:46:28.705104+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 + 二分查找 将 $\\textit{rides}$ 按照 $\\textit{end}i$ 从小到大进行排序，记 $m$ 为 $\\textit{rides}$ 的大小，$\\textit{dp}{i+1}$ 表示只接区间 $[0, i]$ 内的乘客的最大盈利，显然 $\\textit{dp}_0 = 0$，",
+            "topic": {
+                "id": 2555814,
+                "subscribed": false,
+                "commentCount": 83,
+                "viewCount": 922,
+                "post": {
+                    "id": 4745065,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 62,
+            "isEditorsPick": false,
+            "hitCount": 18742,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "maximum-earnings-from-taxi",
+                "questionFrontendId": "2008"
+            },
+            "next": {
+                "slug": "jiao-ni-yi-bu-bu-si-kao-dong-tai-gui-hua-k15a",
+                "title": "教你一步步思考动态规划：从记忆化搜索到递推（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

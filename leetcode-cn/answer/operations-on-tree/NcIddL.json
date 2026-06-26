@@ -1,0 +1,132 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "NcIddL",
+            "title": "树上的操作",
+            "content": "#### 方法一：深度优先搜索\n\n**思路**\n\n按照题目要求，依次实现各个函数即可：\n\n* $\\textit{Lock}$：可以用一个数组变量 $\\textit{lockNodeUser}$ 记录给各个节点上锁的用户，$\\textit{lockNodeUser}[\\textit{num}]$ 即表示给节点 $\\textit{num}$ 上锁的用户。当 $\\textit{lockNodeUser}[\\textit{num}] = -1$ 时，即表示 节点 $\\textit{num}$ 未被上锁，通过给 $\\textit{lockNodeUser}[\\textit{num}]$ 赋值实现上锁。\n* $\\textit{Unlock}$：通过比较变量 $\\textit{lockNodeUser}[\\textit{num}]$ 和 $\\textit{user}$ 是否先等来判断当前节点是否可以解锁，通过赋值来解锁。\n* $\\textit{Upgrade}$：实现较为复杂，首先需要判断三个条件是否同时成立，如果是，还需要给指定节点上锁并且给它的所有子孙节点解锁。三个条件中：\n\n    * 指定节点当前状态为未上锁：通过变量 $\\textit{lockNodeUser}$ 来判断。\n    * 指定节点没有任何上锁的祖先节点：需要依次遍历当前节点的父亲节点，通过变量 $\\textit{lockNodeUser}$ 和 $\\textit{parent}$ 来判断。具体代码中，我们利用一个函数 $\\textit{hasLockedAncestor}$ 来实现这一判断。\n    * 指定节点至少有一个上锁状态的子孙节点：我们将这一判断放到第三步来进行，使得它可以和「给它的所有子孙节点解锁」同时实现。三个状态的判断，我们用「短路与」来连接，当只有前两步都为真，才会进行第三步。当第三步也为真，那么我们就需要进行「给它的所有子孙节点解锁」这一步；当第三步为假，就说明指定节点没有上锁的子孙节点，那么我们仍可以进行「给它的所有子孙节点解锁」这一步，并不影响树的状态。我们定义一个递归函数 $\\textit{checkAndUnlockDescendant}$ 来实现这一步，返回一个布尔值表示当前节点是否有上锁的子孙节点（也包括自己），同时将所有的子孙节点（也包括自己）解锁。遍历子孙节点时，我们提前构建一个变量 $\\textit{children}$，表示当前节点的孩子节点，这一步可以在初始化时完成。\n\n    最后，如果这三个条件与的结果为真，将当前节点上锁。\n\n**代码**\n\n```Python [sol1-Python3]\nclass LockingTree:\n\n    def __init__(self, parent: List[int]):\n        n = len(parent)\n        self.parent = parent\n        self.lockNodeUser = [-1] * n\n        self.children = [[] for _ in range(n)]\n        for node, p in enumerate(parent):\n            if p != -1:\n                self.children[p].append(node)\n\n    def lock(self, num: int, user: int) -> bool:\n        if self.lockNodeUser[num] == -1:\n            self.lockNodeUser[num] = user\n            return True\n        else:\n            return False\n\n    def unlock(self, num: int, user: int) -> bool:\n        if self.lockNodeUser[num] == user:\n            self.lockNodeUser[num] = -1\n            return True\n        else:\n            return False\n\n    def upgrade(self, num: int, user: int) -> bool:\n        res = self.lockNodeUser[num] == -1 and not self.hasLockedAncestor(num) and self.checkAndUnlockDescendant(num)\n        if res:\n            self.lockNodeUser[num] = user\n        return res\n    \n    def hasLockedAncestor(self, num: int) -> bool:\n        num = self.parent[num]\n        while num != -1:\n            if self.lockNodeUser[num] != -1:\n                return True\n            else:\n                num = self.parent[num]\n        return False\n    \n    def checkAndUnlockDescendant(self, num:int) -> bool:\n        res = self.lockNodeUser[num] != -1\n        self.lockNodeUser[num] = -1\n        for child in self.children[num]:\n            res |= self.checkAndUnlockDescendant(child)\n        return res\n```\n\n```Java [sol1-Java]\nclass LockingTree {\n    private int[] parent;\n    private int[] lockNodeUser;\n    private List<Integer>[] children;\n\n    public LockingTree(int[] parent) {\n        int n = parent.length;\n        this.parent = parent;\n        this.lockNodeUser = new int[n];\n        Arrays.fill(this.lockNodeUser, -1);\n        this.children = new List[n];\n        for (int i = 0; i < n; i++) {\n            this.children[i] = new ArrayList<Integer>();\n        }\n        for (int i = 0; i < n; i++) {\n            int p = parent[i];\n            if (p != -1) {\n                children[p].add(i);\n            }\n        }\n    }\n\n    public boolean lock(int num, int user) {\n        if (lockNodeUser[num] == -1) {\n            lockNodeUser[num] = user;\n            return true;\n        } \n        return false;\n    }\n\n    public boolean unlock(int num, int user) {\n        if (lockNodeUser[num] == user) {\n            lockNodeUser[num] = -1;\n            return true;\n        }\n        return false;\n    }\n\n    public boolean upgrade(int num, int user) {\n        boolean res = lockNodeUser[num] == -1 && !hasLockedAncestor(num) && checkAndUnlockDescendant(num);\n        if (res) {\n            lockNodeUser[num] = user;\n        }\n        return res;\n    }\n\n    private boolean hasLockedAncestor(int num) {\n        num = parent[num];\n        while (num != -1) {\n            if (lockNodeUser[num] != -1) {\n                return true;\n            }\n            num = parent[num];\n        }\n        return false;\n    }\n\n    private boolean checkAndUnlockDescendant(int num) {\n        boolean res = lockNodeUser[num] != -1;\n        lockNodeUser[num] = -1;\n        for (int child : children[num]) {\n            res |= checkAndUnlockDescendant(child);\n        }            \n        return res;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class LockingTree {\n    private int[] parent;\n    private int[] lockNodeUser;\n    private IList<int>[] children;\n\n    public LockingTree(int[] parent) {\n        int n = parent.Length;\n        this.parent = parent;\n        this.lockNodeUser = new int[n];\n        Array.Fill(this.lockNodeUser, -1);\n        this.children = new IList<int>[n];\n        for (int i = 0; i < n; i++) {\n            this.children[i] = new List<int>();\n        }\n        for (int i = 0; i < n; i++) {\n            int p = parent[i];\n            if (p != -1) {\n                children[p].Add(i);\n            }\n        }\n    }\n    \n    public bool Lock(int num, int user) {\n        if (lockNodeUser[num] == -1) {\n            lockNodeUser[num] = user;\n            return true;\n        } \n        return false;\n    }\n    \n    public bool Unlock(int num, int user) {\n        if (lockNodeUser[num] == user) {\n            lockNodeUser[num] = -1;\n            return true;\n        }\n        return false;\n    }\n    \n    public bool Upgrade(int num, int user) {\n        bool res = lockNodeUser[num] == -1 && !HasLockedAncestor(num) && CheckAndUnlockDescendant(num);\n        if (res) {\n            lockNodeUser[num] = user;\n        }\n        return res;\n    }\n\n    private bool HasLockedAncestor(int num) {\n        num = parent[num];\n        while (num != -1) {\n            if (lockNodeUser[num] != -1) {\n                return true;\n            }\n            num = parent[num];\n        }\n        return false;\n    }\n\n    private bool CheckAndUnlockDescendant(int num) {\n        bool res = lockNodeUser[num] != -1;\n        lockNodeUser[num] = -1;\n        foreach (int child in children[num]) {\n            res |= CheckAndUnlockDescendant(child);\n        }            \n        return res;\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass LockingTree {\npublic:\n    LockingTree(vector<int>& parent) {\n        int n = parent.size();\n        this->parent = parent;\n        this->lockNodeUser = vector<int>(n, -1);\n        this->children = vector<vector<int>>(n);\n        for (int i = 0; i < n; i++) {\n            int p = parent[i];\n            if (p != -1) {\n                children[p].emplace_back(i);\n            }\n        }\n    }\n    \n    bool lock(int num, int user) {\n        if (lockNodeUser[num] == -1) {\n            lockNodeUser[num] = user;\n            return true;\n        } \n        return false;\n    }\n    \n    bool unlock(int num, int user) {\n        if (lockNodeUser[num] == user) {\n            lockNodeUser[num] = -1;\n            return true;\n        }\n        return false;\n    }\n    \n    bool upgrade(int num, int user) {\n        bool res = lockNodeUser[num] == -1 \\\n                   && !hasLockedAncestor(num) \\\n                   && checkAndUnlockDescendant(num);\n        if (res) {\n            lockNodeUser[num] = user;\n        }\n        return res;\n    }\n\n    bool hasLockedAncestor(int num) {\n        num = parent[num];\n        while (num != -1) {\n            if (lockNodeUser[num] != -1) {\n                return true;\n            }\n            num = parent[num];\n        }\n        return false;\n    }\n        \n    bool checkAndUnlockDescendant(int num) {\n        bool res = lockNodeUser[num] != -1;\n        lockNodeUser[num] = -1;\n        for (int child : children[num]) {\n            res |= checkAndUnlockDescendant(child);\n        }            \n        return res;\n    }\n        \nprivate:\n    vector<int> parent;\n    vector<int> lockNodeUser;\n    vector<vector<int>> children;\n};\n```\n\n```C [sol1-C]\ntypedef struct {\n    int nodeSize;\n    int *parent;\n    int *lockNodeUser;\n    struct ListNode **children;\n} LockingTree;\n\nstruct ListNode *createListNode(int val) {\n    struct ListNode *obj = (struct ListNode *)malloc(sizeof(struct ListNode));\n    obj->val = val;\n    obj->next = NULL;\n    return obj;\n}\n\nLockingTree* lockingTreeCreate(int* parent, int parentSize) {\n    LockingTree *obj = (LockingTree *)malloc(sizeof(LockingTree));\n    obj->nodeSize = parentSize;\n    obj->parent = (int *)malloc(sizeof(int) * parentSize);\n    obj->lockNodeUser = (int *)malloc(sizeof(int) * parentSize);\n    obj->children = (struct ListNode **)malloc(sizeof(struct ListNode *) * parentSize);\n    memcpy(obj->parent, parent, sizeof(int) * parentSize);\n    for (int i = 0; i < parentSize; i++) {\n        obj->lockNodeUser[i] = -1;\n        obj->children[i] = NULL;\n    }\n    for (int i = 0; i < parentSize; i++) {\n        int p = parent[i];\n        if (p != -1) {\n            struct ListNode *node = createListNode(i);\n            node->next = obj->children[p];\n            obj->children[p] = node;\n        }\n    }\n    return obj;\n}\n\nbool lockingTreeLock(LockingTree* obj, int num, int user) {\n    if (obj->lockNodeUser[num] == -1) {\n        obj->lockNodeUser[num] = user;\n        return true;\n    } \n    return false;\n}\n\nbool lockingTreeUnlock(LockingTree* obj, int num, int user) {\n    if (obj->lockNodeUser[num] == user) {\n        obj->lockNodeUser[num] = -1;\n        return true;\n    }\n    return false;\n}\n\nbool hasLockedAncestor(LockingTree* obj, int num) {\n    num = obj->parent[num];\n    while (num != -1) {\n        if (obj->lockNodeUser[num] != -1) {\n            return true;\n        }\n        num = obj->parent[num];\n    }\n    return false;\n}\n        \nbool checkAndUnlockDescendant(LockingTree* obj, int num) {\n    bool res = obj->lockNodeUser[num] != -1;\n    obj->lockNodeUser[num] = -1;\n    for (struct ListNode *node = obj->children[num]; node; node = node->next) {\n        res |= checkAndUnlockDescendant(obj, node->val);\n    }         \n    return res;\n}\n\nbool lockingTreeUpgrade(LockingTree* obj, int num, int user) {\n    bool res = obj->lockNodeUser[num] == -1 \\\n                && !hasLockedAncestor(obj, num) \\\n                && checkAndUnlockDescendant(obj, num);\n    if (res) {\n        obj->lockNodeUser[num] = user;\n    }\n    return res;\n}\n\nvoid freeList(struct ListNode *list) {\n    while (list) {\n        struct ListNode *cur = list;\n        list = list->next;\n        free(cur);\n    }\n}\n\nvoid lockingTreeFree(LockingTree* obj) {\n    free(obj->parent);\n    free(obj->lockNodeUser);\n    for (int i = 0; i < obj->nodeSize; i++) {\n        freeList(obj->children[i]);\n    }\n    free(obj);\n}\n```\n\n```Go [sol1-Go]\ntype LockingTree struct {\n    parent []int\n    lockNodeUser []int\n    children [][]int\n}\n\nfunc Constructor(parent []int) LockingTree {\n    n := len(parent)\n    lockNodeUser := make([]int, n)\n    children := make([][]int, n)\n    for i := 0; i < n; i++ {\n        lockNodeUser[i] = -1\n        p := parent[i]\n        if p != -1 {\n            children[p] = append(children[p], i)\n        }\n    }\n    return LockingTree{parent, lockNodeUser, children}\n}\n\nfunc (this *LockingTree) Lock(num int, user int) bool {\n    if this.lockNodeUser[num] == -1 {\n        this.lockNodeUser[num] = user\n        return true\n    } \n    return false\n}\n\nfunc (this *LockingTree) Unlock(num int, user int) bool {\n    if this.lockNodeUser[num] == user {\n        this.lockNodeUser[num] = -1\n        return true\n    }\n    return false\n}\n\nfunc (this *LockingTree) Upgrade(num int, user int) bool {\n    res := this.lockNodeUser[num] == -1 && !this.hasLockedAncestor(num) && this.checkAndUnlockDescendant(num)\n    if res {\n        this.lockNodeUser[num] = user\n    }\n    return res\n}\n\nfunc (this *LockingTree) hasLockedAncestor(num int) bool {\n    num = this.parent[num]\n    for num != -1 {\n        if this.lockNodeUser[num] != -1 {\n            return true\n        }\n        num = this.parent[num]\n    }\n    return false\n}\n\nfunc (this *LockingTree) checkAndUnlockDescendant(num int) bool {\n    res := false\n    if this.lockNodeUser[num] != -1 {\n        res = true\n    }\n    this.lockNodeUser[num] = -1\n    for _, child := range this.children[num] {\n        if this.checkAndUnlockDescendant(child) {\n            res = true\n        }\n    }            \n    return res\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar LockingTree = function(parent) {\n    const n = parent.length;\n    this.parent = parent;\n    this.lockNodeUser = new Array(n).fill(-1);\n    this.children = new Array(n).fill(0).map(() => new Array());\n    for (let i = 0; i < n; i++) {\n        const p = parent[i];\n        if (p != -1) {\n            this.children[p].push(i);\n        }\n    }\n};\n\nLockingTree.prototype.lock = function(num, user) {\n    if (this.lockNodeUser[num] == -1) {\n        this.lockNodeUser[num] = user;\n        return true;\n    }\n    return false;\n};\n\nLockingTree.prototype.unlock = function(num, user) {\n    if (this.lockNodeUser[num] == user) {\n        this.lockNodeUser[num] = -1\n        return true;\n    }\n    return false;\n};\n\nLockingTree.prototype.upgrade = function(num, user) {\n    res = this.lockNodeUser[num] == -1 && !this.hasLockedAncestor(num)\n                                       && this.checkAndUnlockDescendant(num)\n    if (res) {\n        this.lockNodeUser[num] = user;\n    }\n    return res;\n};\n\nLockingTree.prototype.hasLockedAncestor = function(num) {\n    num = this.parent[num];\n    while (num != -1) {\n        if (this.lockNodeUser[num] != -1) {\n            return true;\n        } else {\n            num = this.parent[num];\n        }\n    }\n    return false;\n}\n\nLockingTree.prototype.checkAndUnlockDescendant = function(num) {\n    res = this.lockNodeUser[num] != -1;\n    this.lockNodeUser[num] = -1;\n    for (const child of this.children[num]) {\n        res |= this.checkAndUnlockDescendant(child);\n    }\n    return res;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：初始化：构建 $\\textit{children}$ 消耗 $O(n)$，$\\textit{Lock}$ 和 $\\textit{Unlock}$ 都消耗 $O(1)$，$\\textit{Upgrade}$ 消耗 $O(n)$。\n\n- 空间复杂度：初始化消耗 $O(n)$，$\\textit{Lock}$ 和 $\\textit{Unlock}$ 都消耗 $O(1)$，$\\textit{Upgrade}$ 消耗 $O(n)$。",
+            "slateValue": "",
+            "slug": "shu-shang-de-cao-zuo-by-leetcode-solutio-60an",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "NcIddL",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 13,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Tree",
+                    "nameTranslated": "树",
+                    "slug": "tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Depth-First Search",
+                    "nameTranslated": "深度优先搜索",
+                    "slug": "depth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Design",
+                    "nameTranslated": "设计",
+                    "slug": "design",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-09-20T08:42:13.246055+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：深度优先搜索 思路 按照题目要求，依次实现各个函数即可： $\\textit{Lock}$：可以用一个数组变量 $\\textit{lockNodeUser}$ 记录给各个节点上锁的用户，$\\textit{lockNodeUser}[\\textit{num}]$ 即表示给节点 $\\textit{num}$ 上锁的用",
+            "topic": {
+                "id": 2451105,
+                "subscribed": false,
+                "commentCount": 40,
+                "viewCount": 699,
+                "post": {
+                    "id": 4582360,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 23,
+            "isEditorsPick": false,
+            "hitCount": 2634,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "operations-on-tree",
+                "questionFrontendId": "1993"
+            },
+            "next": {
+                "slug": "python3javacgotypescript-yi-ti-yi-jie-df-1iwe",
+                "title": "[Python3/Java/C++/Go/TypeScript] 一题一解：DFS（清晰题解）"
+            },
+            "prev": null
+        }
+    }
+}

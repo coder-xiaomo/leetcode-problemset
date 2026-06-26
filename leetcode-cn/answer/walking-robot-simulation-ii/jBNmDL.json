@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "jBNmDL",
+            "title": "模拟行走机器人 II",
+            "content": "#### 方法一：模拟\n\n**思路与算法**\n\n根据题目描述，我们可以发现：机器人总是会在网格的「最外圈」进行循环移动。\n\n![fig1](https://assets.leetcode.cn/solution-static/5911/5911.png){:width=\"40%\"}\n\n因此，我们可以将机器人移动的循环节（位置以及移动方向）预处理出来，存储在数组中，并用一个指针 $\\textit{idx}$ 指向数组中的某个位置，表示当前机器人的位置以及移动方向。\n\n预处理可以分为四个步骤完成。如上图所示，不同颜色的网格表示机器人在对应网格上的不同方向，因此我们可以使用四个循环分别枚举每一种颜色对应的网格的位置，把它们加入预处理的数组即可。\n\n对于题目要求实现的三个接口，我们可以依次实现：\n\n- $\\texttt{void move(int num)}$：我们可以将 $\\textit{idx}$ 的值增加 $\\textit{num}$。由于机器人的移动路径是循环的，我们需要将增加后的值对循环的长度取模。\n\n- $\\texttt{int[] getPos()}$：我们根据 $\\textit{idx}$ 返回预处理数组中的位置即可。\n\n- $\\texttt{String getDir()}$：我们根据 $\\textit{idx}$ 返回预处理数组中的朝向即可。\n\n**细节**\n\n需要注意的是。当机器人回到原点时，它的朝向为「南」，但机器人初始在原点时的朝向为「东」。因此我们可以将预处理数组中原点的朝向改为「南」，并使用一个布尔变量记录机器人是否移动过：\n\n- 如果机器人未移动过，我们总是返回「东」朝向；\n\n- 如果机器人移动过，我们根据 $\\textit{idx}$ 返回预处理数组中的朝向。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Robot {\nprivate:\n    bool moved = false;\n    int idx = 0;\n    vector<pair<int, int>> pos;\n    vector<int> dir;\n    unordered_map<int, string> to_dir = {\n        {0, \"East\"},\n        {1, \"North\"},\n        {2, \"West\"},\n        {3, \"South\"}\n    };\n    \npublic:\n    Robot(int width, int height) {\n        for (int i = 0; i < width; ++i) {\n            pos.emplace_back(i, 0);\n            dir.emplace_back(0);\n        }\n        for (int i = 1; i < height; ++i) {\n            pos.emplace_back(width - 1, i);\n            dir.emplace_back(1);\n        }\n        for (int i = width - 2; i >= 0; --i) {\n            pos.emplace_back(i, height - 1);\n            dir.emplace_back(2);\n        }\n        for (int i = height - 2; i > 0; --i) {\n            pos.emplace_back(0, i);\n            dir.emplace_back(3);\n        }\n        dir[0] = 3;\n    }\n    \n    void step(int num) {\n        moved = true;\n        idx = (idx + num) % pos.size();\n    }\n    \n    vector<int> getPos() {\n        return {pos[idx].first, pos[idx].second};\n    }\n    \n    string getDir() {\n        if (!moved) {\n            return \"East\";\n        }\n        return to_dir[dir[idx]];\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Robot:\n\n    TO_DIR = {\n        0: \"East\",\n        1: \"North\",\n        2: \"West\",\n        3: \"South\",\n    }\n\n    def __init__(self, width: int, height: int):\n        self.moved = False\n        self.idx = 0\n        self.pos = list()\n        self.dirs = list()\n\n        pos_, dirs_ = self.pos, self.dirs\n\n        for i in range(width):\n            pos_.append((i, 0))\n            dirs_.append(0)\n        for i in range(1, height):\n            pos_.append((width - 1, i))\n            dirs_.append(1)\n        for i in range(width - 2, -1, -1):\n            pos_.append((i, height - 1))\n            dirs_.append(2)\n        for i in range(height - 2, 0, -1):\n            pos_.append((0, i))\n            dirs_.append(3)\n\n        dirs_[0] = 3\n\n    def step(self, num: int) -> None:\n        self.moved = True\n        self.idx = (self.idx + num) % len(self.pos)\n\n    def getPos(self) -> List[int]:\n        return list(self.pos[self.idx])\n\n    def getDir(self) -> str:\n        if not self.moved:\n            return \"East\"\n        return Robot.TO_DIR[self.dirs[self.idx]]\n```\n\n```Java [sol1-Java]\nclass Robot {\n    private boolean moved = false;\n    private int idx = 0;\n    private List<int[]> pos = new ArrayList<>();\n    private List<Integer> dir = new ArrayList<>();\n    private Map<Integer, String> toDir = new HashMap<>();\n    \n    public Robot(int width, int height) {\n        toDir.put(0, \"East\");\n        toDir.put(1, \"North\");\n        toDir.put(2, \"West\");\n        toDir.put(3, \"South\");\n        \n        for (int i = 0; i < width; ++i) {\n            pos.add(new int[]{i, 0});\n            dir.add(0);\n        }\n        for (int i = 1; i < height; ++i) {\n            pos.add(new int[]{width - 1, i});\n            dir.add(1);\n        }\n        for (int i = width - 2; i >= 0; --i) {\n            pos.add(new int[]{i, height - 1});\n            dir.add(2);\n        }\n        for (int i = height - 2; i > 0; --i) {\n            pos.add(new int[]{0, i});\n            dir.add(3);\n        }\n        dir.set(0, 3);\n    }\n    \n    public void step(int num) {\n        moved = true;\n        idx = (idx + num) % pos.size();\n    }\n    \n    public int[] getPos() {\n        return pos.get(idx);\n    }\n    \n    public String getDir() {\n        if (!moved) {\n            return \"East\";\n        }\n        return toDir.get(dir.get(idx));\n    }\n}\n```\n\n```C# [sol1-C#]\nusing System;\nusing System.Collections.Generic;\n\npublic class Robot {\n    private bool moved = false;\n    private int idx = 0;\n    private List<int[]> pos = new List<int[]>();\n    private List<int> dir = new List<int>();\n    private Dictionary<int, string> toDir = new Dictionary<int, string>();\n    \n    public Robot(int width, int height) {\n        toDir[0] = \"East\";\n        toDir[1] = \"North\";\n        toDir[2] = \"West\";\n        toDir[3] = \"South\";\n        \n        for (int i = 0; i < width; ++i) {\n            pos.Add(new int[] { i, 0 });\n            dir.Add(0);\n        }\n        for (int i = 1; i < height; ++i) {\n            pos.Add(new int[] { width - 1, i });\n            dir.Add(1);\n        }\n        for (int i = width - 2; i >= 0; --i) {\n            pos.Add(new int[] { i, height - 1 });\n            dir.Add(2);\n        }\n        for (int i = height - 2; i > 0; --i) {\n            pos.Add(new int[] { 0, i });\n            dir.Add(3);\n        }\n        dir[0] = 3;\n    }\n    \n    public void Step(int num) {\n        moved = true;\n        idx = (idx + num) % pos.Count;\n    }\n    \n    public int[] GetPos() {\n        return pos[idx];\n    }\n    \n    public string GetDir() {\n        if (!moved) {\n            return \"East\";\n        }\n        return toDir[dir[idx]];\n    }\n}\n```\n\n```Go [sol1-Go]\ntype Robot struct {\n    moved bool\n    idx   int\n    pos   [][2]int\n    dir   []int\n    toDir map[int]string\n}\n\nfunc Constructor(width int, height int) Robot {\n    robot := Robot{\n        toDir: map[int]string{\n            0: \"East\",\n            1: \"North\",\n            2: \"West\",\n            3: \"South\",\n        },\n    }\n    \n    for i := 0; i < width; i++ {\n        robot.pos = append(robot.pos, [2]int{i, 0})\n        robot.dir = append(robot.dir, 0)\n    }\n    for i := 1; i < height; i++ {\n        robot.pos = append(robot.pos, [2]int{width - 1, i})\n        robot.dir = append(robot.dir, 1)\n    }\n    for i := width - 2; i >= 0; i-- {\n        robot.pos = append(robot.pos, [2]int{i, height - 1})\n        robot.dir = append(robot.dir, 2)\n    }\n    for i := height - 2; i > 0; i-- {\n        robot.pos = append(robot.pos, [2]int{0, i})\n        robot.dir = append(robot.dir, 3)\n    }\n    robot.dir[0] = 3\n    \n    return robot\n}\n\nfunc (this *Robot) Step(num int) {\n    this.moved = true\n    this.idx = (this.idx + num) % len(this.pos)\n}\n\nfunc (this *Robot) GetPos() []int {\n    return []int{this.pos[this.idx][0], this.pos[this.idx][1]}\n}\n\nfunc (this *Robot) GetDir() string {\n    if !this.moved {\n        return \"East\"\n    }\n    return this.toDir[this.dir[this.idx]]\n}\n```\n\n```C [sol1-C]\ntypedef struct {\n    bool moved;\n    int idx;\n    int **pos;\n    int *dir;\n    int posSize;\n} Robot;\n\nconst char *toDir[4] = {\"East\", \"North\", \"West\", \"South\"};\n\nRobot* robotCreate(int width, int height) {\n    Robot* obj = (Robot*)malloc(sizeof(Robot));\n    obj->moved = false;\n    obj->idx = 0;\n    int total = 2 * (width + height) - 4;\n    obj->posSize = total;\n    obj->pos = (int**)malloc(total * sizeof(int*));\n    for (int i = 0; i < total; i++) {\n        obj->pos[i] = (int*)malloc(2 * sizeof(int));\n    }\n    obj->dir = (int*)malloc(total * sizeof(int));\n\n    int index = 0;\n    for (int i = 0; i < width; ++i) {\n        obj->pos[index][0] = i;\n        obj->pos[index][1] = 0;\n        obj->dir[index] = 0;\n        index++;\n    }\n    for (int i = 1; i < height; ++i) {\n        obj->pos[index][0] = width - 1;\n        obj->pos[index][1] = i;\n        obj->dir[index] = 1;\n        index++;\n    }\n    for (int i = width - 2; i >= 0; --i) {\n        obj->pos[index][0] = i;\n        obj->pos[index][1] = height - 1;\n        obj->dir[index] = 2;\n        index++;\n    }\n    for (int i = height - 2; i > 0; --i) {\n        obj->pos[index][0] = 0;\n        obj->pos[index][1] = i;\n        obj->dir[index] = 3;\n        index++;\n    }\n    obj->dir[0] = 3;\n    \n    return obj;\n}\n\nvoid robotStep(Robot* obj, int num) {\n    obj->moved = true;\n    obj->idx = (obj->idx + num) % obj->posSize;\n}\n\nint* robotGetPos(Robot* obj, int* retSize) {\n    *retSize = 2;\n    int* result = (int*)malloc(2 * sizeof(int));\n    result[0] = obj->pos[obj->idx][0];\n    result[1] = obj->pos[obj->idx][1];\n    return result;\n}\n\nchar* robotGetDir(Robot* obj) {\n    if (!obj->moved) {\n        return \"East\";\n    }\n    return toDir[obj->dir[obj->idx]];\n}\n\nvoid robotFree(Robot* obj) {\n    for (int i = 0; i < obj->posSize; i++) {\n        free(obj->pos[i]);\n    }\n    free(obj->pos);\n    free(obj->dir);\n    free(obj);\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar Robot = function(width, height) {\n    this.moved = false;\n    this.idx = 0;\n    this.pos = [];\n    this.dir = [];\n    this.toDir = {\n        0: \"East\",\n        1: \"North\",\n        2: \"West\",\n        3: \"South\"\n    };\n    \n    for (let i = 0; i < width; ++i) {\n        this.pos.push([i, 0]);\n        this.dir.push(0);\n    }\n    for (let i = 1; i < height; ++i) {\n        this.pos.push([width - 1, i]);\n        this.dir.push(1);\n    }\n    for (let i = width - 2; i >= 0; --i) {\n        this.pos.push([i, height - 1]);\n        this.dir.push(2);\n    }\n    for (let i = height - 2; i > 0; --i) {\n        this.pos.push([0, i]);\n        this.dir.push(3);\n    }\n    this.dir[0] = 3;\n};\n\nRobot.prototype.step = function(num) {\n    this.moved = true;\n    this.idx = (this.idx + num) % this.pos.length;\n};\n\nRobot.prototype.getPos = function() {\n    return this.pos[this.idx];\n};\n\nRobot.prototype.getDir = function() {\n    if (!this.moved) {\n        return \"East\";\n    }\n    return this.toDir[this.dir[this.idx]];\n};\n```\n\n```TypeScript [sol1-TypeScript]\nclass Robot {\n    private moved: boolean = false;\n    private idx: number = 0;\n    private pos: number[][] = [];\n    private dir: number[] = [];\n    private toDir: Map<number, string> = new Map();\n    \n    constructor(width: number, height: number) {\n        this.toDir.set(0, \"East\");\n        this.toDir.set(1, \"North\");\n        this.toDir.set(2, \"West\");\n        this.toDir.set(3, \"South\");\n        \n        for (let i = 0; i < width; ++i) {\n            this.pos.push([i, 0]);\n            this.dir.push(0);\n        }\n        for (let i = 1; i < height; ++i) {\n            this.pos.push([width - 1, i]);\n            this.dir.push(1);\n        }\n        for (let i = width - 2; i >= 0; --i) {\n            this.pos.push([i, height - 1]);\n            this.dir.push(2);\n        }\n        for (let i = height - 2; i > 0; --i) {\n            this.pos.push([0, i]);\n            this.dir.push(3);\n        }\n        this.dir[0] = 3;\n    }\n    \n    step(num: number): void {\n        this.moved = true;\n        this.idx = (this.idx + num) % this.pos.length;\n    }\n    \n    getPos(): number[] {\n        return this.pos[this.idx];\n    }\n    \n    getDir(): string {\n        if (!this.moved) {\n            return \"East\";\n        }\n        return this.toDir.get(this.dir[this.idx])!;\n    }\n}\n```\n\n```Rust [sol1-Rust]\nuse std::collections::HashMap;\n\nstruct Robot {\n    moved: bool,\n    idx: usize,\n    pos: Vec<(i32, i32)>,\n    dir: Vec<i32>,\n    to_dir: HashMap<i32, String>,\n}\n\nimpl Robot {\n    fn new(width: i32, height: i32) -> Self {\n        let mut pos = Vec::new();\n        let mut dir = Vec::new();\n        let mut to_dir = HashMap::new();\n        \n        to_dir.insert(0, \"East\".to_string());\n        to_dir.insert(1, \"North\".to_string());\n        to_dir.insert(2, \"West\".to_string());\n        to_dir.insert(3, \"South\".to_string());\n        \n        for i in 0..width {\n            pos.push((i, 0));\n            dir.push(0);\n        }\n        for i in 1..height {\n            pos.push((width - 1, i));\n            dir.push(1);\n        }\n        for i in (0..=width-2).rev() {\n            pos.push((i, height - 1));\n            dir.push(2);\n        }\n        for i in (1..=height-2).rev() {\n            pos.push((0, i));\n            dir.push(3);\n        }\n        dir[0] = 3;\n        \n        Robot {\n            moved: false,\n            idx: 0,\n            pos,\n            dir,\n            to_dir,\n        }\n    }\n    \n    fn step(&mut self, num: i32) {\n        self.moved = true;\n        self.idx = (self.idx + num as usize) % self.pos.len();\n    }\n    \n    fn get_pos(&self) -> Vec<i32> {\n        vec![self.pos[self.idx].0, self.pos[self.idx].1]\n    }\n    \n    fn get_dir(&self) -> String {\n        if !self.moved {\n            return \"East\".to_string();\n        }\n        self.to_dir.get(&self.dir[self.idx]).unwrap().clone()\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：预处理的时间复杂度为 $O(\\textit{width} + \\textit{height})$，所有查询接口的时间复杂度均为 $O(1)$。\n\n- 空间复杂度：$O(\\textit{width} + \\textit{height})$，即为存储预处理数组需要的空间。",
+            "slateValue": "",
+            "slug": "mo-ni-xing-zou-ji-qi-ren-ii-by-leetcode-lhf24",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "jBNmDL",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 14,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Simulation",
+                    "nameTranslated": "模拟",
+                    "slug": "simulation",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2021-11-14T12:57:25.750542+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：模拟 思路与算法 根据题目描述，我们可以发现：机器人总是会在网格的「最外圈」进行循环移动。 {:width=\"40%\"} 因此，我们可以将机器人移动的循环节（位置以及移动方向）预处理出来，存储在数组中，并用一个指针 [latex] 指向数组中的某个位置，表示当前机器人的位置以及移动方向。 预处理可以分为四个步骤",
+            "topic": {
+                "id": 1101837,
+                "subscribed": false,
+                "commentCount": 21,
+                "viewCount": 2255,
+                "post": {
+                    "id": 2332373,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 9,
+            "isEditorsPick": false,
+            "hitCount": 8761,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "walking-robot-simulation-ii",
+                "questionFrontendId": "2069"
+            },
+            "next": {
+                "slug": "go-mo-ni-by-endlesscheng-exyr",
+                "title": "分类讨论，O(1) 时间复杂度（Python/Java/C++/C/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

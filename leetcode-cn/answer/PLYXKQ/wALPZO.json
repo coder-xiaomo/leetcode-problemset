@@ -1,0 +1,126 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "wALPZO",
+            "title": "矩阵中最大的矩形",
+            "content": "#### 方法一: 使用柱状图的优化暴力方法\n\n**思路与算法**\n\n最原始地，我们可以列举每个可能的矩形。我们枚举矩形所有可能的左上角坐标和右下角坐标，并检查该矩形是否符合要求。然而该方法的时间复杂度过高，不能通过所有的测试用例，因此我们必须寻找其他方法。\n\n我们首先计算出矩阵的每个元素的左边连续 $1$ 的数量，使用二维数组 $\\textit{left}$ 记录，其中 $\\textit{left}[i][j]$ 为矩阵第 $i$ 行第 $j$ 列元素的左边连续 $1$ 的数量。\n\n<![ppt1](https://assets.leetcode.cn/solution-static/jianzhi_II_040/1.png),![ppt2](https://assets.leetcode.cn/solution-static/jianzhi_II_040/2.png),![ppt3](https://assets.leetcode.cn/solution-static/jianzhi_II_040/3.png),![ppt4](https://assets.leetcode.cn/solution-static/jianzhi_II_040/4.png),![ppt5](https://assets.leetcode.cn/solution-static/jianzhi_II_040/5.png),![ppt6](https://assets.leetcode.cn/solution-static/jianzhi_II_040/6.png),![ppt7](https://assets.leetcode.cn/solution-static/jianzhi_II_040/7.png),![ppt8](https://assets.leetcode.cn/solution-static/jianzhi_II_040/8.png),![ppt9](https://assets.leetcode.cn/solution-static/jianzhi_II_040/9.png),![ppt10](https://assets.leetcode.cn/solution-static/jianzhi_II_040/10.png)>\n\n随后，对于矩阵中任意一个点，我们枚举以该点为右下角的全 $1$ 矩形。\n\n具体而言，当考察以 $\\textit{matrix}[i][j]$ 为右下角的矩形时，我们枚举满足 $0 \\le k \\le i$ 的所有可能的 $k$，此时矩阵的最大宽度就为 \n\n$$\n\\textit{left}[i][j], \\textit{left}[i-1][j], \\ldots, \\textit{left}[k][j]\n$$\n\n的最小值。\n\n下图有助于理解。给定每个点的最大宽度，可计算出底端黄色方块的最大矩形面积。\n\n<![fig1](https://assets.leetcode.cn/solution-static/jianzhi_II_040/2_1.png),![fig2](https://assets.leetcode.cn/solution-static/jianzhi_II_040/2_2.png),![fig3](https://assets.leetcode.cn/solution-static/jianzhi_II_040/2_3.png),![fig4](https://assets.leetcode.cn/solution-static/jianzhi_II_040/2_4.png),![fig5](https://assets.leetcode.cn/solution-static/jianzhi_II_040/2_5.png),![fig6](https://assets.leetcode.cn/solution-static/jianzhi_II_040/2_6.png),![fig7](https://assets.leetcode.cn/solution-static/jianzhi_II_040/2_7.png)>\n\n对每个点重复这一过程，就可以得到全局的最大矩形。\n\n我们预计算最大宽度的方法事实上将输入转化成了一系列的柱状图，我们针对每个柱状图计算最大面积。\n\n![fig2](https://assets.leetcode.cn/solution-static/jianzhi_II_040/3_1.png)\n{:align=\"center\"}\n\n于是，上述方法本质上是「[剑指 Offer II 039. 直方图最大矩形面积](https://leetcode.cn/problems/0ynMMM/)」题中优化暴力算法的复用。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int maximalRectangle(vector<string>& matrix) {\n        int m = matrix.size();\n        if (m == 0) {\n            return 0;\n        }\n        int n = matrix[0].size();\n        vector<vector<int>> left(m, vector<int>(n, 0));\n\n        for (int i = 0; i < m; i++) {\n            for (int j = 0; j < n; j++) {\n                if (matrix[i][j] == '1') {\n                    left[i][j] = (j == 0 ? 0: left[i][j - 1]) + 1;\n                }\n            }\n        }\n\n        int ret = 0;\n        for (int i = 0; i < m; i++) {\n            for (int j = 0; j < n; j++) {\n                if (matrix[i][j] == '0') {\n                    continue;\n                }\n                int width = left[i][j];\n                int area = width;\n                for (int k = i - 1; k >= 0; k--) {\n                    width = min(width, left[k][j]);\n                    area = max(area, (i - k + 1) * width);\n                }\n                ret = max(ret, area);\n            }\n        }\n        return ret;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int maximalRectangle(String[] matrix) {\n        int m = matrix.length;\n        if (m == 0) {\n            return 0;\n        }\n        int n = matrix[0].length();\n        int[][] left = new int[m][n];\n\n        for (int i = 0; i < m; i++) {\n            for (int j = 0; j < n; j++) {\n                if (matrix[i].charAt(j) == '1') {\n                    left[i][j] = (j == 0 ? 0 : left[i][j - 1]) + 1;\n                }\n            }\n        }\n\n        int ret = 0;\n        for (int i = 0; i < m; i++) {\n            for (int j = 0; j < n; j++) {\n                if (matrix[i].charAt(j) == '0') {\n                    continue;\n                }\n                int width = left[i][j];\n                int area = width;\n                for (int k = i - 1; k >= 0; k--) {\n                    width = Math.min(width, left[k][j]);\n                    area = Math.max(area, (i - k + 1) * width);\n                }\n                ret = Math.max(ret, area);\n            }\n        }\n        return ret;\n    }\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar maximalRectangle = function(matrix) {\n    const m = matrix.length;\n    if (m === 0) {\n        return 0;\n    }\n    const n = matrix[0].length;\n    const left = new Array(m).fill(0).map(() => new Array(n).fill(0));\n\n    for (let i = 0; i < m; i++) {\n        for (let j = 0; j < n; j++) {\n            if (matrix[i][j] === '1') {\n                left[i][j] = (j === 0 ? 0 : left[i][j - 1]) + 1;\n            }\n        }\n    }\n\n    let ret = 0;\n    for (let i = 0; i < m; i++) {\n        for (let j = 0; j < n; j++) {\n            if (matrix[i][j] === '0') {\n                continue;\n            }\n            let width = left[i][j];\n            let area = width;\n            for (let k = i - 1; k >= 0; k--) {\n                width = Math.min(width, left[k][j]);\n                area = Math.max(area, (i - k + 1) * width);\n            }\n            ret = Math.max(ret, area);\n        }\n    }\n    return ret;\n};\n```\n\n```go [sol1-Golang]\nfunc maximalRectangle(matrix []string) (ans int) {\n    if len(matrix) == 0 {\n        return\n    }\n    m, n := len(matrix), len(matrix[0])\n    left := make([][]int, m)\n    for i, row := range matrix {\n        left[i] = make([]int, n)\n        for j, v := range row {\n            if v == '0' {\n                continue\n            }\n            if j == 0 {\n                left[i][j] = 1\n            } else {\n                left[i][j] = left[i][j-1] + 1\n            }\n        }\n    }\n    for i, row := range matrix {\n        for j, v := range row {\n            if v == '0' {\n                continue\n            }\n            width := left[i][j]\n            area := width\n            for k := i - 1; k >= 0; k-- {\n                width = min(width, left[k][j])\n                area = max(area, (i-k+1)*width)\n            }\n            ans = max(ans, area)\n        }\n    }\n    return\n}\n\nfunc min(a, b int) int {\n    if a < b {\n        return a\n    }\n    return b\n}\n\nfunc max(a, b int) int {\n    if a > b {\n        return a\n    }\n    return b\n}\n```\n\n```C [sol1-C]\nint maximalRectangle(char** matrix, int matrixSize) {\n    int m = matrixSize;\n    if (m == 0) {\n        return 0;\n    }\n    int n = strlen(matrix[0]);\n    int left[m][n];\n    memset(left, 0, sizeof(left));\n    for (int i = 0; i < m; i++) {\n        for (int j = 0; j < n; j++) {\n            if (matrix[i][j] == '1') {\n                left[i][j] = (j == 0 ? 0 : left[i][j - 1]) + 1;\n            }\n        }\n    }\n\n    int ret = 0;\n    for (int i = 0; i < m; i++) {\n        for (int j = 0; j < n; j++) {\n            if (matrix[i][j] == '0') {\n                continue;\n            }\n            int width = left[i][j];\n            int area = width;\n            for (int k = i - 1; k >= 0; k--) {\n                width = fmin(width, left[k][j]);\n                area = fmax(area, (i - k + 1) * width);\n            }\n            ret = fmax(ret, area);\n        }\n    }\n    return ret;\n}\n```\n\n**复杂度分析**\n\n* 时间复杂度：$O(m^2n)$，其中 $m$ 和 $n$ 分别是矩阵的行数和列数。计算 $\\textit{left}$ 矩阵需要 $O(mn)$ 的时间。随后对于矩阵的每个点，需要 $O(m)$ 的时间枚举高度。故总的时间复杂度为 $O(mn) + O(mn) \\cdot O(m) = O(m^2n)$。\n\n* 空间复杂度：$O(mn)$，其中 $m$ 和 $n$ 分别是矩阵的行数和列数。我们分配了一个与给定矩阵等大的数组，用于存储每个元素的左边连续 $1$ 的数量。\n\n#### 方法二：单调栈 \n\n**思路与算法**\n\n在方法一中，我们讨论了将输入拆分成一系列的柱状图。为了计算矩形的最大面积，我们只需要计算每个柱状图中的最大面积，并找到全局最大值。\n\n我们可以使用「[剑指 Offer II 039. 直方图最大矩形面积的官方题解](https://leetcode.cn/problems/0ynMMM/solution/zhi-fang-tu-zui-da-ju-xing-mian-ji-by-le-pcyu/)」中的单调栈的做法，将其应用在我们生成的柱状图中。\n\n**代码**\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    int maximalRectangle(vector<string>& matrix) {\n        int m = matrix.size();\n        if (m == 0) {\n            return 0;\n        }\n        int n = matrix[0].size();\n        vector<vector<int>> left(m, vector<int>(n, 0));\n\n        for (int i = 0; i < m; i++) {\n            for (int j = 0; j < n; j++) {\n                if (matrix[i][j] == '1') {\n                    left[i][j] = (j == 0 ? 0: left[i][j - 1]) + 1;\n                }\n            }\n        }\n\n        int ret = 0;\n        for (int j = 0; j < n; j++) { // 对于每一列，使用基于柱状图的方法\n            vector<int> up(m, 0), down(m, 0);\n\n            stack<int> stk;\n            for (int i = 0; i < m; i++) {\n                while (!stk.empty() && left[stk.top()][j] >= left[i][j]) {\n                    stk.pop();\n                }\n                up[i] = stk.empty() ? -1 : stk.top();\n                stk.push(i);\n            }\n            stk = stack<int>();\n            for (int i = m - 1; i >= 0; i--) {\n                while (!stk.empty() && left[stk.top()][j] >= left[i][j]) {\n                    stk.pop();\n                }\n                down[i] = stk.empty() ? m : stk.top();\n                stk.push(i);\n            }\n\n            for (int i = 0; i < m; i++) {\n                int height = down[i] - up[i] - 1;\n                int area = height * left[i][j];\n                ret = max(ret, area);\n            }\n        }\n        return ret;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public int maximalRectangle(String[] matrix) {\n        int m = matrix.length;\n        if (m == 0) {\n            return 0;\n        }\n        int n = matrix[0].length();\n        int[][] left = new int[m][n];\n\n        for (int i = 0; i < m; i++) {\n            for (int j = 0; j < n; j++) {\n                if (matrix[i].charAt(j) == '1') {\n                    left[i][j] = (j == 0 ? 0 : left[i][j - 1]) + 1;\n                }\n            }\n        }\n\n        int ret = 0;\n        for (int j = 0; j < n; j++) { // 对于每一列，使用基于柱状图的方法\n            int[] up = new int[m];\n            int[] down = new int[m];\n\n            Deque<Integer> stack = new ArrayDeque<Integer>();\n            for (int i = 0; i < m; i++) {\n                while (!stack.isEmpty() && left[stack.peek()][j] >= left[i][j]) {\n                    stack.pop();\n                }\n                up[i] = stack.isEmpty() ? -1 : stack.peek();\n                stack.push(i);\n            }\n            stack.clear();\n            for (int i = m - 1; i >= 0; i--) {\n                while (!stack.isEmpty() && left[stack.peek()][j] >= left[i][j]) {\n                    stack.pop();\n                }\n                down[i] = stack.isEmpty() ? m : stack.peek();\n                stack.push(i);\n            }\n\n            for (int i = 0; i < m; i++) {\n                int height = down[i] - up[i] - 1;\n                int area = height * left[i][j];\n                ret = Math.max(ret, area);\n            }\n        }\n        return ret;\n    }\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar maximalRectangle = function(matrix) {\n    const m = matrix.length;\n    if (m === 0) {\n        return 0;\n    }\n    const n = matrix[0].length;\n    const left = new Array(m).fill(0).map(() => new Array(n).fill(0));\n\n    for (let i = 0; i < m; i++) {\n        for (let j = 0; j < n; j++) {\n            if (matrix[i][j] === '1') {\n                left[i][j] = (j === 0 ? 0 : left[i][j - 1]) + 1;\n            }\n        }\n    }\n\n    let ret = 0;\n    for (let j = 0; j < n; j++) { // 对于每一列，使用基于柱状图的方法\n        const up = new Array(m).fill(0);\n        const down = new Array(m).fill(0);\n\n        let stack = new Array();\n        for (let i = 0; i < m; i++) {\n            while (stack.length && left[stack[stack.length - 1]][j] >= left[i][j]) {\n                stack.pop();\n            }\n            up[i] = stack.length === 0 ? -1 : stack[stack.length - 1];\n            stack.push(i);\n        }\n        stack = [];\n        for (let i = m - 1; i >= 0; i--) {\n            while (stack.length && left[stack[stack.length - 1]][j] >= left[i][j]) {\n                stack.pop();\n            }\n            down[i] = stack.length === 0 ? m : stack[stack.length - 1];\n            stack.push(i);\n        }\n\n        for (let i = 0; i < m; i++) {\n            const height = down[i] - up[i] - 1;\n            const area = height * left[i][j];\n            ret = Math.max(ret, area);\n        }\n    }\n    return ret;\n};\n```\n\n```go [sol2-Golang]\nfunc maximalRectangle(matrix []string) (ans int) {\n    if len(matrix) == 0 {\n        return\n    }\n    m, n := len(matrix), len(matrix[0])\n    left := make([][]int, m)\n    for i, row := range matrix {\n        left[i] = make([]int, n)\n        for j, v := range row {\n            if v == '0' {\n                continue\n            }\n            if j == 0 {\n                left[i][j] = 1\n            } else {\n                left[i][j] = left[i][j-1] + 1\n            }\n        }\n    }\n    for j := 0; j < n; j++ { // 对于每一列，使用基于柱状图的方法\n        up := make([]int, m)\n        down := make([]int, m)\n        stk := []int{}\n        for i, l := range left {\n            for len(stk) > 0 && left[stk[len(stk)-1]][j] >= l[j] {\n                stk = stk[:len(stk)-1]\n            }\n            up[i] = -1\n            if len(stk) > 0 {\n                up[i] = stk[len(stk)-1]\n            }\n            stk = append(stk, i)\n        }\n        stk = nil\n        for i := m - 1; i >= 0; i-- {\n            for len(stk) > 0 && left[stk[len(stk)-1]][j] >= left[i][j] {\n                stk = stk[:len(stk)-1]\n            }\n            down[i] = m\n            if len(stk) > 0 {\n                down[i] = stk[len(stk)-1]\n            }\n            stk = append(stk, i)\n        }\n        for i, l := range left {\n            height := down[i] - up[i] - 1\n            area := height * l[j]\n            ans = max(ans, area)\n        }\n    }\n    return\n}\n\nfunc max(a, b int) int {\n    if a > b {\n        return a\n    }\n    return b\n}\n```\n\n```C [sol2-C]\nint maximalRectangle(char** matrix, int matrixSize) {\n    int m = matrixSize;\n    if (m == 0) {\n        return 0;\n    }\n    int n = strlen(matrix[0]);\n    int left[m][n];\n    memset(left, 0, sizeof(left));\n    for (int i = 0; i < m; i++) {\n        for (int j = 0; j < n; j++) {\n            if (matrix[i][j] == '1') {\n                left[i][j] = (j == 0 ? 0 : left[i][j - 1]) + 1;\n            }\n        }\n    }\n\n    int ret = 0;\n    for (int j = 0; j < n; j++) {  // 对于每一列，使用基于柱状图的方法\n        int up[m], down[m];\n        memset(up, 0, sizeof(up));\n        memset(down, 0, sizeof(down));\n        int stk[m], top = 0;\n        for (int i = 0; i < m; i++) {\n            while (top > 0 && left[stk[top - 1]][j] >= left[i][j]) {\n                top--;\n            }\n            up[i] = top == 0 ? -1 : stk[top - 1];\n            stk[top++] = i;\n        }\n        top = 0;\n        for (int i = m - 1; i >= 0; i--) {\n            while (top > 0 && left[stk[top - 1]][j] >= left[i][j]) {\n                top--;\n            }\n            down[i] = top == 0 ? m : stk[top - 1];\n            stk[top++] = i;\n        }\n\n        for (int i = 0; i < m; i++) {\n            int height = down[i] - up[i] - 1;\n            int area = height * left[i][j];\n            ret = fmax(ret, area);\n        }\n    }\n    return ret;\n}\n```\n\n读者可以自行比对上面的代码与剑指 Offer II 039 的代码的相似之处。\n\n**复杂度分析**\n\n* 时间复杂度：$O(mn)$，其中 $m$ 和 $n$ 分别是矩阵的行数和列数。计算 $\\textit{left}$ 矩阵需要 $O(mn)$ 的时间；对每一列应用柱状图算法需要 $O(m)$ 的时间，一共需要 $O(mn)$ 的时间。\n\n* 空间复杂度：$O(mn)$，其中 $m$ 和 $n$ 分别是矩阵的行数和列数。我们分配了一个与给定矩阵等大的数组，用于存储每个元素的左边连续 $1$ 的数量。",
+            "slateValue": "",
+            "slug": "ju-zhen-zhong-zui-da-de-ju-xing-by-leetc-pjc7",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "wALPZO",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 21,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Stack",
+                    "nameTranslated": "栈",
+                    "slug": "stack",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Matrix",
+                    "nameTranslated": "矩阵",
+                    "slug": "matrix",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Monotonic Stack",
+                    "nameTranslated": "单调栈",
+                    "slug": "monotonic-stack",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2022-04-06T08:39:05.746927+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一: 使用柱状图的优化暴力方法 思路与算法 最原始地，我们可以列举每个可能的矩形。我们枚举矩形所有可能的左上角坐标和右下角坐标，并检查该矩形是否符合要求。然而该方法的时间复杂度过高，不能通过所有的测试用例，因此我们必须寻找其他方法。 我们首先计算出矩阵的每个元素的左边连续 $1$ 的数量，使用二维数组 $\\text",
+            "topic": {
+                "id": 1399094,
+                "subscribed": false,
+                "commentCount": 36,
+                "viewCount": 7873,
+                "post": {
+                    "id": 2888767,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 48,
+            "isEditorsPick": false,
+            "hitCount": 23532,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "PLYXKQ",
+                "questionFrontendId": "LCR 040"
+            },
+            "next": {
+                "slug": "dan-diao-zhan-shen-gong-by-you-min-k-0fuq",
+                "title": "单调栈神功"
+            },
+            "prev": null
+        }
+    }
+}

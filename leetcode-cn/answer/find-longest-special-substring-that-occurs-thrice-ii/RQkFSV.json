@@ -1,0 +1,144 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "RQkFSV",
+            "title": "找出出现至少三次的最长特殊子字符串 II",
+            "content": "#### 方法一：二分查找\n\n**思路与算法**\n\n根据题意可以知道所谓的**特殊**字符串即字符串中所有的字符均相等，题目要求至少**出现三次**的**最长特殊**子字符串的长度。假设当前**特殊**字符串的长度为 $l$，则该字符串中长度为 $k$ 的**特殊**子字符串的次数为 $\\max(0, l - k + 1)$ 次。例如 $\\text{``aaaaaaa''}$ 中出现 $\\text{``aaa''}$ 次数即为 $5$ 次，出现 $\\text{``aaaaaaaa''}$ 的次数为 $0$ 次。\n\n由于**特殊**字符串只含有一种字符，因此我们单独考虑每种字符，找到每种字符在字符串中出现的连续长度。假设字符 $a$ 在字符串 $s$ 中出现的连续长度分别为 $l_0,l_1, l_2, \\cdots, l_m$，此时出现长度为 $k$ 的子字符串数目为 $C = \\sum_{i=0}^{m} \\max(l_i - k + 1, 0)$ 次。根据推论可知，如果长度 $k_1$ 出现的次数 $3$ 次，则出现长度 $k_2$ 且满足 $k_2 < k_1$ 的次数也一定大于等于 $3$ 次；如果长度 $k_1$ 出现的次数不足 $3$ 次，则长度 $k_2$ 且满足 $k_2 > k_1$ 的次数也一定不足 $3$ 次，此时满足单调性，我们可以用二分查找来找到最大的长度。对于给定的长度 $l$，如果出现长度大于等于 $l$ 的次数大于 $3$ 次，则增加 $l$，否则则减小 $l$，直到找到最大满足要求的 $l$ 返回即可。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int maximumLength(string s) {\n        int n = s.size();\n        unordered_map<char, vector<int>> cnt;\n        for (int i = 0, j = 0; i < s.size(); i = j) {\n            while (j < s.size() && s[j] == s[i]) {\n                j++;\n            }\n            cnt[s[i]].emplace_back(j - i);\n        }\n        \n        int res = -1;\n        for (auto &[_, vec] : cnt) {\n            int lo = 1, hi = n - 2;\n            while (lo <= hi) {\n                int mid = (lo + hi) >> 1;\n                int count = 0;\n                for (int x : vec) {\n                    if (x >= mid) {\n                        count += x - mid + 1;\n                    }\n                }\n                if (count >= 3) {\n                    res = max(res, mid);\n                    lo = mid + 1;\n                } else {\n                    hi = mid - 1;\n                }\n            }\n        }\n        return res;\n    }\n};\n```\n\n```C [sol1-C]\nstruct ListNode *createListNode(int val) {\n    struct ListNode *obj = (struct ListNode *)malloc(sizeof(struct ListNode));\n    obj->val = val;\n    obj->next = NULL;\n    return obj;\n}\n\nvoid freeList(struct ListNode *list) {\n    while (list) {\n        struct ListNode *p = list;\n        list = list->next;\n    }\n}\n\nint maximumLength(char* s) {\n    int n = strlen(s);\n    struct ListNode *cnt[26];\n    for (int i = 0; i < 26; i++) {\n        cnt[i] = NULL;\n    }\n    for (int i = 0, j = 0; i < n; i = j) {\n        while (j < n && s[j] == s[i]) {\n            j++;\n        }\n        struct ListNode *node = createListNode(j - i);\n        node->next = cnt[s[i] - 'a'];\n        cnt[s[i] - 'a'] = node;\n    }\n    \n    int res = -1;\n    for (int i = 0; i < 26; i++) {\n        int lo = 1, hi = n - 2;\n        while (lo <= hi) {\n            int mid = (lo + hi) >> 1;\n            int count = 0;\n            for (struct ListNode *p = cnt[i]; p; p = p->next) {\n                if (p->val >= mid) {\n                    count += p->val - mid + 1;\n                }\n            }\n            if (count >= 3) {\n                res = fmax(res, mid);\n                lo = mid + 1;\n            } else {\n                hi = mid - 1;\n            }\n        }\n    }\n\n    for (int i = 0; i < 26; i++) {\n        free(cnt[i]);\n    }\n    return res;\n}\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int maximumLength(String s) {\n        int n = s.length();\n        Map<Character, List<Integer>> cnt = new HashMap<>();\n        \n        for (int i = 0, j = 0; i < n; i = j) {\n            while (j < n && s.charAt(j) == s.charAt(i)) {\n                j++;\n            }\n            cnt.computeIfAbsent(s.charAt(i), k -> new ArrayList<>()).add(j - i);\n        }\n\n        int res = -1;\n        for (List<Integer> vec : cnt.values()) {\n            int lo = 1, hi = n - 2;\n            while (lo <= hi) {\n                int mid = (lo + hi) >> 1;\n                int count = 0;\n                for (int x : vec) {\n                    if (x >= mid) {\n                        count += x - mid + 1;\n                    }\n                }\n                if (count >= 3) {\n                    res = Math.max(res, mid);\n                    lo = mid + 1;\n                } else {\n                    hi = mid - 1;\n                }\n            }\n        }\n        return res;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MaximumLength(string s) {\n        int n = s.Length;\n        IDictionary<char, IList<int>> cnt = new Dictionary<char, IList<int>>();\n\n        for (int i = 0, j = 0; i < n; i = j) {\n            while (j < n && s[j] == s[i]) {\n                j++;\n            }\n            cnt.TryAdd(s[i], new List<int>());\n            cnt[s[i]].Add(j - i);\n        }\n\n        int res = -1;\n        foreach (IList<int> vec in cnt.Values) {\n            int lo = 1, hi = n - 2;\n            while (lo <= hi) {\n                int mid = (lo + hi) >> 1;\n                int count = 0;\n                foreach (int x in vec) {\n                    if (x >= mid) {\n                        count += x - mid + 1;\n                    }\n                }\n                if (count >= 3) {\n                    res = Math.Max(res, mid);\n                    lo = mid + 1;\n                } else {\n                    hi = mid - 1;\n                }\n            }\n        }\n        return res;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def maximumLength(self, s: str) -> int:\n        n = len(s)\n        cnt = {}\n\n        i = 0\n        while i < n:\n            j = i\n            while j < n and s[j] == s[i]:\n                j += 1\n            if s[i] not in cnt:\n                cnt[s[i]] = []\n            cnt[s[i]].append(j - i)\n            i = j\n            \n        res = -1\n        for vec in cnt.values():\n            lo, hi = 1, n - 2\n            while lo <= hi:\n                mid = (lo + hi) // 2\n                count = 0\n                for x in vec:\n                    if x >= mid:\n                        count += x - mid + 1\n                if count >= 3:\n                    res = max(res, mid)\n                    lo = mid + 1\n                else:\n                    hi = mid - 1\n        return res\n```\n\n```Go [sol1-Go]\nfunc maximumLength(s string) int {\n    n := len(s)\n    cnt := make(map[byte][]int)\n    for i, j := 0, 0; i < n; i = j {\n        for j < n && s[j] == s[i] {\n            j++\n        }\n        cnt[s[i]] = append(cnt[s[i]], j - i)\n    }\n    \n    res := -1\n    for _, vec := range cnt {\n        lo, hi := 1, n - 2\n        for lo <= hi {\n            mid := (lo + hi) >> 1\n            count := 0\n            for _, x := range vec {\n                if x >= mid {\n                    count += x - mid + 1\n                }\n            }\n            if count >= 3 {\n                if mid > res {\n                    res = mid\n                }\n                lo = mid + 1\n            } else {\n                hi = mid - 1\n            }\n        }\n    }\n    return res\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar maximumLength = function(s) {\n    const n = s.length;\n    const cnt = new Map();\n    \n    for (let i = 0, j = 0; i < n; i = j) {\n        while (j < n && s[j] === s[i]) {\n            j++;\n        }\n        const len = j - i;\n        if (!cnt.has(s[i])) {\n            cnt.set(s[i], []);\n        }\n        cnt.get(s[i]).push(len);\n    }\n    \n    let res = -1;\n    for (const vec of cnt.values()) {\n        let lo = 1, hi = n - 2;\n        while (lo <= hi) {\n            const mid = (lo + hi) >> 1;\n            let count = 0;\n            for (const x of vec) {\n                if (x >= mid) {\n                    count += x - mid + 1;\n                }\n            }\n            if (count >= 3) {\n                res = Math.max(res, mid);\n                lo = mid + 1;\n            } else {\n                hi = mid - 1;\n            }\n        }\n    }\n    return res;\n};\n```\n\n```TypeScript [sol1-Typescript]\nfunction maximumLength(s: string): number {\n    const n = s.length;\n    const cnt = new Map<string, number[]>();\n    \n    for (let i = 0, j = 0; i < n; i = j) {\n        while (j < n && s[j] === s[i]) {\n            j++;\n        }\n        const len = j - i;\n        if (!cnt.has(s[i])) {\n            cnt.set(s[i], []);\n        }\n        cnt.get(s[i])!.push(len);\n    }\n    \n    let res = -1;\n    for (const vec of cnt.values()) {\n        let lo = 1, hi = n - 2;\n        while (lo <= hi) {\n            const mid = (lo + hi) >> 1;\n            let count = 0;\n            for (const x of vec) {\n                if (x >= mid) {\n                    count += x - mid + 1;\n                }\n            }\n            if (count >= 3) {\n                res = Math.max(res, mid);\n                lo = mid + 1;\n            } else {\n                hi = mid - 1;\n            }\n        }\n    }\n    return res;\n};\n```\n\n```Rust [sol1-Rust]\nuse std::collections::HashMap;\n\nimpl Solution {\n    pub fn maximum_length(s: String) -> i32 {\n        let n = s.len();\n        let mut cnt = HashMap::new();\n        let s_bytes = s.as_bytes();\n        \n        let mut i = 0;\n        while i < n {\n            let mut j = i;\n            while j < n && s_bytes[j] == s_bytes[i] {\n                j += 1;\n            }\n            cnt.entry(s_bytes[i])\n                .or_insert_with(Vec::new)\n                .push((j - i) as i32);\n            i = j;\n        }\n        \n        let mut res = -1;\n        for vec in cnt.values() {\n            let mut lo = 1;\n            let mut hi = (n as i32) - 2;\n            while lo <= hi {\n                let mid = (lo + hi) / 2;\n                let mut count = 0;\n                for &x in vec {\n                    if x >= mid {\n                        count += x - mid + 1;\n                    }\n                }\n                if count >= 3 {\n                    res = res.max(mid);\n                    lo = mid + 1;\n                } else {\n                    hi = mid - 1;\n                }\n            }\n        }\n        res\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log n)$，其中 $n$ 表示字符串的长度。对每种字符进行二分查找，每次二分查找需要的时间为 $O(n \\log n)$。\n\n- 空间复杂度：$O(n)$，其中 $n$ 表示字符串的长度。需要存储每种字符字符串中连续相同字符的长度，需要的存储空间最多为 $O(n)$。\n\n#### 方法二：一次遍历\n\n**思路与算法**\n\n当然我们可以进一步进行优化，由于题目只要求出现次数大于等于 $3$ 次即可，实际我们只需要找到每种字符的最长的 $3$ 个长度即可，从这 $3$ 个长度一定可以找到出现次数大于等于 $3$ 的最长**子字符串**。\n\n假设字符 $c$ 的最大三个长度分别为 $l_0, l_1, l2$，此时有以几种情形：\n+ 从最长的 $l_0$ 种取三个长度为 $l_0 - 2$ 的子串；\n+ 从最大的 $l_0$ 与次长的 $l_1$ 中取三个子串：\n    + 如果 $l_0 = l_1$，此时可以取三个长度为 $l_0-1$ 的子串；\n    + 如果 $l_0 > l_1$，此时可以从 $l_0$ 中取 $2$ 个长度 $l_1$ 的子串，从 $l_1$ 中取一个长度为 $l_1$ 的子串；\n    + 上述两种情况合并为至少可以取三个长度为 $\\min(l_0-1,l_1)$ 的子串;\n+ 从最长、次长、第三长的子串中分别取长度为 $l_2$ 的子串；\n\n上述三种情况取最大值即可得到:\n$$ l = \\max(l_0-2,\\min(l_0-1,l_1), l_2)$$\n此时字符 $c$ 构成的最长**子字符串**的长度即为 $l$，对所有的字符求其可取的长度，并返回最大值即可。如果求的最大值为 $0$ 时，此时需按照题目要求返回 $-1$。\n\n**代码**\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    int maximumLength(string s) {\n        int n = s.size();\n        vector<vector<int>> cnt(26, vector<int>(3));\n        for (int i = 0, j = 0; i < s.size(); i = j) {\n            while (j < s.size() && s[j] == s[i]) {\n                j++;\n            }\n            int index = s[i] - 'a';\n            int len = j - i;\n            if (len > cnt[index][0]) {\n                cnt[index][2] = cnt[index][1];\n                cnt[index][1] = cnt[index][0];\n                cnt[index][0] = len;\n            } else if (len > cnt[index][1]) {\n                cnt[index][2] = cnt[index][1];\n                cnt[index][1] = len;\n            } else if (len > cnt[index][2]) {\n                cnt[index][2] = len;\n            }\n        }\n        \n        int res = 0;\n        for (auto vec : cnt) {\n            res = max({res, vec[0] - 2, min(vec[0] - 1, vec[1]), vec[2]});\n        }\n        return res ? res : -1;\n    }\n};\n```\n\n```C [sol2-C]\nint maximumLength(char* s) {\n    int n = strlen(s);\n    int cnt[26][3] = {0};\n\n    for (int i = 0, j = 0; i < n; i = j) {\n        while (j < n && s[j] == s[i]) {\n            j++;\n        }\n        int index = s[i] - 'a';\n        int len = j - i;\n        if (len > cnt[index][0]) {\n            cnt[index][2] = cnt[index][1];\n            cnt[index][1] = cnt[index][0];\n            cnt[index][0] = len;\n        } else if (len > cnt[index][1]) {\n            cnt[index][2] = cnt[index][1];\n            cnt[index][1] = len;\n        } else if (len > cnt[index][2]) {\n            cnt[index][2] = len;\n        }\n    }\n\n    int res = 0;\n    for (int i = 0; i < 26; i++) {\n        res = fmax(res, fmax(cnt[i][0] - 2, fmin(cnt[i][0] - 1, cnt[i][1])));\n        res = fmax(res, cnt[i][2]);\n    }\n    return res != 0 ? res : -1;\n}\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public int maximumLength(String s) {\n        int n = s.length();\n        int[][] cnt = new int[26][3];\n        \n        for (int i = 0, j = 0; i < s.length(); i = j) {\n            while (j < s.length() && s.charAt(j) == s.charAt(i)) {\n                j++;\n            }\n            int index = s.charAt(i) - 'a';\n            int len = j - i;\n            if (len > cnt[index][0]) {\n                cnt[index][2] = cnt[index][1];\n                cnt[index][1] = cnt[index][0];\n                cnt[index][0] = len;\n            } else if (len > cnt[index][1]) {\n                cnt[index][2] = cnt[index][1];\n                cnt[index][1] = len;\n            } else if (len > cnt[index][2]) {\n                cnt[index][2] = len;\n            }\n        }\n        \n        int res = 0;\n        for (int[] vec : cnt) {\n            res = Math.max(res, Math.max(vec[0] - 2, Math.min(vec[0] - 1, vec[1])));\n            res = Math.max(res, vec[2]);\n        }\n        return res != 0 ? res : -1;\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    public int MaximumLength(string s) {\n        int n = s.Length;\n        var cnt = new int[26, 3]; \n        for (int i = 0, j = 0; i < n; i = j) {\n            while (j < n && s[j] == s[i]) {\n                j++;\n            }\n            int index = s[i] - 'a';\n            int len = j - i;\n            if (len > cnt[index, 0]) {\n                cnt[index, 2] = cnt[index, 1];\n                cnt[index, 1] = cnt[index, 0];\n                cnt[index, 0] = len;\n            } else if (len > cnt[index, 1]) {\n                cnt[index, 2] = cnt[index, 1];\n                cnt[index, 1] = len;\n            } else if (len > cnt[index, 2]) {\n                cnt[index, 2] = len;\n            }\n        }\n\n        int res = 0;\n        for (int k = 0; k < 26; k++) {\n            res = Math.Max(res, cnt[k, 0] - 2);\n            res = Math.Max(res, Math.Min(cnt[k, 0] - 1, cnt[k, 1]));\n            res = Math.Max(res, cnt[k, 2]);\n        }\n        return res != 0 ? res : -1;\n    }\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def maximumLength(self, s: str) -> int:\n        n = len(s)\n        cnt = [[0] * 3 for _ in range(26)]\n        \n        i = 0\n        while i < n:\n            j = i\n            while j < n and s[j] == s[i]:\n                j += 1\n            index = ord(s[i]) - ord('a')\n            length = j - i\n            if length > cnt[index][0]:\n                cnt[index][0], cnt[index][1], cnt[index][2] = length, cnt[index][0], cnt[index][1]\n            elif length > cnt[index][1]:\n                cnt[index][1], cnt[index][2] = length, cnt[index][1]\n            elif length > cnt[index][2]:\n                cnt[index][2] = length\n            i = j\n\n        res = 0\n        for vec in cnt:\n            res = max(res, vec[0] - 2, min(vec[0] - 1, vec[1]), vec[2])\n        return res if res != 0 else -1\n```\n\n```Go [sol2-Go]\nfunc maximumLength(s string) int {\n    n := len(s)\n    cnt := make([][3]int, 26)\n    \n    for i, j := 0, 0; i < n; i = j {\n        for j < n && s[j] == s[i] {\n            j++\n        }\n        index := s[i] - 'a'\n        length := j - i\n        if length > cnt[index][0] {\n            cnt[index][0], cnt[index][1], cnt[index][2] = length, cnt[index][0], cnt[index][1]\n        } else if length > cnt[index][1] {\n            cnt[index][1], cnt[index][2] = length, cnt[index][1]\n        } else if length > cnt[index][2] {\n            cnt[index][2] = length\n        }\n    }\n    \n    res := 0\n    for _, vec := range cnt {\n        res = max(res, max(vec[0] - 2, min(vec[0] - 1, vec[1])))\n        res = max(res, vec[2])\n    }\n    if res != 0 {\n        return res\n    }\n    return -1\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar maximumLength = function(s) {\n    const n = s.length;\n    const cnt = Array.from({ length: 26 }, () => Array(3).fill(0));\n\n    let i = 0;\n    while (i < n) {\n        let j = i;\n        while (j < n && s[j] === s[i]) {\n            j++;\n        }\n        const index = s.charCodeAt(i) - 97;\n        const len = j - i;\n        if (len > cnt[index][0]) {\n            [cnt[index][0], cnt[index][1], cnt[index][2]] = [len, cnt[index][0], cnt[index][1]];\n        } else if (len > cnt[index][1]) {\n            [cnt[index][1], cnt[index][2]] = [len, cnt[index][1]];\n        } else if (len > cnt[index][2]) {\n            cnt[index][2] = len;\n        }\n        i = j;\n    }\n\n    let res = 0;\n    for (const vec of cnt) {\n        res = Math.max(...[res, vec[0] - 2, Math.min(vec[0] - 1, vec[1])], vec[2]);\n    }\n    return res !== 0 ? res : -1;\n};\n```\n\n```TypeScript [sol2-Typescript]\nfunction maximumLength(s: string): number {\n    const n = s.length;\n    const cnt = Array.from({ length: 26 }, () => Array(3).fill(0));\n\n    let i = 0;\n    while (i < n) {\n        let j = i;\n        while (j < n && s[j] === s[i]) {\n            j++;\n        }\n        const index = s.charCodeAt(i) - 97;\n        const len = j - i;\n        if (len > cnt[index][0]) {\n            [cnt[index][0], cnt[index][1], cnt[index][2]] = [len, cnt[index][0], cnt[index][1]];\n        } else if (len > cnt[index][1]) {\n            [cnt[index][1], cnt[index][2]] = [len, cnt[index][1]];\n        } else if (len > cnt[index][2]) {\n            cnt[index][2] = len;\n        }\n        i = j;\n    }\n\n    let res = 0;\n    for (const vec of cnt) {\n        res = Math.max(...[res, vec[0] - 2, Math.min(vec[0] - 1, vec[1])], vec[2]);\n    }\n    return res !== 0 ? res : -1;\n};\n```\n\n```Rust [sol2-Rust]\nimpl Solution {\n    pub fn maximum_length(s: String) -> i32 {\n        let n = s.len();\n        let mut cnt = vec![vec![0; 3]; 26];\n        \n        let s_bytes = s.as_bytes();\n        let mut i = 0;\n        while i < n {\n            let mut j = i;\n            while j < n && s_bytes[j] == s_bytes[i] {\n                j += 1;\n            }\n            let index = (s_bytes[i] - b'a') as usize;\n            let len = (j - i) as i32;\n            if len > cnt[index][0] {\n                cnt[index][2] = cnt[index][1];\n                cnt[index][1] = cnt[index][0];\n                cnt[index][0] = len;\n            } else if len > cnt[index][1] {\n                cnt[index][2] = cnt[index][1];\n                cnt[index][1] = len;\n            } else if len > cnt[index][2] {\n                cnt[index][2] = len;\n            }\n            i = j;\n        }\n\n        let mut res = 0;\n        for vec in cnt.iter() {\n            res = *[res, vec[0] - 2, (vec[0] - 1).min(vec[1]), vec[2]].iter().max().unwrap();\n        }\n        if res != 0 {\n            res\n        } else {\n            -1\n        }\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 表示字符串的长度。只需遍历一遍字符串即可。\n\n- 空间复杂度：$O(|\\Sigma|)$，其中 $|\\Sigma|$ 表示字符集的大小。需要维护的每种字符最大的三个长度。",
+            "slateValue": "",
+            "slug": "zhao-chu-chu-xian-zhi-shao-san-ci-de-zui-pdem",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "RQkFSV",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 23,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2024-05-28T02:11:15.664985+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：二分查找 思路与算法 根据题意可以知道所谓的特殊字符串即字符串中所有的字符均相等，题目要求至少出现三次的最长特殊子字符串的长度。假设当前特殊字符串的长度为 $l$，则该字符串中长度为 $k$ 的特殊子字符串的次数为 $\\max(0, l - k + 1)$ 次。例如 $\\text{aaaaaaa''}$ 中出现",
+            "topic": {
+                "id": 2792836,
+                "subscribed": false,
+                "commentCount": 58,
+                "viewCount": 855,
+                "post": {
+                    "id": 5102858,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 63,
+            "isEditorsPick": false,
+            "hitCount": 15084,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "find-longest-special-substring-that-occurs-thrice-ii",
+                "questionFrontendId": "2982"
+            },
+            "next": {
+                "slug": "fen-lei-tao-lun-jian-ji-xie-fa-pythonjav-671l",
+                "title": "分类讨论，简洁写法（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

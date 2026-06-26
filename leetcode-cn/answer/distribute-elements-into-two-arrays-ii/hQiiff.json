@@ -1,0 +1,150 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "hQiiff",
+            "title": "将元素分配到两个数组中 II",
+            "content": "#### 方法一：树状数组 + 模拟\n\n**思路与算法**\n\n根据题意，要实现 $\\textit{greaterCount}$ 函数，需要快速查找一个有序结构中，严格大于 $\\textit{val}$ 的元素数量。我们可以使用「树状数组」来实现这个数据结构，其它「线段树」结构也可以实现相同功能。\n\n首先，因为我们只关心数组元素的大小关系，我们可以将数组「离散化」。\n\n然后我们根据题意进行模拟，初始化两个数组和其对应的树，依次遍历原数组中的元素，根据题目条件，将元素加入到对应数组中，并将元素离散化后的数组索引加入到树中。\n\n最后，返回连接数组即可。\n\n\n**代码**\n\n```C++ [sol1-C++]\nclass BinaryIndexedTree {\nprivate:\n    vector<int> tree;\n\npublic:\n    BinaryIndexedTree(int n) : tree(n + 1) {}\n\n    void add(int i) {\n        while (i < tree.size()) {\n            tree[i] += 1;\n            i += i & -i;\n        }\n    }\n\n    int get(int i) {\n        int res = 0;\n        while (i > 0) {\n            res += tree[i];\n            i &= i - 1;\n        }\n        return res;\n    }\n};\n\nclass Solution {\npublic:\n    vector<int> resultArray(vector<int>& nums) {\n        int n = nums.size();\n        vector<int> sortedNums = nums;\n        sort(sortedNums.begin(), sortedNums.end());\n        unordered_map<int, int> index;\n        for (int i = 0; i < n; ++i) {\n            index[sortedNums[i]] = i + 1;\n        }\n\n        vector<int> arr1 = {nums[0]};\n        vector<int> arr2 = {nums[1]};\n        BinaryIndexedTree tree1(n), tree2(n);\n        tree1.add(index[nums[0]]);\n        tree2.add(index[nums[1]]);\n\n        for (int i = 2; i < n; ++i) {\n            int count1 = arr1.size() - tree1.get(index[nums[i]]);\n            int count2 = arr2.size() - tree2.get(index[nums[i]]);\n            if (count1 > count2 || (count1 == count2 && arr1.size() <= arr2.size())) {\n                arr1.push_back(nums[i]);\n                tree1.add(index[nums[i]]);\n            } else {\n                arr2.push_back(nums[i]);\n                tree2.add(index[nums[i]]);\n            }\n        }\n\n        arr1.insert(arr1.end(), arr2.begin(), arr2.end());\n        return arr1;\n    }\n};\n```\n\n```C [sol1-C]\ntypedef struct {\n    int *tree;\n    int treeSize;\n} BinaryIndexedTree;\n\nBinaryIndexedTree* createBinaryIndexedTree(int n) {\n    BinaryIndexedTree *obj = (BinaryIndexedTree*)malloc(sizeof(BinaryIndexedTree));\n    obj->tree = (int *)malloc(sizeof(int) * (n + 1));\n    memset(obj->tree, 0, sizeof(int) * (n + 1));\n    obj->treeSize = n + 1;\n    return obj;\n}\n\nvoid add(BinaryIndexedTree* obj, int i) {\n    while (i < obj->treeSize) {\n        obj->tree[i] += 1;\n        i += i & -i;\n    }\n}\n\nint get(BinaryIndexedTree* obj, int i) {\n    int res = 0;\n    while (i > 0) {\n        res += obj->tree[i];\n        i &= i - 1;\n    }\n    return res;\n}\n\nstatic int cmp(const void *a, const void *b) {\n    return *(int *)a - *(int *)b;\n}\n\ntypedef struct {\n    int key;\n    int val;\n    UT_hash_handle hh;\n} HashItem; \n\nHashItem *hashFindItem(HashItem **obj, int key) {\n    HashItem *pEntry = NULL;\n    HASH_FIND_INT(*obj, &key, pEntry);\n    return pEntry;\n}\n\nbool hashAddItem(HashItem **obj, int key, int val) {\n    if (hashFindItem(obj, key)) {\n        return false;\n    }\n    HashItem *pEntry = (HashItem *)malloc(sizeof(HashItem));\n    pEntry->key = key;\n    pEntry->val = val;\n    HASH_ADD_INT(*obj, key, pEntry);\n    return true;\n}\n\nbool hashSetItem(HashItem **obj, int key, int val) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        hashAddItem(obj, key, val);\n    } else {\n        pEntry->val = val;\n    }\n    return true;\n}\n\nint hashGetItem(HashItem **obj, int key, int defaultVal) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        return defaultVal;\n    }\n    return pEntry->val;\n}\n\nvoid hashFree(HashItem **obj) {\n    HashItem *curr = NULL, *tmp = NULL;\n    HASH_ITER(hh, *obj, curr, tmp) {\n        HASH_DEL(*obj, curr);  \n        free(curr);\n    }\n}\n\nint* resultArray(int* nums, int numsSize, int* returnSize) {\n    int n = numsSize;\n    int sortedNums[n];\n    memcpy(sortedNums, nums, sizeof(int) * numsSize);\n    qsort(sortedNums, numsSize, sizeof(int), cmp);\n    HashItem *index = NULL;\n    for (int i = 0; i < n; ++i) {\n        hashSetItem(&index, sortedNums[i], i + 1);\n    }\n\n    int arr1[n], arr2[n];\n    int arr1Size = 0, arr2Size = 0;\n    arr1[arr1Size++] = nums[0];\n    arr2[arr2Size++] = nums[1];\n    BinaryIndexedTree *tree1 = createBinaryIndexedTree(n);\n    BinaryIndexedTree *tree2 = createBinaryIndexedTree(n);\n    add(tree1, hashGetItem(&index, nums[0], 0));\n    add(tree2, hashGetItem(&index, nums[1], 0));\n    for (int i = 2; i < n; ++i) {\n        int count1 = arr1Size - get(tree1, hashGetItem(&index, nums[i], 0));\n        int count2 = arr2Size - get(tree2, hashGetItem(&index, nums[i], 0));\n        if (count1 > count2 || (count1 == count2 && arr1Size <= arr2Size)) {\n            arr1[arr1Size++] = nums[i];\n            add(tree1, hashGetItem(&index, nums[i], 0));\n        } else {\n            arr2[arr2Size++] = nums[i];\n            add(tree2, hashGetItem(&index, nums[i], 0));\n        }\n    }\n\n    int *res = (int *)malloc(sizeof(int) * (arr1Size + arr2Size));\n    memcpy(res, arr1, sizeof(int) * arr1Size);\n    memcpy(res + arr1Size, arr2, sizeof(int) * arr2Size);\n    *returnSize = arr1Size + arr2Size;\n    hashFree(&index);\n    return res;\n}\n```\n\n```Java [sol1-Java]\nclass BinaryIndexedTree {\n    private int[] tree;\n\n    public BinaryIndexedTree(int n) {\n        tree = new int[n + 1];\n    }\n\n    public void add(int i) {\n        while (i < tree.length) {\n            tree[i]++;\n            i += i & -i;\n        }\n    }\n\n    public int get(int i) {\n        int sum = 0;\n        while (i > 0) {\n            sum += tree[i];\n            i -= i & -i;\n        }\n        return sum;\n    }\n}\n\nclass Solution {\n    public int[] resultArray(int[] nums) {\n        int n = nums.length;\n        int[] sortedNums = Arrays.copyOf(nums, n);\n        Arrays.sort(sortedNums);\n\n        Map<Integer, Integer> index = new HashMap<>();\n        for (int i = 0; i < n; i++) {\n            index.put(sortedNums[i], i + 1);\n        }\n\n        List<Integer> arr1 = new ArrayList<>(List.of(nums[0]));\n        List<Integer> arr2 = new ArrayList<>(List.of(nums[1]));\n        BinaryIndexedTree tree1 = new BinaryIndexedTree(n);\n        BinaryIndexedTree tree2 = new BinaryIndexedTree(n);\n        tree1.add(index.get(nums[0]));\n        tree2.add(index.get(nums[1]));\n\n        for (int i = 2; i < n; i++) {\n            int count1 = arr1.size() - tree1.get(index.get(nums[i]));\n            int count2 = arr2.size() - tree2.get(index.get(nums[i]));\n            if (count1 > count2 || (count1 == count2 && arr1.size() <= arr2.size())) {\n                arr1.add(nums[i]);\n                tree1.add(index.get(nums[i]));\n            } else {\n                arr2.add(nums[i]);\n                tree2.add(index.get(nums[i]));\n            }\n        }\n\n        int i = 0;\n        for (int a: arr1) {\n            nums[i++] = a;\n        }\n        for (int a: arr2) {\n            nums[i++] = a;\n        }\n        return nums;\n    }\n}\n```\n\n```C# [sol1-C#]\nclass BinaryIndexedTree {\n    private int[] tree;\n\n    public BinaryIndexedTree(int n) {\n        tree = new int[n + 1];\n    }\n\n    public void Add(int i) {\n        while (i < tree.Length) {\n            tree[i]++;\n            i += i & -i;\n        }\n    }\n\n    public int Get(int i) {\n        int sum = 0;\n        while (i > 0) {\n            sum += tree[i];\n            i -= i & -i;\n        }\n        return sum;\n    }\n}\n\npublic class Solution {\n    public int[] ResultArray(int[] nums) {\n        int n = nums.Length;\n        int[] sortedNums = nums.Take(n).ToArray();\n        Array.Sort(sortedNums);\n\n        IDictionary<int, int> index = new Dictionary<int, int>();\n        for (int i = 0; i < n; i++) {\n            index.TryAdd(sortedNums[i], i + 1);\n        }\n\n        IList<int> arr1 = new List<int>{nums[0]};\n        IList<int> arr2 = new List<int>{nums[1]};\n        BinaryIndexedTree tree1 = new BinaryIndexedTree(n);\n        BinaryIndexedTree tree2 = new BinaryIndexedTree(n);\n        tree1.Add(index[nums[0]]);\n        tree2.Add(index[nums[1]]);\n\n        for (int i = 2; i < n; i++) {\n            int count1 = arr1.Count - tree1.Get(index[nums[i]]);\n            int count2 = arr2.Count - tree2.Get(index[nums[i]]);\n            if (count1 > count2 || (count1 == count2 && arr1.Count <= arr2.Count)) {\n                arr1.Add(nums[i]);\n                tree1.Add(index[nums[i]]);\n            } else {\n                arr2.Add(nums[i]);\n                tree2.Add(index[nums[i]]);\n            }\n        }\n\n        int idx = 0;\n        foreach (int a in arr1) {\n            nums[idx++] = a;\n        }\n        foreach (int a in arr2) {\n            nums[idx++] = a;\n        }\n        return nums;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass BinaryIndexedTree:\n    def __init__(self, n):\n        self.val = [0] * n\n\n    def add(self, i):\n        while i < len(self.val):\n            self.val[i] += 1\n            i += i & -i\n\n    def get(self, i):\n        res = 0\n        while i > 0:\n            res += self.val[i]\n            i &= i - 1\n        return res\n\nclass Solution:\n    def resultArray(self, nums: List[int]) -> List[int]:\n        n = len(nums)\n        sorted_nums = sorted(nums)\n        index = {}\n        for i,a in enumerate(sorted_nums):\n            index[a] = i + 1\n        arr1 = [nums[0]]\n        arr2 = [nums[1]]\n        tree1 = BinaryIndexedTree(n + 1)\n        tree2 = BinaryIndexedTree(n + 1)\n        tree1.add(index[nums[0]])\n        tree2.add(index[nums[1]])\n        for i in range(2, n):\n            count1 = len(arr1) - tree1.get(index[nums[i]])\n            count2 = len(arr2) - tree2.get(index[nums[i]])\n            if count1 > count2 or count1 == count2 and len(arr1) <= len(arr2):\n                arr1.append(nums[i])\n                tree1.add(index[nums[i]])\n            else:\n                arr2.append(nums[i])\n                tree2.add(index[nums[i]])\n        return arr1 + arr2\n```\n\n```JavaScript [sol1-JavaScript]\nclass BinaryIndexedTree {\n    constructor(n) {\n        this.tree = new Array(n + 1).fill(0);\n    }\n\n    add(i) {\n        while (i < this.tree.length) {\n            this.tree[i]++;\n            i += i & -i;\n        }\n    }\n\n    get(i) {\n        let sum = 0;\n        while (i > 0) {\n            sum += this.tree[i];\n            i -= i & -i;\n        }\n        return sum;\n    }\n}\n\nvar resultArray = function(nums) {\n    const n = nums.length;\n    const sortedNums = [...nums].sort((a, b) => a - b);\n    const index = {};\n    for (let i = 0; i < n; i++) {\n        index[sortedNums[i]] = i + 1;\n    }\n\n    const arr1 = [nums[0]];\n    const arr2 = [nums[1]];\n    const tree1 = new BinaryIndexedTree(n);\n    const tree2 = new BinaryIndexedTree(n);\n    tree1.add(index[nums[0]]);\n    tree2.add(index[nums[1]]);\n\n    for (let i = 2; i < n; i++) {\n        const count1 = arr1.length - tree1.get(index[nums[i]]);\n        const count2 = arr2.length - tree2.get(index[nums[i]]);\n        if (count1 > count2 || (count1 === count2 && arr1.length <= arr2.length)) {\n            arr1.push(nums[i]);\n            tree1.add(index[nums[i]]);\n        } else {\n            arr2.push(nums[i]);\n            tree2.add(index[nums[i]]);\n        }\n    }\n\n    return arr1.concat(arr2);\n};\n```\n\n```TypeScript [sol1-TypeScript]\nclass BinaryIndexedTree {\n    tree;\n\n    constructor(n) {\n        this.tree = new Array(n + 1).fill(0);\n    }\n\n    add(i) {\n        while (i < this.tree.length) {\n            this.tree[i]++;\n            i += i & -i;\n        }\n    }\n\n    get(i) {\n        let sum = 0;\n        while (i > 0) {\n            sum += this.tree[i];\n            i -= i & -i;\n        }\n        return sum;\n    }\n}\n\nfunction resultArray(nums: number[]): number[] {\n    const n = nums.length;\n    const sortedNums = [...nums].sort((a, b) => a - b);\n    const index = {};\n    for (let i = 0; i < n; i++) {\n        index[sortedNums[i]] = i + 1;\n    }\n\n    const arr1 = [nums[0]];\n    const arr2 = [nums[1]];\n    const tree1 = new BinaryIndexedTree(n);\n    const tree2 = new BinaryIndexedTree(n);\n    tree1.add(index[nums[0]]);\n    tree2.add(index[nums[1]]);\n\n    for (let i = 2; i < n; i++) {\n        const count1 = arr1.length - tree1.get(index[nums[i]]);\n        const count2 = arr2.length - tree2.get(index[nums[i]]);\n        if (count1 > count2 || (count1 === count2 && arr1.length <= arr2.length)) {\n            arr1.push(nums[i]);\n            tree1.add(index[nums[i]]);\n        } else {\n            arr2.push(nums[i]);\n            tree2.add(index[nums[i]]);\n        }\n    }\n\n    return arr1.concat(arr2);\n};\n```\n\n```Go [sol1-Go]\ntype BinaryIndexedTree struct {\n    tree []int\n}\n\nfunc NewBinaryIndexedTree(n int) *BinaryIndexedTree {\n    return &BinaryIndexedTree{tree: make([]int, n+1)}\n}\n\nfunc (bit *BinaryIndexedTree) Add(i int) {\n    for i < len(bit.tree) {\n        bit.tree[i]++\n        i += i & -i\n    }\n}\n\nfunc (bit *BinaryIndexedTree) Get(i int) int {\n    sum := 0\n    for i > 0 {\n        sum += bit.tree[i]\n        i -= i & -i\n    }\n    return sum\n}\n\nfunc resultArray(nums []int) []int {\n    n := len(nums)\n    sortedNums := make([]int, n)\n    copy(sortedNums, nums)\n    sort.Ints(sortedNums)\n    index := make(map[int]int)\n    for i, num := range sortedNums {\n        index[num] = i + 1\n    }\n\n    arr1, arr2 := []int{nums[0]}, []int{nums[1]}\n    tree1, tree2 := NewBinaryIndexedTree(n), NewBinaryIndexedTree(n)\n    tree1.Add(index[nums[0]])\n    tree2.Add(index[nums[1]])\n\n    for i := 2; i < n; i++ {\n        count1 := len(arr1) - tree1.Get(index[nums[i]])\n        count2 := len(arr2) - tree2.Get(index[nums[i]])\n        if count1 > count2 || (count1 == count2 && len(arr1) <= len(arr2)) {\n            arr1 = append(arr1, nums[i])\n            tree1.Add(index[nums[i]])\n        } else {\n            arr2 = append(arr2, nums[i])\n            tree2.Add(index[nums[i]])\n        }\n    }\n\n    return append(arr1, arr2...)\n}\n```\n\n```Rust [sol1-Rust]\nuse std::collections::HashMap;\n\nstruct BinaryIndexedTree {\n    tree: Vec<i32>,\n}\n\nimpl BinaryIndexedTree {\n    fn new(n: usize) -> Self {\n        BinaryIndexedTree {\n            tree: vec![0; n + 1],\n        }\n    }\n\n    fn add(&mut self, mut i: usize) {\n        while i < self.tree.len() {\n            self.tree[i] += 1;\n            i += i & (!i + 1);\n        }\n    }\n\n    fn get(&self, mut i: usize) -> i32 {\n        let mut sum = 0;\n        while i > 0 {\n            sum += self.tree[i];\n            i -= i & (!i + 1);\n        }\n        sum\n    }\n}\n\nimpl Solution {\n    pub fn result_array(nums: Vec<i32>) -> Vec<i32> {\n        let n = nums.len();\n        let mut sorted_nums = nums.clone();\n        sorted_nums.sort();\n        let mut index = HashMap::new();\n        for i in 0..n {\n            index.insert(sorted_nums[i], i + 1);\n        }\n\n        let mut arr1 = vec![nums[0]];\n        let mut arr2 = vec![nums[1]];\n        let mut tree1 = BinaryIndexedTree::new(n);\n        let mut tree2 = BinaryIndexedTree::new(n);\n        tree1.add(index[&nums[0]]);\n        tree2.add(index[&nums[1]]);\n\n        for i in 2..n {\n            let count1 = arr1.len() as i32 - tree1.get(index[&nums[i]]);\n            let count2 = arr2.len() as i32 - tree2.get(index[&nums[i]]);\n            if count1 > count2 || (count1 == count2 && arr1.len() <= arr2.len()) {\n                arr1.push(nums[i]);\n                tree1.add(index[&nums[i]]);\n            } else {\n                arr2.push(nums[i]);\n                tree2.add(index[&nums[i]]);\n            }\n        }\n\n        arr1.extend(arr2);\n        arr1\n    }\n}\n```\n\n\n**复杂度分析**\n\n- 时间复杂度：$O(n\\log n)$，其中 $n$ 表示 $nums$ 数组的长度。\n\n- 空间复杂度：$O(n)$。",
+            "slateValue": "",
+            "slug": "jiang-yuan-su-fen-pei-dao-liang-ge-shu-z-d5mh",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "hQiiff",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 10,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Binary Indexed Tree",
+                    "nameTranslated": "树状数组",
+                    "slug": "binary-indexed-tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Segment Tree",
+                    "nameTranslated": "线段树",
+                    "slug": "segment-tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Simulation",
+                    "nameTranslated": "模拟",
+                    "slug": "simulation",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2024-05-31T04:53:42.187691+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：树状数组 + 模拟 思路与算法 根据题意，要实现 $\\textit{greaterCount}$ 函数，需要快速查找一个有序结构中，严格大于 $\\textit{val}$ 的元素数量。我们可以使用「树状数组」来实现这个数据结构，其它「线段树」结构也可以实现相同功能。 首先，因为我们只关心数组元素的大小关系，我们",
+            "topic": {
+                "id": 2796537,
+                "subscribed": false,
+                "commentCount": 67,
+                "viewCount": 752,
+                "post": {
+                    "id": 5108729,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 35,
+            "isEditorsPick": false,
+            "hitCount": 12552,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "distribute-elements-into-two-arrays-ii",
+                "questionFrontendId": "3072"
+            },
+            "next": {
+                "slug": "chi-san-hua-shu-zhuang-shu-zu-pythonjava-3bb2",
+                "title": "树状数组（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

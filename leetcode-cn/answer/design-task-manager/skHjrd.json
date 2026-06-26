@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "skHjrd",
+            "title": "设计任务管理器",
+            "content": "#### 方法一：优先队列 + 哈希表\n\n**思路与算法**\n\n初始化：使用哈希表 $\\textit{taskInfo}$ 存储每个任务的最新信息（$\\textit{priority}$ 和 $\\textit{userId}$），同时放入最大堆 $\\textit{heap}$ 中，存储 $\\textit{priority}$ 和 $\\textit{userId}$，以便高效获取最高优先级的任务。有些语言没有最大堆，就用最小堆和负值代替。\n\n添加任务：将任务信息存入 $\\textit{taskInfo}$ 并向 $\\textit{heap}$ 推送对应的 $\\textit{priority}$ 和 $\\textit{userId}$。\n\n编辑任务：更新 $\\textit{taskInfo}$ 中任务的优先级，并向 $\\textit{heap}$ 中推送新的 $\\textit{priority}$ 和 $\\textit{userId}$（旧记录通过懒删除处理）。\n\n删除任务：直接从 $\\textit{taskInfo}$ 中移除任务，$\\textit{heap}$ 中的旧记录将在后续操作中被跳过。\n\n执行最高优先级任务：从 $\\textit{heap}$ 顶弹出任务，检查其是否在 $\\textit{taskInfo}$ 中存在且 $\\textit{priority}$ 匹配。若匹配则删除并返回 $\\textit{userId}$，否则继续弹出直到找到有效任务或堆空。\n\n```Python [sol1-Python3]\nclass TaskManager:\n\n    def __init__(self, tasks: List[List[int]]):\n        self.taskInfo = {}\n        self.heap = []\n        for userId, taskId, priority in tasks:\n            self.taskInfo[taskId] = [priority, userId]\n            heappush(self.heap, [-priority, -taskId])\n        \n    def add(self, userId: int, taskId: int, priority: int) -> None:\n        self.taskInfo[taskId] = [priority, userId]\n        heappush(self.heap, [-priority, -taskId])\n\n    def edit(self, taskId: int, newPriority: int) -> None:\n        self.taskInfo[taskId][0] = newPriority\n        heappush(self.heap, [-newPriority, -taskId])\n\n    def rmv(self, taskId: int) -> None:\n        self.taskInfo.pop(taskId)\n\n    def execTop(self) -> int:\n        while self.heap:\n            priority, taskId = heappop(self.heap)\n            priority, taskId = -priority, -taskId\n            if priority == self.taskInfo.get(taskId, [-1, -1])[0]:\n                return self.taskInfo.pop(taskId)[1]\n        return -1\n```\n\n```C++ [sol1-C++]\nclass TaskManager {\nprivate:\n    unordered_map<int, pair<int, int>> taskInfo;\n    priority_queue<pair<int, int>> heap;\n    \npublic:\n    TaskManager(vector<vector<int>> tasks) {\n        for (auto& task : tasks) {\n            int userId = task[0], taskId = task[1], priority = task[2];\n            taskInfo[taskId] = {priority, userId};\n            heap.emplace(priority, taskId);\n        }\n    }\n    \n    void add(int userId, int taskId, int priority) {\n        taskInfo[taskId] = {priority, userId};\n        heap.emplace(priority, taskId);\n    }\n    \n    void edit(int taskId, int newPriority) {\n        if (taskInfo.find(taskId) != taskInfo.end()) {\n            taskInfo[taskId].first = newPriority;\n            heap.emplace(newPriority, taskId);\n        }\n    }\n    \n    void rmv(int taskId) {\n        taskInfo.erase(taskId);\n    }\n    \n    int execTop() {\n        while (!heap.empty()) {\n            auto [priority, taskId] = heap.top();\n            heap.pop();\n            \n            if (taskInfo.find(taskId) != taskInfo.end() && \n                taskInfo[taskId].first == priority) {\n                int userId = taskInfo[taskId].second;\n                taskInfo.erase(taskId);\n                return userId;\n            }\n        }\n        return -1;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass TaskManager {\n    private Map<Integer, int[]> taskInfo;\n    private PriorityQueue<int[]> heap;\n    \n    public TaskManager(List<List<Integer>> tasks) {\n        taskInfo = new HashMap<>();\n        heap = new PriorityQueue<>((a, b) -> {\n            if (a[0] != b[0]) {\n                return b[0] - a[0];\n            }\n            return b[1] - a[1];\n        });\n        \n        for (List<Integer> task : tasks) {\n            int userId = task.get(0), taskId = task.get(1), priority = task.get(2);\n            taskInfo.put(taskId, new int[]{priority, userId});\n            heap.offer(new int[]{priority, taskId});\n        }\n    }\n    \n    public void add(int userId, int taskId, int priority) {\n        taskInfo.put(taskId, new int[]{priority, userId});\n        heap.offer(new int[]{priority, taskId});\n    }\n    \n    public void edit(int taskId, int newPriority) {\n        if (taskInfo.containsKey(taskId)) {\n            taskInfo.get(taskId)[0] = newPriority;\n            heap.offer(new int[]{newPriority, taskId});\n        }\n    }\n    \n    public void rmv(int taskId) {\n        taskInfo.remove(taskId);\n    }\n    \n    public int execTop() {\n        while (!heap.isEmpty()) {\n            int[] task = heap.poll();\n            int priority = task[0], taskId = task[1];\n            \n            if (taskInfo.containsKey(taskId) && taskInfo.get(taskId)[0] == priority) {\n                int userId = taskInfo.get(taskId)[1];\n                taskInfo.remove(taskId);\n                return userId;\n            }\n        }\n        return -1;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class TaskManager {\n    private Dictionary<int, int[]> taskInfo;\n    private PriorityQueue<int[], int[]> heap;\n    \n    public TaskManager(IList<IList<int>> tasks) {\n        taskInfo = new Dictionary<int, int[]>();\n        heap = new PriorityQueue<int[], int[]>(Comparer<int[]>.Create((a, b) => {\n            if (a[0] == b[0]) {\n                return b[1].CompareTo(a[1]);\n            }\n            return b[0].CompareTo(a[0]);\n        }));\n        \n        foreach (var task in tasks) {\n            int userId = task[0], taskId = task[1], priority = task[2];\n            taskInfo[taskId] = new int[] {priority, userId};\n            heap.Enqueue(new int[] {priority, taskId}, new int[]{priority, taskId});\n        }\n    }\n    \n    public void Add(int userId, int taskId, int priority) {\n        taskInfo[taskId] = new int[] {priority, userId};\n        heap.Enqueue(new int[] {priority, taskId}, new int[]{priority, taskId});\n    }\n    \n    public void Edit(int taskId, int newPriority) {\n        if (taskInfo.ContainsKey(taskId)) {\n            taskInfo[taskId][0] = newPriority;\n            heap.Enqueue(new int[] {newPriority, taskId}, new int[]{newPriority, taskId});\n        }\n    }\n    \n    public void Rmv(int taskId) {\n        taskInfo.Remove(taskId);\n    }\n    \n    public int ExecTop() {\n        while (heap.Count > 0) {\n            var task = heap.Dequeue();\n            int priority = task[0], taskId = task[1];\n            if (taskInfo.TryGetValue(taskId, out var info) && info[0] == priority) {\n                int userId = info[1];\n                taskInfo.Remove(taskId);\n                return userId;\n            }\n        }\n        \n        return -1;\n    }\n}\n```\n\n```Go [sol1-Go]\ntype TaskManager struct {\n    taskInfo map[int][2]int\n    heap     *PriorityQueue\n}\n\nfunc Constructor(tasks [][]int) TaskManager {\n    tm := TaskManager{\n        taskInfo: make(map[int][2]int),\n        heap:     &PriorityQueue{},\n    }\n    heap.Init(tm.heap)\n    \n    for _, task := range tasks {\n        userId, taskId, priority := task[0], task[1], task[2]\n        tm.taskInfo[taskId] = [2]int{priority, userId}\n        heap.Push(tm.heap, Task{priority: priority, taskId: taskId})\n    }\n    return tm\n}\n\nfunc (this *TaskManager) Add(userId int, taskId int, priority int)  {\n    this.taskInfo[taskId] = [2]int{priority, userId}\n    heap.Push(this.heap, Task{priority: priority, taskId: taskId})\n}\n\nfunc (this *TaskManager) Edit(taskId int, newPriority int)  {\n    if info, exists := this.taskInfo[taskId]; exists {\n        info[0] = newPriority\n        this.taskInfo[taskId] = info\n        heap.Push(this.heap, Task{priority: newPriority, taskId: taskId})\n    }\n}\n\nfunc (this *TaskManager) Rmv(taskId int)  {\n    delete(this.taskInfo, taskId)\n}\n\nfunc (this *TaskManager) ExecTop() int {\n    for this.heap.Len() > 0 {\n        task := heap.Pop(this.heap).(Task)\n        priority, taskId := task.priority, task.taskId\n        if info, exists := this.taskInfo[taskId]; exists && info[0] == priority {\n            userId := info[1]\n            delete(this.taskInfo, taskId)\n            return userId\n        }\n    }\n    return -1\n}\n\ntype Task struct {\n    priority int\n    taskId   int\n}\n\ntype PriorityQueue []Task\n\nfunc (pq PriorityQueue) Len() int { \n    return len(pq) \n}\n\nfunc (pq PriorityQueue) Less(i, j int) bool {\n    if pq[i].priority != pq[j].priority {\n        return pq[i].priority > pq[j].priority\n    }\n    return pq[i].taskId > pq[j].taskId\n}\n\nfunc (pq PriorityQueue) Swap(i, j int) { \n    pq[i], pq[j] = pq[j], pq[i] \n}\n\nfunc (pq *PriorityQueue) Push(x interface{}) { \n    *pq = append(*pq, x.(Task)) \n}\n\nfunc (pq *PriorityQueue) Pop() interface{} {\n    old := *pq\n    n := len(old)\n    item := old[n - 1]\n    *pq = old[0 : n - 1]\n    return item\n}\n```\n\n```C [sol1-C]\n#define MIN_QUEUE_SIZE 64\n\ntypedef struct Element {\n    int priority;\n    int taskId;\n} Element;\n\ntypedef bool (*compare)(const void *, const void *);\n\ntypedef struct PriorityQueue {\n    Element *arr;\n    int capacity;\n    int queueSize;\n    compare lessFunc;\n} PriorityQueue;\n\n\nstatic bool less(const void *a, const void *b) {\n    Element *e1 = (Element *)a;\n    Element *e2 = (Element *)b;\n    if (e1->priority == e2->priority) {\n        return e1->taskId < e2->taskId;\n    }\n    return e1->priority < e2->priority;\n}\n\nstatic void memswap(void *m1, void *m2, size_t size){\n    unsigned char *a = (unsigned char*)m1;\n    unsigned char *b = (unsigned char*)m2;\n    while (size--) {\n        *b ^= *a ^= *b ^= *a;\n        a++;\n        b++;\n    }\n}\n\nstatic void swap(Element *arr, int i, int j) {\n    memswap(&arr[i], &arr[j], sizeof(Element));\n}\n\nstatic void down(Element *arr, int size, int i, compare cmpFunc) {\n    for (int k = 2 * i + 1; k < size; k = 2 * k + 1) {\n        if (k + 1 < size && cmpFunc(&arr[k], &arr[k + 1])) {\n            k++;\n        }\n        if (cmpFunc(&arr[k], &arr[(k - 1) / 2])) {\n            break;\n        }\n        swap(arr, k, (k - 1) / 2);\n    }\n}\n\nPriorityQueue *createPriorityQueue(compare cmpFunc) {\n    PriorityQueue *obj = (PriorityQueue *)malloc(sizeof(PriorityQueue));\n    obj->capacity = MIN_QUEUE_SIZE;\n    obj->arr = (Element *)malloc(sizeof(Element) * obj->capacity);\n    obj->queueSize = 0;\n    obj->lessFunc = cmpFunc;\n    return obj;\n}\n\nvoid heapfiy(PriorityQueue *obj) {\n    for (int i = obj->queueSize / 2 - 1; i >= 0; i--) {\n        down(obj->arr, obj->queueSize, i, obj->lessFunc);\n    }\n}\n\nvoid enQueue(PriorityQueue *obj, Element *e) {\n    if (obj->queueSize == obj->capacity) {\n        obj->capacity *= 2;\n        obj->arr = realloc(obj->arr, sizeof(Element) * obj->capacity);\n    }\n    memcpy(&obj->arr[obj->queueSize], e, sizeof(Element));\n    for (int i = obj->queueSize; i > 0 && obj->lessFunc(&obj->arr[(i - 1) / 2], &obj->arr[i]); i = (i - 1) / 2) {\n        swap(obj->arr, i, (i - 1) / 2);\n    }\n    obj->queueSize++;\n}\n\nElement* deQueue(PriorityQueue *obj) {\n    swap(obj->arr, 0, obj->queueSize - 1);\n    down(obj->arr, obj->queueSize - 1, 0, obj->lessFunc);\n    Element *e =  &obj->arr[obj->queueSize - 1];\n    obj->queueSize--;\n    return e;\n}\n\nbool isEmpty(const PriorityQueue *obj) {\n    return obj->queueSize == 0;\n}\n\nElement* front(const PriorityQueue *obj) {\n    if (obj->queueSize == 0) {\n        return NULL;\n    } else {\n        return &obj->arr[0];\n    }\n}\n\nvoid clear(PriorityQueue *obj) {\n    obj->queueSize = 0;\n}\n\nint size(const PriorityQueue *obj) {\n    return obj->queueSize;\n}\n\nvoid freeQueue(PriorityQueue *obj) {\n    free(obj->arr);\n    free(obj);\n}\n\ntypedef struct Pair {\n    int priority;\n    int userId;\n} Pair;\n\ntypedef struct {\n    int key;\n    Pair val;\n    UT_hash_handle hh;\n} HashItem; \n\nHashItem *hashFindItem(HashItem **obj, int key) {\n    HashItem *pEntry = NULL;\n    HASH_FIND_INT(*obj, &key, pEntry);\n    return pEntry;\n}\n\nbool hashAddItem(HashItem **obj, int key, Pair val) {\n    if (hashFindItem(obj, key)) {\n        return false;\n    }\n    HashItem *pEntry = (HashItem *)malloc(sizeof(HashItem));\n    pEntry->key = key;\n    pEntry->val = val;\n    HASH_ADD_INT(*obj, key, pEntry);\n    return true;\n}\n\nbool hashSetItem(HashItem **obj, int key, Pair val) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        hashAddItem(obj, key, val);\n    } else {\n        pEntry->val = val;\n    }\n    return true;\n}\n\nPair* hashGetItem(HashItem **obj, int key) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        return NULL;\n    }\n    return &pEntry->val;\n}\n\nvoid hashEraseItem(HashItem **obj, int key) {\n    HashItem *pEntry = NULL;\n    HASH_FIND_INT(*obj, &key, pEntry);\n    if (pEntry != NULL) {\n        HASH_DEL(*obj, pEntry);\n        free(pEntry);     \n    } \n}\n\nvoid hashFree(HashItem **obj) {\n    HashItem *curr = NULL, *tmp = NULL;\n    HASH_ITER(hh, *obj, curr, tmp) {\n        HASH_DEL(*obj, curr);  \n        free(curr);\n    }\n}\n\ntypedef struct {\n    HashItem *taskInfo;\n    PriorityQueue *heap;\n} TaskManager;\n\n\nTaskManager* taskManagerCreate(int** tasks, int tasksSize, int* tasksColSize) {\n    TaskManager *obj = (TaskManager *)malloc(sizeof(TaskManager));\n    obj->taskInfo = NULL;\n    obj->heap = createPriorityQueue(less);\n    for (int i = 0; i < tasksSize; i++) {\n        int userId = tasks[i][0], taskId = tasks[i][1], priority = tasks[i][2];\n        Pair val = {priority, userId};\n        hashAddItem(&obj->taskInfo, taskId, val);\n        Element e = {priority, taskId};\n        enQueue(obj->heap, &e);\n    }\n    return obj;\n}\n\nvoid taskManagerAdd(TaskManager* obj, int userId, int taskId, int priority) {\n    Pair val = {priority, userId};\n    hashAddItem(&obj->taskInfo, taskId, val);\n    Element e = {priority, taskId};\n    enQueue(obj->heap, &e);\n}\n\nvoid taskManagerEdit(TaskManager* obj, int taskId, int newPriority) {\n    if (hashFindItem(&obj->taskInfo, taskId)) {\n        Pair *p = hashGetItem(&obj->taskInfo, taskId);\n        Pair val = {newPriority, p->userId};\n        hashSetItem(&obj->taskInfo, taskId, val);\n        Element e = {newPriority, taskId};\n        enQueue(obj->heap, &e);\n    }\n}\n\nvoid taskManagerRmv(TaskManager* obj, int taskId) {\n    hashEraseItem(&obj->taskInfo, taskId);\n}\n\nint taskManagerExecTop(TaskManager* obj) {\n    while (!isEmpty(obj->heap)) {\n        Element *p = front(obj->heap);\n        int priority = p->priority;\n        int taskId = p->taskId;      \n        deQueue(obj->heap);\n        if (hashFindItem(&obj->taskInfo, taskId) && hashGetItem(&obj->taskInfo, taskId)->priority == priority) {\n            int userId = hashGetItem(&obj->taskInfo, taskId)->userId;\n            hashEraseItem(&obj->taskInfo, taskId);\n            return userId;\n        }\n    }\n    return -1;\n}\n\nvoid taskManagerFree(TaskManager* obj) {\n    freeQueue(obj->heap);\n    hashFree(&obj->taskInfo);\n    free(obj);\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar TaskManager = function(tasks) {\n    this.taskInfo = new Map();\n    this.heap = new PriorityQueue((a, b) => {\n        if (a[0] === b[0]) {\n            return a[1] > b[1] ? -1 : 1;\n        }\n        return a[0] > b[0] ? -1 : 1;\n    });\n\n    for (const [userId, taskId, priority] of tasks) {\n        this.taskInfo.set(taskId, [priority, userId]);\n        this.heap.enqueue([priority, taskId]);\n    }\n};\n\nTaskManager.prototype.add = function(userId, taskId, priority) {\n    this.taskInfo.set(taskId, [priority, userId]);\n    this.heap.enqueue([priority, taskId]);\n};\n\nTaskManager.prototype.edit = function(taskId, newPriority) {\n    if (this.taskInfo.has(taskId)) {\n        const [priority, userId] = this.taskInfo.get(taskId);\n        this.taskInfo.delete(taskId);\n        this.taskInfo.set(taskId, [newPriority, userId]);\n        this.heap.enqueue([newPriority, taskId]);\n    }\n};\n\nTaskManager.prototype.rmv = function(taskId) {\n    this.taskInfo.delete(taskId);\n};\n\nTaskManager.prototype.execTop = function() {\n    while (!this.heap.isEmpty()) {\n        const [priority, taskId] = this.heap.dequeue();        \n        if (this.taskInfo.has(taskId) && this.taskInfo.get(taskId)[0] == priority) {\n            const userId = this.taskInfo.get(taskId)[1];\n            this.taskInfo.delete(taskId);\n            return userId;\n        }\n    }\n    return -1;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nclass TaskManager {\n    private taskInfo: Map<number, [number, number]>;\n    private heap: PriorityQueue<[number, number]>;\n\n    constructor(tasks: number[][]) {\n        this.taskInfo = new Map();\n        this.heap = new PriorityQueue<[number, number]>((a: [number, number], b: [number, number]) => {\n            if (a[0] === b[0]) {\n                return a[1] > b[1] ? -1 : 1;\n            }\n            return a[0] > b[0] ? -1 : 1;\n        });\n        for (const [userId, taskId, priority] of tasks) {\n            this.taskInfo.set(taskId, [priority, userId]);\n            this.heap.enqueue([priority, taskId]);\n        }\n    }\n\n    add(userId: number, taskId: number, priority: number): void {\n        this.taskInfo.set(taskId, [priority, userId]);\n        this.heap.enqueue([priority, taskId]);\n    }\n\n    edit(taskId: number, newPriority: number): void {\n        if (this.taskInfo.has(taskId)) {\n            const [priority, userId] = this.taskInfo.get(taskId)!;\n            this.taskInfo.delete(taskId);\n            this.taskInfo.set(taskId, [newPriority, userId]);\n            this.heap.enqueue([newPriority, taskId]);\n        }\n    }\n\n    rmv(taskId: number): void {\n        this.taskInfo.delete(taskId);\n    }\n\n    execTop(): number {\n        while (!this.heap.isEmpty()) {\n            const [priority, taskId] = this.heap.dequeue();\n            if (this.taskInfo.has(taskId) && this.taskInfo.get(taskId)![0] === priority) {\n                const userId = this.taskInfo.get(taskId)![1];\n                this.taskInfo.delete(taskId);\n                return userId;\n            }\n        }\n        return -1;\n    }\n}\n```\n\n```Rust [sol1-Rust]\nuse std::collections::{BinaryHeap, HashMap};\nuse std::cmp::Ordering;\n\n#[derive(Eq, PartialEq)]\nstruct Task {\n    priority: i32,\n    task_id: i32,\n}\n\nimpl Ord for Task {\n    fn cmp(&self, other: &Self) -> Ordering {\n        self.priority.cmp(&other.priority)\n            .then_with(|| self.task_id.cmp(&other.task_id))\n    }\n}\n\nimpl PartialOrd for Task {\n    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {\n        Some(self.cmp(other))\n    }\n}\n\nstruct TaskManager {\n    task_info: HashMap<i32, (i32, i32)>,\n    heap: BinaryHeap<Task>,\n}\n\nimpl TaskManager {\n    fn new(tasks: Vec<Vec<i32>>) -> Self {\n        let mut task_info = HashMap::new();\n        let mut heap = BinaryHeap::new();\n        \n        for task in tasks {\n            let user_id = task[0];\n            let task_id = task[1];\n            let priority = task[2];\n            \n            task_info.insert(task_id, (priority, user_id));\n            heap.push(Task { priority, task_id });\n        }\n        \n        Self { task_info, heap }\n    }\n    \n    fn add(&mut self, user_id: i32, task_id: i32, priority: i32) {\n        self.task_info.insert(task_id, (priority, user_id));\n        self.heap.push(Task { priority, task_id });\n    }\n    \n    fn edit(&mut self, task_id: i32, new_priority: i32) {\n        if let Some(info) = self.task_info.get_mut(&task_id) {\n            info.0 = new_priority;\n            self.heap.push(Task { priority: new_priority, task_id });\n        }\n    }\n    \n    fn rmv(&mut self, task_id: i32) {\n        self.task_info.remove(&task_id);\n    }\n    \n    fn exec_top(&mut self) -> i32 {\n        while let Some(task) = self.heap.pop() {\n            if let Some(&(priority, user_id)) = self.task_info.get(&task.task_id) {\n                if priority == task.priority {\n                    self.task_info.remove(&task.task_id);\n                    return user_id;\n                }\n            }\n        }\n        -1\n    }\n}\n```\n\n**复杂度分析**\n- 时间复杂度：令 $n$ 为初始化时 $\\textit{tasks}$ 的长度，$m$ 为后续操作的次数。初始化消耗 $O(n\\times\\log{n})$，$\\textit{add}$ 消耗 $O(\\log{(n+m)})$，$\\textit{edit}$ 消耗 $O(\\log{(n+m)})$，$\\textit{rmv}$ 消耗 $O(1))$，$\\textit{execTop}$ 均摊消耗 $O(\\log{(n+m)})$。\n- 空间复杂度：$O(n+m)$。",
+            "slateValue": "",
+            "slug": "she-ji-ren-wu-guan-li-qi-by-leetcode-sol-wibx",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "skHjrd",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 5,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Heap (Priority Queue)",
+                    "nameTranslated": "堆（优先队列）",
+                    "slug": "heap-priority-queue",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2025-09-08T00:33:04.482392+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：优先队列 + 哈希表 思路与算法 初始化：使用哈希表 [latex] 存储每个任务的最新信息（[latex] 和 [latex]），同时放入最大堆 [latex] 中，存储 [latex] 和 [latex]，以便高效获取最高优先级的任务。有些语言没有最大堆，就用最小堆和负值代替。 添加任务：将任务信息存入 [",
+            "topic": {
+                "id": 3775224,
+                "subscribed": false,
+                "commentCount": 33,
+                "viewCount": 31,
+                "post": {
+                    "id": 6894507,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 15,
+            "isEditorsPick": false,
+            "hitCount": 6676,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "design-task-manager",
+                "questionFrontendId": "3408"
+            },
+            "next": {
+                "slug": "lan-shan-chu-dui-pythonjavacgo-by-endles-q5vb",
+                "title": "懒删除堆（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,150 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "M1p3Sm",
+            "title": "执行操作后的最大分割数量",
+            "content": "#### 方法一：位运算 + 预处理 + 枚举\n\n**思路及解法**\n\n由题设可知，我们能够至多修改一处位置的字符，在不进行修改的情况下，我们能够很轻易地通过遍历字符串来计算出分割的数量以及每一个分割的具体区间。\n\n假设我们修改了位置 $i$ 处的字符，易知这个字符一定处于不进行修改的情况下，通过遍历计算出的某一个分割内，这里我们设为第 $t$ 个分割。\n\n由于题设中对字符串的分割是从头到尾进行的，因此在第 $t - 1$ 及以前的分割都是确定的，我们修改第 $i$ 位的字符不影响 $t - 1$ 及以前的分割。\n\n并且容易知道，在**不进行修改的**情况下，从头到尾遍历字符串进行分割，与从尾到头遍历字符串进行分割，得到的分割数量是相同的。因此我们以从尾到头的视角来看，与以上推论相似的，修改第 $i$ 位的字符不影响 $t + 1$ 及以后的分割。\n\n那么对原字符串做出如下划分：以第 $i$ 位为分界，对于左半部分，即第 $0$ 位到第 $i-1$ 位，我们按照从头到尾的方式进行分割，得到的最后一个分割称为第 $i$ 位的**左相邻分割**，简称为**左分割**，**左分割**以前的部分称为**前缀分割**；而对于右半部分，即第 $i+1$ 位到第 $n-1$ 位，我们按照从尾到头的方式进行分割，得到的最后一个分割称为第 $i$ 位的**右相邻分割**，简称为**右分割**，**右分割**以后的部分称为**后缀分割**。\n\n于是对于被修改的，位置为 $i$ 的字符，我们只需要考虑其对**左分割**和**右分割**的影响，分为以下三种情况：\n\n1. 即使修改了位置为 $i$ 的字符，**左分割**、**右分割**内以及第 $i$ 位的不同字符数量仍然不超过 $k$，**左分割**、**右分割**以及第 $i$ 位合并为一个分割，对答案贡献为 $1$。\n2. **左分割**的不同字符数量为 $k$，**右分割**中不同字符数量也为 $k$，并且**左分割**与**右分割**中不同字符的数量不超过 $25$，把第 $i$ 位修改为**左分割**、**右分割**中不包含的字符后，**左分割**、**右分割**以及第 $i$ 位能够重组为三个分割，对答案贡献为 $3$。\n3. 其他情况对答案贡献为 $2$。\n\n那么我们需要统计在位置 $i$ 处字符的**左分割**与**右分割**所包含的信息，包括：**前缀分割**与**后缀分割**中包含的分割数量，**左分割**与**右分割**的字符掩码以及**左分割**与**右分割**中不同字符数量。\n\n这里使用位运算来表示字符掩码，使用数组 $\\textit{left}$ 和 $\\textit{right}$ 分别表示**左分割**和**右分割**的信息，其中 $\\textit{left}[i]$ 和 $\\textit{right}[i]$ 分别表示位置 $i$ 处字符的**左分割**与**右分割**所包含的信息，$\\textit{left}[i][0]$ 和 $\\textit{right}[i][0]$ 分别表示**前缀分割**与**后缀分割**中包含的分割数量，$\\textit{left}[i][1]$ 和 $\\textit{right}[i][1]$ 分别表示**左分割**与**右分割**的字符掩码，$\\textit{left}[i][2]$ 和 $\\textit{right}[i][2]$ 分别表示**左分割**与**右分割**中不同字符数量。\n\n有了以上信息，我们只需要枚举修改的字符，然后取最大分割数即可。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int maxPartitionsAfterOperations(string s, int k) {\n        int n = s.length();\n        vector<vector<int>> left(n, vector<int>(3)), right(n, vector<int>(3));\n        int num = 0, mask = 0, count = 0;\n        for (int i = 0; i < n - 1; i++) {\n            int binary = 1 << (s[i] - 'a');\n            if (!(mask & binary)) {\n                count++;\n                if (count <= k) {\n                    mask |= binary;\n                } else {\n                    num++;\n                    mask = binary;\n                    count = 1;\n                }\n            }\n            left[i + 1][0] = num;\n            left[i + 1][1] = mask;\n            left[i + 1][2] = count;\n        }\n\n        num = 0, mask = 0, count = 0;\n        for (int i = n - 1; i > 0; i--) {\n            int binary = 1 << (s[i] - 'a');\n            if (!(mask & binary)) {\n                count++;\n                if (count <= k) {\n                    mask |= binary;\n                } else {\n                    num++;\n                    mask = binary;\n                    count = 1;\n                }\n            }\n            right[i - 1][0] = num;\n            right[i - 1][1] = mask;\n            right[i - 1][2] = count;\n        }\n\n        int Max = 0;\n        for (int i = 0; i < n; i++) {\n            int seg = left[i][0] + right[i][0] + 2;\n            int totMask = left[i][1] | right[i][1];\n            int totCount = 0;\n            while (totMask) {\n                totMask = totMask & (totMask - 1);\n                totCount++;\n            }\n            if (left[i][2] == k && right[i][2] == k && totCount < 26) {\n                seg++;\n            } else if (min(totCount + 1, 26) <= k) {\n                seg--;\n            }\n            Max = max(Max, seg);\n        }\n        return Max;\n    }\n};\n```\n\n```Java [sol1-Java]\npublic class Solution {\n    public int maxPartitionsAfterOperations(String s, int k) {\n        int n = s.length();\n        int[][] left = new int[n][3];\n        int[][] right = new int[n][3];\n\n        int num = 0, mask = 0, count = 0;\n        for (int i = 0; i < n - 1; i++) {\n            int binary = 1 << (s.charAt(i) - 'a');\n            if ((mask & binary) == 0) {\n                count++;\n                if (count <= k) {\n                    mask |= binary;\n                } else {\n                    num++;\n                    mask = binary;\n                    count = 1;\n                }\n            }\n            left[i + 1][0] = num;\n            left[i + 1][1] = mask;\n            left[i + 1][2] = count;\n        }\n\n        num = 0;\n        mask = 0;\n        count = 0;\n        for (int i = n - 1; i > 0; i--) {\n            int binary = 1 << (s.charAt(i) - 'a');\n            if ((mask & binary) == 0) {\n                count++;\n                if (count <= k) {\n                    mask |= binary;\n                } else {\n                    num++;\n                    mask = binary;\n                    count = 1;\n                }\n            }\n            right[i - 1][0] = num;\n            right[i - 1][1] = mask;\n            right[i - 1][2] = count;\n        }\n\n        int maxVal = 0;\n        for (int i = 0; i < n; i++) {\n            int seg = left[i][0] + right[i][0] + 2;\n            int totMask = left[i][1] | right[i][1];\n            int totCount = Integer.bitCount(totMask);\n            if (left[i][2] == k && right[i][2] == k && totCount < 26) {\n                seg++;\n            } else if (Math.min(totCount + 1, 26) <= k) {\n                seg--;\n            }\n            maxVal = Math.max(maxVal, seg);\n        }\n        return maxVal;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def maxPartitionsAfterOperations(self, s: str, k: int) -> int:\n        n = len(s)\n        left = [[0] * 3 for _ in range(n)]\n        right = [[0] * 3 for _ in range(n)]\n\n        num, mask, count = 0, 0, 0\n        for i in range(n - 1):\n            binary = 1 << (ord(s[i]) - ord(\"a\"))\n            if not (mask & binary):\n                count += 1\n                if count <= k:\n                    mask |= binary\n                else:\n                    num += 1\n                    mask = binary\n                    count = 1\n            left[i + 1][0] = num\n            left[i + 1][1] = mask\n            left[i + 1][2] = count\n\n        num, mask, count = 0, 0, 0\n        for i in range(n - 1, 0, -1):\n            binary = 1 << (ord(s[i]) - ord(\"a\"))\n            if not (mask & binary):\n                count += 1\n                if count <= k:\n                    mask |= binary\n                else:\n                    num += 1\n                    mask = binary\n                    count = 1\n            right[i - 1][0] = num\n            right[i - 1][1] = mask\n            right[i - 1][2] = count\n\n        max_val = 0\n        for i in range(n):\n            seg = left[i][0] + right[i][0] + 2\n            tot_mask = left[i][1] | right[i][1]\n            tot_count = bin(tot_mask).count(\"1\")\n            if left[i][2] == k and right[i][2] == k and tot_count < 26:\n                seg += 1\n            elif min(tot_count + 1, 26) <= k:\n                seg -= 1\n            max_val = max(max_val, seg)\n        return max_val\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MaxPartitionsAfterOperations(string s, int k) {\n        int n = s.Length;\n        int[][] left = new int[n][];\n        int[][] right = new int[n][];\n        \n        for (int i = 0; i < n; i++) {\n            left[i] = new int[3];\n            right[i] = new int[3];\n        }\n        \n        int num = 0, mask = 0, count = 0;\n        for (int i = 0; i < n - 1; i++) {\n            int binary = 1 << (s[i] - 'a');\n            if ((mask & binary) == 0) {\n                count++;\n                if (count <= k) {\n                    mask |= binary;\n                } else {\n                    num++;\n                    mask = binary;\n                    count = 1;\n                }\n            }\n            left[i + 1][0] = num;\n            left[i + 1][1] = mask;\n            left[i + 1][2] = count;\n        }\n\n        num = 0; mask = 0; count = 0;\n        for (int i = n - 1; i > 0; i--) {\n            int binary = 1 << (s[i] - 'a');\n            if ((mask & binary) == 0) {\n                count++;\n                if (count <= k) {\n                    mask |= binary;\n                } else {\n                    num++;\n                    mask = binary;\n                    count = 1;\n                }\n            }\n            right[i - 1][0] = num;\n            right[i - 1][1] = mask;\n            right[i - 1][2] = count;\n        }\n\n        int max = 0;\n        for (int i = 0; i < n; i++) {\n            int seg = left[i][0] + right[i][0] + 2;\n            int totMask = left[i][1] | right[i][1];\n            int totCount = 0;\n            while (totMask != 0) {\n                totMask = totMask & (totMask - 1);\n                totCount++;\n            }\n            if (left[i][2] == k && right[i][2] == k && totCount < 26) {\n                seg++;\n            } else if (Math.Min(totCount + 1, 26) <= k) {\n                seg--;\n            }\n            max = Math.Max(max, seg);\n        }\n        return max;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc maxPartitionsAfterOperations(s string, k int) int {\n    n := len(s)\n    left := make([][3]int, n)\n    right := make([][3]int, n)\n    \n    num, mask, count := 0, 0, 0\n    for i := 0; i < n-1; i++ {\n        binary := 1 << (s[i] - 'a')\n        if mask & binary == 0 {\n            count++\n            if count <= k {\n                mask |= binary\n            } else {\n                num++\n                mask = binary\n                count = 1\n            }\n        }\n        left[i+1][0] = num\n        left[i+1][1] = mask\n        left[i+1][2] = count\n    }\n\n    num, mask, count = 0, 0, 0\n    for i := n-1; i > 0; i-- {\n        binary := 1 << (s[i] - 'a')\n        if mask & binary == 0 {\n            count++\n            if count <= k {\n                mask |= binary\n            } else {\n                num++\n                mask = binary\n                count = 1\n            }\n        }\n        right[i-1][0] = num\n        right[i-1][1] = mask\n        right[i-1][2] = count\n    }\n\n    maxVal := 0\n    for i := 0; i < n; i++ {\n        seg := left[i][0] + right[i][0] + 2\n        totMask := left[i][1] | right[i][1]\n        totCount := 0\n        for totMask != 0 {\n            totMask = totMask & (totMask - 1)\n            totCount++\n        }\n        if left[i][2] == k && right[i][2] == k && totCount < 26 {\n            seg++\n        } else if min(totCount+1, 26) <= k {\n            seg--\n        }\n        if seg > maxVal {\n            maxVal = seg\n        }\n    }\n    return maxVal\n}\n```\n\n```C [sol1-C]\nint maxPartitionsAfterOperations(char* s, int k) {\n    int n = strlen(s);\n    int** left = (int**)malloc(n * sizeof(int*));\n    int** right = (int**)malloc(n * sizeof(int*));\n    \n    for (int i = 0; i < n; i++) {\n        left[i] = (int*)malloc(3 * sizeof(int));\n        right[i] = (int*)malloc(3 * sizeof(int));\n        memset(left[i], 0, sizeof(int) * 3);\n        memset(right[i], 0, sizeof(int) * 3);\n    }\n    \n    int num = 0, mask = 0, count = 0;\n    for (int i = 0; i < n - 1; i++) {\n        int binary = 1 << (s[i] - 'a');\n        if (!(mask & binary)) {\n            count++;\n            if (count <= k) {\n                mask |= binary;\n            } else {\n                num++;\n                mask = binary;\n                count = 1;\n            }\n        }\n        left[i + 1][0] = num;\n        left[i + 1][1] = mask;\n        left[i + 1][2] = count;\n    }\n\n    num = 0; mask = 0; count = 0;\n    for (int i = n - 1; i > 0; i--) {\n        int binary = 1 << (s[i] - 'a');\n        if (!(mask & binary)) {\n            count++;\n            if (count <= k) {\n                mask |= binary;\n            } else {\n                num++;\n                mask = binary;\n                count = 1;\n            }\n        }\n        right[i - 1][0] = num;\n        right[i - 1][1] = mask;\n        right[i - 1][2] = count;\n    }\n\n    int max = 0;\n    for (int i = 0; i < n; i++) {\n        int seg = left[i][0] + right[i][0] + 2;\n        int totMask = left[i][1] | right[i][1];\n        int totCount = 0;\n        while (totMask) {\n            totMask = totMask & (totMask - 1);\n            totCount++;\n        }\n        if (left[i][2] == k && right[i][2] == k && totCount < 26) {\n            seg++;\n        } else {\n            int minVal = fmin(totCount + 1, 26);\n            if (minVal <= k) {\n                seg--;\n            }\n        }\n        max = fmax(max, seg);\n    }\n    \n    for (int i = 0; i < n; i++) {\n        free(left[i]);\n        free(right[i]);\n    }\n    free(left);\n    free(right);\n    \n    return max;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar maxPartitionsAfterOperations = function(s, k) {\n    const n = s.length;\n    const left = Array(n).fill().map(() => Array(3).fill(0));\n    const right = Array(n).fill().map(() => Array(3).fill(0));\n    \n    let num = 0, mask = 0, count = 0;\n    for (let i = 0; i < n - 1; i++) {\n        const binary = 1 << (s.charCodeAt(i) - 97);\n        if (!(mask & binary)) {\n            count++;\n            if (count <= k) {\n                mask |= binary;\n            } else {\n                num++;\n                mask = binary;\n                count = 1;\n            }\n        }\n        left[i + 1][0] = num;\n        left[i + 1][1] = mask;\n        left[i + 1][2] = count;\n    }\n\n    num = 0; mask = 0; count = 0;\n    for (let i = n - 1; i > 0; i--) {\n        const binary = 1 << (s.charCodeAt(i) - 97);\n        if (!(mask & binary)) {\n            count++;\n            if (count <= k) {\n                mask |= binary;\n            } else {\n                num++;\n                mask = binary;\n                count = 1;\n            }\n        }\n        right[i - 1][0] = num;\n        right[i - 1][1] = mask;\n        right[i - 1][2] = count;\n    }\n\n    let max = 0;\n    for (let i = 0; i < n; i++) {\n        let seg = left[i][0] + right[i][0] + 2;\n        let totMask = left[i][1] | right[i][1];\n        let totCount = 0;\n        while (totMask) {\n            totMask = totMask & (totMask - 1);\n            totCount++;\n        }\n        if (left[i][2] === k && right[i][2] === k && totCount < 26) {\n            seg++;\n        } else if (Math.min(totCount + 1, 26) <= k) {\n            seg--;\n        }\n        max = Math.max(max, seg);\n    }\n    return max;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction maxPartitionsAfterOperations(s: string, k: number): number {\n    const n: number = s.length;\n    const left: number[][] = Array(n).fill(0).map(() => Array(3).fill(0));\n    const right: number[][] = Array(n).fill(0).map(() => Array(3).fill(0));\n    \n    let num: number = 0, mask: number = 0, count: number = 0;\n    for (let i = 0; i < n - 1; i++) {\n        const binary: number = 1 << (s.charCodeAt(i) - 97);\n        if (!(mask & binary)) {\n            count++;\n            if (count <= k) {\n                mask |= binary;\n            } else {\n                num++;\n                mask = binary;\n                count = 1;\n            }\n        }\n        left[i + 1][0] = num;\n        left[i + 1][1] = mask;\n        left[i + 1][2] = count;\n    }\n\n    num = 0; mask = 0; count = 0;\n    for (let i = n - 1; i > 0; i--) {\n        const binary: number = 1 << (s.charCodeAt(i) - 97);\n        if (!(mask & binary)) {\n            count++;\n            if (count <= k) {\n                mask |= binary;\n            } else {\n                num++;\n                mask = binary;\n                count = 1;\n            }\n        }\n        right[i - 1][0] = num;\n        right[i - 1][1] = mask;\n        right[i - 1][2] = count;\n    }\n\n    let max: number = 0;\n    for (let i = 0; i < n; i++) {\n        let seg: number = left[i][0] + right[i][0] + 2;\n        let totMask: number = left[i][1] | right[i][1];\n        let totCount: number = 0;\n        while (totMask) {\n            totMask = totMask & (totMask - 1);\n            totCount++;\n        }\n        if (left[i][2] === k && right[i][2] === k && totCount < 26) {\n            seg++;\n        } else if (Math.min(totCount + 1, 26) <= k) {\n            seg--;\n        }\n        max = Math.max(max, seg);\n    }\n    return max;\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn max_partitions_after_operations(s: String, k: i32) -> i32 {\n        let n = s.len();\n        let mut left = vec![[0; 3]; n];\n        let mut right = vec![[0; 3]; n];\n        let bytes = s.as_bytes();\n        \n        let (mut num, mut mask, mut count) = (0, 0, 0);\n        for i in 0..n-1 {\n            let binary = 1 << (bytes[i] - b'a');\n            if mask & binary == 0 {\n                count += 1;\n                if count <= k {\n                    mask |= binary;\n                } else {\n                    num += 1;\n                    mask = binary;\n                    count = 1;\n                }\n            }\n            left[i + 1][0] = num;\n            left[i + 1][1] = mask;\n            left[i + 1][2] = count;\n        }\n\n        (num, mask, count) = (0, 0, 0);\n        for i in (1..n).rev() {\n            let binary = 1 << (bytes[i] - b'a');\n            if mask & binary == 0 {\n                count += 1;\n                if count <= k {\n                    mask |= binary;\n                } else {\n                    num += 1;\n                    mask = binary;\n                    count = 1;\n                }\n            }\n            right[i - 1][0] = num;\n            right[i - 1][1] = mask;\n            right[i - 1][2] = count;\n        }\n\n        let mut max_val = 0;\n        for i in 0..n {\n            let mut seg = left[i][0] + right[i][0] + 2;\n            let tot_mask = left[i][1] | right[i][1];\n            let tot_count = tot_mask.count_ones() as i32;\n            \n            if left[i][2] == k && right[i][2] == k && tot_count < 26 {\n                seg += 1;\n            } else if (tot_count + 1).min(26) <= k {\n                seg -= 1;\n            }\n            max_val = max_val.max(seg);\n        }\n        max_val\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(M \\times n)$，其中 $n$ 为字符串 $s$ 的长度，$M$ 为 26。\n\n- 空间复杂度：$O(n)$，使用了数组 $\\textit{left}$ 和 $\\textit{right}$ 分别表示**左分割**与**右分割**中的信息，两个数组大小正比于 $n$。",
+            "slateValue": "",
+            "slug": "zhi-xing-cao-zuo-hou-de-zui-da-fen-ge-sh-fwni",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "M1p3Sm",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 6,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Bit Manipulation",
+                    "nameTranslated": "位运算",
+                    "slug": "bit-manipulation",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Bitmask",
+                    "nameTranslated": "位掩码",
+                    "slug": "bitmask",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2025-10-07T12:01:30.897055+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：位运算 + 预处理 + 枚举 思路及解法 由题设可知，我们能够至多修改一处位置的字符，在不进行修改的情况下，我们能够很轻易地通过遍历字符串来计算出分割的数量以及每一个分割的具体区间。 假设我们修改了位置 [latex] 处的字符，易知这个字符一定处于不进行修改的情况下，通过遍历计算出的某一个分割内，这里我们设为",
+            "topic": {
+                "id": 3799989,
+                "subscribed": false,
+                "commentCount": 19,
+                "viewCount": 31,
+                "post": {
+                    "id": 6938004,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 17,
+            "isEditorsPick": false,
+            "hitCount": 5528,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "maximize-the-number-of-partitions-after-operations",
+                "questionFrontendId": "3003"
+            },
+            "next": {
+                "slug": "ji-yi-hua-sou-suo-jian-ji-xie-fa-pythonj-6g5z",
+                "title": "两种方法：记忆化搜索 / O(n) 前后缀分解（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

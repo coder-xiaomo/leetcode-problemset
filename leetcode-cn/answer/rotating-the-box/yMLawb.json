@@ -1,0 +1,96 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "yMLawb",
+            "title": "旋转盒子",
+            "content": "#### 方法一：用队列维护空位\n\n**提示 $1$**\n\n当我们将盒子顺时针旋转之后，原先的「每一行」就变成了「每一列」。\n\n由于石头受到重力只会竖直向下掉落，因此「每一列」之间都互不影响，我们可以依次计算「每一列」的结果，即原先的「每一行」的结果。\n\n**思路与算法**\n\n由于重力向下，那么我们应当从右向左遍历原先的「每一行」。\n\n我们使用一个队列来存放一行中的空位：\n\n- 当我们遍历到一块石头时，就从队首取出一个空位来放置这块石头。如果队列为空，那么说明右侧没有空位，这块石头不会下落；\n\n- 当我们遍历到一个空位时，我们将其加入队列；\n\n- 当我们遍历到一个障碍物时，需要将队列清空，障碍物右侧的空位都是不可用的。\n\n在遍历完所有的行后，我们将矩阵顺时针旋转 $90$ 度，放入答案数组中即可。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<vector<char>> rotateTheBox(vector<vector<char>>& box) {\n        int m = box.size();\n        int n = box[0].size();\n\n        for (int i = 0; i < m; ++i) {\n            deque<int> q;\n            for (int j = n - 1; j >= 0; --j) {\n                if (box[i][j] == '*') {\n                    // 遇到障碍物，清空队列\n                    q.clear();\n                }\n                else if (box[i][j] == '#') {\n                    if (!q.empty()) {\n                        // 如果队列不为空，石头就会下落\n                        int pos = q.front();\n                        q.pop_front();\n                        box[i][pos] = '#';\n                        box[i][j] = '.';\n                        // 由于下落，石头变为空位，也需要加入队列\n                        q.push_back(j);\n                    }\n                }\n                else {\n                    // 将空位加入队列\n                    q.push_back(j);\n                }\n            }\n        }\n\n        // 将矩阵顺时针旋转 90 度放入答案\n        vector<vector<char>> ans(n, vector<char>(m));\n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j) {\n                ans[j][m - i - 1] = box[i][j];\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def rotateTheBox(self, box: List[List[str]]) -> List[List[str]]:\n        m, n = len(box), len(box[0])\n\n        for i in range(m):\n            q = deque()\n            for j in range(n - 1, -1, -1):\n                if box[i][j] == \"*\":\n                    # 遇到障碍物，清空队列\n                    q.clear()\n                elif box[i][j] == \"#\":\n                    if q:\n                        # 如果队列不为空，石头就会下落\n                        pos = q.popleft()\n                        box[i][pos] = \"#\"\n                        box[i][j] = \".\"\n                        # 由于下落，石头变为空位，也需要加入队列\n                        q.append(j)\n                else:\n                    # 将空位加入队列\n                    q.append(j)\n\n        # 将矩阵顺时针旋转 90 度放入答案\n        ans = [[\"\"] * m for _ in range(n)]\n        for i in range(m):\n            for j in range(n):\n                ans[j][m - i - 1] = box[i][j]\n        return ans\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(mn)$。\n\n- 空间复杂度：$O(n)$，即为队列需要使用的空间。这里我们不计算返回的答案使用的空间。\n\n#### 方法二：用指针维护空位\n\n**提示 $1$**\n\n在遍历完某一个位置之后，如果队列不为空，那么：\n\n- 队尾一定是该位置；\n- 队列中的位置一定是连续的。\n\n**提示 $1$ 解释**\n\n如果队列不为空，那么该位置一定是空位（要么原本就是空位，要么原本有一块石头下落，该位置变成了空位），因此该位置会被加入队列成为队尾。\n\n如果队列中的位置不连续，假设队列中没有位置 $x$，但有小于 $x$ 和大于 $x$ 的位置，当我们在此之前遍历到位置 $x$ 时，$x$ 没有被放入队列，说明 $x$ 不是空位，并且那时的队列为空，这样队列中就不可能有大于 $x$ 的位置了，这就产生了矛盾。\n\n**思路与算法**\n\n根据提示 $1$，我们就无需显式地维护这个队列了。\n\n如果队列不为空，那么队尾一定为当前位置，且队列中的位置连续。因此我们只需要维护队首对应的位置即可。\n\n**代码**\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    vector<vector<char>> rotateTheBox(vector<vector<char>>& box) {\n        int m = box.size();\n        int n = box[0].size();\n\n        for (int i = 0; i < m; ++i) {\n            // 队首对应的位置\n            int front_pos = n - 1;\n            for (int j = n - 1; j >= 0; --j) {\n                if (box[i][j] == '*') {\n                    // 遇到障碍物，清空队列\n                    front_pos = j - 1;\n                }\n                else if (box[i][j] == '#') {\n                    if (front_pos > j) {\n                        // 如果队列不为空，石头就会下落\n                        box[i][front_pos] = '#';\n                        box[i][j] = '.';\n                        --front_pos;\n                    }\n                    else {\n                        front_pos = j - 1;\n                    }\n                }\n            }\n        }\n\n        // 将矩阵顺时针旋转 90 度放入答案\n        vector<vector<char>> ans(n, vector<char>(m));\n        for (int i = 0; i < m; ++i) {\n            for (int j = 0; j < n; ++j) {\n                ans[j][m - i - 1] = box[i][j];\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def rotateTheBox(self, box: List[List[str]]) -> List[List[str]]:\n        m, n = len(box), len(box[0])\n\n        for i in range(m):\n            # 队首对应的位置\n            front_pos = n - 1\n            for j in range(n - 1, -1, -1):\n                if box[i][j] == \"*\":\n                    # 遇到障碍物，清空队列\n                    front_pos = j - 1\n                elif box[i][j] == \"#\":\n                    if front_pos > j:\n                        # 如果队列不为空，石头就会下落\n                        box[i][front_pos] = \"#\"\n                        box[i][j] = \".\"\n                        front_pos -= 1\n                    else:\n                        front_pos = j - 1\n\n        # 将矩阵顺时针旋转 90 度放入答案\n        ans = [[\"\"] * m for _ in range(n)]\n        for i in range(m):\n            for j in range(n):\n                ans[j][m - i - 1] = box[i][j]\n        return ans\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(mn)$。\n\n- 空间复杂度：$O(1)$。这里我们不计算返回的答案使用的空间。",
+            "slateValue": "",
+            "slug": "xuan-zhuan-he-zi-by-leetcode-solution-us55",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "yMLawb",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 6,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Queue",
+                    "nameTranslated": "队列",
+                    "slug": "queue",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Two Pointers",
+                    "nameTranslated": "双指针",
+                    "slug": "two-pointers",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-05-16T04:44:13.945148+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：用队列维护空位 提示 $1$ 当我们将盒子顺时针旋转之后，原先的「每一行」就变成了「每一列」。 由于石头受到重力只会竖直向下掉落，因此「每一列」之间都互不影响，我们可以依次计算「每一列」的结果，即原先的「每一行」的结果。 思路与算法 由于重力向下，那么我们应当从右向左遍历原先的「每一行」。 我们使用一个队列来存",
+            "topic": {
+                "id": 779199,
+                "subscribed": false,
+                "commentCount": 24,
+                "viewCount": 2176,
+                "post": {
+                    "id": 1720845,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 13,
+            "isEditorsPick": false,
+            "hitCount": 7445,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "rotating-the-box",
+                "questionFrontendId": "1861"
+            },
+            "next": {
+                "slug": "mei-xing-fen-duan-tong-ji-by-endlesschen-umie",
+                "title": "两种方法：正序遍历 / 倒序遍历（Python/Java/C++/C/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

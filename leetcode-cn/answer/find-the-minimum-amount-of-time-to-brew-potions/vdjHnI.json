@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "vdjHnI",
+            "title": "酿造药水需要的最少总时间",
+            "content": "#### 方法一：动态规划\n\n**思路与算法**\n\n题目要求每个药水都需要经过每个巫师酿造，每个巫师同时只能酿造一瓶药水并且每瓶药水只要开始被酿造后，中间不能暂停，必须经由每位巫师连续酿造。\n\n首先第一瓶药水在时刻 $0$ 就开始被酿造，因此后续每位巫师酿造完该药水的时间是固定的，容易被计算出。但后续的药水开始时间并不明朗，我们不妨先允许酿造第 $j$ 瓶药水的过程不连续（但前 $j - 1$ 瓶仍然要求连续），设第 $i$ 位巫师处理完第 $j$ 瓶药水的时间是 $\\textit{times}[i][j]$，那么有：\n\n$$\\textit{times}[i][j] = \\max(\\textit{times}[i-1][j], \\textit{times}[i][j-1]) + \\textit{skill}[i] \\times \\textit{mana}[j]$$\n\n经过一轮递推，第 $j$ 瓶药水的完成时间 $\\textit{times}[n - 1][j]$ 被计算出，此时我们需要反向遍历更新前面巫师处理第 $j$ 瓶药水的完成时间，消除之前允许不连续酿造所产生的间隔。\n\n在编写代码的过程中，$\\textit{times}$ 可以使用一维数组滚动优化。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    using ll = long long;\n    long long minTime(vector<int>& skill, vector<int>& mana) {\n        int n = skill.size(), m = mana.size();\n        vector<ll> times(n);\n        for (int j = 0; j < m; j++) {\n            ll cur_time = 0;\n            for (int i = 0; i < n; i++) {\n                cur_time = max(cur_time, times[i]) + skill[i] * mana[j];\n            }\n            times[n - 1] = cur_time;\n            for (int i = n - 2; i >= 0; i--) {\n                times[i] = times[i + 1] - skill[i + 1] * mana[j];\n            }\n        }\n        return times[n - 1];\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def minTime(self, skill: List[int], mana: List[int]) -> int:\n        n, m = len(skill), len(mana)\n        times = [0] * n\n        for j in range(m):\n            cur_time = 0\n            for i in range(n):\n                cur_time = max(cur_time, times[i]) + skill[i] * mana[j]\n            times[n - 1] = cur_time\n            for i in range(n - 2, -1, -1):\n                times[i] = times[i + 1] - skill[i + 1] * mana[j]\n        return times[n - 1]\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn min_time(skill: Vec<i32>, mana: Vec<i32>) -> i64 {\n        let n = skill.len();\n        let m = mana.len();\n        let mut times = vec![0i64; n];\n\n        for &mj in &mana {\n            let mut cur_time: i64 = 0;\n            for i in 0..n {\n                cur_time = std::cmp::max(cur_time, times[i]) + skill[i] as i64 * mj as i64;\n            }\n            times[n - 1] = cur_time;\n            for i in (0..n - 1).rev() {\n                times[i] = times[i + 1] - skill[i + 1] as i64 * mj as i64;\n            }\n        }\n\n        times[n - 1]\n    }\n}\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public long minTime(int[] skill, int[] mana) {\n        int n = skill.length, m = mana.length;\n        long[] times = new long[n];\n        \n        for (int j = 0; j < m; j++) {\n            long curTime = 0;\n            for (int i = 0; i < n; i++) {\n                curTime = Math.max(curTime, times[i]) + (long)skill[i] * mana[j];\n            }\n            times[n - 1] = curTime;\n            for (int i = n - 2; i >= 0; i--) {\n                times[i] = times[i + 1] - (long)skill[i + 1] * mana[j];\n            }\n        }\n        return times[n - 1];\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public long MinTime(int[] skill, int[] mana) {\n        int n = skill.Length, m = mana.Length;\n        long[] times = new long[n];\n        \n        for (int j = 0; j < m; j++) {\n            long curTime = 0;\n            for (int i = 0; i < n; i++) {\n                curTime = Math.Max(curTime, times[i]) + (long)skill[i] * mana[j];\n            }\n            times[n - 1] = curTime;\n            for (int i = n - 2; i >= 0; i--) {\n                times[i] = times[i + 1] - (long)skill[i + 1] * mana[j];\n            }\n        }\n        return times[n - 1];\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc minTime(skill []int, mana []int) int64 {\n    n, m := len(skill), len(mana)\n    times := make([]int64, n)\n    \n    for j := 0; j < m; j++ {\n        var curTime int64 = 0\n        for i := 0; i < n; i++ {\n            if curTime < times[i] {\n                curTime = times[i]\n            }\n            curTime += int64(skill[i]) * int64(mana[j])\n        }\n        times[n - 1] = curTime\n        for i := n - 2; i >= 0; i-- {\n            times[i] = times[i + 1] - int64(skill[i + 1]) * int64(mana[j])\n        }\n    }\n    return times[n - 1]\n}\n```\n\n```C [sol1-C]\nlong long minTime(int* skill, int skillSize, int* mana, int manaSize) {\n    long long* times = (long long*)malloc(skillSize * sizeof(long long));\n    for (int i = 0; i < skillSize; i++) {\n        times[i] = 0;\n    }\n    \n    for (int j = 0; j < manaSize; j++) {\n        long long cur_time = 0;\n        for (int i = 0; i < skillSize; i++) {\n            cur_time = (cur_time > times[i] ? cur_time : times[i]) + (long long)skill[i] * mana[j];\n        }\n        times[skillSize - 1] = cur_time;\n        for (int i = skillSize - 2; i >= 0; i--) {\n            times[i] = times[i + 1] - (long long)skill[i + 1] * mana[j];\n        }\n    }\n    \n    long long result = times[skillSize - 1];\n    free(times);\n    return result;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar minTime = function(skill, mana) {\n    const n = skill.length, m = mana.length;\n    const times = new Array(n).fill(0);\n    \n    for (let j = 0; j < m; j++) {\n        let curTime = 0;\n        for (let i = 0; i < n; i++) {\n            curTime = Math.max(curTime, times[i]) + skill[i] * mana[j];\n        }\n        times[n - 1] = curTime;\n        for (let i = n - 2; i >= 0; i--) {\n            times[i] = times[i + 1] - skill[i + 1] * mana[j];\n        }\n    }\n    return times[n - 1];\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction minTime(skill: number[], mana: number[]): number {\n    const n = skill.length, m = mana.length;\n    const times: number[] = new Array(n).fill(0);\n    \n    for (let j = 0; j < m; j++) {\n        let curTime = 0;\n        for (let i = 0; i < n; i++) {\n            curTime = Math.max(curTime, times[i]) + skill[i] * mana[j];\n        }\n        times[n - 1] = curTime;\n        for (let i = n - 2; i >= 0; i--) {\n            times[i] = times[i + 1] - skill[i + 1] * mana[j];\n        }\n    }\n    return times[n - 1];\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(nm)$，其中 $n$ 是 $\\textit{skill}$ 的长度，$m$ 是 $\\textit{mana}$ 的长度。\n\n- 空间复杂度：$O(n)$。",
+            "slateValue": "",
+            "slug": "niang-zao-yao-shui-xu-yao-de-zui-shao-zo-ojii",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "vdjHnI",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 7,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python3",
+                    "nameTranslated": "",
+                    "slug": "python3",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2025-10-08T09:44:16.308383+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 思路与算法 题目要求每个药水都需要经过每个巫师酿造，每个巫师同时只能酿造一瓶药水并且每瓶药水只要开始被酿造后，中间不能暂停，必须经由每位巫师连续酿造。 首先第一瓶药水在时刻 [latex] 就开始被酿造，因此后续每位巫师酿造完该药水的时间是固定的，容易被计算出。但后续的药水开始时间并不明朗，我们不妨先",
+            "topic": {
+                "id": 3800529,
+                "subscribed": false,
+                "commentCount": 35,
+                "viewCount": 38,
+                "post": {
+                    "id": 6939033,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 32,
+            "isEditorsPick": false,
+            "hitCount": 8561,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "find-the-minimum-amount-of-time-to-brew-potions",
+                "questionFrontendId": "3494"
+            },
+            "next": {
+                "slug": "zheng-fan-liang-ci-sao-miao-pythonjavacg-5fz9",
+                "title": "四种方法：正反两次扫描 / 递推 / record / 凸包+二分（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,110 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "ZJ7FNY",
+            "title": "DFS 思路、代码和证明",
+            "content": "## 题意概述\n\n有一个二叉树形式的任务依赖结构，我们有两个 CPU 核，这两个核可以同时执行不同的任务，问执行完所有任务的最小时间，也即是希望两个 CPU 核的并行时间尽可能大。\n\n### 题目解析\n这道题虽然代码量很少，但思维难度较高。\n\n在通过对示例的观察后，我们可以得出以下重要结论： \n1. **对于任何一颗任务树，它一定有一个先并行后串行的最优策略。树的根结点只能串行。** 这个结论的正确性是因为只有在这颗任务树退化成一个链以后，它才不能被并行，所以把串行延后执行不会导致执行时间变长。\n2. 设一颗任务树的所有任务时间之和为 $x$ ，最大并行时间为 $y$ ，那么这个任务最少需要 $x - y$ 的时间完成。 其中前 $y$ 秒用于并行，后 $x - 2y$ 秒用于串行。 注意由于上一条结论，在区间 $[x - 2y, x]$ 内的所有剩余时间都是可以 **只通过** 并行取到的。对于叶子节点 `node` 来说，它的任务总时间即为 `node.val` ，最大并行时间为 0 。\n\n所有任务时间之和很容易求，下面我们求最大并行时间。\n\n### 解法一\n设一颗任务树的左子树所有任务时间和为 $a$ ，最大并行时间为 $b$ ，右子树分别为 $c, d$ 。那么这颗任务树最大并行时间为 $\\frac{a + c}{2}$，但不一定能取到。\n\n不失一般性，假设 $a \\geq c$ 。如果 $a - 2b \\leq c$ ，那么最优策略是左树先并行 $a - c$ 的任务，剩余 $c$ 的任务量，然后再两树并行，就达成了一直并行。并行时间取到了 $\\frac{a + c}{2}$ 。\n\n如果 $a - 2b > c$ ，那么剩余 $a - 2b - c$ 的任务无法被并行。并行时间最大为 $b + c$ 。\n\n#### 题解代码\n\n```python [sol1-Python]\n# Definition for a binary tree node.\n# class ceeNode(object):\n#     def __init__(self, x):\n#         self.val = x\n#         self.left = None\n#         self.right = None\n\nclass Solution(object):\n    def minimalExecTime(self, root):\n        \"\"\"\n        :type root: TreeNode\n        :rtype: float\n        \"\"\"\n        def dfs(root):\n            if root is None:\n                return 0., 0.\n            tc = root.val\n\t\t\t\n            # 先递归左右子树\n            a, b = dfs(root.left)\n            c, d = dfs(root.right)\n            \n            tc = tc + a + c\n            # 只考虑 a >= c 的情况，不满足就交换\n            if a < c:\n                a, c = c, a\n                b, d = d, b\n            \n            if a - 2 * b <= c:\n                pc = (a + c) / 2\n            else:\n                pc = c + b\n\n            return tc, pc\n\n        tc, pc = dfs(root)\n        return tc - pc\n```\n```C++ [sol1-C++]\n/**\n * Definition for a binary tree node.\n * struct TreeNode {\n *     int val;\n *     TreeNode *left;\n *     TreeNode *right;\n *     TreeNode(int x) : val(x), left(NULL), right(NULL) {}\n * };\n */\nclass Solution {\npublic:\n    pair<int, double> DFS(TreeNode* root) {\n        if (!root) return {0, 0.0};\n        auto l = DFS(root->left);\n        auto r = DFS(root->right);\n\n        int a = l.first, c = r.first;\n        double b = l.second, d = r.second;\n        int tot = a + c + root->val;\n        if ((c - 2 * d <= a && a <= c) || (a - 2 * b <= c && c <= a)) {\n            return {tot, (a + c) / 2.0};\n        }\n        if (a - 2 * b > c) {\n            return {tot, b + c};\n        } else {\n            // c - 2 * d > a\n            return {tot, a + d};\n        }\n    }\n    double minimalExecTime(TreeNode* root) {\n        auto p = DFS(root);\n        return p.first - p.second;\n    }\n};\n```\n\n#### 复杂度分析\n\n* 时间复杂度：$O(n)$。每个节点只被访问一次。\n\n* 空间复杂度：$O(n)$。\n\n### 解法二\n虽然解法一已经很清晰了，解法二比解法一更简洁。它的思路是从解法一的基础上得来的。\n\n我们沿用解法一的记号，设一颗任务树的左子树所有任务时间和为 $a$ ，最大并行时间为 $b$ ，右子树分别为 $c, d$ 。不失一般性，假设 $a \\geq c$ 。\n\n记这颗任务树的根任务的运行时间为 `val` 。如果 $a - 2b \\leq c$ ，则所有子树上的任务都被并行执行了，所以这颗任务树的最短执行时间为 $\\frac{a + c}{2} + val$ 。否则，这颗任务树的最短执行时间为 $a - b + val$ 。\n\n通过对以上两种情况的合并，以及考虑到 $a < c$ 的情况，最终我们可以用一个公式直接算出这颗任务树的最短执行时间为\n\n$\\max(a - b, c - d, \\frac{a + c}{2}) + val$ \n\n又由于 $a - b$, $c - d$ 正好是左右子树的最短执行时间（记为函数 $ans$ ），我们可以进一步简化这个公式：\n\n$ans(root) = \\max(ans(root.left), ans(root.right), \\frac{a + c}{2}) + val$\n\n使用 DFS 就可以轻松求解了。\n\n```C++\n/**\n * Definition for a binary tree node.\n * struct TreeNode {\n *     int val;\n *     TreeNode *left;\n *     TreeNode *right;\n *     TreeNode(int x) : val(x), left(NULL), right(NULL) {}\n * };\n */\nclass Solution {\npublic:\n    pair<int, double> DFS(TreeNode* root) {\n        if (!root) return {0, 0.0};\n        auto l = DFS(root->left);\n        auto r = DFS(root->right);\n\n        return {l.first + r.first + root->val, root->val + max(max(l.second, r.second), (l.first + r.first) / 2.0)};\n    }\n    double minimalExecTime(TreeNode* root) {\n        auto p = DFS(root);\n        return p.second;\n    }\n};\n```\n\n#### 复杂度分析\n\n* 时间复杂度：$O(n)$。每个节点只被访问一次。\n\n* 空间复杂度：$O(n)$。",
+            "slateValue": "",
+            "slug": "dfs-si-lu-dai-ma-he-zheng-ming-by-leetcode-solutio",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "ZJ7FNY",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 33,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Depth-First Search",
+                    "nameTranslated": "深度优先搜索",
+                    "slug": "depth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Recursion",
+                    "nameTranslated": "递归",
+                    "slug": "recursion",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Binary Tree",
+                    "nameTranslated": "二叉树",
+                    "slug": "binary-tree",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2020-04-21T05:21:28.905974+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "题意概述 有一个二叉树形式的任务依赖结构，我们有两个 CPU 核，这两个核可以同时执行不同的任务，问执行完所有任务的最小时间，也即是希望两个 CPU 核的并行时间尽可能大。 题目解析 这道题虽然代码量很少，但思维难度较高。 在通过对示例的观察后，我们可以得出以下重要结论：  1. 对于任何一颗任务树，它一定有一个先并行",
+            "topic": {
+                "id": 212917,
+                "subscribed": false,
+                "commentCount": 16,
+                "viewCount": 5754,
+                "post": {
+                    "id": 572448,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 42,
+            "isEditorsPick": false,
+            "hitCount": 11769,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "er-cha-shu-ren-wu-diao-du",
+                "questionFrontendId": "LCP 10"
+            },
+            "next": {
+                "slug": "jian-ji-jie-lun-zheng-ming-tu-jie-by-new-3jz0",
+                "title": "简洁结论 + 证明 + 图解"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,144 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "6Fevhl",
+            "title": "判断矩形的两个角落是否可达",
+            "content": "#### 方法一：深度优先搜索\n\n**思路**\n\n首先我们考虑 $\\textit{circles}$ 只有一个圆。在三种情况下，不存在这样的路径：\n* 起点在圆内或圆上（圆内或圆上不影响结果，下文均简写为圆内）；\n* 终点在圆内；\n* 圆与矩形的左侧边或者上侧边相切或相交（相切或相交不影响结果，下文均简写为相交），并且圆与矩形的右侧边或者下侧边相交。\n\n前两种情况好理解，题目规定路径不能触碰圆的边界或者内部，因此当起点或者终点位于圆内时，肯定不存在这样的路径。第三种情况，圆作为一个单一的障碍物，既与矩形的左上边界相交，又与矩形的右下边界相交，使得不存在一条路径可以从矩形内部经过，又不碰触圆的边界或者内部。\n\n接下来，考虑 $\\textit{circles}$ 中有多个圆的情况。类似的，上文讨论的前两种情况仍然成立，当起点或终点位于某一个圆内时，不存在这样的路径。当有多个圆时，圆可能会在矩形内相交。当圆在矩形内相交时，这些圆可以合并成为一个障碍物，当这个合并的障碍物也满足与矩形的左上边界相交，且与矩形的右下边界相交，那么就不存在所求的路径。当圆的相交区域在矩形之外时，这些圆不能进行合并，因为相交的区域不会阻止在矩形内部的路径的生成。这样，我们可以从与矩形的左上边界相交的圆形开始深度优先搜索，然后遍历可以与当前圆合并的相邻点，重复如此，直到遍历到与矩形的右下边界相交的圆，这样的情况下，就表示不存在所求的路径。如果遍历完所有的圆后，都无法遍历到与矩形的右下边界相交的圆，那么表示存在所求的路径。\n\n特殊情况是圆的相交区域的一部分位于矩形内，另一部分位于矩形外，即圆的相交区域又和矩形的边相交。按照上述的推导，这些圆需要进行合并。在实际中，我们可以对它们进行合并，也可以不对它们进行合并。理由如下：当两个圆的相交区和矩形的边相交时，这两个圆本身就都与矩形的边相交。如果这两个圆本身就都与矩形的左上边界相交，那么我们可以不合并它们，因为它们可以各自作为起点。如果这两个圆本身就都与矩形的右下边界相交，那么我们可以不合并它们，因为它们可以各自作为终点。不存在其中一个圆仅与矩形的左上边界相交，另一个圆仅与矩形的右下边界相交的情况。这就得出了接下来的结论：判断两个相交的圆是否需要合并时，我们可以任取相交区域的一点，如果点在矩形内部，那么我们合并它们，否则不合并。\n\n接下来，我们需要将上文提到的几何关系用代码来表示。\n\n首先是判断点是否在圆内，这个我们可以用点到圆心的距离和半径进行比较。为了避免精度问题，我们可以将两边都进行平方操作。\n\n![fig1](https://assets.leetcode.cn/solution-static/3235/1.png)\n\n接下来是判断圆是否与矩形的左上边界相交。记圆心的坐标为 $(x, y)$，半径为 $r$。圆心需要位于图中的两个实线矩形或者圆内。在已经满足圆不包含起点或者终点的情况下，前一句话的条件已经足够。\n\n判断圆是否与右下边界相交，与上面的判断类似。\n\n最后是判断两个相交的圆内的任意一点是否与位于矩形内部。记两个圆的圆心分别为 $O_1$，$O_2$，坐标分别为 $(x_1, y_1)$，$(x_2, y_2)$，半径分别为 $r_1$，$r_2$。首先判断两圆是否相交，也可以用圆心之间的距离与半径之和进行比较。如果相交，再在线段 $O_1O_2$ 取点 $A$ 满足 $\\frac{|O_1A|}{|O_1O_2|}$ = $\\frac{r_1}{r_1+r_2}$。这样点 $A$ 一定满足在两圆的相交区域，因为点 $A$ 到两个圆心的距离均小于等于对应的半径。计算得到点 $A$ 的坐标为 $(\\frac{x_1\\times r_2+x_2\\times r_1}{r_1+r_2}, \\frac{y_1\\times r_2+y_2\\times r_1}{r_1+r_2})$。再判断这个点是否位于矩形内部即可。这样选取点 $A$，也可以避免精度带来的误差。\n\n\n**代码**\n\n```Python [sol1-Python3]\nclass Solution:\n    def canReachCorner(self, xCorner: int, yCorner: int, circles: List[List[int]]) -> bool:\n\n        def pointInCircle(px: int, py: int, x: int, y: int, r: int) -> bool:\n            return (x - px) ** 2 + (y - py) ** 2 <= r ** 2\n\n        def circleIntersectsTopLeftOfRectangle(x: int, y: int, r: int, xCorner: int, yCorner: int) -> bool:\n            return (abs(x) <= r and 0 <= y <= yCorner) or (0 <= x <= xCorner and abs(y - yCorner) <= r) or pointInCircle(x, y, 0, yCorner, r)\n        \n        def circleIntersectsBottomRightOfRectangle(x: int, y: int, r: int, xCorner: int, yCorner: int) -> bool:\n            return (abs(y) <= r and 0 <= x <= xCorner) or (0 <= y <= yCorner and abs(x - xCorner) <= r) or (pointInCircle(x, y, xCorner, 0, r))\n\n        def circlesIntersectInRectangle(x1: int, y1: int, r1: int, x2: int, y2: int, r2: int, xCorner: int, yCorner: int) -> bool:\n            return (x1 - x2) ** 2 + (y1 - y2) ** 2 <= (r1 + r2) ** 2 and x1 * r2 + x2 * r1 < (r1 + r2) * xCorner and y1 * r2 + y2 * r1 < (r1 + r2) * yCorner\n\n        visited = [False] * len(circles)\n        def dfs(i: int) -> bool:\n            x1, y1, r1 = circles[i]\n            if circleIntersectsBottomRightOfRectangle(x1, y1, r1, xCorner, yCorner):\n                return True\n            visited[i] = True\n            for j, (x2, y2, r2) in enumerate(circles):\n                if (not visited[j]) and circlesIntersectInRectangle(x1, y1, r1, x2, y2, r2, xCorner, yCorner) and dfs(j):\n                    return True\n            return False\n\n        for i, (x, y, r) in enumerate(circles):\n            if pointInCircle(0, 0, x, y, r) or pointInCircle(xCorner, yCorner, x, y, r):\n                return False\n            if (not visited[i]) and circleIntersectsTopLeftOfRectangle(x, y, r, xCorner, yCorner) and dfs(i):\n                return False\n        return True\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public boolean canReachCorner(int xCorner, int yCorner, int[][] circles) {\n        boolean[] visited = new boolean[circles.length];\n        for (int i = 0; i < circles.length; i++) {\n            int[] circle = circles[i];\n            int x = circle[0], y = circle[1], r = circle[2];\n            if (pointInCircle(0, 0, x, y, r) || pointInCircle(xCorner, yCorner, x, y, r)) {\n                return false;\n            }\n            if (!visited[i] && circleIntersectsTopLeftOfRectangle(x, y, r, xCorner, yCorner) \n                && dfs(i, circles, xCorner, yCorner, visited)) {\n                return false;\n            }\n        }\n        return true;\n    }\n\n    public boolean dfs(int i, int[][] circles, int xCorner, int yCorner, boolean[] visited) {\n        int x1 = circles[i][0], y1 = circles[i][1], r1 = circles[i][2];\n        if (circleIntersectsBottomRightOfRectangle(x1, y1, r1, xCorner, yCorner)) {\n            return true;\n        }\n        visited[i] = true;\n        for (int j = 0; j < circles.length; j++) {\n            if (!visited[j]) {\n                int x2 = circles[j][0], y2 = circles[j][1], r2 = circles[j][2];\n                if (circlesIntersectInRectangle(x1, y1, r1, x2, y2, r2, xCorner, yCorner) \n                    && dfs(j, circles, xCorner, yCorner, visited)) {\n                    return true;\n                }\n            }\n        }\n        return false;\n    }\n\n    public boolean pointInCircle(long px, long py, long x, long y, long r) {\n        return (x - px) * (x - px) + (y - py) * (y - py) <= r * r;\n    }\n\n    public boolean circleIntersectsTopLeftOfRectangle(int x, int y, int r, int xCorner, int yCorner) {\n        return (Math.abs(x) <= r && 0 <= y && y <= yCorner) ||\n               (0 <= x && x <= xCorner && Math.abs(y - yCorner) <= r) ||\n               pointInCircle(x, y, 0, yCorner, r);\n    }\n\n    public boolean circleIntersectsBottomRightOfRectangle(int x, int y, int r, int xCorner, int yCorner) {\n        return (Math.abs(y) <= r && 0 <= x && x <= xCorner) ||\n               (0 <= y && y <= yCorner && Math.abs(x - xCorner) <= r) ||\n               pointInCircle(x, y, xCorner, 0, r);\n    }\n\n    public boolean circlesIntersectInRectangle(long x1, long y1, long r1, long x2, long y2, long r2, long xCorner, long yCorner) {\n        return (x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2) <= (r1 + r2) * (r1 + r2) &&\n               x1 * r2 + x2 * r1 < (r1 + r2) * xCorner &&\n               y1 * r2 + y2 * r1 < (r1 + r2) * yCorner;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public bool CanReachCorner(int xCorner, int yCorner, int[][] circles) {\n        bool[] visited = new bool[circles.Length];\n        for (int i = 0; i < circles.Length; i++) {\n            int[] circle = circles[i];\n            int x = circle[0], y = circle[1], r = circle[2];\n            if (PointInCircle(0, 0, x, y, r) || PointInCircle(xCorner, yCorner, x, y, r)) {\n                return false;\n            }\n            if (!visited[i] && CircleIntersectsTopLeftOfRectangle(x, y, r, xCorner, yCorner) \n                && Dfs(i, circles, xCorner, yCorner, visited)) {\n                return false;\n            }\n        }\n        return true;\n    }\n\n    private bool Dfs(int i, int[][] circles, int xCorner, int yCorner, bool[] visited) {\n        int x1 = circles[i][0], y1 = circles[i][1], r1 = circles[i][2];\n        if (CircleIntersectsBottomRightOfRectangle(x1, y1, r1, xCorner, yCorner)) {\n            return true;\n        }\n        visited[i] = true;\n        for (int j = 0; j < circles.Length; j++) {\n            if (!visited[j]) {\n                int x2 = circles[j][0], y2 = circles[j][1], r2 = circles[j][2];\n                if (CirclesIntersectInRectangle(x1, y1, r1, x2, y2, r2, xCorner, yCorner) \n                    && Dfs(j, circles, xCorner, yCorner, visited)) {\n                    return true;\n                }\n            }\n        }\n        return false;\n    }\n\n    private bool PointInCircle(long px, long py, long x, long y, long r) {\n        return (x - px) * (x - px) + (y - py) * (y - py) <= r * r;\n    }\n\n    private bool CircleIntersectsTopLeftOfRectangle(int x, int y, int r, int xCorner, int yCorner) {\n        return (Math.Abs(x) <= r && 0 <= y && y <= yCorner) ||\n               (0 <= x && x <= xCorner && Math.Abs(y - yCorner) <= r) ||\n               PointInCircle(x, y, 0, yCorner, r);\n    }\n\n    private bool CircleIntersectsBottomRightOfRectangle(int x, int y, int r, int xCorner, int yCorner) {\n        return (Math.Abs(y) <= r && 0 <= x && x <= xCorner) ||\n               (0 <= y && y <= yCorner && Math.Abs(x - xCorner) <= r) ||\n               PointInCircle(x, y, xCorner, 0, r);\n    }\n\n    private bool CirclesIntersectInRectangle(long x1, long y1, long r1, long x2, long y2, long r2, long xCorner, long yCorner) {\n        return (x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2) <= (r1 + r2) * (r1 + r2) &&\n               x1 * r2 + x2 * r1 < (r1 + r2) * xCorner &&\n               y1 * r2 + y2 * r1 < (r1 + r2) * yCorner;\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    bool canReachCorner(int xCorner, int yCorner, vector<vector<int>>& circles) {\n        vector<bool> visited(circles.size(), false);\n\n        function<bool(int)> dfs = [&](int i) -> bool {\n            int x1 = circles[i][0], y1 = circles[i][1], r1 = circles[i][2];\n            if (circleIntersectsBottomRightOfRectangle(x1, y1, r1, xCorner, yCorner)) {\n                return true;\n            }\n            visited[i] = true;\n            for (int j = 0; j < circles.size(); ++j) {\n                int x2 = circles[j][0], y2 = circles[j][1], r2 = circles[j][2];\n                if (!visited[j] && circlesIntersectInRectangle(x1, y1, r1, x2, y2, r2, xCorner, yCorner) && dfs(j)) {\n                    return true;\n                }\n            }\n            return false;\n        };\n\n        for (int i = 0; i < circles.size(); ++i) {\n            int x = circles[i][0], y = circles[i][1], r = circles[i][2];\n            if (pointInCircle(0, 0, x, y, r) || pointInCircle(xCorner, yCorner, x, y, r)) {\n                return false;\n            }\n            if (!visited[i] && circleIntersectsTopLeftOfRectangle(x, y, r, xCorner, yCorner) && dfs(i)) {\n                return false;\n            }\n        }\n        return true;\n    }\n\n    bool pointInCircle(long long px, long long py, long long x, long long y, long long r) {\n        return (x - px) * (x - px) + (y - py) * (y - py) <= (long long)r * r;\n    }\n\n    bool circleIntersectsTopLeftOfRectangle(int x, int y, int r, int xCorner, int yCorner) {\n        return (abs(x) <= r && 0 <= y && y <= yCorner) ||\n            (0 <= x && x <= xCorner && abs(y - yCorner) <= r) ||\n            pointInCircle(x, y, 0, yCorner, r);\n    }\n\n    bool circleIntersectsBottomRightOfRectangle(int x, int y, int r, int xCorner, int yCorner) {\n        return (abs(y) <= r && 0 <= x && x <= xCorner) ||\n            (0 <= y && y <= yCorner && abs(x - xCorner) <= r) ||\n            pointInCircle(x, y, xCorner, 0, r);\n    }\n\n    bool circlesIntersectInRectangle(long long x1, long long y1, long long r1, long long x2, long long y2, long long r2, long long xCorner, long long yCorner) {\n        return (x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2) <= (r1 + r2) * (r1 + r2) &&\n            x1 * r2 + x2 * r1 < (r1 + r2) * xCorner &&\n            y1 * r2 + y2 * r1 < (r1 + r2) * yCorner;\n    }\n};\n```\n\n```Go [sol1-Go]\nfunc canReachCorner(xCorner int, yCorner int, circles [][]int) bool {\n    visited := make([]bool, len(circles))\n\n    var dfs func(i int) bool\n    dfs = func(i int) bool {\n        x1, y1, r1 := circles[i][0], circles[i][1], circles[i][2]\n        if circleIntersectsBottomRightOfRectangle(x1, y1, r1, xCorner, yCorner) {\n            return true\n        }\n        visited[i] = true\n        for j := 0; j < len(circles); j++ {\n            if !visited[j] && circlesIntersectInRectangle(x1, y1, r1, circles[j][0], circles[j][1], circles[j][2], xCorner, yCorner) && dfs(j) {\n                return true\n            }\n        }\n        return false\n    }\n\n\tfor i := range circles {\n\t\tx, y, r := circles[i][0], circles[i][1], circles[i][2]\n\t\tif pointInCircle(0, 0, x, y, r) || pointInCircle(xCorner, yCorner, x, y, r) {\n\t\t\treturn false\n\t\t}\n\t\tif !visited[i] && circleIntersectsTopLeftOfRectangle(x, y, r, xCorner, yCorner) && dfs(i) {\n\t\t\treturn false\n\t\t}\n\t}\n\treturn true\n}\n\nfunc pointInCircle(px, py, x, y, r int) bool {\n\treturn (x - px) * (x - px) + (y - py) * (y - py) <= r * r\n}\n\nfunc circleIntersectsTopLeftOfRectangle(x, y, r, xCorner, yCorner int) bool {\n\treturn (abs(x) <= r && 0 <= y && y <= yCorner) ||\n\t\t(0 <= x && x <= xCorner && abs(y - yCorner) <= r) ||\n\t\tpointInCircle(x, y, 0, yCorner, r)\n}\n\nfunc circleIntersectsBottomRightOfRectangle(x, y, r, xCorner, yCorner int) bool {\n\treturn (abs(y) <= r && 0 <= x && x <= xCorner) ||\n\t\t(0 <= y && y <= yCorner && abs(x - xCorner) <= r) ||\n\t\tpointInCircle(x, y, xCorner, 0, r)\n}\n\nfunc circlesIntersectInRectangle(x1, y1, r1, x2, y2, r2, xCorner, yCorner int) bool {\n\treturn (x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2) <= (r1 + r2) * (r1 + r2) &&\n\t\tx1 * r2 + x2 * r1 < (r1 + r2) * xCorner &&\n\t\ty1 * r2 + y2 * r1 < (r1 + r2) * yCorner\n}\n\nfunc abs(x int) int {\n\tif x < 0 {\n\t\treturn -x\n\t}\n\treturn x\n}\n```\n\n```C [sol1-C]\nbool pointInCircle(long long px, long long py, long long x, long long y, long long r) {\n    return (x - px) * (x - px) + (y - py) * (y - py) <= (long long)r * r;\n}\n\nbool circleIntersectsTopLeftOfRectangle(int x, int y, int r, int xCorner, int yCorner) {\n    return (abs(x) <= r && 0 <= y && y <= yCorner) ||\n        (0 <= x && x <= xCorner && abs(y - yCorner) <= r) ||\n        pointInCircle(x, y, 0, yCorner, r);\n}\n\nbool circleIntersectsBottomRightOfRectangle(int x, int y, int r, int xCorner, int yCorner) {\n    return (abs(y) <= r && 0 <= x && x <= xCorner) ||\n        (0 <= y && y <= yCorner && abs(x - xCorner) <= r) ||\n        pointInCircle(x, y, xCorner, 0, r);\n}\n\nbool circlesIntersectInRectangle(long long x1, long long y1, long long r1, long long x2, long long y2, long long r2, long long xCorner, long long yCorner) {\n    return (x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2) <= (r1 + r2) * (r1 + r2) &&\n        x1 * r2 + x2 * r1 < (r1 + r2) * xCorner &&\n        y1 * r2 + y2 * r1 < (r1 + r2) * yCorner;\n}\n\nbool dfs(int i, int** circles, int circlesSize, int xCorner, int yCorner, int* visited) {\n    int x1 = circles[i][0], y1 = circles[i][1], r1 = circles[i][2];\n    if (circleIntersectsBottomRightOfRectangle(x1, y1, r1, xCorner, yCorner)) {\n        return true;\n    }\n    visited[i] = 1;\n    for (int j = 0; j < circlesSize; ++j) {\n        int x2 = circles[j][0], y2 = circles[j][1], r2 = circles[j][2];\n        if (!visited[j] && circlesIntersectInRectangle(x1, y1, r1, x2, y2, r2, xCorner, yCorner) \\\n            && dfs(j, circles, circlesSize, xCorner, yCorner, visited)) {\n            return true;\n        }\n    }\n    return false;\n};\n\nbool canReachCorner(int xCorner, int yCorner, int** circles, int circlesSize, int* circlesColSize) {\n    int visited[circlesSize];\n    memset(visited, 0, sizeof(visited));\n    for (int i = 0; i < circlesSize; ++i) {\n        int x = circles[i][0], y = circles[i][1], r = circles[i][2];\n        if (pointInCircle(0, 0, x, y, r) || pointInCircle(xCorner, yCorner, x, y, r)) {\n            return false;\n        }\n        if (!visited[i] && circleIntersectsTopLeftOfRectangle(x, y, r, xCorner, yCorner) \\\n            && dfs(i, circles, circlesSize, xCorner, yCorner, visited)) {\n            return false;\n        }\n    }\n    return true;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar canReachCorner = function(xCorner, yCorner, circles) {\n    const pointInCircle = (px, py, x, y, r) => {\n        return BigInt(x - px) ** 2n + BigInt(y - py) ** 2n <= BigInt(r) ** 2n;\n    };\n\n    const circleIntersectsTopLeftOfRectangle = (x, y, r, xCorner, yCorner) => {\n        return (Math.abs(x) <= r && y >= 0 && y <= yCorner) ||\n               (x >= 0 && x <= xCorner && Math.abs(y - yCorner) <= r) ||\n               pointInCircle(x, y, 0, yCorner, r);\n    };\n\n    const circleIntersectsBottomRightOfRectangle = (x, y, r, xCorner, yCorner) => {\n        return (Math.abs(y) <= r && x >= 0 && x <= xCorner) ||\n               (y >= 0 && y <= yCorner && Math.abs(x - xCorner) <= r) ||\n               pointInCircle(x, y, xCorner, 0, r);\n    };\n\n    const circlesIntersectInRectangle = (x1, y1, r1, x2, y2, r2, xCorner, yCorner) => {\n        return BigInt(x1 - x2) ** 2n + BigInt(y1 - y2) ** 2n <= BigInt(r1 + r2) ** 2n &&\n               BigInt(x1) * BigInt(r2) + BigInt(x2) * BigInt(r1) < BigInt(r1 + r2) * BigInt(xCorner) &&\n               BigInt(y1) * BigInt(r2) + BigInt(y2) * BigInt(r1) < BigInt(r1 + r2) * BigInt(yCorner);\n    };\n\n    const visited = new Array(circles.length).fill(false);\n\n    const dfs = (i) => {\n        const [x1, y1, r1] = circles[i];\n        if (circleIntersectsBottomRightOfRectangle(x1, y1, r1, xCorner, yCorner)) {\n            return true;\n        }\n        visited[i] = true;\n        for (let j = 0; j < circles.length; j++) {\n            const [x2, y2, r2] = circles[j];\n            if (!visited[j] && circlesIntersectInRectangle(x1, y1, r1, x2, y2, r2, xCorner, yCorner) && dfs(j)) {\n                return true;\n            }\n        }\n        return false;\n    };\n\n    for (let i = 0; i < circles.length; i++) {\n        const [x, y, r] = circles[i];\n        if (pointInCircle(0, 0, x, y, r) || pointInCircle(xCorner, yCorner, x, y, r)) {\n            return false;\n        }\n        if (!visited[i] && circleIntersectsTopLeftOfRectangle(x, y, r, xCorner, yCorner) && dfs(i)) {\n            return false;\n        }\n    }\n    return true;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction canReachCorner(xCorner: number, yCorner: number, circles: number[][]): boolean {\n    const pointInCircle = (px: number, py: number, x: number, y: number, r: number): boolean => {\n        return BigInt(x - px) ** 2n + BigInt(y - py) ** 2n <= BigInt(r) ** 2n;\n    };\n\n    const circleIntersectsTopLeftOfRectangle = (x: number, y: number, r: number, xCorner: number, yCorner: number): boolean => {\n        return (Math.abs(x) <= r && y >= 0 && y <= yCorner) ||\n               (x >= 0 && x <= xCorner && Math.abs(y - yCorner) <= r) ||\n               pointInCircle(x, y, 0, yCorner, r);\n    };\n\n    const circleIntersectsBottomRightOfRectangle = (x: number, y: number, r: number, xCorner: number, yCorner: number): boolean => {\n        return (Math.abs(y) <= r && x >= 0 && x <= xCorner) ||\n               (y >= 0 && y <= yCorner && Math.abs(x - xCorner) <= r) ||\n               pointInCircle(x, y, xCorner, 0, r);\n    };\n\n    const circlesIntersectInRectangle = (x1: number, y1: number, r1: number, x2: number, y2: number, r2: number, xCorner: number, yCorner: number): boolean => {\n        return BigInt(x1 - x2) ** 2n + BigInt(y1 - y2) ** 2n <= BigInt(r1 + r2) ** 2n &&\n               BigInt(x1) * BigInt(r2) + BigInt(x2) * BigInt(r1) < BigInt(r1 + r2) * BigInt(xCorner) &&\n               BigInt(y1) * BigInt(r2) + BigInt(y2) * BigInt(r1) < BigInt(r1 + r2) * BigInt(yCorner);\n    };\n\n    const visited: boolean[] = new Array(circles.length).fill(false);\n\n    const dfs = (i: number): boolean => {\n        const [x1, y1, r1] = circles[i];\n        if (circleIntersectsBottomRightOfRectangle(x1, y1, r1, xCorner, yCorner)) {\n            return true;\n        }\n        visited[i] = true;\n        for (let j = 0; j < circles.length; j++) {\n            const [x2, y2, r2] = circles[j];\n            if (!visited[j] && circlesIntersectInRectangle(x1, y1, r1, x2, y2, r2, xCorner, yCorner) && dfs(j)) {\n                return true;\n            }\n        }\n        return false;\n    };\n\n    for (let i = 0; i < circles.length; i++) {\n        const [x, y, r] = circles[i];\n        if (pointInCircle(0, 0, x, y, r) || pointInCircle(xCorner, yCorner, x, y, r)) {\n            return false;\n        }\n        if (!visited[i] && circleIntersectsTopLeftOfRectangle(x, y, r, xCorner, yCorner) && dfs(i)) {\n            return false;\n        }\n    }\n    return true;\n};\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn can_reach_corner(x_corner: i32, y_corner: i32, circles: Vec<Vec<i32>>) -> bool {\n        fn point_in_circle(px: i32, py: i32, x: i32, y: i32, r: i32) -> bool {\n            let dx = x as i128 - px as i128;\n            let dy = y as i128 - py as i128;\n            dx * dx + dy * dy <= (r as i128) * (r as i128)\n        }\n\n        fn circle_intersects_top_left(x: i32, y: i32, r: i32, x_corner: i32, y_corner: i32) -> bool {\n            (x.abs() <= r && y >= 0 && y <= y_corner)\n                || (x >= 0 && x <= x_corner && (y - y_corner).abs() <= r)\n                || point_in_circle(0, y_corner, x, y, r)\n        }\n\n        fn circle_intersects_bottom_right(x: i32, y: i32, r: i32, x_corner: i32, y_corner: i32) -> bool {\n            (y.abs() <= r && x >= 0 && x <= x_corner)\n                || (y >= 0 && y <= y_corner && (x - x_corner).abs() <= r)\n                || point_in_circle(x_corner, 0, x, y, r)\n        }\n\n        fn circles_intersect_in_rectangle(\n            x1: i32, y1: i32, r1: i32,\n            x2: i32, y2: i32, r2: i32,\n            x_corner: i32, y_corner: i32,\n        ) -> bool {\n            let dx = x1 as i128 - x2 as i128;\n            let dy = y1 as i128 - y2 as i128;\n            let r_sum = r1 as i128 + r2 as i128;\n            dx * dx + dy * dy <= r_sum * r_sum\n                && (x1 as i128 * r2 as i128 + x2 as i128 * r1 as i128) < r_sum * x_corner as i128\n                && (y1 as i128 * r2 as i128 + y2 as i128 * r1 as i128) < r_sum * y_corner as i128\n        }\n\n        fn dfs(i: usize, circles: &Vec<Vec<i32>>, x_corner: i32, y_corner: i32, visited: &mut [bool]) -> bool {\n            let x1 = circles[i][0];\n            let y1 = circles[i][1];\n            let r1 = circles[i][2];\n            if circle_intersects_bottom_right(x1, y1, r1, x_corner, y_corner) {\n                return true;\n            }\n            visited[i] = true;\n            for (j, vec) in circles.iter().enumerate() {\n                let x2 = vec[0];\n                let y2 = vec[1];\n                let r2 = vec[2];\n                if !visited[j]\n                    && circles_intersect_in_rectangle(x1, y1, r1, x2, y2, r2, x_corner, y_corner)\n                    && dfs(j, circles, x_corner, y_corner, visited) {\n                    return true;\n                }\n            }\n            false\n        }\n\n        let mut visited = vec![false; circles.len()];\n\n        for (i, vec) in circles.iter().enumerate() {\n            let x = vec[0];\n            let y = vec[1];\n            let r = vec[2];\n            if point_in_circle(0, 0, x, y, r) || point_in_circle(x_corner, y_corner, x, y, r) {\n                return false;\n            }\n            if !visited[i]\n                && circle_intersects_top_left(x, y, r, x_corner, y_corner)\n                && dfs(i, &circles, x_corner, y_corner, &mut visited) {\n                return false;\n            }\n        }\n        true\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n^2)$，其中 $n$ 是数组 $\\textit{circles}$ 的长度。每个圆最多会被 $\\textit{dfs}$ 一次，每次会遍历整个数组。\n\n- 空间复杂度：$O(n)$。",
+            "slateValue": "",
+            "slug": "pan-duan-ju-xing-de-liang-ge-jiao-luo-sh-ug24",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "6Fevhl",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 12,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Depth-First Search",
+                    "nameTranslated": "深度优先搜索",
+                    "slug": "depth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Geometry",
+                    "nameTranslated": "几何",
+                    "slug": "geometry",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2024-11-01T01:38:38.058319+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：深度优先搜索 思路 首先我们考虑 [latex] 只有一个圆。在三种情况下，不存在这样的路径： * 起点在圆内或圆上（圆内或圆上不影响结果，下文均简写为圆内）； * 终点在圆内； * 圆与矩形的左侧边或者上侧边相切或相交（相切或相交不影响结果，下文均简写为相交），并且圆与矩形的右侧边或者下侧边相交。 前两种情况",
+            "topic": {
+                "id": 2973328,
+                "subscribed": false,
+                "commentCount": 50,
+                "viewCount": 938,
+                "post": {
+                    "id": 5387712,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 44,
+            "isEditorsPick": false,
+            "hitCount": 11781,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "check-if-the-rectangle-corner-is-reachable",
+                "questionFrontendId": "3235"
+            },
+            "next": {
+                "slug": "deng-jie-zhuan-huan-bing-cha-ji-pythonja-yf9y",
+                "title": "【图解】转换成图上 DFS + 避免浮点数的做法（Python/Java/C++/C/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

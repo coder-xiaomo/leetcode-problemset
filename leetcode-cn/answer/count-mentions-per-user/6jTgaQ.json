@@ -1,0 +1,150 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "6jTgaQ",
+            "title": "统计用户被提及情况",
+            "content": "#### 方法一：排序后回放\n\n**思路与算法**\n\n我们首先对所有事件按照时间排序，对于时间相同的事件，应该将离线事件放在前面，因为按照题意，用户状态的改变会在所有相同时间发生的消息事件之前进行处理和同步。\n\n排序后，我们按照时间顺序从前往后依次处理每个事件，我们可以用一个哈希表来记录每个用户的上线时间，并通过与当前时间比较来判断该用户是否在线。遍历时：\n\n1. 对于消息事件，提及对象是 $\\textit{ALL}$ 和 $\\textit{HERE}$ 的情况比较好处理。而对于另外一种情况，我们需要解析包含多个指定 $\\textit{id}$ 的 $\\textit{mentions\\_string}$，它由多个空格分割的 $\\textit{idx}$ 组成，其中 $x$ 是我们要解析出来的整数。对于大多数语言，我们可以将连续的数字拼接起来得到一个 $\\textit{id}$，当遇到字符串结尾或下个字符为空格时表示分割。而对于一些提供了字符串分割方法的语言，我们可以将字符串按照空格 $\\textit{split}$，然后去除每个条目的前缀，即可得到用户 $\\textit{id}$。\n2. 对于离线事件，在哈希表中将指定用户的上线设置为 $60$ 个单位时间之后。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<int> countMentions(int numberOfUsers, vector<vector<string>>& events) {\n        vector<int> count(numberOfUsers);\n        vector<int> next_online_time(numberOfUsers);\n        sort(events.begin(), events.end(), [&](const vector<string> &lth, const vector<string> &rth) {\n            int lth_timestamp = stoi(lth[1]);\n            int rth_timestamp = stoi(rth[1]);\n            if (lth_timestamp != rth_timestamp) {\n                return lth_timestamp < rth_timestamp;\n            }\n            if (rth[0] == \"OFFLINE\") {\n                return false;\n            }\n            return true;\n        });\n        \n        for (auto&& event : events) {\n            int cur_time = stoi(event[1]);\n            if (event[0] == \"MESSAGE\") {\n                if (event[2] == \"ALL\") {\n                    for (int i = 0; i < numberOfUsers; i++) {\n                        count[i]++;\n                    }\n                } else if (event[2] == \"HERE\") {\n                    for (int i = 0; i < numberOfUsers; i++) {\n                        if (next_online_time[i] <= cur_time) {\n                            count[i]++;\n                        }\n                    }\n                } else {\n                    int idx = 0;\n                    for (int i = 0; i < event[2].size(); i++) {\n                        if (isdigit(event[2][i])) {\n                            idx = idx * 10 + (event[2][i] - '0');\n                        }\n                        if (i + 1 == event[2].size() || event[2][i + 1] == ' ') {\n                            count[idx]++;\n                            idx = 0;\n                        }\n                    }\n                }\n            } else {\n                int idx = stoi(event[2]);\n                next_online_time[idx] = cur_time + 60;\n            }\n        }\n        return count;\n    }\n};\n```\n\n```python [sol1-Python3]\nclass Solution:\n    def countMentions(self, numberOfUsers: int, events: List[List[str]]) -> List[int]:\n        events.sort(key=lambda e: (int(e[1]), e[0] == \"MESSAGE\"))\n        count = [0] * numberOfUsers\n        next_online_time = [0] * numberOfUsers\n        for event in events:\n            cur_time = int(event[1])\n            if event[0] == \"MESSAGE\":\n                if event[2] == \"ALL\":\n                    for i in range(numberOfUsers):\n                        count[i] += 1\n                elif event[2] == \"HERE\":\n                    for i, t in enumerate(next_online_time):\n                        if t <= cur_time:\n                            count[i] += 1\n                else:\n                    for idx in event[2].split():\n                        count[int(idx[2:])] += 1\n            else:\n                next_online_time[int(event[2])] = cur_time + 60\n        return count\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn count_mentions(n: i32, mut events: Vec<Vec<String>>) -> Vec<i32> {\n        let n = n as usize;\n        events.sort_by(|a, b| {\n            let ta = a[1].parse::<i32>().unwrap();\n            let tb = b[1].parse::<i32>().unwrap();\n\n            ta.cmp(&tb).then_with(|| {\n                (a[0] != \"OFFLINE\").cmp(&(b[0] != \"OFFLINE\"))\n            })\n        });\n\n        let mut count = vec![0; n];\n        let mut next_online = vec![0; n];\n\n        for e in events {\n            let cur = e[1].parse::<i32>().unwrap();\n\n            match e[0].as_str() {\n                \"MESSAGE\" => match e[2].as_str() {\n                    \"ALL\" => count.iter_mut().for_each(|x| *x += 1),\n                    \"HERE\" => {\n                        for i in 0..n {\n                            if next_online[i] <= cur {\n                                count[i] += 1;\n                            }\n                        }\n                    }\n                    other => {\n                        for id in other.split_whitespace() {\n                            let idx: usize = id[2..].parse().unwrap();\n                            count[idx] += 1;\n                        }\n                    }\n                },\n                _ => {\n                    let id: usize = e[2].parse().unwrap();\n                    next_online[id] = cur + 60;\n                }\n            }\n        }\n\n        count\n    }\n}\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int[] countMentions(int numberOfUsers, List<List<String>> events) {\n        events.sort((a, b) -> {\n            int timeA = Integer.parseInt(a.get(1));\n            int timeB = Integer.parseInt(b.get(1));\n            if (timeA != timeB) {\n                return Integer.compare(timeA, timeB);\n            }\n            boolean aIsMessage = a.get(0).equals(\"MESSAGE\");\n            boolean bIsMessage = b.get(0).equals(\"MESSAGE\");\n            return Boolean.compare(aIsMessage, bIsMessage); \n        });\n        \n        int[] count = new int[numberOfUsers];\n        int[] nextOnlineTime = new int[numberOfUsers];\n        \n        for (List<String> event : events) {\n            int curTime = Integer.parseInt(event.get(1));\n            String type = event.get(0);\n            \n            if (type.equals(\"MESSAGE\")) {\n                String target = event.get(2);\n                if (target.equals(\"ALL\")) {\n                    for (int i = 0; i < numberOfUsers; i++) {\n                        count[i]++;\n                    }\n                } else if (target.equals(\"HERE\")) {\n                    for (int i = 0; i < numberOfUsers; i++) {\n                        if (nextOnlineTime[i] <= curTime) {\n                            count[i]++;\n                        }\n                    }\n                } else {\n                    String[] users = target.split(\" \");\n                    for (String user : users) {\n                        int idx = Integer.parseInt(user.substring(2));\n                        count[idx]++;\n                    }\n                }\n            } else {\n                int idx = Integer.parseInt(event.get(2));\n                nextOnlineTime[idx] = curTime + 60;\n            }\n        }\n        \n        return count;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int[] CountMentions(int numberOfUsers, IList<IList<string>> events) {\n        var sortedEvents = events.OrderBy(e => int.Parse(e[1]))\n                                .ThenBy(e => e[0] == \"MESSAGE\" ? 1 : 0)\n                                .ToList();\n        \n        int[] count = new int[numberOfUsers];\n        int[] nextOnlineTime = new int[numberOfUsers];\n        \n        foreach (var eventItem in sortedEvents) {\n            int curTime = int.Parse(eventItem[1]);\n            string type = eventItem[0];\n            \n            if (type == \"MESSAGE\") {\n                string target = eventItem[2];\n                if (target == \"ALL\") {\n                    for (int i = 0; i < numberOfUsers; i++) {\n                        count[i]++;\n                    }\n                } else if (target == \"HERE\") {\n                    for (int i = 0; i < numberOfUsers; i++) {\n                        if (nextOnlineTime[i] <= curTime) {\n                            count[i]++;\n                        }\n                    }\n                } else {\n                    string[] users = target.Split(' ');\n                    foreach (string user in users) {\n                        int idx = int.Parse(user.Substring(2));\n                        count[idx]++;\n                    }\n                }\n            } else {\n                int idx = int.Parse(eventItem[2]);\n                nextOnlineTime[idx] = curTime + 60;\n            }\n        }\n        \n        return count;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc countMentions(numberOfUsers int, events [][]string) []int {\n    sort.Slice(events, func(i, j int) bool {\n        timeA, _ := strconv.Atoi(events[i][1])\n        timeB, _ := strconv.Atoi(events[j][1])\n        if timeA != timeB {\n            return timeA < timeB\n        }\n        return events[i][0] != \"MESSAGE\" && events[j][0] == \"MESSAGE\"\n    })\n    \n    count := make([]int, numberOfUsers)\n    nextOnlineTime := make([]int, numberOfUsers)\n    \n    for _, event := range events {\n        curTime, _ := strconv.Atoi(event[1])\n        eventType := event[0]\n        \n        if eventType == \"MESSAGE\" {\n            target := event[2]\n            switch target {\n            case \"ALL\":\n                for i := 0; i < numberOfUsers; i++ {\n                    count[i]++\n                }\n            case \"HERE\":\n                for i := 0; i < numberOfUsers; i++ {\n                    if nextOnlineTime[i] <= curTime {\n                        count[i]++\n                    }\n                }\n            default:\n                users := strings.Split(target, \" \")\n                for _, user := range users {\n                    idx, _ := strconv.Atoi(user[2:])\n                    count[idx]++\n                }\n            }\n        } else {\n            idx, _ := strconv.Atoi(event[2])\n            nextOnlineTime[idx] = curTime + 60\n        }\n    }\n    \n    return count\n}\n```\n\n```C [sol1-C]\ntypedef struct {\n    char type[8];\n    int timestamp;\n    char target[512];\n} Event;\n\nint compareEvents(const void* a, const void* b) {\n    Event* e1 = (Event*)a;\n    Event* e2 = (Event*)b;\n    if (e1->timestamp != e2->timestamp) {\n        return e1->timestamp - e2->timestamp;\n    }\n\n    return strcmp(e1->type, \"OFFLINE\") == 0 ? -1 : 1;\n}\n\nint* countMentions(int numberOfUsers, char*** events, int eventsSize, int* eventsColSize, int* returnSize) {\n    Event* eventArr = (Event*)calloc(eventsSize, sizeof(Event));\n    for (int i = 0; i < eventsSize; i++) {\n        strcpy(eventArr[i].type, events[i][0]);\n        eventArr[i].timestamp = atoi(events[i][1]);\n        strcpy(eventArr[i].target, events[i][2]);\n    }\n    \n    qsort(eventArr, eventsSize, sizeof(Event), compareEvents);\n    int* count = (int*)calloc(numberOfUsers, sizeof(int));\n    int* nextOnlineTime = (int*)calloc(numberOfUsers, sizeof(int));\n    \n    for (int i = 0; i < eventsSize; i++) {\n        int curTime = eventArr[i].timestamp;\n        char* type = eventArr[i].type;\n        char* target = eventArr[i].target;\n        if (strcmp(type, \"MESSAGE\") == 0) {\n            if (strcmp(target, \"ALL\") == 0) {\n                for (int j = 0; j < numberOfUsers; j++) {\n                    count[j]++;\n                }\n            } else if (strcmp(target, \"HERE\") == 0) {\n                for (int j = 0; j < numberOfUsers; j++) {\n                    if (nextOnlineTime[j] <= curTime) {\n                        count[j]++;\n                    }\n                }\n            } else {\n                char* token = strtok(target, \" \");\n                while (token != NULL) {\n                    int idx = atoi(token + 2);\n                    count[idx]++;\n                    token = strtok(NULL, \" \");\n                }\n            }\n        } else {\n            int idx = atoi(target);\n            nextOnlineTime[idx] = curTime + 60;\n        }\n    }\n    \n    free(eventArr);\n    free(nextOnlineTime);\n    *returnSize = numberOfUsers;\n    return count;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar countMentions = function(numberOfUsers, events) {\n    events.sort((a, b) => {\n        const timeA = parseInt(a[1]);\n        const timeB = parseInt(b[1]);\n        if (timeA !== timeB) {\n            return timeA - timeB;\n        }\n        return (b[0] === \"MESSAGE\" ? 0 : 1) - (a[0] === \"MESSAGE\" ? 0 : 1);\n    });\n    \n    const count = new Array(numberOfUsers).fill(0);\n    const nextOnlineTime = new Array(numberOfUsers).fill(0);\n    \n    for (const event of events) {\n        const curTime = parseInt(event[1]);\n        const type = event[0];\n        \n        if (type === \"MESSAGE\") {\n            const target = event[2];\n            if (target === \"ALL\") {\n                for (let i = 0; i < numberOfUsers; i++) {\n                    count[i]++;\n                }\n            } else if (target === \"HERE\") {\n                for (let i = 0; i < numberOfUsers; i++) {\n                    if (nextOnlineTime[i] <= curTime) {\n                        count[i]++;\n                    }\n                }\n            } else {\n                const users = target.split(' ');\n                for (const user of users) {\n                    const idx = parseInt(user.substring(2));\n                    count[idx]++;\n                }\n            }\n        } else {\n            const idx = parseInt(event[2]);\n            nextOnlineTime[idx] = curTime + 60;\n        }\n    }\n    \n    return count;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction countMentions(numberOfUsers: number, events: string[][]): number[] {\n    events.sort((a: string[], b: string[]): number => {\n        const timeA: number = parseInt(a[1]);\n        const timeB: number = parseInt(b[1]);\n        if (timeA !== timeB) {\n            return timeA - timeB;\n        }\n        return (b[0] === \"MESSAGE\" ? 0 : 1) - (a[0] === \"MESSAGE\" ? 0 : 1);\n    });\n    \n    const count: number[] = new Array(numberOfUsers).fill(0);\n    const nextOnlineTime: number[] = new Array(numberOfUsers).fill(0);\n    \n    for (const event of events) {\n        const curTime: number = parseInt(event[1]);\n        const type: string = event[0];\n        \n        if (type === \"MESSAGE\") {\n            const target: string = event[2];\n            if (target === \"ALL\") {\n                for (let i = 0; i < numberOfUsers; i++) {\n                    count[i]++;\n                }\n            } else if (target === \"HERE\") {\n                for (let i = 0; i < numberOfUsers; i++) {\n                    if (nextOnlineTime[i] <= curTime) {\n                        count[i]++;\n                    }\n                }\n            } else {\n                const users: string[] = target.split(' ');\n                for (const user of users) {\n                    const idx: number = parseInt(user.substring(2));\n                    count[idx]++;\n                }\n            }\n        } else {\n            const idx: number = parseInt(event[2]);\n            nextOnlineTime[idx] = curTime + 60;\n        }\n    }\n    \n    return count;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(nm + m\\log m\\log t)$。其中 $n$ 是 $\\textit{numberOfUsers}$，$m$ 是 $\\textit{events}$ 的长度，$t$ 是最大时间戳。对 $\\textit{events}$ 排序的时间复杂度是 $O(m\\log m\\log t)$，时间戳解析的时间复杂度是 $O(\\log t)$。遍历每个事件，并处理的时间复杂度为 $O(nm)$。\n\n- 空间复杂度：$O(n)$。",
+            "slateValue": "",
+            "slug": "tong-ji-yong-hu-bei-ti-ji-qing-kuang-by-36og5",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "6jTgaQ",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 3,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Sorting",
+                    "nameTranslated": "排序",
+                    "slug": "sorting",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python3",
+                    "nameTranslated": "",
+                    "slug": "python3",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Simulation",
+                    "nameTranslated": "模拟",
+                    "slug": "simulation",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2025-12-08T05:19:27.232886+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：排序后回放 思路与算法 我们首先对所有事件按照时间排序，对于时间相同的事件，应该将离线事件放在前面，因为按照题意，用户状态的改变会在所有相同时间发生的消息事件之前进行处理和同步。 排序后，我们按照时间顺序从前往后依次处理每个事件，我们可以用一个哈希表来记录每个用户的上线时间，并通过与当前时间比较来判断该用户是否",
+            "topic": {
+                "id": 3851672,
+                "subscribed": false,
+                "commentCount": 14,
+                "viewCount": 22,
+                "post": {
+                    "id": 7029785,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 6,
+            "isEditorsPick": false,
+            "hitCount": 4345,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "count-mentions-per-user",
+                "questionFrontendId": "3433"
+            },
+            "next": {
+                "slug": "an-zhao-shi-jian-chuo-fen-zu-mo-ni-by-en-w77b",
+                "title": "非暴力做法：计算离线期间被提及的次数（Python/Java/C++/C/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

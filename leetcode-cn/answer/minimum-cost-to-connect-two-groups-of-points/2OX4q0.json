@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "2OX4q0",
+            "title": "连通两组点的最小成本",
+            "content": "#### 方法一：状态压缩 + 动态规划\n\n记第一组点数为 $\\textit{size}_1$，第二组点数为 $\\textit{size}_2$。根据数据范围，我们可以使用二进制数 $s$ 来表示一个点集，$s$ 的第 $k$ 位为 $1$ 表示第 $k$ 个点在点集 $s$ 中，$s$ 的第 $k$ 位为 $0$ 表示第 $k$ 个点不在点集 $s$ 中。使用 $\\textit{dp}[i][s]$ 表示第一组的前 $i$ 个点（前 $i$ 个点指第 $0, 1, 2, ..., i - 1$ 个点）与第二组的点集 $s$ 的最小连通成本（因为 $\\textit{size}_1 \\ge \\textit{size}_2$，所以将第二组作为点集），有四种情况：\n\n+ $i = 0$ 且 $s = 0$：\n\n    两组点都为空，因此最小连通成本为 $\\textit{dp}[0][0] = 0$。\n\n+ $i = 0$ 且 $s \\ne 0$：\n\n    第一组的点为空，第二组的点不为空，因此无法连通，令 $\\textit{dp}[0][s] = \\infty$。\n\n+ $i \\ne 0$ 且 $s = 0$：\n\n    第一组的点不为空，第二组的点为空，因此无法连通，令 $\\textit{dp}[i][0] = \\infty$。\n\n+ $i \\ne 0$ 且 $s \\ne 0$：\n\n    考虑第一组第 $i - 1$ 个点与第二组点集 $s$ 的第 $k$ 个点连接，使用 $s_{-k}$ 表示点集 $s$ 去除第 $k$ 个点后的剩余点集，那么连通成本 $c$ 有三种情况：\n\n    + 第二组点集 $s$ 的第 $k$ 个点不再与其他点连接，那么 $c = \\textit{dp}[i][s_{-k}] + \\textit{cost}[i - 1][k]$；\n\n    + 第一组第 $i - 1$ 个点不再与其他点连接，那么 $c = \\textit{dp}[i - 1][s] + \\textit{cost}[i - 1][k]$；\n\n    + 第一组第 $i - 1$ 个点和第二组点集 $s$ 的第 $k$ 个点都不再与其他点连接，那么 $c = \\textit{dp}[i - 1][s_{-k}] + \\textit{cost}[i - 1][k]$。\n\n    枚举第一组第 $i - 1$ 个点与第二组点集 $s$ 中任一 $k \\in s$ 的点连接，那么状态转移方程如下：\n\n$$\n\\textit{dp}[i][s] = \\min_{k \\in s} \\big \\{ {\\min { \\{ \\textit{dp}[i][s_{-k}], \\textit{dp}[i - 1][s], \\textit{dp}[i - 1][s_{-k}] \\} } + \\textit{cost}[i - 1][k]} \\big \\}\n$$\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int connectTwoGroups(vector<vector<int>>& cost) {\n        int size1 = cost.size(), size2 = cost[0].size(), m = 1 << size2;\n        vector<vector<int>> dp(size1 + 1, vector<int>(m, INT_MAX / 2));\n        dp[0][0] = 0;\n        for (int i = 1; i <= size1; i++) {\n            for (int s = 0; s < m; s++) {\n                for (int k = 0; k < size2; k++) {\n                    if ((s & (1 << k)) == 0) {\n                        continue;\n                    }\n                    dp[i][s] = min(dp[i][s], dp[i][s ^ (1 << k)] + cost[i - 1][k]);\n                    dp[i][s] = min(dp[i][s], dp[i - 1][s] + cost[i - 1][k]);\n                    dp[i][s] = min(dp[i][s], dp[i - 1][s ^ (1 << k)] + cost[i - 1][k]);\n                }\n            }\n        }\n        return dp[size1][m - 1];\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int connectTwoGroups(List<List<Integer>> cost) {\n        int size1 = cost.size(), size2 = cost.get(0).size(), m = 1 << size2;\n        int[][] dp = new int[size1 + 1][m];\n        for (int i = 0; i <= size1; i++) {\n            Arrays.fill(dp[i], Integer.MAX_VALUE / 2);\n        }\n        dp[0][0] = 0;\n        for (int i = 1; i <= size1; i++) {\n            for (int s = 0; s < m; s++) {\n                for (int k = 0; k < size2; k++) {\n                    if ((s & (1 << k)) == 0) {\n                        continue;\n                    }\n                    dp[i][s] = Math.min(dp[i][s], dp[i][s ^ (1 << k)] + cost.get(i - 1).get(k));\n                    dp[i][s] = Math.min(dp[i][s], dp[i - 1][s] + cost.get(i - 1).get(k));\n                    dp[i][s] = Math.min(dp[i][s], dp[i - 1][s ^ (1 << k)] + cost.get(i - 1).get(k));\n                }\n            }\n        }\n        return dp[size1][m - 1];\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int ConnectTwoGroups(IList<IList<int>> cost) {\n        int size1 = cost.Count, size2 = cost[0].Count, m = 1 << size2;\n        int[][] dp = new int[size1 + 1][];\n        for (int i = 0; i <= size1; i++) {\n            dp[i] = new int[m];\n            Array.Fill(dp[i], int.MaxValue / 2);\n        }\n        dp[0][0] = 0;\n        for (int i = 1; i <= size1; i++) {\n            for (int s = 0; s < m; s++) {\n                for (int k = 0; k < size2; k++) {\n                    if ((s & (1 << k)) == 0) {\n                        continue;\n                    }\n                    dp[i][s] = Math.Min(dp[i][s], dp[i][s ^ (1 << k)] + cost[i - 1][k]);\n                    dp[i][s] = Math.Min(dp[i][s], dp[i - 1][s] + cost[i - 1][k]);\n                    dp[i][s] = Math.Min(dp[i][s], dp[i - 1][s ^ (1 << k)] + cost[i - 1][k]);\n                }\n            }\n        }\n        return dp[size1][m - 1];\n    }\n}\n```\n\n```Golang [sol1-Golang]\nfunc min(a, b int) int {\n    if a > b {\n        return b\n    }\n    return a\n}\n\nfunc connectTwoGroups(cost [][]int) int {\n    size1, size2, m := len(cost), len(cost[0]), 1 << len(cost[0])\n    dp := make([][]int, size1 + 1)\n    for i := 0; i <= size1; i++ {\n        dp[i] = make([]int, m)\n    }\n    for s := 1; s < m; s++ {\n        dp[0][s] = 0x3f3f3f3f\n    }\n    for i := 1; i <= size1; i++ {\n        for s := 0; s < m; s++ {\n            dp[i][s] = 0x3f3f3f3f\n            for k := 0; k < size2; k++ {\n                if (s & (1 << k)) == 0 {\n                    continue\n                }\n                dp[i][s] = min(dp[i][s], dp[i][s ^ (1 << k)] + cost[i - 1][k])\n                dp[i][s] = min(dp[i][s], dp[i - 1][s] + cost[i - 1][k])\n                dp[i][s] = min(dp[i][s], dp[i - 1][s ^ (1 << k)] + cost[i - 1][k])\n            }\n        }\n    }\n    return dp[size1][m - 1]\n}\n```\n\n```C [sol1-C]\nint connectTwoGroups(int** cost, int costSize, int* costColSize) {\n    int size1 = costSize, size2 = costColSize[0], m = 1 << size2; \n    int dp[size1 + 1][m];\n    memset(dp, 0x3f, sizeof(dp));\n    dp[0][0] = 0;\n    for (int i = 1; i <= size1; i++) {\n        for (int s = 0; s < m; s++) {\n            for (int k = 0; k < size2; k++) {\n                if ((s & (1 << k)) == 0) {\n                    continue;\n                }\n                dp[i][s] = fmin(dp[i][s], dp[i][s ^ (1 << k)] + cost[i - 1][k]);\n                dp[i][s] = fmin(dp[i][s], dp[i - 1][s] + cost[i - 1][k]);\n                dp[i][s] = fmin(dp[i][s], dp[i - 1][s ^ (1 << k)] + cost[i - 1][k]);\n            }\n        }\n    }\n    return dp[size1][m - 1];\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def connectTwoGroups(self, cost: List[List[int]]) -> int:\n        size1, size2 = len(cost), len(cost[0])\n        m = 1 << size2\n        dp = [[float(\"inf\")] * m for _ in range(size1 + 1)]\n        dp[0][0] = 0\n\n        for i in range(1, size1 + 1):\n            for s in range(m):\n                for k in range(size2):\n                    if (s & (1 << k)) == 0:\n                        continue\n                    dp[i][s] = min(dp[i][s], dp[i][s ^ (1 << k)] + cost[i - 1][k])\n                    dp[i][s] = min(dp[i][s], dp[i - 1][s] + cost[i - 1][k])\n                    dp[i][s] = min(dp[i][s], dp[i - 1][s ^ (1 << k)] + cost[i - 1][k])\n        \n        return dp[size1][m - 1]\n```\n\n```JavaScript [sol1-JavaScript]\nvar connectTwoGroups = function(cost) {\n    const size1 = cost.length;\n    const size2 = cost[0].length;\n    const m = 1 << size2;\n    const dp = Array.from(Array(size1 + 1), () => new Array(m).fill(Number.MAX_SAFE_INTEGER / 2));\n\n    dp[0][0] = 0;\n\n    for (let i = 1; i <= size1; i++) {\n        for (let s = 0; s < m; s++) {\n        for (let k = 0; k < size2; k++) {\n            if ((s & (1 << k)) === 0) {\n            continue;\n            }\n            dp[i][s] = Math.min(dp[i][s], dp[i][s ^ (1 << k)] + cost[i - 1][k]);\n            dp[i][s] = Math.min(dp[i][s], dp[i - 1][s] + cost[i - 1][k]);\n            dp[i][s] = Math.min(dp[i][s], dp[i - 1][s ^ (1 << k)] + cost[i - 1][k]);\n        }\n        }\n    }\n\n    return dp[size1][m - 1];\n};\n```\n\n转移方程的 $dp[i][*]$ 计算只与 $dp[i - 1][*]$ 和 $dp[i][*]$ 相关，因此我们可以只使用一维数组来保存，从而节省空间。\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    int connectTwoGroups(vector<vector<int>>& cost) {\n        int size1 = cost.size(), size2 = cost[0].size(), m = 1 << size2;\n        vector<int> dp1(m, INT_MAX / 2), dp2(m);\n        dp1[0] = 0;\n        for (int i = 1; i <= size1; i++) {\n            for (int s = 0; s < m; s++) {\n                dp2[s] = INT_MAX / 2;\n                for (int k = 0; k < size2; k++) {\n                    if ((s & (1 << k)) == 0) {\n                        continue;\n                    }\n                    dp2[s] = min(dp2[s], dp2[s ^ (1 << k)] + cost[i - 1][k]);\n                    dp2[s] = min(dp2[s], dp1[s] + cost[i - 1][k]);\n                    dp2[s] = min(dp2[s], dp1[s ^ (1 << k)] + cost[i - 1][k]);\n                }\n            }\n            dp1.swap(dp2);\n        }\n        return dp1[m - 1];\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public int connectTwoGroups(List<List<Integer>> cost) {\n        int size1 = cost.size(), size2 = cost.get(0).size(), m = 1 << size2;\n        int[] dp1 = new int[m];\n        Arrays.fill(dp1, Integer.MAX_VALUE / 2);\n        int[] dp2 = new int[m];\n        dp1[0] = 0;\n        for (int i = 1; i <= size1; i++) {\n            for (int s = 0; s < m; s++) {\n                dp2[s] = Integer.MAX_VALUE / 2;\n                for (int k = 0; k < size2; k++) {\n                    if ((s & (1 << k)) == 0) {\n                        continue;\n                    }\n                    dp2[s] = Math.min(dp2[s], dp2[s ^ (1 << k)] + cost.get(i - 1).get(k));\n                    dp2[s] = Math.min(dp2[s], dp1[s] + cost.get(i - 1).get(k));\n                    dp2[s] = Math.min(dp2[s], dp1[s ^ (1 << k)] + cost.get(i - 1).get(k));\n                }\n            }\n            System.arraycopy(dp2, 0, dp1, 0, m);\n        }\n        return dp1[m - 1];\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    public int ConnectTwoGroups(IList<IList<int>> cost) {\n        int size1 = cost.Count, size2 = cost[0].Count, m = 1 << size2;\n        int[] dp1 = new int[m];\n        Array.Fill(dp1, int.MaxValue / 2);\n        int[] dp2 = new int[m];\n        dp1[0] = 0;\n        for (int i = 1; i <= size1; i++) {\n            for (int s = 0; s < m; s++) {\n                dp2[s] = int.MaxValue / 2;\n                for (int k = 0; k < size2; k++) {\n                    if ((s & (1 << k)) == 0) {\n                        continue;\n                    }\n                    dp2[s] = Math.Min(dp2[s], dp2[s ^ (1 << k)] + cost[i - 1][k]);\n                    dp2[s] = Math.Min(dp2[s], dp1[s] + cost[i - 1][k]);\n                    dp2[s] = Math.Min(dp2[s], dp1[s ^ (1 << k)] + cost[i - 1][k]);\n                }\n            }\n            Array.Copy(dp2, 0, dp1, 0, m);\n        }\n        return dp1[m - 1];\n    }\n}\n```\n\n```Golang [sol2-Golang]\nfunc min(a, b int) int {\n    if a > b {\n        return b\n    }\n    return a\n}\n\nfunc connectTwoGroups(cost [][]int) int {\n    size1, size2, m := len(cost), len(cost[0]), 1 << len(cost[0])\n    dp1, dp2 := make([]int, m), make([]int, m)\n    for s := 1; s < m; s++ {\n        dp1[s] = 0x3f3f3f3f\n    }\n    for i := 1; i <= size1; i++ {\n        for s := 0; s < m; s++ {\n            dp2[s] = 0x3f3f3f3f\n            for k := 0; k < size2; k++ {\n                if (s & (1 << k)) == 0 {\n                    continue\n                }\n                dp2[s] = min(dp2[s], dp2[s ^ (1 << k)] + cost[i - 1][k])\n                dp2[s] = min(dp2[s], dp1[s] + cost[i - 1][k])\n                dp2[s] = min(dp2[s], dp1[s ^ (1 << k)] + cost[i - 1][k])\n            }\n        }\n        dp1, dp2 = dp2, dp1\n    }\n    return dp1[m - 1]\n}\n```\n\n```C [sol2-C]\nint connectTwoGroups(int** cost, int costSize, int* costColSize) {\n    int size1 = costSize, size2 = costColSize[0], m = 1 << size2;\n    int dp1[m], dp2[m];\n    memset(dp1, 0x3f, sizeof(dp1));\n    dp1[0] = 0;\n    for (int i = 1; i <= size1; i++) {\n        for (int s = 0; s < m; s++) {\n            dp2[s] = INT_MAX / 2;\n            for (int k = 0; k < size2; k++) {\n                if ((s & (1 << k)) == 0) {\n                    continue;\n                }\n                dp2[s] = fmin(dp2[s], dp2[s ^ (1 << k)] + cost[i - 1][k]);\n                dp2[s] = fmin(dp2[s], dp1[s] + cost[i - 1][k]);\n                dp2[s] = fmin(dp2[s], dp1[s ^ (1 << k)] + cost[i - 1][k]);\n            }\n        }\n        memcpy(dp1, dp2, sizeof(dp2));\n    }\n    return dp1[m - 1];\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def connectTwoGroups(self, cost: List[List[int]]) -> int:\n        size1, size2 = len(cost), len(cost[0])\n        m = 1 << size2\n        dp1, dp2 = [float(\"inf\")] * m, [0] * m\n        dp1[0] = 0\n\n        for i in range(1, size1 + 1):\n            for s in range(m):\n                dp2[s] = float(\"inf\")\n                for k in range(size2):\n                    if (s & (1 << k)) == 0:\n                        continue\n                    dp2[s] = min(dp2[s], dp2[s ^ (1 << k)] + cost[i - 1][k])\n                    dp2[s] = min(dp2[s], dp1[s] + cost[i - 1][k])\n                    dp2[s] = min(dp2[s], dp1[s ^ (1 << k)] + cost[i - 1][k])\n            dp1 = dp2[:]\n        \n        return dp1[m - 1]\n```\n\n```JavaScript [sol2-JavaScript]\nvar connectTwoGroups = function(cost) {\n    const size1 = cost.length;\n    const size2 = cost[0].length;\n    const m = 1 << size2;\n    const dp1 = new Array(m).fill(Number.MAX_SAFE_INTEGER / 2);\n    const dp2 = new Array(m);\n    \n    dp1[0] = 0;\n\n    for (let i = 1; i <= size1; i++) {\n        for (let s = 0; s < m; s++) {\n        dp2[s] = Number.MAX_SAFE_INTEGER / 2;\n        for (let k = 0; k < size2; k++) {\n            if ((s & (1 << k)) === 0) {\n            continue;\n            }\n            dp2[s] = Math.min(dp2[s], dp2[s ^ (1 << k)] + cost[i - 1][k]);\n            dp2[s] = Math.min(dp2[s], dp1[s] + cost[i - 1][k]);\n            dp2[s] = Math.min(dp2[s], dp1[s ^ (1 << k)] + cost[i - 1][k]);\n        }\n        }\n        dp1.splice(0, m, ...dp2);\n    }\n\n    return dp1[m - 1];\n};\n```\n\n**复杂度分析**\n\n+ 时间复杂度：$O(\\textit{size}_1 \\times \\textit{size}_2 \\times 2^{\\textit{size}_2})$，其中 $\\textit{size}_1$ 是第一组点数，$\\textit{size}_2$ 是第二组点数。\n\n+ 空间复杂度：$O(\\textit{size}_1 \\times 2^{\\textit{size}_2})$ 或 $O(2^{\\textit{size}_2})$。",
+            "slateValue": "",
+            "slug": "lian-tong-liang-zu-dian-de-zui-xiao-chen-6qoj",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "2OX4q0",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 26,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Bit Manipulation",
+                    "nameTranslated": "位运算",
+                    "slug": "bit-manipulation",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Bitmask",
+                    "nameTranslated": "位掩码",
+                    "slug": "bitmask",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Matrix",
+                    "nameTranslated": "矩阵",
+                    "slug": "matrix",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-06-16T10:48:57.796928+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：状态压缩 + 动态规划 记第一组点数为 $\\textit{size}_1$，第二组点数为 $\\textit{size}_2$。根据数据范围，我们可以使用二进制数 $s$ 来表示一个点集，$s$ 的第 $k$ 位为 $1$ 表示第 $k$ 个点在点集 $s$ 中，$s$ 的第 $k$ 位为 $0$ 表示第 $k$",
+            "topic": {
+                "id": 2311504,
+                "subscribed": false,
+                "commentCount": 55,
+                "viewCount": 816,
+                "post": {
+                    "id": 4356329,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 23,
+            "isEditorsPick": false,
+            "hitCount": 9225,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "minimum-cost-to-connect-two-groups-of-points",
+                "questionFrontendId": "1595"
+            },
+            "next": {
+                "slug": "jiao-ni-yi-bu-bu-si-kao-dong-tai-gui-hua-djxq",
+                "title": "教你一步步思考动态规划！（附题单）"
+            },
+            "prev": null
+        }
+    }
+}

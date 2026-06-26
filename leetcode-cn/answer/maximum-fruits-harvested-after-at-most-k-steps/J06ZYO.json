@@ -1,0 +1,148 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "J06ZYO",
+            "title": "摘水果",
+            "content": "#### 方法一：二分查找\n\n**思路与算法**\n\n由于题目中的水果位置已经是升序排列，假设此时我们知道在 $x$ 轴上的移动区间为 $[\\textit{left}, \\textit{right}]$，则可利用二分查找很快计算出区间 $[\\textit{left}, \\textit{right}]$ 范围内摘掉水果的数目。题目的关键则转变为求从起点移动 $k$ 步而实际在 $x$ 轴上移动的最大区间范围。当然在实际移动过程中肯定优先遵循「贪心」原则，因为这样每个位置的水果只能摘取一次，因此尽可能的移动更远，实际移动方法如下：\n+ 要么一直往一个方向移动 $k$ 步；要么先往一个方向移动 $x$ 步，然后再反方向移动 $k - x$ 步；\n+ 实际当 $x = 0$ 时，则一直往一个方向移动 $k$ 步；\n\n根据以上分析，由于有左右两个方向，我们通过不断枚举 $x$，此时 $x \\in[0, \\frac{k}{2}]$，即可求出其移动的区间。假设我们从起点 $\\textit{startPos}$ 出发，实际有以下两种情况：\n+ 先往左移动 $x$ 步，然后向右移动 $k - x$ 步，此时的移动区间范围 $[\\textit{startPos} - x, \\textit{startPos}  + k - 2x]$；\n+ 先往右移动 $x$ 步，然后向右移动 $k - x$ 步，此时的移动区间范围 $[\\textit{startPos} + 2x - k,\\textit{startPos} + x]$；\n\n假设已知道当前采摘人员在 $x$ 轴上的移动区间范围，则我们利用二分查找即可在 $O(\\log n)$ 时间复杂度内找到区间中包含的水果的数量，实际可以用前缀和进行预处理即可。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int maxTotalFruits(vector<vector<int>>& fruits, int startPos, int k) {\n        int n = fruits.size();\n        vector<int> sum(n + 1);\n        vector<int> indices(n);\n        for (int i = 0; i < n; i++) {\n            sum[i + 1] = sum[i] + fruits[i][1];\n            indices[i] = fruits[i][0];\n        }\n        int ans = 0;\n        for (int x = 0; x <= k / 2; x++) {\n            /* 向左走 x 步，再向右走 k - x 步 */\n            int y = k - 2 * x;\n            int left = startPos - x;\n            int right = startPos + y;\n            int start = lower_bound(indices.begin(), indices.end(), left) - indices.begin();\n            int end = upper_bound(indices.begin(), indices.end(), right) - indices.begin();\n            ans = max(ans, sum[end] - sum[start]);\n            /* 向右走 x 步，再向左走 k - x 步 */\n            y = k - 2 * x;\n            left = startPos - y;\n            right = startPos + x;\n            start = lower_bound(indices.begin(), indices.end(), left) - indices.begin();\n            end = upper_bound(indices.begin(), indices.end(), right) - indices.begin();\n            ans = max(ans, sum[end] - sum[start]);\n        }\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int maxTotalFruits(int[][] fruits, int startPos, int k) {\n        int n = fruits.length;\n        int[] sum = new int[n + 1];\n        int[] indices = new int[n];\n        sum[0] = 0;\n        for (int i = 0; i < n; i++) {\n            sum[i + 1] = sum[i] + fruits[i][1];\n            indices[i] = fruits[i][0];\n        }\n        int ans = 0;\n        for (int x = 0; x <= k / 2; x++) {\n            /* 向左走 x 步，再向右走 k - x 步 */\n            int y = k - 2 * x;\n            int left = startPos - x;\n            int right = startPos + y;\n            int start = lowerBound(indices, 0, n - 1, left);\n            int end = upperBound(indices, 0, n - 1, right);\n            ans = Math.max(ans, sum[end] - sum[start]);\n            /* 向右走 x 步，再向左走 k - x 步 */\n            y = k - 2 * x;\n            left = startPos - y;\n            right = startPos + x;\n            start = lowerBound(indices, 0, n - 1, left);\n            end = upperBound(indices, 0, n - 1, right);\n            ans = Math.max(ans, sum[end] - sum[start]);\n        }\n        return ans;\n    }\n\n    public int lowerBound(int[] arr, int left, int right, int val) {\n        int res = right + 1;\n        while (left <= right) {\n            int mid = left + (right - left) / 2;\n            if (arr[mid] >= val) {\n                res = mid;\n                right = mid - 1;\n            } else {\n                left = mid + 1;\n            }\n        }\n        return res;\n    }\n\n    public int upperBound(int[] arr, int left, int right, int val) {\n        int res = right + 1;\n        while (left <= right) {\n            int mid = left + (right - left) / 2;\n            if (arr[mid] > val) {\n                res = mid;\n                right = mid - 1;\n            } else {\n                left = mid + 1;\n            }\n        }\n        return res;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MaxTotalFruits(int[][] fruits, int startPos, int k) {\n        int n = fruits.Length;\n        int[] sum = new int[n + 1];\n        int[] indices = new int[n];\n        sum[0] = 0;\n        for (int i = 0; i < n; i++) {\n            sum[i + 1] = sum[i] + fruits[i][1];\n            indices[i] = fruits[i][0];\n        }\n        int ans = 0;\n        for (int x = 0; x <= k / 2; x++) {\n            /* 向左走 x 步，再向右走 k - x 步 */\n            int y = k - 2 * x;\n            int left = startPos - x;\n            int right = startPos + y;\n            int start = LowerBound(indices, 0, n - 1, left);\n            int end = UpperBound(indices, 0, n - 1, right);\n            ans = Math.Max(ans, sum[end] - sum[start]);\n            /* 向右走 x 步，再向左走 k - x 步 */\n            y = k - 2 * x;\n            left = startPos - y;\n            right = startPos + x;\n            start = LowerBound(indices, 0, n - 1, left);\n            end = UpperBound(indices, 0, n - 1, right);\n            ans = Math.Max(ans, sum[end] - sum[start]);\n        }\n        return ans;\n    }\n\n    public int LowerBound(int[] arr, int left, int right, int val) {\n        int res = right + 1;\n        while (left <= right) {\n            int mid = left + (right - left) / 2;\n            if (arr[mid] >= val) {\n                res = mid;\n                right = mid - 1;\n            } else {\n                left = mid + 1;\n            }\n        }\n        return res;\n    }\n\n    public int UpperBound(int[] arr, int left, int right, int val) {\n        int res = right + 1;\n        while (left <= right) {\n            int mid = left + (right - left) / 2;\n            if (arr[mid] > val) {\n                res = mid;\n                right = mid - 1;\n            } else {\n                left = mid + 1;\n            }\n        }\n        return res;\n    }\n}\n```\n\n```C [sol1-C]\n#define MAX(a, b) ((a) > (b) ? (a) : (b))\n\nint lowerBound(const int *arr, int left, int right, int val) {\n    int res = right + 1;\n    while (left <= right) {\n        int mid = left + (right - left) / 2;\n        if (arr[mid] >= val) {\n            res = mid;\n            right = mid - 1;\n        } else {\n            left = mid + 1;\n        }\n    }\n    return res;\n}\n\nint upperBound(const int *arr, int left, int right, int val) {\n    int res = right + 1;\n    while (left <= right) {\n        int mid = left + (right - left) / 2;\n        if (arr[mid] > val) {\n            res = mid;\n            right = mid - 1;\n        } else {\n            left = mid + 1;\n        }\n    }\n    return res;\n}\n\nint maxTotalFruits(int** fruits, int fruitsSize, int* fruitsColSize, int startPos, int k) {\n    int n = fruitsSize;\n    int sum[n + 1];\n    int indices[n];\n    sum[0] = 0;\n    for (int i = 0; i < n; i++) {\n        sum[i + 1] = sum[i] + fruits[i][1];\n        indices[i] = fruits[i][0];\n    }\n    int ans = 0;\n    for (int x = 0; x <= k / 2; x++) {\n        /* 向左走 x 步，再向右走 k - x 步 */\n        int y = k - 2 * x;\n        int left = startPos - x;\n        int right = startPos + y;\n        int start = lowerBound(indices, 0, n - 1, left);\n        int end = upperBound(indices, 0, n - 1, right);\n        ans = MAX(ans, sum[end] - sum[start]);\n        /* 向右走 x 步，再向左走 k - x 步 */\n        y = k - 2 * x;\n        left = startPos - y;\n        right = startPos + x;\n        start = lowerBound(indices, 0, n - 1, left);\n        end = upperBound(indices, 0, n - 1, right);\n        ans = MAX(ans, sum[end] - sum[start]);\n    }\n    return ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar maxTotalFruits = function(fruits, startPos, k) {\n    const n = fruits.length;\n    const sum = new Array(n + 1).fill(0);\n    const indices = new Array(n).fill(0);\n    sum[0] = 0;\n    for (let i = 0; i < n; i++) {\n        sum[i + 1] = sum[i] + fruits[i][1];\n        indices[i] = fruits[i][0];\n    }\n    let ans = 0;\n    for (let x = 0; x <= Math.floor(k / 2); x++) {\n        /* 向左走 x 步，再向右走 k - x 步 */\n        let y = k - 2 * x;\n        let left = startPos - x;\n        let right = startPos + y;\n        let start = lowerBound(indices, 0, n - 1, left);\n        let end = upperBound(indices, 0, n - 1, right);\n        ans = Math.max(ans, sum[end] - sum[start]);\n        /* 向右走 x 步，再向左走 k - x 步 */\n        y = k - 2 * x;\n        left = startPos - y;\n        right = startPos + x;\n        start = lowerBound(indices, 0, n - 1, left);\n        end = upperBound(indices, 0, n - 1, right);\n        ans = Math.max(ans, sum[end] - sum[start]);\n    }\n    return ans;\n}\n\nconst lowerBound = (arr, left, right, val) => {\n    let res = right + 1;\n    while (left <= right) {\n        const mid = left + Math.floor((right - left) / 2);\n        if (arr[mid] >= val) {\n            res = mid;\n            right = mid - 1;\n        } else {\n            left = mid + 1;\n        }\n    }\n    return res;\n}\n\nconst upperBound = (arr, left, right, val) => {\n    let res = right + 1;\n    while (left <= right) {\n        const mid = left + Math.floor((right - left) / 2);\n        if (arr[mid] > val) {\n            res = mid;\n            right = mid - 1;\n        } else {\n            left = mid + 1;\n        }\n    }\n    return res;\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n + k \\log n)$，其中 $n$ 表示数组的长度，$k$ 表示给定的整数 $k$。计算数组的前缀和需要的时间为 $O(n)$，每次查询区间中的水果数量时需要的时间为 $O(\\log n)$，一共最多有 $k$ 次查询，因此总的时间复杂度即为 $n + k \\log n$。\n\n- 空间复杂度：$O(n)$，其中 $n$ 表示数组的长度。计算并存储数组的前缀和，需要的空间为 $O(n)$。\n\n#### 方法二：滑动窗口\n\n**思路与算法**\n\n我们可以换个思路来思考该问题，假设已知区间 $[\\textit{left},\\textit{right}]$，现在从起点 $\\textit{startPos}$ 出发，至少需要走多少步才能遍历该区间，实际我们可以看到分为以下三种情况：\n+ 当 $\\textit{startPos} > \\textit{right}$ 时，即区间在 $\\textit{startPos}$ 的左边，此时应该从起点开始一直向左移动，直到 $\\textit{left}$ 为止，此时至少需要移动 $\\textit{startPos} -\\textit{left}$ 步；\n+ 当 $\\textit{startPos} < \\textit{left}$ 时，即区间在 $\\textit{startPos}$ 的右边，此时应该从起点开始一直向右移动，直到 $\\textit{right}$ 为止，此时至少需要移动 $\\textit{right} -\\textit{startPos}$ 步；\n+ 当 $\\textit{left} \\le \\textit{startPos} \\le \\textit{right}$ 时，即 $\\textit{startPos}$ 刚好在区间范围内，此时有两种选择：\n  + 从起点开始一直向左移动，直到 $\\textit{left}$ 为止，然后再向右移动到 $\\textit{right}$，此时需要移动 $\\textit{startPos} - \\textit{left} + \\textit{right} - \\textit{left}$ 步；\n  + 从起点开始一直向右移动，直到 $\\textit{right}$ 为止，然后再向左移动到 $\\textit{left}$，此时最少需要移动 $\\textit{right} - \\textit{startPos} + \\textit{right} - \\textit{left}$ 步；\n  + 根据两种情形，最少需要移动 $\\textit{right} - \\textit{left} + \\min(|\\textit{right} - \\textit{startPos}|,|\\textit{startPos} - \\textit{left}|)$ 步;\n+ 当然上述所有的情形都可以合并为一个计算公式，即实际最少需要移动 $\\textit{right} - \\textit{left} + \\min(|\\textit{right} - \\textit{startPos}|,|\\textit{startPos} - \\textit{left}|)$ 步，才能覆盖区间 $[\\textit{left},\\textit{right}]$，如下图所示：\n![1](https://assets.leetcode.cn/solution-static/2106/2106_1.png)\n\n我们设函数 $\\text{step}(\\textit{left},\\textit{right})$ 表示从起点 $\\textit{startPos}$ 出发可以覆盖区间 $[\\textit{left},\\textit{right}]$ 的最少移动步数，此时 $\\text{step}(\\textit{left},\\textit{right}) = \\textit{right} - \\textit{left} + \\min(|\\textit{right} - \\textit{startPos}|,|\\textit{startPos} - \\textit{left}|)$。当固定 $\\textit{right}$ 时，此时减少 $\\textit{left}$，可以观察到:\n+ 当 $\\textit{left} < \\textit{startPos}$ 时，$\\text{step}(\\textit{left} - 1,\\textit{right}) < \\text{step}(\\textit{left},\\textit{right})$;\n+ 当 $\\textit{left} \\ge \\textit{startPos}$ 时，$\\text{step}(\\textit{left} - 1,\\textit{right}) = \\text{step}(\\textit{left},\\textit{right})$;\n\n综上可以得到结论：\n$$\n\\text{step}(\\textit{left} - 1,\\textit{right}) \\ge \\text{step}(\\textit{left},\\textit{right})\n$$\n即随着 $\\textit{left}$ 的减小，$\\text{step}(\\textit{left},\\textit{right})$ 可能会减小，但一定不会继续增大，利用这个特性我们即可利用滑动窗口来遍历所有符合要求的最大区间，然后找到区间内的覆盖水果的最大值即可，实际计算过程如下:\n+ 初始时 $\\textit{left} = 0, \\textit{right} = 0$，每次 $\\textit{right}$ 向右移动一步；\n+ 计算当前区间 $[\\textit{left},\\textit{right}]$ 需要的移动步数 $\\textit{step}$，假设 $\\textit{step} > k$，则我们移动左起点 $\\textit{left}$，直达满足 $\\textit{step} < k,\\textit{left} \\le \\textit{right}$，即可求出移动步数小于等于 $k$ 且以 $\\textit{right}$ 为终点的最长区间，计算出改区间覆盖的水果数目即可；\n+ 依次按照上述方式移动直到 $\\textit{right}$ 移动到终点为止。\n\n**代码**\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    int maxTotalFruits(vector<vector<int>>& fruits, int startPos, int k) {\n        int left = 0;\n        int right = 0;\n        int n = fruits.size();\n        int sum = 0;\n        int ans = 0;\n\n        auto step = [&](int left, int right) -> int {\n            if (fruits[right][0] <= startPos) {\n                return startPos - fruits[left][0];\n            } else if (fruits[left][0] >= startPos) {\n                return fruits[right][0] - startPos;\n            } else {\n                return min(abs(startPos - fruits[right][0]), abs(startPos - fruits[left][0])) + \\\n                       fruits[right][0] - fruits[left][0];\n            }\n        };\n        // 每次固定住窗口右边界\n        while (right < n) {\n            sum += fruits[right][1];\n            // 移动左边界\n            while (left <= right && step(left, right) > k) {\n                sum -= fruits[left][1];\n                left++;\n            }\n            ans = max(ans, sum);\n            right++;\n        }\n        return ans;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public int maxTotalFruits(int[][] fruits, int startPos, int k) {\n        int left = 0;\n        int right = 0;\n        int n = fruits.length;\n        int sum = 0;\n        int ans = 0;\n        // 每次固定住窗口右边界\n        while (right < n) {\n            sum += fruits[right][1];\n            // 移动左边界\n            while (left <= right && step(fruits, startPos, left, right) > k) {\n                sum -= fruits[left][1];\n                left++;\n            }\n            ans = Math.max(ans, sum);\n            right++;\n        }\n        return ans;\n    }\n\n    public int step(int[][] fruits, int startPos, int left, int right) {\n        return Math.min(Math.abs(startPos - fruits[right][0]), Math.abs(startPos - fruits[left][0])) + fruits[right][0] - fruits[left][0];\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    public int MaxTotalFruits(int[][] fruits, int startPos, int k) {\n        int left = 0;\n        int right = 0;\n        int n = fruits.Length;\n        int sum = 0;\n        int ans = 0;\n        // 每次固定住窗口右边界\n        while (right < n) {\n            sum += fruits[right][1];\n            // 移动左边界\n            while (left <= right && Step(fruits, startPos, left, right) > k) {\n                sum -= fruits[left][1];\n                left++;\n            }\n            ans = Math.Max(ans, sum);\n            right++;\n        }\n        return ans;\n    }\n\n    public int Step(int[][] fruits, int startPos, int left, int right) {\n        if (fruits[right][0] <= startPos) {\n            return startPos - fruits[left][0];\n        } else if (fruits[left][0] >= startPos) {\n            return fruits[right][0] - startPos;\n        } else {\n            return Math.Min(Math.Abs(startPos - fruits[right][0]), Math.Abs(startPos - fruits[left][0])) + fruits[right][0] - fruits[left][0];\n        }\n    }\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def maxTotalFruits(self, fruits: List[List[int]], startPos: int, k: int) -> int:\n        left = 0\n        right = 0\n        n = len(fruits)\n        sum = 0\n        ans = 0\n\n        def step(left: int, right: int) -> int:\n            if fruits[right][0] <= startPos:\n                return startPos - fruits[left][0]\n            elif fruits[left][0] >= startPos:\n                return fruits[right][0] - startPos\n            else:\n                return min(abs(startPos - fruits[right][0]), abs(startPos - fruits[left][0])) + \\\n                    fruits[right][0] - fruits[left][0]\n\n        # 每次固定住窗口右边界\n        while right < n:\n            sum += fruits[right][1]\n            # 移动左边界\n            while left <= right and step(left, right) > k:\n                sum -= fruits[left][1]\n                left += 1\n\n            ans = max(ans, sum)\n            right += 1\n\n        return ans\n```\n\n```C [sol2-C]\n#define MAX(a, b) ((a) > (b) ? (a) : (b))\n#define MIN(a, b) ((a) < (b) ? (a) : (b))\n\nint step(const int** fruits, int left, int right, int startPos) {\n    if (fruits[right][0] <= startPos) {\n        return startPos - fruits[left][0];\n    } else if (fruits[left][0] >= startPos) {\n        return fruits[right][0] - startPos;\n    } else {\n        return MIN(abs(startPos - fruits[right][0]), abs(startPos - fruits[left][0])) + \\\n                fruits[right][0] - fruits[left][0];\n    }\n}\n\nint maxTotalFruits(int** fruits, int fruitsSize, int* fruitsColSize, int startPos, int k) {\n    int left = 0;\n    int right = 0;\n    int sum = 0;\n    int ans = 0;\n\n    /* 固定住窗口右边界 */\n    while (right < fruitsSize) {\n        sum += fruits[right][1];\n        /* 移动左边界 */\n        while (left <= right && step(fruits, left, right, startPos) > k) {\n            sum -= fruits[left][1];\n            left++;\n        }\n        ans = MAX(ans, sum);\n        right++;\n    }\n    return ans;\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar maxTotalFruits = function(fruits, startPos, k) {\n    let left = 0;\n    let right = 0;\n    const n = fruits.length;\n    let sum = 0;\n    let ans = 0;\n    // 每次固定住窗口右边界\n    while (right < n) {\n        sum += fruits[right][1];\n        // 移动左边界\n        while (left <= right && step(fruits, startPos, left, right) > k) {\n            sum -= fruits[left][1];\n            left++;\n        }\n        ans = Math.max(ans, sum);\n        right++;\n    }\n    return ans;\n}\n\nconst step = (fruits, startPos, left, right) => {\n    return Math.min(Math.abs(startPos - fruits[right][0]), Math.abs(startPos - fruits[left][0])) + fruits[right][0] - fruits[left][0];\n};\n```\n\n```go [sol2-Golang]\nfunc maxTotalFruits(fruits [][]int, startPos int, k int) int {\n    left := 0\n    right := 0\n    n := len(fruits)\n    sum := 0\n    ans := 0\n\n    step := func(left int, right int) int {\n        if fruits[right][0] <= startPos {\n            return startPos - fruits[left][0]\n        } else if fruits[left][0] >= startPos {\n            return fruits[right][0] - startPos\n        } else {\n            return min(abs(startPos-fruits[right][0]), abs(startPos-fruits[left][0])) + fruits[right][0] - fruits[left][0]\n        }\n    }\n    // 每次固定住窗口右边界\n    for right < n {\n        sum += fruits[right][1]\n        // 移动左边界\n        for left <= right && step(left, right) > k {\n            sum -= fruits[left][1]\n            left++\n        }\n        ans = max(ans, sum)\n        right++\n    }\n    return ans\n}\n\nfunc min(a, b int) int {\n    if a > b {\n        return b\n    }\n    return a\n}\n\nfunc max(a, b int) int {\n    if b > a {\n        return b\n    }\n    return a\n}\n\nfunc abs(x int) int {\n    if x < 0 {\n        return -x\n    }\n    return x\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 表示数组的长度。每次固定窗口的右侧，然后尝试移动左侧窗口，右侧端点最多移动 $n$ 次，左侧端点最多移动 $n$ 次，因此时间复杂度为 $O(2n) = O(n)$。\n\n- 空间复杂度：$O(1)$。",
+            "slateValue": "",
+            "slug": "zhai-shui-guo-by-leetcode-solution-4j9v",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "J06ZYO",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 50,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Greedy",
+                    "nameTranslated": "贪心",
+                    "slug": "greedy",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Prefix Sum",
+                    "nameTranslated": "前缀和",
+                    "slug": "prefix-sum",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Sliding Window",
+                    "nameTranslated": "滑动窗口",
+                    "slug": "sliding-window",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-05-03T05:22:52.300232+00:00",
+            "thumbnail": "https://assets.leetcode-cn.com/solution-static/2106/2106_1.png",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：二分查找 思路与算法 由于题目中的水果位置已经是升序排列，假设此时我们知道在 [latex] 轴上的移动区间为 [latex]，则可利用二分查找很快计算出区间 [latex] 范围内摘掉水果的数目。题目的关键则转变为求从起点移动 [latex] 步而实际在 [latex] 轴上移动的最大区间范围。当然在实际移动",
+            "topic": {
+                "id": 2254268,
+                "subscribed": false,
+                "commentCount": 60,
+                "viewCount": 1146,
+                "post": {
+                    "id": 4261592,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 73,
+            "isEditorsPick": false,
+            "hitCount": 20590,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "maximum-fruits-harvested-after-at-most-k-steps",
+                "questionFrontendId": "2106"
+            },
+            "next": {
+                "slug": "hua-dong-chuang-kou-jian-ji-xie-fa-pytho-1c2d",
+                "title": "滑动窗口，简洁写法（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

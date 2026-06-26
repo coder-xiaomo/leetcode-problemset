@@ -1,0 +1,88 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "6kj6e4",
+            "title": "游乐园的迷宫 贪心思路",
+            "content": "## 题意概述\n\n平面上有 $N$ 个点，找到一条访问 $N$ 个点的路径，使得路径的转角满足给定的转角序列。\n\n### 题解\n\n我们保持一个理想的状态：转向时，剩余的点都位于要求方向的一侧（即剩余点都符合当前这次的转向要求）。那么当前这次转向选择什么点，可以使下一次转向依旧满足这个理想的状态，从而可以不断的递归找下去。\n\n\n若下一次转向的要求方向是 `L` (`R`)，则这次转向的点中选择相对方向最右（最左）的点即可。\n\n\n如图所示，当前位于 `B` 点且转向方向为 `R`，其余点都位于 $\\overrightarrow{AB}$ 的右侧，其中点 `C`、`D`分别是相对方向最左和最右的点。若下一次转向方向为 `L`，则这次选择 `D` 点，可使剩余点都位于 $\\overrightarrow{BD}$ 的左侧；若下一次转向方向为 `R`，则这次选择 `C` 点，可使剩余点都位于 $\\overrightarrow{BC}$ 的右侧。\n\n\n![fig1](https://assets.leetcode.cn/solution-static/LCP_15.png)\n\n\n这里的最左或最右的选择，可利用利用叉积的性质：若向量 $\\overrightarrow{BC}$ 和向量 $\\overrightarrow{BD}$ 的叉积结果为正，则从向量 $\\overrightarrow{BC}$ 到向量 $\\overrightarrow{BD}$ 为逆时针旋转（ $\\overrightarrow{BD}$ 在 $\\overrightarrow{BC}$ 的左侧）；反之若结果为负，则从向量 $\\overrightarrow{BC}$ 到向量 $\\overrightarrow{BD}$ 为顺时针旋转（ $\\overrightarrow{BD}$ 在 $\\overrightarrow{BC}$ 的右侧）。\n\n\n```C++ []\nclass Solution {\nprivate:\n    pair<int, int> Sub(pair<int, int> a, pair<int, int> b) {\n        // 求点 a 到点 b 的向量\n        return make_pair(a.first - b.first, a.second - b.second);\n    }\n\n    int Cross(pair<int, int> a, pair<int, int> b) {\n        // 求向量 a 到向量 b 的向量叉积\n        return a.first * b.second - a.second * b.first;\n    }\npublic:\n    vector<int> visitOrder(vector< vector<int> >& points, string dir) {\n        int n = points.size();\n        vector<bool> used(n, false);  // 记录点的遍历情况， False未遍历 / True已遍历\n        vector< pair<int, int> > point;\n        vector<int> order; // 记录返回结果\n\n        for (int i=0; i<n; ++i) {\n            point.push_back( make_pair(points[i][0], points[i][1]) );\n        }\n\n        // 查找最左的点作为 起始点\n        int start = 0;\n        for (int i=1; i<n; ++i) {\n            if (point[i] < point[start]) {\n                start = i;\n            }\n        }\n        used[start] = true;\n        order.push_back(start);\n\n        for (int i=0; i<dir.size(); ++i) {\n            int next = -1;\n            if (dir[i] == 'L') {\n                // 转向方向为 L，选择相对方向最右的点\n                for (int j=0; j<n; ++j) {\n                    if (!used[j]) {\n                        if (next == -1 || Cross(Sub(point[next], point[start]), Sub(point[j], point[start])) < 0) {\n                            next = j;\n                        }\n                    } \n                }\n            } else if (dir[i] == 'R') {\n                // 转向方向为 R，选择相对方向最左的点\n                for (int j=0; j<n; ++j) {\n                    if (!used[j]) {\n                        if (next == -1 || Cross(Sub(point[next], point[start]), Sub(point[j], point[start])) > 0) {\n                            next = j;\n                        }\n                    } \n                }\n            }\n            // 返回结果加入选择的点，更新下一次转向的起点\n            used[next] = true;\n            order.push_back(next);\n            start = next;\n        }\n        // 添加最后一个剩余点\n        for (int i=0; i<n; ++i) {\n            if (used[i] == false) {\n                order.push_back(i);\n            }\n        }\n        return order;\n    }\n};\n```\n\n```Python []\nclass Solution:\n    def sub(self, a, b): # 求点 a 到点 b 的向量\n        return [a[0]-b[0], a[1]-b[1]]\n    \n    def cross(self, a, b):  # 求向量 a 到向量 b 的向量叉积\n        return a[0] * b[1] - a[1] * b[0]\n    \n    def visitOrder(self, points: List[List[int]], direction: str) -> List[int]:\n        n = len(points)\n        used = [False] * n  # 记录点的遍历情况， False未遍历 / True已遍历\n        order = [] # 记录返回结果\n        \n        # 查找最左的点作为 起始点\n        start = 0\n        for i in range(0,n):\n            if points[i][0] < points[start][0]:\n                start = i\n        used[start] =True\n        order.append(start)\n        \n        for i in direction:\n            nxt = -1\n            if i=='L':\n                # 转向方向为 L，选择相对方向最右的点\n                for j in range(0,n):\n                    if not used[j]:\n                        if nxt==-1 or self.cross(self.sub(points[nxt],points[start]), self.sub(points[j],points[start])) <0 :\n                            nxt = j\n            else:\n                # 转向方向为 R，选择相对方向最左的点\n                for j in range(0,n):\n                    if not used[j]:\n                        if nxt==-1 or self.cross(self.sub(points[nxt],points[start]), self.sub(points[j],points[start])) >0 :\n                            nxt = j\n            # 返回结果加入选择的点，更新下一次转向的起点\n            used[nxt] = True\n            order.append(nxt)\n            start = nxt\n        \n        # 添加最后一个剩余点\n        for i in range(0,n):\n            if not used[i]:\n                order.append(i)\n        return order\n```\n#### 复杂度分析\n\n* 时间复杂度：$O(N^2)$，其中 $N$ 是平面上点的个数。\n\n* 空间复杂度：$O(N)$。",
+            "slateValue": "",
+            "slug": "you-le-yuan-de-mi-gong-tan-xin-si-lu-by-leetcode-s",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "6kj6e4",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 13,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 0,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-04-29T05:46:46.125067+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "题意概述 平面上有 $N$ 个点，找到一条访问 $N$ 个点的路径，使得路径的转角满足给定的转角序列。 题解 我们保持一个理想的状态：转向时，剩余的点都位于要求方向的一侧（即剩余点都符合当前这次的转向要求）。那么当前这次转向选择什么点，可以使下一次转向依旧满足这个理想的状态，从而可以不断的递归找下去。 若下一次转向的要",
+            "topic": {
+                "id": 224892,
+                "subscribed": false,
+                "commentCount": 7,
+                "viewCount": 2570,
+                "post": {
+                    "id": 598017,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 11,
+            "isEditorsPick": false,
+            "hitCount": 4519,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "you-le-yuan-de-mi-gong",
+                "questionFrontendId": "LCP 15"
+            },
+            "next": {
+                "slug": "c-tu-bao-cha-ji-by-heltion",
+                "title": "c++ 凸包+叉积"
+            },
+            "prev": null
+        }
+    }
+}

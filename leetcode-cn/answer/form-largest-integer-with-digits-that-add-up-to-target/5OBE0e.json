@@ -1,0 +1,128 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "5OBE0e",
+            "title": "数位成本和为目标值的最大数字",
+            "content": "#### 方法一：动态规划\n\n若两个整数位数不同，位数更多的整数必然大于位数小的整数。因此我们需要先计算出可以得到的整数的最大位数。\n\n该问题可以看作是**恰好**装满背包容量为 $\\textit{target}$，物品重量为 $\\textit{cost}[i]$，价值为 $1$ 的完全背包问题。\n\n对于该问题，定义二维数组 $\\textit{dp}$，其中 $\\textit{dp}[i+1][j]$ 表示使用前 $i$ 个数位且花费总成本**恰好**为 $j$ 时的最大位数，若花费总成本无法为 $j$，则规定其为 $-\\infty$。特别地，$\\textit{dp}[0][]$ 为不选任何数位的状态，因此除了 $\\textit{dp}[0][0]$ 为 $0$，其余 $\\textit{dp}[0][j]$ 全为 $-\\infty$。\n\n对于第 $i$ 个数位，考虑花费总成本恰好为 $j$ 时的状态转移：\n\n- 若 $j<\\textit{cost}[i]$，则无法选第 $i$ 个数位，此时有 $\\textit{dp}[i+1][j]=\\textit{dp}[i][j]$；\n- 若 $j\\ge \\textit{cost}[i]$，存在选或不选两种决策，不选时有 $\\textit{dp}[i+1][j]=\\textit{dp}[i][j]$，选时由于第 $i$ 个数位可以重复选择，可以从使用前 $i$ 个数位且花费总成本恰好为 $j-\\textit{cost}[i]$ 的状态转移过来，即 $\\textit{dp}[i+1][j]=\\textit{dp}[i+1][j-\\textit{cost}[i]]+1$。取这两种决策的最大值。\n      \n因此状态转移方程为：\n\n$$\n\\textit{dp}[i+1][j]=\n\\begin{cases}\n\\textit{dp}[i][j],& j<\\textit{cost}[i] \\\\\n\\max(\\textit{dp}[i][j],\\textit{dp}[i+1][j-\\textit{cost}[i]]+1), & j\\ge \\textit{cost}[i]\n\\end{cases}\n$$\n\n$\\textit{dp}[9][target]$ 即为可以得到的整数的最大位数，若其小于 $0$ 则说明我们无法得到满足要求的整数，返回 $\\texttt{\"0\"}$。否则，我们需要生成一个整数，其位数为 $\\textit{dp}[9][target]$ 且数值最大。\n\n为了生成该整数，我们可以用一个额外的二维数组 $\\textit{from}$，在状态转移时记录转移来源。这样我们可以从最终状态 $\\textit{dp}[9][target]$ 顺着 $\\textit{from}$ 不断倒退，直至达到起始状态 $\\textit{dp}[0][0]$。在倒退状态时，若转移来源是 $\\textit{dp}[i+1][j-\\textit{cost}[i]]$ 则说明我们选取了第 $i$ 个数位。\n\n根据转移方程：\n\n- 若 $j<\\textit{cost}[i]$，有 $\\textit{from}[i+1][j]=j$；\n- 若 $j\\ge \\textit{cost}[i]$，当 $\\textit{dp}[i][j]>\\textit{dp}[i+1][j-\\textit{cost}[i]]+1$ 时有 $\\textit{from}[i+1][j]=j$，否则有 $\\textit{from}[i+1][j]=j-\\textit{cost}[i]$。\n\n注意我们并没有记录转移来源是 $i$ 还是 $i+1$，这是因为若 $\\textit{from}[i+1][j]$ 的值为 $j$，则必定从 $i$ 转移过来，否则必定从 $i+1$ 转移过来。\n\n此外，由于我们是从最大的数位向最小的数位倒退，为使生成的整数尽可能地大，对于当前数位应尽可能多地选取，所以当 $\\textit{dp}[i][j]$ 与 $\\textit{dp}[i+1][j-\\textit{cost}[i]]+1$ 相等时，我们选择从后者转移过来。\n\n这样我们就得到了每个数位的选择次数，为使生成的整数尽可能地大，我们应按照从大到小的顺序填入各个数位。由于该顺序与倒退状态的顺序一致，我们可以在倒退状态时，将当前数位直接加入生成的整数末尾。\n\n代码实现时，$-\\infty$ 可以用一个非常小的负数表示，保证转移时对于值为 $-\\infty$ 的状态，其 $+1$ 之后仍然为负数。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    string largestNumber(vector<int> &cost, int target) {\n        vector<vector<int>> dp(10, vector<int>(target + 1, INT_MIN));\n        vector<vector<int>> from(10, vector<int>(target + 1));\n        dp[0][0] = 0;\n        for (int i = 0; i < 9; ++i) {\n            int c = cost[i];\n            for (int j = 0; j <= target; ++j) {\n                if (j < c) {\n                    dp[i + 1][j] = dp[i][j];\n                    from[i + 1][j] = j;\n                } else {\n                    if (dp[i][j] > dp[i + 1][j - c] + 1) {\n                        dp[i + 1][j] = dp[i][j];\n                        from[i + 1][j] = j;\n                    } else {\n                        dp[i + 1][j] = dp[i + 1][j - c] + 1;\n                        from[i + 1][j] = j - c;\n                    }\n                }\n            }\n        }\n        if (dp[9][target] < 0) {\n            return \"0\";\n        }\n        string ans;\n        int i = 9, j = target;\n        while (i > 0) {\n            if (j == from[i][j]) {\n                --i;\n            } else {\n                ans += '0' + i;\n                j = from[i][j];\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public String largestNumber(int[] cost, int target) {\n        int[][] dp = new int[10][target + 1];\n        for (int i = 0; i < 10; ++i) {\n            Arrays.fill(dp[i], Integer.MIN_VALUE);\n        }\n        int[][] from = new int[10][target + 1];\n        dp[0][0] = 0;\n        for (int i = 0; i < 9; ++i) {\n            int c = cost[i];\n            for (int j = 0; j <= target; ++j) {\n                if (j < c) {\n                    dp[i + 1][j] = dp[i][j];\n                    from[i + 1][j] = j;\n                } else {\n                    if (dp[i][j] > dp[i + 1][j - c] + 1) {\n                        dp[i + 1][j] = dp[i][j];\n                        from[i + 1][j] = j;\n                    } else {\n                        dp[i + 1][j] = dp[i + 1][j - c] + 1;\n                        from[i + 1][j] = j - c;\n                    }\n                }\n            }\n        }\n        if (dp[9][target] < 0) {\n            return \"0\";\n        }\n        StringBuffer sb = new StringBuffer();\n        int i = 9, j = target;\n        while (i > 0) {\n            if (j == from[i][j]) {\n                --i;\n            } else {\n                sb.append(i);\n                j = from[i][j];\n            }\n        }\n        return sb.toString();\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public string LargestNumber(int[] cost, int target) {\n        int[,] dp = new int[10, target + 1];\n        for (int i = 0; i < 10; ++i) {\n            for (int j = 0; j <= target; ++j) {\n                dp[i, j] = int.MinValue;\n            }\n        }\n        int[,] from = new int[10, target + 1];\n        dp[0, 0] = 0;\n        for (int i = 0; i < 9; ++i) {\n            int c = cost[i];\n            for (int j = 0; j <= target; ++j) {\n                if (j < c) {\n                    dp[i + 1, j] = dp[i, j];\n                    from[i + 1, j] = j;\n                } else {\n                    if (dp[i, j] > dp[i + 1, j - c] + 1) {\n                        dp[i + 1, j] = dp[i, j];\n                        from[i + 1, j] = j;\n                    } else {\n                        dp[i + 1, j] = dp[i + 1, j - c] + 1;\n                        from[i + 1, j] = j - c;\n                    }\n                }\n            }\n        }\n        if (dp[9, target] < 0) {\n            return \"0\";\n        }\n        StringBuilder sb = new StringBuilder();\n        int curr = 9, next = target;\n        while (curr > 0) {\n            if (next == from[curr, next]) {\n                --curr;\n            } else {\n                sb.Append(curr);\n                next = from[curr, next];\n            }\n        }\n        return sb.ToString();\n    }\n}\n```\n\n```go [sol1-Golang]\nfunc largestNumber(cost []int, target int) string {\n    dp := make([][]int, 10)\n    from := make([][]int, 10)\n    for i := range dp {\n        dp[i] = make([]int, target+1)\n        for j := range dp[i] {\n            dp[i][j] = math.MinInt32\n        }\n        from[i] = make([]int, target+1)\n    }\n    dp[0][0] = 0\n    for i, c := range cost {\n        for j := 0; j <= target; j++ {\n            if j < c {\n                dp[i+1][j] = dp[i][j]\n                from[i+1][j] = j\n            } else {\n                if dp[i][j] > dp[i+1][j-c]+1 {\n                    dp[i+1][j] = dp[i][j]\n                    from[i+1][j] = j\n                } else {\n                    dp[i+1][j] = dp[i+1][j-c] + 1\n                    from[i+1][j] = j - c\n                }\n            }\n        }\n    }\n    if dp[9][target] < 0 {\n        return \"0\"\n    }\n    ans := make([]byte, 0, dp[9][target])\n    i, j := 9, target\n    for i > 0 {\n        if j == from[i][j] {\n            i--\n        } else {\n            ans = append(ans, '0'+byte(i))\n            j = from[i][j]\n        }\n    }\n    return string(ans)\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar largestNumber = function(cost, target) {\n    const dp = new Array(10).fill(0).map(() => new Array(target + 1).fill(-Number.MAX_VALUE));\n    const from = new Array(10).fill(0).map(() => new Array(target + 1).fill(0));\n    dp[0][0] = 0;\n    for (let i = 0; i < 9; ++i) {\n        const c = cost[i];\n        for (let j = 0; j <= target; ++j) {\n            if (j < c) {\n                dp[i + 1][j] = dp[i][j];\n                from[i + 1][j] = j;\n            } else {\n                if (dp[i][j] > dp[i + 1][j - c] + 1) {\n                    dp[i + 1][j] = dp[i][j];\n                    from[i + 1][j] = j;\n                } else {\n                    dp[i + 1][j] = dp[i + 1][j - c] + 1;\n                    from[i + 1][j] = j - c;\n                }\n            }\n        }\n    }\n    if (dp[9][target] < 0) {\n        return \"0\";\n    }\n    const sb = [];\n    let i = 9, j = target;\n    while (i > 0) {\n        if (j === from[i][j]) {\n            --i;\n        } else {\n            sb.push(i);\n            j = from[i][j];\n        }\n    }\n    return sb.join('');\n};\n```\n\n```C [sol1-C]\nchar* largestNumber(int* cost, int costSize, int target) {\n    int dp[10][target + 1];\n    memset(dp, 0x80, sizeof(dp));\n    dp[0][0] = 0;\n    int from[10][target + 1];\n    memset(from, 0, sizeof(from));\n    for (int i = 0; i < 9; ++i) {\n        int c = cost[i];\n        for (int j = 0; j <= target; ++j) {\n            if (j < c) {\n                dp[i + 1][j] = dp[i][j];\n                from[i + 1][j] = j;\n            } else {\n                if (dp[i][j] > dp[i + 1][j - c] + 1) {\n                    dp[i + 1][j] = dp[i][j];\n                    from[i + 1][j] = j;\n                } else {\n                    dp[i + 1][j] = dp[i + 1][j - c] + 1;\n                    from[i + 1][j] = j - c;\n                }\n            }\n        }\n    }\n    if (dp[9][target] < 0) {\n        return \"0\";\n    }\n    char* ans = malloc(sizeof(char) * (target + 1));\n    int ansSize = 0;\n    int i = 9, j = target;\n    while (i > 0) {\n        if (j == from[i][j]) {\n            --i;\n        } else {\n            ans[ansSize++] = '0' + i;\n            j = from[i][j];\n        }\n    }\n    ans[ansSize] = 0;\n    return ans;\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def largestNumber(self, cost: List[int], target: int) -> str:\n        dp = [[float(\"-inf\")] * (target + 1) for _ in range(10)]\n        where = [[0] * (target + 1) for _ in range(10)]\n        dp[0][0] = 0\n\n        for i, c in enumerate(cost):\n            for j in range(target + 1):\n                if j < c:\n                    dp[i + 1][j] = dp[i][j]\n                    where[i + 1][j] = j\n                else:\n                    if dp[i][j] > dp[i + 1][j - c] + 1:\n                        dp[i + 1][j] = dp[i][j]\n                        where[i + 1][j] = j\n                    else:\n                        dp[i + 1][j] = dp[i + 1][j - c] + 1\n                        where[i + 1][j] = j - c\n        \n        if dp[9][target] < 0:\n            return \"0\"\n        \n        ans = list()\n        i, j = 9, target\n        while i > 0:\n            if j == where[i][j]:\n                i -= 1\n            else:\n                ans.append(str(i))\n                j = where[i][j]\n        \n        return \"\".join(ans)\n```\n\n上述代码有两处空间优化：\n\n其一是滚动数组优化。由于 $\\textit{dp}[i+1][]$ 每个元素值的计算只与 $\\textit{dp}[i+1][]$ 和 $\\textit{dp}[i][]$ 的元素值有关，因此可以使用滚动数组的方式，去掉 $\\textit{dp}$ 的第一个维度。\n\n其二是去掉 $\\textit{from}$ 数组。在状态倒退时，直接根据 $\\textit{dp}[j]$ 与 $\\textit{dp}[j-\\textit{cost}[i]]+1$ 是否相等来判断，若二者相等则说明是从 $\\textit{dp}[j-\\textit{cost}[i]]$ 转移而来，即选择了第 $i$ 个数位。\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    string largestNumber(vector<int> &cost, int target) {\n        vector<int> dp(target + 1, INT_MIN);\n        dp[0] = 0;\n        for (int c : cost) {\n            for (int j = c; j <= target; ++j) {\n                dp[j] = max(dp[j], dp[j - c] + 1);\n            }\n        }\n        if (dp[target] < 0) {\n            return \"0\";\n        }\n        string ans;\n        for (int i = 8, j = target; i >= 0; i--) {\n            for (int c = cost[i]; j >= c && dp[j] == dp[j - c] + 1; j -= c) {\n                ans += '1' + i;\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public String largestNumber(int[] cost, int target) {\n        int[] dp = new int[target + 1];\n        Arrays.fill(dp, Integer.MIN_VALUE);\n        dp[0] = 0;\n        for (int c : cost) {\n            for (int j = c; j <= target; ++j) {\n                dp[j] = Math.max(dp[j], dp[j - c] + 1);\n            }\n        }\n        if (dp[target] < 0) {\n            return \"0\";\n        }\n        StringBuffer sb = new StringBuffer();\n        for (int i = 8, j = target; i >= 0; i--) {\n            for (int c = cost[i]; j >= c && dp[j] == dp[j - c] + 1; j -= c) {\n                sb.append(i + 1);\n            }\n        }\n        return sb.toString();\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    public string LargestNumber(int[] cost, int target) {\n        int[] dp = new int[target + 1];\n        Array.Fill(dp, int.MinValue);\n        dp[0] = 0;\n        foreach (int c in cost) {\n            for (int j = c; j <= target; ++j) {\n                dp[j] = Math.Max(dp[j], dp[j - c] + 1);\n            }\n        }\n        if (dp[target] < 0) {\n            return \"0\";\n        }\n        StringBuilder sb = new StringBuilder();\n        for (int i = 8, j = target; i >= 0; i--) {\n            for (int c = cost[i]; j >= c && dp[j] == dp[j - c] + 1; j -= c) {\n                sb.Append(i + 1);\n            }\n        }\n        return sb.ToString();\n    }\n}\n```\n\n```go [sol2-Golang]\nfunc largestNumber(cost []int, target int) string {\n    dp := make([]int, target+1)\n    for i := range dp {\n        dp[i] = math.MinInt32\n    }\n    dp[0] = 0\n    for _, c := range cost {\n        for j := c; j <= target; j++ {\n            dp[j] = max(dp[j], dp[j-c]+1)\n        }\n    }\n    if dp[target] < 0 {\n        return \"0\"\n    }\n    ans := make([]byte, 0, dp[target])\n    for i, j := 8, target; i >= 0; i-- {\n        for c := cost[i]; j >= c && dp[j] == dp[j-c]+1; j -= c {\n            ans = append(ans, byte('1'+i))\n        }\n    }\n    return string(ans)\n}\n\nfunc max(a, b int) int {\n    if a > b {\n        return a\n    }\n    return b\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar largestNumber = function(cost, target) {\n    const dp = new Array(target + 1).fill(-Number.MAX_VALUE);\n    dp[0] = 0;\n    for (const c of cost) {\n        for (let j = c; j <= target; ++j) {\n            dp[j] = Math.max(dp[j], dp[j - c] + 1);\n        }\n    }\n    if (dp[target] < 0) {\n        return '0';\n    }\n    const ans = [];\n    for (let i = 8, j = target; i >= 0; i--) {\n        for (let c = cost[i]; j >= c && dp[j] === dp[j - c] + 1; j -= c) {\n            ans.push(String.fromCharCode('1'.charCodeAt() + i));\n        }\n    }\n    return ans.join('');\n};\n```\n\n```C [sol2-C]\nchar* largestNumber(int* cost, int costSize, int target) {\n    int dp[target + 1];\n    memset(dp, 0x80, sizeof(dp));\n    dp[0] = 0;\n    for (int i = 0; i < costSize; ++i) {\n        for (int j = cost[i]; j <= target; ++j) {\n            dp[j] = fmax(dp[j], dp[j - cost[i]] + 1);\n        }\n    }\n    if (dp[target] < 0) {\n        return \"0\";\n    }\n    char* ans = malloc(sizeof(char) * (target + 1));\n    int ansSize = 0;\n    for (int i = 8, j = target; i >= 0; i--) {\n        for (int c = cost[i]; j >= c && dp[j] == dp[j - c] + 1; j -= c) {\n            ans[ansSize++] = '1' + i;\n        }\n    }\n    ans[ansSize] = 0;\n    return ans;\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def largestNumber(self, cost: List[int], target: int) -> str:\n        dp = [float(\"-inf\")] * (target + 1)\n        dp[0] = 0\n\n        for c in cost:\n            for j in range(c, target + 1):\n                dp[j] = max(dp[j], dp[j - c] + 1)\n        \n        if dp[target] < 0:\n            return \"0\"\n        \n        ans = list()\n        j = target\n        for i in range(8, -1, -1):\n            c = cost[i]\n            while j >= c and dp[j] == dp[j - c] + 1:\n                ans.append(str(i + 1))\n                j -= c\n\n        return \"\".join(ans)\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n\\cdot\\textit{target})$。其中 $n$ 是数组 $\\textit{cost}$ 的长度。\n\n- 空间复杂度：$O(\\textit{target})$。",
+            "slateValue": "",
+            "slug": "shu-wei-cheng-ben-he-wei-mu-biao-zhi-de-dnh86",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "5OBE0e",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 61,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 3,
+                    "reactionType": "CONFUSED"
+                },
+                {
+                    "count": 3,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-06-11T15:31:33.214895+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 若两个整数位数不同，位数更多的整数必然大于位数小的整数。因此我们需要先计算出可以得到的整数的最大位数。 该问题可以看作是恰好装满背包容量为 $\\textit{target}$，物品重量为 $\\textit{cost}[i]$，价值为 $1$ 的完全背包问题。 对于该问题，定义二维数组 $\\textit",
+            "topic": {
+                "id": 824378,
+                "subscribed": false,
+                "commentCount": 92,
+                "viewCount": 13547,
+                "post": {
+                    "id": 1806461,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 93,
+            "isEditorsPick": false,
+            "hitCount": 29178,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "form-largest-integer-with-digits-that-add-up-to-target",
+                "questionFrontendId": "1449"
+            },
+            "next": {
+                "slug": "wan-quan-bei-bao-shu-chu-ju-ti-fang-an-p-i29o",
+                "title": "完全背包 + 输出具体方案（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

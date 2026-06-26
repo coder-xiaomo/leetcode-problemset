@@ -1,0 +1,150 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "PMFHiA",
+            "title": "零数组变换 III",
+            "content": "#### 方法一：贪心 + 优先队列\n\n**思路**\n\n首先我们考虑 $\\textit{nums}$ 中下标为 $0$ 的元素，若 $\\textit{nums}[0] > 0$，我们肯定要在 $\\textit{queries}$ 中找到至少 $\\textit{nums}[0]$ 个左端点为 $0$ 的元素保留，这样才能让 $\\textit{nums}[0]$ 降为 $0$。那么选哪 $\\textit{nums}[0]$ 个呢？贪心地考虑，是选右端点最大的那些。选完之后，我们考虑 $\\textit{nums}[1]$。前一步操作选出的部分元素，可能会有不包含下标 $1$ 的，我们需要将它去掉。这一部分也可以用差分数组 $\\textit{deltaArray}$ 来完成。此时累积的操作数可能不能将 $\\textit{nums}[1]$ 降为 $0$，我们仍然要像上一步一样，选出部分 $\\textit{queries}$ 的元素。这个时候我们可以从未被挑选的元素中，选出左端点 $\\leq 1$ 的部分中，选出右端点最大的一部分，直到操作数满足 $\\textit{nums}[1]$ 可以降到 $0$。这个计算过程，可以由一个优先队列 $\\textit{heap}$ 来完成。我们不停地遍历 $\\textit{nums}$ 的过程中，将对应下标为左端点的 $\\textit{queries}$ 的右端点放入 $\\textit{heap}$ 中，并且当操作数不够时，从 $\\textit{heap}$ 中不停取出最大的右端点，直到操作数满足要求。遍历完成后，$\\textit{heap}$ 的长度就是可以删除的 $\\textit{queries}$。\n\n**代码**\n\n```Python [sol1-Python3]\nclass Solution:\n    def maxRemoval(self, nums: List[int], queries: List[List[int]]) -> int:\n        queries.sort(key = lambda x : x[0])\n        heap = []\n        deltaArray = [0] * (len(nums) + 1)\n        operations = 0\n        j = 0\n        for i, num in enumerate(nums):\n            operations += deltaArray[i]\n            while j < len(queries) and queries[j][0] == i:\n                heappush(heap, -queries[j][1])\n                j += 1\n            while operations < num and heap and -heap[0] >= i:\n                operations += 1\n                deltaArray[-heappop(heap) + 1] -= 1\n            if operations < num:\n                return -1\n        return len(heap)\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int maxRemoval(vector<int>& nums, vector<vector<int>>& queries) {\n        sort(queries.begin(), queries.end(), [](const vector<int>& a, const vector<int>& b) {\n            return a[0] < b[0];\n        });\n        \n        priority_queue<int> heap;\n        vector<int> deltaArray(nums.size() + 1, 0);\n        int operations = 0;\n        for (int i = 0, j = 0; i < nums.size(); ++i) {\n            operations += deltaArray[i];\n            while (j < queries.size() && queries[j][0] == i) {\n                heap.push(queries[j][1]);\n                ++j;\n            }\n            while (operations < nums[i] && !heap.empty() && heap.top() >= i) {\n                operations += 1;\n                deltaArray[heap.top() + 1] -= 1;\n                heap.pop();\n            }\n            if (operations < nums[i]) {\n                return -1;\n            }\n        }\n        return heap.size();\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int maxRemoval(int[] nums, int[][] queries) {\n        Arrays.sort(queries, (a, b) -> a[0] - b[0]);\n        PriorityQueue<Integer> heap = new PriorityQueue<>(Collections.reverseOrder());\n        int[] deltaArray = new int[nums.length + 1];\n        int operations = 0;\n                \n        for (int i = 0, j = 0; i < nums.length; i++) {\n            operations += deltaArray[i];\n            while (j < queries.length && queries[j][0] == i) {\n                heap.offer(queries[j][1]);\n                j++;\n            }\n            while (operations < nums[i] && !heap.isEmpty() && heap.peek() >= i) {\n                operations += 1;\n                deltaArray[heap.poll() + 1] -= 1;\n            }\n            if (operations < nums[i]) {\n                return -1;\n            }\n        }\n        return heap.size();\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MaxRemoval(int[] nums, int[][] queries) {\n        Array.Sort(queries, (a, b) => a[0] - b[0]);\n        var heap = new PriorityQueue<int, int>(Comparer<int>.Create((a, b) => b.CompareTo(a)));\n        int[] deltaArray = new int[nums.Length + 1];\n        int operations = 0;\n        \n        for (int i = 0, j = 0; i < nums.Length; i++) {\n            operations += deltaArray[i];\n            while (j < queries.Length && queries[j][0] == i) {\n                heap.Enqueue(queries[j][1], queries[j][1]);\n                j++;\n            }\n            while (operations < nums[i] && heap.Count > 0 && heap.Peek() >= i) {\n                operations += 1;\n                deltaArray[heap.Dequeue() + 1] -= 1;\n            }\n            if (operations < nums[i]) {\n                return -1;\n            }\n        }\n        return heap.Count;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc maxRemoval(nums []int, queries [][]int) int {\n\tsort.Slice(queries, func(i, j int) bool {\n\t\treturn queries[i][0] < queries[j][0]\n\t})\n\tpq := &Heap{}\n\theap.Init(pq)\n\tdeltaArray := make([]int, len(nums) + 1)\n\toperations := 0\n\n\tfor i, j := 0, 0; i < len(nums); i++ {\n\t\toperations += deltaArray[i]\n\t\tfor j < len(queries) && queries[j][0] == i {\n\t\t\theap.Push(pq, queries[j][1])\n\t\t\tj++\n\t\t}\n\t\tfor operations < nums[i] && pq.Len() > 0 && (*pq)[0] >= i {\n\t\t\toperations += 1\n\t\t\tdeltaArray[heap.Pop(pq).(int) + 1] -= 1\n\t\t}\n\t\tif operations < nums[i] {\n\t\t\treturn -1\n\t\t}\n\t}\n\treturn pq.Len()\n}\n\ntype Heap []int\n\nfunc (h Heap) Len() int { \n    return len(h) \n}\n\nfunc (h Heap) Less(i, j int) bool { \n    return h[i] > h[j] \n}\n\nfunc (h Heap) Swap(i, j int) { \n    h[i], h[j] = h[j], h[i] \n}\n\nfunc (h *Heap) Push(x interface{}) { \n    *h = append(*h, x.(int)) \n}\n\nfunc (h *Heap) Pop() interface{} {\n\told := *h\n\tn := len(old)\n\tx := old[n - 1]\n\t*h = old[0 : n - 1]\n\treturn x\n}\n```\n\n```C [sol1-C]\n#define MIN_QUEUE_SIZE 64\n\ntypedef struct Element {\n    int data;\n} Element;\n\ntypedef bool (*compare)(const void *, const void *);\n\ntypedef struct PriorityQueue {\n    Element *arr;\n    int capacity;\n    int queueSize;\n    compare lessFunc;\n} PriorityQueue;\n\nstatic bool less(const void *a, const void *b) {\n    Element *e1 = (Element *)a;\n    Element *e2 = (Element *)b;\n    return e1->data > e2->data;\n}\n\nstatic bool greater(const void *a, const void *b) {\n    Element *e1 = (Element *)a;\n    Element *e2 = (Element *)b;\n    return e1->data < e2->data;\n}\n\nstatic void memswap(void *m1, void *m2, size_t size){\n    unsigned char *a = (unsigned char*)m1;\n    unsigned char *b = (unsigned char*)m2;\n    while (size--) {\n        *b ^= *a ^= *b ^= *a;\n        a++;\n        b++;\n    }\n}\n\nstatic void swap(Element *arr, int i, int j) {\n    memswap(&arr[i], &arr[j], sizeof(Element));\n}\n\nstatic void down(Element *arr, int size, int i, compare cmpFunc) {\n    for (int k = 2 * i + 1; k < size; k = 2 * k + 1) {\n        if (k + 1 < size && cmpFunc(&arr[k], &arr[k + 1])) {\n            k++;\n        }\n        if (cmpFunc(&arr[k], &arr[(k - 1) / 2])) {\n            break;\n        }\n        swap(arr, k, (k - 1) / 2);\n    }\n}\n\nPriorityQueue *createPriorityQueue(compare cmpFunc) {\n    PriorityQueue *obj = (PriorityQueue *)malloc(sizeof(PriorityQueue));\n    obj->capacity = MIN_QUEUE_SIZE;\n    obj->arr = (Element *)malloc(sizeof(Element) * obj->capacity);\n    obj->queueSize = 0;\n    obj->lessFunc = cmpFunc;\n    return obj;\n}\n\nvoid heapfiy(PriorityQueue *obj) {\n    for (int i = obj->queueSize / 2 - 1; i >= 0; i--) {\n        down(obj->arr, obj->queueSize, i, obj->lessFunc);\n    }\n}\n\nvoid enQueue(PriorityQueue *obj, Element *e) {\n    // we need to alloc more space, just twice space size\n    if (obj->queueSize == obj->capacity) {\n        obj->capacity *= 2;\n        obj->arr = realloc(obj->arr, sizeof(Element) * obj->capacity);\n    }\n    memcpy(&obj->arr[obj->queueSize], e, sizeof(Element));\n    for (int i = obj->queueSize; i > 0 && obj->lessFunc(&obj->arr[(i - 1) / 2], &obj->arr[i]); i = (i - 1) / 2) {\n        swap(obj->arr, i, (i - 1) / 2);\n    }\n    obj->queueSize++;\n}\n\nElement* deQueue(PriorityQueue *obj) {\n    swap(obj->arr, 0, obj->queueSize - 1);\n    down(obj->arr, obj->queueSize - 1, 0, obj->lessFunc);\n    Element *e =  &obj->arr[obj->queueSize - 1];\n    obj->queueSize--;\n    return e;\n}\n\nbool isEmpty(const PriorityQueue *obj) {\n    return obj->queueSize == 0;\n}\n\nElement* front(const PriorityQueue *obj) {\n    if (obj->queueSize == 0) {\n        return NULL;\n    } else {\n        return &obj->arr[0];\n    }\n}\n\nvoid clear(PriorityQueue *obj) {\n    obj->queueSize = 0;\n}\n\nint size(const PriorityQueue *obj) {\n    return obj->queueSize;\n}\n\nvoid freeQueue(PriorityQueue *obj) {\n    free(obj->arr);\n    free(obj);\n}\n\nint cmp(const void* a, const void* b) {\n    int* ar = *(int**)a;\n    int* br = *(int**)b;\n    return ar[0] - br[0];\n}\n\nint maxRemoval(int* nums, int numsSize, int** queries, int queriesSize, int* queriesColSize) {\n    qsort(queries, queriesSize, sizeof(int*), cmp);\n    PriorityQueue *heap = createPriorityQueue(greater);  \n    int* deltaArray = (int*)calloc(numsSize + 1, sizeof(int));\n    int operations = 0;\n    \n    for (int i = 0, j = 0; i < numsSize; i++) {\n        operations += deltaArray[i];\n        while (j < queriesSize && queries[j][0] == i) {\n            Element e = {queries[j][1]};\n            enQueue(heap, &e);\n            j++;\n        } \n        while (operations < nums[i] && !isEmpty(heap) && front(heap)->data >= i) {\n            operations += 1;\n            int end = front(heap)->data;\n            deQueue(heap);\n            deltaArray[end + 1] -= 1;\n        }\n        \n        if (operations < nums[i]) {\n            freeQueue(heap);\n            free(deltaArray);\n            return -1;\n        }\n    }\n    \n    int result = size(heap);\n    freeQueue(heap);\n    free(deltaArray);\n    return result;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar maxRemoval = function(nums, queries) {\n    queries.sort((a, b) => a[0] - b[0]);\n    const heap = new MaxPriorityQueue();\n    const deltaArray = new Array(nums.length + 1).fill(0);\n    let operations = 0;\n    \n    for (let i = 0, j = 0; i < nums.length; i++) {\n        operations += deltaArray[i];\n        while (j < queries.length && queries[j][0] === i) {\n            heap.push(queries[j][1]);\n            j++;\n        }\n        while (operations < nums[i] && !heap.isEmpty() && heap.front() >= i) {\n            operations += 1;\n            deltaArray[heap.pop() + 1] -= 1;\n        }\n        if (operations < nums[i]) {\n            return -1;\n        }\n    }\n    return heap.size();\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction maxRemoval(nums: number[], queries: number[][]): number {\n    queries.sort((a, b) => a[0] - b[0]);\n    const heap = new MaxPriorityQueue<number>();\n    const deltaArray: number[] = new Array(nums.length + 1).fill(0);\n    let operations = 0;\n    \n    for (let i = 0, j = 0; i < nums.length; i++) {\n        operations += deltaArray[i];\n        while (j < queries.length && queries[j][0] === i) {\n            heap.push(queries[j][1]);\n            j++;\n        }\n        while (operations < nums[i] && !heap.isEmpty() && heap.front() >= i) {\n            operations += 1;\n            deltaArray[heap.pop() + 1] -= 1;\n        }\n        if (operations < nums[i]) {\n            return -1;\n        }\n    }\n    return heap.size();\n};\n```\n\n```Rust [sol1-Rust]\nuse std::collections::BinaryHeap;\n\nimpl Solution {\n    pub fn max_removal(nums: Vec<i32>, mut queries: Vec<Vec<i32>>) -> i32 {\n        queries.sort_by(|a, b| a[0].cmp(&b[0]));\n        let mut heap = BinaryHeap::new();\n        let mut delta_array = vec![0; nums.len() + 1];\n        let mut operations = 0;\n        let mut j = 0;\n        \n        for i in 0..nums.len() {\n            operations += delta_array[i];\n            while j < queries.len() && queries[j][0] == i as i32 {\n                heap.push(queries[j][1]);\n                j += 1;\n            }\n            while operations < nums[i] && !heap.is_empty() && *heap.peek().unwrap() >= i as i32 {\n                operations += 1;\n                let end = heap.pop().unwrap() as usize;\n                delta_array[end + 1] -= 1;\n            }\n            if operations < nums[i] {\n                return -1;\n            }\n        }\n        heap.len() as i32\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n+m\\times\\log{m})$，其中 $n$ 是 $\\textit{nums}$ 的长度，$m$ 是 $\\textit{queries}$ 的长度。\n\n- 空间复杂度：$O(n+m)$。",
+            "slateValue": "",
+            "slug": "ling-shu-zu-bian-huan-iii-by-leetcode-so-ptvl",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "PMFHiA",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 14,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Greedy",
+                    "nameTranslated": "贪心",
+                    "slug": "greedy",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Prefix Sum",
+                    "nameTranslated": "前缀和",
+                    "slug": "prefix-sum",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Heap (Priority Queue)",
+                    "nameTranslated": "堆（优先队列）",
+                    "slug": "heap-priority-queue",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2025-05-12T02:52:49.338130+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：贪心 + 优先队列 思路 首先我们考虑 [latex] 中下标为 [latex] 的元素，若 [latex]，我们肯定要在 [latex] 中找到至少 [latex] 个左端点为 [latex] 的元素保留，这样才能让 [latex] 降为 [latex]。那么选哪 [latex] 个呢？贪心地考虑，是选右端点",
+            "topic": {
+                "id": 3674726,
+                "subscribed": false,
+                "commentCount": 14,
+                "viewCount": 72,
+                "post": {
+                    "id": 6709057,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 41,
+            "isEditorsPick": false,
+            "hitCount": 8128,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "zero-array-transformation-iii",
+                "questionFrontendId": "3362"
+            },
+            "next": {
+                "slug": "tan-xin-zui-da-dui-chai-fen-shu-zu-pytho-35o6",
+                "title": "贪心+最大堆+差分数组（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

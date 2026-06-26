@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "8M6Z04",
+            "title": "用特殊操作处理字符串 II",
+            "content": "#### 方法一：模拟\n\n这一题是 [⌈3612. 用特殊操作处理字符串 I⌋](https://leetcode.cn/problems/process-string-with-special-operations-i/description/) 的加强版。除了字符串 $s$ 的长度扩展到 $10^5$，字符串 $\\textit{result}$ 的长度扩展到 $10^{15}$ 外，我们还要求出在字符串 $\\textit{result}$ 中第 $k$ 位的字符是什么，我们显然是不能直接将字符串 $\\textit{result}$ 模拟出来后再进行查询的。\n\n常规方法无法解题，我们可以从构造 $\\textit{result}$ 的四条规则之外的 $k$ 来入手，既然无法用最终的 $k$ 来获得对应字符，那么能否通过倒推来获得在构造 $\\textit{result}$ 过程中，这个最终的 $k$ 在 $\\textit{result}$ 中对应的位置呢？\n\n考虑题目条件：如果 $k$ 超出 $\\textit{result}$ 的下标索引范围，则返回 $\\text{`.'}$，由于 $\\textit{result}$ 的长度是一个未知数，那我们可以先将 $\\textit{result}$ 的长度 $\\textit{len}$ 模拟出来，当 $k + 1 > \\textit{len}$ 时，满足上述条件，直接返回 $\\text{`.'}$ 即可。\n\n接下来从字符串 $s$ 的结尾开始倒推最终的 $k$ 在构造 $\\textit{result}$ 过程中对应的位置，在倒推的每一步中必须满足 $k + 1 \\le \\textit{len}$，过程如下：\n\n1. 如果当前字符是 $\\text{`*'}$，$k$ 的位置不发生变化，并且 $\\textit{len}$ 加一，即补上了 $\\text{`*'}$ 删除掉的最后一个字符。\n2. 如果当前字符是 $\\text{`\\#'}$，若 $k + 1 > \\Big\\lceil\\dfrac{len}{2}\\Big\\rceil$，说明当前的 $k$ 在复制的 $\\textit{result}$ 中，因此在执行 $\\text{`\\#'}$ 操作之前的 $k$ 应该在 $k - \\Big\\lfloor\\dfrac{\\textit{len}}{2}\\Big\\rfloor$ 的位置；若 $k + 1 \\le \\Big\\lceil\\dfrac{\\textit{len}}{2}\\Big\\rceil$，则说明当前的 $k$ 在原始的 $\\textit{result}$ 中，因此 $k$ 的值不用变化。并且 $\\textit{len}$ 需要更新为 $\\Big\\lceil\\dfrac{\\textit{len}}{2}\\Big\\rceil$ ，即删除了 $\\textit{result}$ 的复制。\n3. 如果当前字符是 $\\text{`\\%'}$，则 $k$ 变为 $\\textit{len} - k - 1$ 即可，$\\textit{len}$ 不需要改变。\n4. 如果当前字符是小写字母，并且此时 $k + 1 = \\textit{len}$ 那么说明当前的 $k$ 对应的小写字母就是题目的答案，否则，若 $k + 1 < \\textit{len}$，则 $k$ 的值不变，$\\textit{len}$ 减一，即删除掉了 $\\textit{result}$ 的最后一个字符。\n\n能够保证每一步操作后 $k + 1 \\le \\textit{len}$。需要注意的是在倒推 $\\text{`*'}$ 操作的过程中可以不需要考虑 $\\textit{result}$ 是否为空字符串，一种情况是 $s$ 中只有无效操作，没有小写字母，这种情况在进入第二个循环之前就返回 $\\text{`.'}$ 了；另一种情况是 $s$ 中存在前导无效操作，使得 $\\textit{result}$ 为空字符串，不管是 $\\textit{result}$ 一直为空还是先变化后被 $\\text{`*'}$ 删成空字符串，这样的前导操作均为无效操作，我们只会考虑 $\\textit{result}$ 的终态，在这个情况下，如果 $k$ 有对应字符一定在无效操作之前返回了，不需要考虑前导字符无效操作。\n\n如果到最终还是得不到答案的话，返回 $\\text{`.'}$ 即可。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    char processStr(string s, long long k) {\n        long long len = 0;\n        for (auto c : s) {\n            if (c == '*') {\n                if (len) {\n                    len--;\n                }\n            } else if (c == '#') {\n                len *= 2;\n            } else if (c == '%') {\n                continue;\n            } else {\n                len++;\n            }\n        }\n        if (k + 1 > len) {\n            return '.';\n        }\n        for (int i = s.size() - 1; i >= 0; i--) {\n            if (s[i] == '*') {\n                len++;\n            } else if (s[i] == '#') {\n                if (k + 1 > (len + 1) / 2) {\n                    k -= len / 2;\n                }\n                len = (len + 1) / 2;\n            } else if (s[i] == '%') {\n                k = len - k - 1;\n            } else {\n                if (k + 1 == len) {\n                    return s[i];\n                }\n                else {\n                    len--;\n                }\n            }\n        }\n        return '.';\n    }\n};\n```\n\n```Go [sol1-Go]\nfunc processStr(s string, k int64) byte {\n    var length int64\n    for i := 0; i < len(s); i++ {\n        switch s[i] {\n        case '*':\n            if length > 0 {\n                length--\n            }\n        case '#':\n            length *= 2\n        case '%':\n            // no length change\n        default:\n            length++\n        }\n    }\n    if k+1 > length {\n        return '.'\n    }\n    for i := len(s) - 1; i >= 0; i-- {\n        switch s[i] {\n        case '*':\n            length++\n        case '#':\n            if k+1 > (length+1)/2 {\n                k -= length / 2\n            }\n            length = (length + 1) / 2\n        case '%':\n            k = length - k - 1\n        default:\n            if k+1 == length {\n                return s[i]\n            }\n            length--\n        }\n    }\n    return '.'\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def processStr(self, s: str, k: int) -> str:\n        length = 0\n        for c in s:\n            if c == \"*\":\n                if length:\n                    length -= 1\n            elif c == \"#\":\n                length *= 2\n            elif c == \"%\":\n                pass\n            else:\n                length += 1\n        if k + 1 > length:\n            return \".\"\n        for c in reversed(s):\n            if c == \"*\":\n                length += 1\n            elif c == \"#\":\n                if k + 1 > (length + 1) // 2:\n                    k -= length // 2\n                length = (length + 1) // 2\n            elif c == \"%\":\n                k = length - k - 1\n            else:\n                if k + 1 == length:\n                    return c\n                length -= 1\n        return \".\"\n\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public char processStr(String s, long k) {\n        long len = 0;\n        for (int i = 0; i < s.length(); i++) {\n            char c = s.charAt(i);\n            switch (c) {\n                case '*':\n                    if (len > 0) {\n                        len--;\n                    }\n                    break;\n                case '#':\n                    len *= 2;\n                    break;\n                case '%':\n                    break;\n                default:\n                    len++;\n                    break;\n            }\n        }\n        if (k + 1 > len) {\n            return '.';\n        }\n        for (int i = s.length() - 1; i >= 0; i--) {\n            char c = s.charAt(i);\n            switch (c) {\n                case '*':\n                    len++;\n                    break;\n                case '#':\n                    if (k + 1 > (len + 1) / 2) {\n                        k -= len / 2;\n                    }\n                    len = (len + 1) / 2;\n                    break;\n                case '%':\n                    k = len - k - 1;\n                    break;\n                default:\n                    if (k + 1 == len) {\n                        return c;\n                    }\n                    len--;\n                    break;\n            }\n        }\n        return '.';\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public char ProcessStr(string s, long k) {\n        long len = 0;\n        foreach (char c in s) {\n            switch (c) {\n                case '*':\n                    if (len > 0) {\n                        len--;\n                    }\n                    break;\n                case '#':\n                    len *= 2;\n                    break;\n                case '%':\n                    break;\n                default:\n                    len++;\n                    break;\n            }\n        }\n        if (k + 1 > len) {\n            return '.';\n        }\n        for (int i = s.Length - 1; i >= 0; i--) {\n            char c = s[i];\n            switch (c) {\n                case '*':\n                    len++;\n                    break;\n                case '#':\n                    if (k + 1 > (len + 1) / 2) {\n                        k -= len / 2;\n                    }\n                    len = (len + 1) / 2;\n                    break;\n                case '%':\n                    k = len - k - 1;\n                    break;\n                default:\n                    if (k + 1 == len) {\n                        return c;\n                    }\n                    len--;\n                    break;\n            }\n        }\n        return '.';\n    }\n}\n```\n\n```C [sol1-C]\nchar processStr(char *s, long long k) {\n    long long len = 0;\n    size_t n = strlen(s);\n    for (size_t i = 0; i < n; i++) {\n        char c = s[i];\n        if (c == '*') {\n            if (len > 0) {\n                len--;\n            }\n        } else if (c == '#') {\n            len *= 2;\n        } else if (c == '%') {\n            ;\n        } else {\n            len++;\n        }\n    }\n    if (k + 1 > len) {\n        return '.';\n    }\n    for (long long i = (long long)n - 1; i >= 0; i--) {\n        char c = s[i];\n        if (c == '*') {\n            len++;\n        } else if (c == '#') {\n            if (k + 1 > (len + 1) / 2) {\n                k -= len / 2;\n            }\n            len = (len + 1) / 2;\n        } else if (c == '%') {\n            k = len - k - 1;\n        } else {\n            if (k + 1 == len) {\n                return c;\n            }\n            len--;\n        }\n    }\n    return '.';\n}\n```\n\n```JavaScript [sol1-JavaScript]\nfunction processStr(s, k) {\n    let len = 0;\n    for (const c of s) {\n        if (c === '*') {\n            if (len > 0) {\n                len--;\n            }\n        } else if (c === '#') {\n            len *= 2;\n        } else if (c === '%') {\n            // no change\n        } else {\n            len++;\n        }\n    }\n    if (k + 1 > len) {\n        return '.';\n    }\n    for (let i = s.length - 1; i >= 0; i--) {\n        const c = s[i];\n        if (c === '*') {\n            len++;\n        } else if (c === '#') {\n            if (k + 1 > (len + 1) / 2) {\n                k -= Math.floor(len / 2);\n            }\n            len = Math.floor((len + 1) / 2);\n        } else if (c === '%') {\n            k = len - k - 1;\n        } else {\n            if (k + 1 === len) {\n                return c;\n            }\n            len--;\n        }\n    }\n    return '.';\n}\n```\n\n```TypeScript [sol1-TypeScript]\nfunction processStr(s: string, k: number): string {\n    let len = 0;\n    for (const c of s) {\n        if (c === '*') {\n            if (len > 0) {\n                len--;\n            }\n        } else if (c === '#') {\n            len *= 2;\n        } else if (c === '%') {\n            // no change\n        } else {\n            len++;\n        }\n    }\n    if (k + 1 > len) {\n        return '.';\n    }\n    for (let i = s.length - 1; i >= 0; i--) {\n        const c = s[i];\n        if (c === '*') {\n            len++;\n        } else if (c === '#') {\n            if (k + 1 > (len + 1) / 2) {\n                k -= Math.floor(len / 2);\n            }\n            len = Math.floor((len + 1) / 2);\n        } else if (c === '%') {\n            k = len - k - 1;\n        } else {\n            if (k + 1 === len) {\n                return c;\n            }\n            len--;\n        }\n    }\n    return '.';\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn process_str(s: String, mut k: i64) -> char {\n        let mut len: i64 = 0;\n        for c in s.chars() {\n            match c {\n                '*' => {\n                    if len > 0 {\n                        len -= 1;\n                    }\n                }\n                '#' => {\n                    len *= 2;\n                }\n                '%' => {}\n                _ => {\n                    len += 1;\n                }\n            }\n        }\n        if k + 1 > len {\n            return '.';\n        }\n        for c in s.chars().rev() {\n            match c {\n                '*' => {\n                    len += 1;\n                }\n                '#' => {\n                    if k + 1 > (len + 1) / 2 {\n                        k -= len / 2;\n                    }\n                    len = (len + 1) / 2;\n                }\n                '%' => {\n                    k = len - k - 1;\n                }\n                _ => {\n                    if k + 1 == len {\n                        return c;\n                    }\n                    len -= 1;\n                }\n            }\n        }\n        '.'\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是字符串 $s$ 的长度，本解法只需要分别正序和倒序遍历一遍字符串 $s$ 即可。\n\n- 空间复杂度：$O(1)$，本解法仅申请了一个 $\\textit{len}$ 用来保存 $\\textit{result}$ 的长度。",
+            "slateValue": "",
+            "slug": "yong-te-shu-cao-zuo-chu-li-zi-fu-chuan-i-jpwb",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "8M6Z04",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 2,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Simulation",
+                    "nameTranslated": "模拟",
+                    "slug": "simulation",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2026-06-05T02:56:08.530391+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：模拟 这一题是 ⌈3612. 用特殊操作处理字符串 I⌋ 的加强版。除了字符串 [latex] 的长度扩展到 [latex]，字符串 [latex] 的长度扩展到 [latex] 外，我们还要求出在字符串 [latex] 中第 [latex] 位的字符是什么，我们显然是不能直接将字符串 [latex] 模拟出来",
+            "topic": {
+                "id": 3979302,
+                "subscribed": false,
+                "commentCount": 8,
+                "viewCount": 9,
+                "post": {
+                    "id": 7253448,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 10,
+            "isEditorsPick": false,
+            "hitCount": 3817,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "process-string-with-special-operations-ii",
+                "questionFrontendId": "3614"
+            },
+            "next": {
+                "slug": "ni-xiang-si-wei-pythonjavacgo-by-endless-26al",
+                "title": "逆向思维（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

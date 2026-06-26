@@ -1,0 +1,144 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "7vLRZK",
+            "title": "找出数组的第 K 大和",
+            "content": "#### 方法一：优先队列\n\n首先，考虑该问题的简化版：给定 $n$ 个非递减的非负数序列 $a_0,  a_1, \\cdots, a_{n-1}$，找出第 $k$ 个最小的子序列和。\n\n当 $k = 1$ 时，空序列即为答案。\n\n当 $k \\gt 1$，令 $(t, i)$ 表示以 $a_i$ 为最后一个元素且和为 $t$ 的子序列，则问题转化为求解第 $k$ 个最小的 $(t, i)$。我们使用一个小根堆来保存 $(t, i)$，初始时堆中只有一个元素 $(a_0, 0)$。为了能按从小到大的顺序依次获得子序列，当我们从小根堆取出堆顶元素 $(t, i)$ 时，我们需要进行以下操作：\n\n- 将 $a_{i + 1}$ 拼接到子序列 $(t, i)$ 后，得到新的子序列 $(t + a_{i + 1}, i + 1)$，并将它加入堆中。\n\n- 将子序列 $(t, i)$ 中的 $a_i$ 替换成 $a_{i+1}$，得到新的子序列 $(t + a_{i + 1} - a_i, i + 1)$，并将它加入堆中。\n\n那么第 $k - 1$ 次取出的堆顶元素对应第 $k$ 个最小的子序列。\n\n> 这种做法可以保证：\n> \n> 1. 不重复地取出所有的非空子序列\n> \n> 2. 依次取出的非空子序列和是非递减的。\n\n根据以上讨论，我们可以求解出非递减的非负数序列的第 $k$ 个最小的子序列和，而原问题给出的条件中，允许序列中有负数。记原序列的非负数和与负数和分别为 $\\textit{total}$ 与 $\\textit{total}_\\textit{neg}$，我们先将原序列中的负数替换成它的绝对值，然后从小到大进行排序，最后求解第 $k$ 个最小的子序列和 $t_k$。\n\n$t_k$ 对应一个子序列 $s_k$，我们将 $t_k$ 加上 $\\textit{total}_\\textit{neg}$，那么 $t_k + \\textit{total}_\\textit{neg}$ 也对应原序列的一个子序列 $s_k'$，该子序列 $s_k'$ 的正数元素与 $s_k$ 相同，负数部分由绝对值不存在于 $s_k$ 的负数元素组成。因为 $t_k + \\textit{total}_\\textit{neg}$ 是非递减的，所以 $s_k'$ 是原序列的第 $k$ 个最小的子序列，$t_k + \\textit{total}_\\textit{neg}$ 是原序列的第 $k$ 个最小的子序列和。\n\n同时，如果第 $k$ 个最小的子序列和为 $t_k + \\textit{total}_\\textit{neg}$，并且所有序列元素和为 $\\textit{total} + \\textit{total}_\\textit{neg}$，那么 $\\textit{total} + \\textit{total}_\\textit{neg} - (t_k + \\textit{total}_\\textit{neg}) = \\textit{total} - t_k$ 即为第 $k$ 个最大的子序列和。\n\n> $\\textit{total} - t_k$ 对应没有出现在第 $k$ 个最小的子序列中的元素和，也对应一个子序列，因为 $t_k$ 是非递减的，所以 $\\textit{total} - t_k$ 是非递增的，因此 $\\textit{total} - t_k$ 即为第 $k$ 个最大的子序列和。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    long long kSum(vector<int> &nums, int k) {\n        int n = nums.size();\n        long long total = 0;\n        for (int &x : nums) {\n            if (x >= 0) {\n                total += x;\n            } else {\n                x = -x;\n            }\n        }\n        sort(nums.begin(), nums.end());\n\n        long long ret = 0;\n        priority_queue<pair<long long, int>, vector<pair<long long, int>>, greater<>> pq;\n        pq.push({nums[0], 0});\n        for (int j = 2; j <= k; j++) {\n            auto [t, i] = pq.top();\n            pq.pop();\n            ret = t;\n            if (i == n - 1) {\n                continue;\n            }\n            pq.push({t + nums[i + 1], i + 1});\n            pq.push({t - nums[i] + nums[i + 1], i + 1});\n        }\n        return total - ret;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public long kSum(int[] nums, int k) {\n        int n = nums.length;\n        long total = 0;\n        for (int i = 0; i < n; i++) {\n            if (nums[i] >= 0) {\n                total += nums[i];\n            } else {\n                nums[i] = -nums[i];\n            }\n        }\n        Arrays.sort(nums);\n\n        long ret = 0;\n        PriorityQueue<long[]> pq = new PriorityQueue<long[]>((a, b) -> Long.compare(a[0], b[0]));\n        pq.offer(new long[]{nums[0], 0});\n        for (int j = 2; j <= k; j++) {\n            long[] arr = pq.poll();\n            long t = arr[0];\n            int i = (int) arr[1];\n            ret = t;\n            if (i == n - 1) {\n                continue;\n            }\n            pq.offer(new long[]{t + nums[i + 1], i + 1});\n            pq.offer(new long[]{t - nums[i] + nums[i + 1], i + 1});\n        }\n        return total - ret;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public long KSum(int[] nums, int k) {\n        int n = nums.Length;\n        long total = 0;\n        for (int i = 0; i < n; i++) {\n            if (nums[i] >= 0) {\n                total += nums[i];\n            } else {\n                nums[i] = -nums[i];\n            }\n        }\n        Array.Sort(nums);\n\n        long ret = 0;\n        PriorityQueue<Tuple<long, int>, long> pq = new PriorityQueue<Tuple<long, int>, long>();\n        pq.Enqueue(new Tuple<long, int>(nums[0], 0), nums[0]);\n        for (int j = 2; j <= k; j++) {\n            Tuple<long, int> tuple = pq.Dequeue();\n            long t = tuple.Item1;\n            int i = tuple.Item2;\n            ret = t;\n            if (i == n - 1) {\n                continue;\n            }\n            pq.Enqueue(new Tuple<long, int>(t + nums[i + 1], i + 1), t + nums[i + 1]);\n            pq.Enqueue(new Tuple<long, int>(t - nums[i] + nums[i + 1], i + 1), t - nums[i] + nums[i + 1]);\n        }\n        return total - ret;\n    }\n}\n```\n\n```Go [sol1-Go]\ntype PriorityQueue [][2]int64\n\nfunc (pq PriorityQueue) Less(i, j int) bool {\n    return pq[i][0] < pq[j][0]\n}\n\nfunc (pq PriorityQueue) Len() int {\n    return len(pq)\n}\n\nfunc (pq PriorityQueue) Swap(i, j int) {\n    pq[i], pq[j] = pq[j], pq[i]\n}\n\nfunc (pq *PriorityQueue) Push(x any) {\n    (*pq) = append(*pq, x.([2]int64))\n}\n\nfunc (pq *PriorityQueue) Pop() any {\n    n := len(*pq)\n    x := (*pq)[n - 1]\n    (*pq) = (*pq)[:n-1]\n    return x\n}\n\nfunc kSum(nums []int, k int) int64 {\n    n, total := len(nums), int64(0)\n    for i := range nums {\n        if nums[i] >= 0 {\n            total += int64(nums[i])\n        } else {\n            nums[i] = -nums[i]\n        }\n    }\n    sort.Ints(nums)\n\n    ret := int64(0)\n    pq := PriorityQueue{\n        [2]int64{int64(nums[0]), 0},\n    }\n    for j := 2; j <= k; j++ {\n        t, i := pq[0][0], pq[0][1]\n        heap.Pop(&pq)\n        ret = t\n        if i == int64(n - 1) {\n            continue\n        }\n        heap.Push(&pq, [2]int64{t + int64(nums[i + 1]), i + 1})\n        heap.Push(&pq, [2]int64{t - int64(nums[i] - nums[i + 1]), i + 1})\n    }\n    return total - ret\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def kSum(self, nums: List[int], k: int) -> int:\n        n = len(nums)\n        total = 0\n        for i in range(n):\n            if nums[i] >= 0:\n                total += nums[i]\n            else:\n                nums[i] = -nums[i]\n        nums.sort()\n\n        ret = 0\n        pq = [(nums[0], 0)]\n        for j in range(2, k + 1):\n            t, i = heappop(pq)\n            ret = t\n            if i == n - 1:\n                continue\n            heappush(pq, (t + nums[i + 1], i + 1))\n            heappush(pq, (t - nums[i] + nums[i + 1], i + 1))\n        return total - ret\n```\n\n```C [sol1-C]\ntypedef struct {\n    long long first;\n    int second;\n} Node;\n\ntypedef bool (*cmp)(const void *, const void *);\n\ntypedef long long LL;\n\ntypedef struct {\n    Node *arr;\n    int capacity;\n    int queueSize;\n    cmp compare;\n} PriorityQueue;\n\nNode *createNode(long long x, int y) {\n    Node *obj = (Node *)malloc(sizeof(Node));\n    obj->first = x;\n    obj->second = y;\n    return obj;\n}\n\nPriorityQueue *createPriorityQueue(int size, cmp compare) {\n    PriorityQueue *obj = (PriorityQueue *)malloc(sizeof(PriorityQueue));\n    obj->arr = (Node *)malloc(sizeof(Node) * size);\n    obj->queueSize = 0;\n    obj->capacity = size;\n    obj->compare = compare;\n    return obj;\n}\n\nstatic void swap(Node *arr, int i, int j) {\n    Node tmp;\n    memcpy(&tmp, &arr[i], sizeof(Node));\n    memcpy(&arr[i], &arr[j], sizeof(Node));\n    memcpy(&arr[j], &tmp, sizeof(Node));\n}\n\nstatic void down(Node *arr, int size, int i, cmp compare) {\n    for (int k = 2 * i + 1; k < size; k = 2 * k + 1) {\n        // 父节点 (k - 1) / 2，左子节点 k，右子节点 k + 1\n        if (k + 1 < size && compare(&arr[k], &arr[k + 1])) {\n            k++;\n        }\n        if (compare(&arr[k], &arr[(k - 1) / 2])) {\n            break;\n        }\n        swap(arr, k, (k - 1) / 2);\n    }\n}\n\nvoid Heapfiy(PriorityQueue *obj) {\n    for (int i = obj->queueSize / 2 - 1; i >= 0; i--) {\n        down(obj->arr, obj->queueSize, i, obj->compare);\n    }\n}\n\nvoid Push(PriorityQueue *obj, Node *node) {\n    memcpy(&obj->arr[obj->queueSize], node, sizeof(Node));\n    for (int i = obj->queueSize; i > 0 && obj->compare(&obj->arr[(i - 1) / 2], &obj->arr[i]); i = (i - 1) / 2) {\n        swap(obj->arr, i, (i - 1) / 2);\n    }\n    obj->queueSize++;\n}\n\nNode* Pop(PriorityQueue *obj) {\n    swap(obj->arr, 0, obj->queueSize - 1);\n    down(obj->arr, obj->queueSize - 1, 0, obj->compare);\n    Node *ret =  &obj->arr[obj->queueSize - 1];\n    obj->queueSize--;\n    return ret;\n}\n\nbool isEmpty(PriorityQueue *obj) {\n    return obj->queueSize == 0;\n}\n\nNode* Top(PriorityQueue *obj) {\n    if (obj->queueSize == 0) {\n        return NULL;\n    } else {\n        return &obj->arr[0];\n    }\n}\n\nvoid FreePriorityQueue(PriorityQueue *obj) {\n    free(obj->arr);\n    free(obj);\n}\n\nbool greater(const void *a, const void *b) {\n   return ((Node *)a)->first > ((Node *)b)->first;\n}\n\nstatic int compare(const void *a, const void *b) {\n    return *(int *)a - *(int *)b;\n}\n\nlong long kSum(int* nums, int numsSize, int k) {\n    long long total = 0;\n    for (int i = 0; i < numsSize; i++) {\n        if (nums[i] >= 0) {\n            total += nums[i];\n        } else {\n            nums[i] = -nums[i];\n        }\n    }\n    qsort(nums, numsSize, sizeof(int), compare);\n    long long ret = 0;\n    PriorityQueue *pq = createPriorityQueue(k * 2, greater);\n    Node node;\n    node.first = nums[0];\n    node.second = 0;\n    Push(pq, &node);\n    for (int j = 2; j <= k; j++) {\n        Node *p = Pop(pq);\n        long long t = p->first;\n        int i = p->second;\n        ret = t;\n        if (i == numsSize - 1) {\n            continue;\n        }\n        node.first = t + nums[i + 1];\n        node.second = i + 1;\n        Push(pq, &node);\n        node.first = t - nums[i] + nums[i + 1];\n        node.second = i + 1;\n        Push(pq, &node);\n    }\n    FreePriorityQueue(pq);\n    return total - ret;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar kSum = function(nums, k) {\n    const n = nums.length;\n    let total = 0;\n    for (let i = 0; i < nums.length; i++) {\n        const x = nums[i];\n        if (x >= 0) {\n            total += x;\n        } else {\n            nums[i] = -x;\n        }\n    }\n    \n    nums.sort((a, b) => a - b);\n    let ret = 0;\n    const pq = new MinPriorityQueue();\n    pq.enqueue([nums[0], 0], nums[0]);\n    for (let j = 2; j <= k; j++) {\n        const [t, i] = pq.front().element;\n        pq.dequeue();\n        ret = t;\n        if (i == n - 1) {\n            continue;\n        }\n        pq.enqueue([t + nums[i + 1], i + 1], t + nums[i + 1]);\n        pq.enqueue([t - nums[i] + nums[i + 1], i + 1], t - nums[i] + nums[i + 1]);\n    }\n    return total - ret;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction kSum(nums: number[], k: number): number {\n    const n: number = nums.length;\n    let total: number = 0;\n    for (let i: number = 0; i < nums.length; i++) {\n        const x: number = nums[i];\n        if (x >= 0) {\n            total += x;\n        } else {\n            nums[i] = -x;\n        }\n    }\n    \n    nums.sort((a, b) => a - b);\n    let ret: number = 0;\n    const pq = new MinPriorityQueue();\n    pq.enqueue([nums[0], 0], nums[0]);\n    for (let j: number = 2; j <= k; j++) {\n        const [t, i]: [number, number] = pq.front().element;\n        pq.dequeue();\n        ret = t;\n        if (i == n - 1) {\n            continue;\n        }\n        pq.enqueue([t + nums[i + 1], i + 1], t + nums[i + 1]);\n        pq.enqueue([t - nums[i] + nums[i + 1], i + 1], t - nums[i] + nums[i + 1]);\n    }\n    return total - ret;\n};\n```\n\n```Rust [sol1-Rust]\nuse std::collections::BinaryHeap;\nuse std::cmp::Reverse;\n\nimpl Solution {\n    pub fn k_sum(nums: Vec<i32>, k: i32) -> i64 {\n        let mut nums_copy = nums.to_vec();\n        let n = nums_copy.len();\n        let mut total = 0;\n\n        for x in &mut nums_copy {\n            if *x >= 0 {\n                total += *x as i64;\n            } else {\n                *x = -*x;\n            }\n        }\n        \n        nums_copy.sort();\n        let mut ret = 0;\n        let mut pq: BinaryHeap<(Reverse<i64>, usize)> = BinaryHeap::new();\n        pq.push((Reverse(nums_copy[0] as i64), 0));\n        for j in 2..=k {\n            let (t, i) = pq.pop().unwrap();\n            ret = t.0;\n            if i == n - 1 {\n                continue;\n            }\n            pq.push((Reverse(t.0 + nums_copy[i + 1] as i64), i + 1));\n            pq.push((Reverse(t.0 - nums_copy[i] as i64 + nums_copy[i + 1] as i64), i + 1));\n        }\n        (total - ret) as i64\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log n + k \\log k)$，其中 $n$ 是数组的长度。排序需要 $O(n \\log n)$，堆获取第 $k$ 个最小子序列和需要 $O(k \\log k)$。\n\n- 空间复杂度：$O(k + \\log n)$。排序需要 $O(\\log n)$ 的栈空间，堆需要 $O(k)$ 的空间。\n\n#### 方法二：二分\n\n对于问题：给定 $n$ 个非递减的非负数序列 $a_0,  a_1, \\cdots, a_{n-1}$，找出第 $k$ 个最小的子序列和。除了使用堆，我们还可以使用二分算法来解决。记 $\\textit{total}_2$ 为非负数序列的和，令 $\\textit{left} = 0, \\textit{right} = \\textit{total}_2$，那么在区间 $[\\textit{left}, \\textit{right}]$ 进行二分搜索。\n\n令当前搜索的值为 $\\textit{mid} = \\lfloor \\frac{(\\textit{left} + \\textit{right})}{2} \\rfloor$，令 $\\textit{cnt}$ 为和小于等于 $\\textit{mid}$ 的非空子序列的个数，求解 $\\textit{cnt}$ 可以使用深度优先搜索，假设当前搜索到第 $i$ 个元素，前面已选中的元素和为 $t$：\n\n- 如果 $\\textit{cnt} \\ge k - 1$ 或 $t + a_i \\gt \\textit{mid}$，那么说明后续的搜索不必要，直接返回。\n\n- 否则， $t + a_i$ 即对应以 $a_i$ 为最后一个元素的子序列和，将 $\\textit{cnt}$ 加一，然后同时对 $(i + 1, t + a_i)$ 和 $(i + 1, t)$ 进行搜索。\n\n最后，如果 $\\textit{cnt} \\ge k - 1$，令 $\\textit{right} = \\textit{mid} - 1$，否则令 $\\textit{left} = \\textit{mid} + 1$。当 $\\textit{left} \\gt \\textit{right}$ 时，$\\textit{left}$ 即为第 $k$ 个最小的子序列和。后续问题的求解同方法一。\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    long long kSum(vector<int> &nums, int k) {\n        int n = nums.size();\n        long long total = 0, total2 = 0;\n        for (int &x : nums) {\n            if (x >= 0) {\n                total += x;\n            } else {\n                x = -x;\n            }\n            total2 += abs(x);\n        }\n        sort(nums.begin(), nums.end());\n\n        function<void(int, long long, long long, int &)> dfs = [&](int i, long long t, long long limit, int &cnt) {\n            if (i == n || cnt >= k - 1 || t + nums[i] > limit) {\n                return;\n            }\n            cnt++;\n            dfs(i + 1, t + nums[i], limit, cnt);\n            dfs(i + 1, t, limit, cnt);\n        };\n\n        long long left = 0, right = total2;\n        while (left <= right) {\n            long long mid = (left + right) / 2;\n            int cnt = 0;\n            dfs(0, 0, mid, cnt);\n            if (cnt >= k - 1) {\n                right = mid - 1;\n            } else {\n                left = mid + 1;\n            }\n        }\n        \n        return total - left;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    int cnt;\n\n    public long kSum(int[] nums, int k) {\n        int n = nums.length;\n        long total = 0, total2 = 0;\n        for (int i = 0; i < n; i++) {\n            if (nums[i] >= 0) {\n                total += nums[i];\n            } else {\n                nums[i] = -nums[i];\n            }\n            total2 += Math.abs(nums[i]);\n        }\n        Arrays.sort(nums);\n\n        long left = 0, right = total2;\n        while (left <= right) {\n            long mid = (left + right) / 2;\n            cnt = 0;\n            dfs(nums, k, n, 0, 0, mid);\n            if (cnt >= k - 1) {\n                right = mid - 1;\n            } else {\n                left = mid + 1;\n            }\n        }\n        \n        return total - left;\n    }\n\n    public void dfs(int[] nums, int k, int n, int i, long t, long limit) {\n        if (i == n || cnt >= k - 1 || t + nums[i] > limit) {\n            return;\n        }\n        cnt++;\n        dfs(nums, k, n, i + 1, t + nums[i], limit);\n        dfs(nums, k, n, i + 1, t, limit);\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    int cnt;\n\n    public long KSum(int[] nums, int k) {\n        int n = nums.Length;\n        long total = 0, total2 = 0;\n        for (int i = 0; i < n; i++) {\n            if (nums[i] >= 0) {\n                total += nums[i];\n            } else {\n                nums[i] = -nums[i];\n            }\n            total2 += Math.Abs(nums[i]);\n        }\n        Array.Sort(nums);\n\n        long left = 0, right = total2;\n        while (left <= right) {\n            long mid = (left + right) / 2;\n            cnt = 0;\n            DFS(nums, k, n, 0, 0, mid);\n            if (cnt >= k - 1) {\n                right = mid - 1;\n            } else {\n                left = mid + 1;\n            }\n        }\n        \n        return total - left;\n    }\n\n    public void DFS(int[] nums, int k, int n, int i, long t, long limit) {\n        if (i == n || cnt >= k - 1 || t + nums[i] > limit) {\n            return;\n        }\n        cnt++;\n        DFS(nums, k, n, i + 1, t + nums[i], limit);\n        DFS(nums, k, n, i + 1, t, limit);\n    }\n}\n```\n\n```Go [sol2-Go]\nfunc kSum(nums []int, k int) int64 {\n    n := len(nums)\n    total, total2 := int64(0), int64(0)\n    for i := range nums {\n        if nums[i] >= 0 {\n            total += int64(nums[i])\n        } else {\n            nums[i] = -nums[i]\n        }\n        total2 += int64(nums[i])\n    }\n    sort.Ints(nums)\n    var cnt int\n    var dfs func(int, int64, int64)\n    dfs = func(i int, t, limit int64) {\n        if i == n || cnt >= k - 1 || t + int64(nums[i]) > limit {\n            return\n        }\n        cnt++\n        dfs(i + 1, t + int64(nums[i]), limit)\n        dfs(i + 1, t, limit)\n    }\n\n    left, right := int64(0), total2\n    for left <= right {\n        mid := (left + right) / 2\n        cnt = 0\n        dfs(0, 0, mid)\n        if cnt >= k - 1 {\n            right = mid - 1\n        } else {\n            left = mid + 1\n        }\n    }\n    return total - left\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def kSum(self, nums: List[int], k: int) -> int:\n        n = len(nums)\n        total, total2 = 0, 0\n        for i in range(n):\n            if nums[i] >= 0:\n                total += nums[i]\n            else:\n                nums[i] = -nums[i]\n            total2 += nums[i]\n        nums.sort()\n\n        cnt = 0\n        def dfs(i: int, t: int, limit: int) -> int:\n            nonlocal cnt\n            if i == n or cnt >= k - 1 or t + nums[i] > limit:\n                return\n            cnt += 1\n            dfs(i + 1, t + nums[i], limit)\n            dfs(i + 1, t, limit)\n        \n        left, right = 0, total2\n        while left <= right:\n            mid = (left + right) // 2\n            cnt = 0\n            dfs(0, 0, mid)\n            if cnt >= k - 1:\n                right = mid - 1\n            else:\n                left = mid + 1\n        return total - left\n```\n\n```C [sol2-C]\nstatic int compare(const void *a, const void *b) {\n    return *(int *)a - *(int *)b;\n}\n\nvoid dfs(int *nums, int k, int n, int i, long long t, long long limit, int *cnt) {\n    if (i == n || *cnt >= k - 1 || t + nums[i] > limit) {\n        return;\n    }\n    (*cnt)++;\n    dfs(nums, k, n, i + 1, t + nums[i], limit, cnt);\n    dfs(nums, k, n, i + 1, t, limit, cnt);\n}\n\nlong long kSum(int* nums, int numsSize, int k) {\n    int n = numsSize;\n    long long total = 0, total2 = 0;\n    for (int i = 0; i < n; i++) {\n        if (nums[i] < 0) {\n            nums[i] = -nums[i];\n        } else {\n            total += nums[i];\n        }\n        total2 += abs(nums[i]);\n    }\n\n    qsort(nums, n, sizeof(int), compare);\n    long long left = 0, right = total2;\n    int cnt = 0;\n    while (left <= right) {\n        long long mid = (left + right) / 2;\n        cnt = 0;\n        dfs(nums, k, n, 0, 0, mid, &cnt);\n        if (cnt >= k - 1) {\n            right = mid - 1;\n        } else {\n            left = mid + 1;\n        }\n    }\n\n    return total - left;\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar kSum = function(nums, k) {\n    let n = nums.length;\n    let total = 0, total2 = 0;\n    for (let i = 0; i < n; i++) {\n        if (nums[i] < 0) {\n            nums[i] = -nums[i];\n        } else {\n            total += nums[i];\n        }\n        total2 += Math.abs(nums[i]);\n    }\n\n    nums.sort((a, b) => a - b);\n    const dfs = (i, t, limit) => {\n        if (i === n || cnt >= k - 1 || t + nums[i] > limit) {\n            return;\n        }\n        cnt++;\n        dfs(i + 1, t + nums[i], limit, cnt);\n        dfs(i + 1, t, limit, cnt);\n    };\n\n    let left = 0, right = total2;\n    let cnt = 0;\n    while (left <= right) {\n        let mid = Math.floor((left + right) / 2);\n        cnt = 0;\n        dfs(0, 0, mid);\n        if (cnt >= k - 1) {\n            right = mid - 1;\n        } else {\n            left = mid + 1;\n        }\n    }\n\n    return total - left;\n};\n```\n\n```TypeScript [sol2-TypeScript]\nfunction kSum(nums: number[], k: number): number {\n    let n = nums.length;\n    let total = 0, total2 = 0;\n    for (let i = 0; i < n; i++) {\n        if (nums[i] < 0) {\n            nums[i] = -nums[i];\n        } else {\n            total += nums[i];\n        }\n        total2 += Math.abs(nums[i]);\n    }\n\n    nums.sort((a, b) => a - b);\n    const dfs = (i: number, t: number, limit: number): void => {\n        if (i === n || cnt >= k - 1 || t + nums[i] > limit) {\n            return;\n        }\n        cnt++;\n        dfs(i + 1, t + nums[i], limit);\n        dfs(i + 1, t, limit);\n    };\n\n    let left = 0, right = total2;\n    let cnt = 0;\n    while (left <= right) {\n        let mid = Math.floor((left + right) / 2);\n        cnt = 0;\n        dfs(0, 0, mid);\n        if (cnt >= k - 1) {\n            right = mid - 1;\n        } else {\n            left = mid + 1;\n        }\n    }\n    console.log(left);\n    return total - left;\n};\n```\n\n```Rust [sol2-Rust]\nimpl Solution {\n    pub fn k_sum(nums: Vec<i32>, k: i32) -> i64 {\n        let n = nums.len();\n        let mut nums = nums.to_vec();\n        let mut total: i64 = 0;\n        let mut total2: i64 = 0;\n        for i in 0..n {\n            if nums[i] >= 0 {\n                total += nums[i] as i64;\n            } else {\n                nums[i] = -nums[i];\n            }\n            total2 += nums[i] as i64;\n        }\n        nums.sort();\n\n        let mut cnt = 0;\n        fn dfs(i: usize, t: i64, limit: i64, nums: &Vec<i32>, cnt: &mut i32, k: i32) {\n            if i == nums.len() || *cnt >= k - 1 || t + nums[i] as i64 > limit {\n                return;\n            }\n            *cnt += 1;\n            dfs(i + 1, t + nums[i] as i64, limit, nums, cnt, k);\n            dfs(i + 1, t, limit, nums, cnt, k);\n        }\n        \n        let mut left = 0;\n        let mut right = total2;\n        while left <= right {\n            let mid = (left + right) / 2;\n            cnt = 0;\n            dfs(0, 0, mid, &nums, &mut cnt, k);\n            if cnt >= k - 1 {\n                right = mid - 1;\n            } else {\n                left = mid + 1;\n            }\n        }\n        total - left\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log n + k \\log S)$。其中 $n$ 为序列元素数目，$S$ 为序列元素绝对值和。排序需要 $O(n \\log n)$，二分+搜索需要 $k \\log S$。\n\n- 空间复杂度：$O(\\min(n, k))$。搜索栈空间最多为 $O(\\min(n, k))$。",
+            "slateValue": "",
+            "slug": "zhao-chu-shu-zu-de-di-k-da-he-by-leetcod-z5kq",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "7vLRZK",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 23,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Heap (Priority Queue)",
+                    "nameTranslated": "堆（优先队列）",
+                    "slug": "heap-priority-queue",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2024-03-05T02:48:02.177984+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：优先队列 首先，考虑该问题的简化版：给定 $n$ 个非递减的非负数序列 $a_0,  a_1, \\cdots, a_{n-1}$，找出第 $k$ 个最小的子序列和。 当 $k = 1$ 时，空序列即为答案。 当 $k \\gt 1$，令 $(t, i)$ 表示以 $a_i$ 为最后一个元素且和为 $t$ 的子序列",
+            "topic": {
+                "id": 2668280,
+                "subscribed": false,
+                "commentCount": 40,
+                "viewCount": 995,
+                "post": {
+                    "id": 4913727,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 91,
+            "isEditorsPick": false,
+            "hitCount": 17877,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "find-the-k-sum-of-an-array",
+                "questionFrontendId": "2386"
+            },
+            "next": {
+                "slug": "zhuan-huan-dui-by-endlesscheng-8yiq",
+                "title": "两种方法：二分答案+暴搜/最小堆（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

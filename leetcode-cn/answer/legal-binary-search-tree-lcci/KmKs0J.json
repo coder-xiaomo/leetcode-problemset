@@ -1,0 +1,126 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "KmKs0J",
+            "title": "合法二叉搜索树",
+            "content": "#### 方法一：递归\n\n**思路和算法**\n\n要解决这道题首先我们要了解二叉搜索树有什么性质可以给我们利用，由题目给出的信息我们可以知道：**如果该二叉树的左子树不为空，则左子树上所有节点的值均小于它的根节点的值； 若它的右子树不空，则右子树上所有节点的值均大于它的根节点的值；它的左右子树也为二叉搜索树。**\n\n这启示我们设计一个递归函数 `helper(root, lower, upper)` 来递归判断，函数表示考虑以 `root` 为根的子树，判断子树中所有节点的值是否都在 $(l,r)$ 的范围内（**注意是开区间**）。如果 `root` 节点的值 `val` 不在 $(l,r)$ 的范围内说明不满足条件直接返回，否则我们要继续递归调用检查它的左右子树是否满足，如果都满足才说明这是一棵二叉搜索树。\n\n那么根据二叉搜索树的性质，在递归调用左子树时，我们需要把上界 `upper` 改为 `root.val`，即调用 `helper(root.left, lower, root.val)`，因为左子树里所有节点的值均小于它的根节点的值。同理递归调用右子树时，我们需要把下界 `lower` 改为 `root.val`，即调用 `helper(root.right, root.val, upper)`。\n\n函数递归调用的入口为 `helper(root, -inf, +inf)`， `inf` 表示一个无穷大的值。\n\n下图展示了算法如何应用在示例 2 上：\n\n<![fig1](https://assets.leetcode.cn/solution-static/jindian_04.05/1.PNG),![fig2](https://assets.leetcode.cn/solution-static/jindian_04.05/2.PNG),![fig3](https://assets.leetcode.cn/solution-static/jindian_04.05/3.PNG),![fig4](https://assets.leetcode.cn/solution-static/jindian_04.05/4.PNG)>\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    bool helper(TreeNode* root, long long lower, long long upper) {\n        if (root == nullptr) {\n            return true;\n        }\n        if (root -> val <= lower || root -> val >= upper) {\n            return false;\n        }\n        return helper(root -> left, lower, root -> val) && helper(root -> right, root -> val, upper);\n    }\n    bool isValidBST(TreeNode* root) {\n        return helper(root, LONG_MIN, LONG_MAX);\n    }\n};\n```\n\n```JavaScript [sol1-JavaScript]\nconst helper = (root, lower, upper) => {\n    if (root === null) {\n        return true;\n    }\n    if (root.val <= lower || root.val >= upper) {\n        return false;\n    }\n    return helper(root.left, lower, root.val) && helper(root.right, root.val, upper);\n}\nvar isValidBST = function(root) {\n    return helper(root, -Infinity, Infinity);\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public boolean isValidBST(TreeNode root) {\n        return helper(root, null, null);\n    }\n\n    public boolean helper(TreeNode node, Integer lower, Integer upper) {\n        if (node == null) {\n            return true;\n        }\n\n        int val = node.val;\n        if (lower != null && val <= lower) {\n            return false;\n        }\n        if (upper != null && val >= upper) {\n            return false;\n        }\n\n        if (!helper(node.right, val, upper)) {\n            return false;\n        }\n        if (!helper(node.left, lower, val)) {\n            return false;\n        }\n        return true;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def isValidBST(self, root: TreeNode) -> bool:\n        def helper(node, lower = float('-inf'), upper = float('inf')) -> bool:\n            if not node:\n                return True\n            \n            val = node.val\n            if val <= lower or val >= upper:\n                return False\n\n            if not helper(node.right, val, upper):\n                return False\n            if not helper(node.left, lower, val):\n                return False\n            return True\n\n        return helper(root)\n```\n\n```golang [sol1-Golang]\nfunc isValidBST(root *TreeNode) bool {\n    return helper(root, math.MinInt64, math.MaxInt64)\n}\n\nfunc helper(root *TreeNode, lower, upper int) bool {\n    if root == nil {\n        return true\n    }\n    if root.Val <= lower || root.Val >= upper {\n        return false\n    }\n    return helper(root.Left, lower, root.Val) && helper(root.Right, root.Val, upper)\n}\n```\n\n**复杂度分析**\n\n* 时间复杂度：$O(n)$，其中 $n$ 为二叉树的节点个数。在递归调用的时候二叉树的每个节点最多被访问一次，因此时间复杂度为 $O(n)$。\n\n* 空间复杂度：$O(n)$，其中 $n$ 为二叉树的节点个数。递归函数在递归过程中需要为每一层递归函数分配栈空间，所以这里需要额外的空间且该空间取决于递归的深度，即二叉树的高度。最坏情况下二叉树为一条链，树的高度为 $n$ ，递归最深达到 $n$ 层，故最坏情况下空间复杂度为 $O(n)$ 。\n\n#### 方法二：中序遍历\n\n**思路和算法**\n\n基于方法一中提及的性质，我们可以进一步知道二叉搜索树「中序遍历」得到的值构成的序列一定是升序的，这启示我们在中序遍历的时候实时检查当前节点的值是否大于前一个中序遍历到的节点的值即可。如果均大于说明这个序列是升序的，整棵树是二叉搜索树，否则不是，下面的代码我们使用栈来模拟中序遍历的过程。\n\n可能有读者不知道中序遍历是什么，我们这里简单提及，中序遍历是二叉树的一种遍历方式，它先遍历左子树，再遍历根节点，最后遍历右子树。而我们二叉搜索树保证了左子树的节点的值均小于根节点的值，根节点的值均小于右子树的值，因此中序遍历以后得到的序列一定是升序序列。\n\n![fig1](https://assets.leetcode.cn/solution-static/jindian_04.05/fig1.gif)\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    bool isValidBST(TreeNode* root) {\n        stack<TreeNode*> stack;\n        long long inorder = (long long)INT_MIN - 1;\n\n        while (!stack.empty() || root != nullptr) {\n            while (root != nullptr) {\n                stack.push(root);\n                root = root -> left;\n            }\n            root = stack.top();\n            stack.pop();\n            // 如果中序遍历得到的节点的值小于等于前一个 inorder，说明不是二叉搜索树\n            if (root -> val <= inorder) {\n                return false;\n            }\n            inorder = root -> val;\n            root = root -> right;\n        }\n        return true;\n    }\n};\n```\n\n```JavaScript [sol2-JavaScript]\nvar isValidBST = function(root) {\n    let stack = [];\n    let inorder = -Infinity;\n\n    while (stack.length || root !== null) {\n        while (root !== null) {\n            stack.push(root);\n            root = root.left;\n        }\n        root = stack.pop();\n        // 如果中序遍历得到的节点的值小于等于前一个 inorder，说明不是二叉搜索树\n        if (root.val <= inorder) {\n            return false;\n        }\n        inorder = root.val;\n        root = root.right;\n    }\n    return true;\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public boolean isValidBST(TreeNode root) {\n        Deque<TreeNode> stack = new LinkedList<TreeNode>();\n        double inorder = -Double.MAX_VALUE;\n\n        while (!stack.isEmpty() || root != null) {\n            while (root != null) {\n                stack.push(root);\n                root = root.left;\n            }\n            root = stack.pop();\n              // 如果中序遍历得到的节点的值小于等于前一个 inorder，说明不是二叉搜索树\n            if (root.val <= inorder) {\n                return false;\n            }\n            inorder = root.val;\n            root = root.right;\n        }\n        return true;\n    }\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def isValidBST(self, root: TreeNode) -> bool:\n        stack, inorder = [], float('-inf')\n        \n        while stack or root:\n            while root:\n                stack.append(root)\n                root = root.left\n            root = stack.pop()\n            # 如果中序遍历得到的节点的值小于等于前一个 inorder，说明不是二叉搜索树\n            if root.val <= inorder:\n                return False\n            inorder = root.val\n            root = root.right\n\n        return True\n```\n\n```golang [sol2-Golang]\nfunc isValidBST(root *TreeNode) bool {\n    stack := []*TreeNode{}\n    inorder := math.MinInt64\n    for len(stack) > 0 || root != nil {\n        for root != nil {\n            stack = append(stack, root)\n            root = root.Left\n        }\n        root = stack[len(stack)-1]\n        stack = stack[:len(stack)-1]\n        if root.Val <= inorder {\n            return false\n        }\n        inorder = root.Val\n        root = root.Right\n    }\n    return true\n}\n```\n\n**复杂度分析**\n\n* 时间复杂度：$O(n)$，其中 $n$ 为二叉树的节点个数。二叉树的每个节点最多被访问一次，因此时间复杂度为 $O(n)$。\n\n* 空间复杂度：$O(n)$，其中 $n$ 为二叉树的节点个数。栈最多存储 $n$ 个节点，因此需要额外的 $O(n)$ 的空间。",
+            "slateValue": "",
+            "slug": "he-fa-er-cha-sou-suo-shu-by-leetcode-sol-y1xm",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "KmKs0J",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 18,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Tree",
+                    "nameTranslated": "树",
+                    "slug": "tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Depth-First Search",
+                    "nameTranslated": "深度优先搜索",
+                    "slug": "depth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search Tree",
+                    "nameTranslated": "二叉搜索树",
+                    "slug": "binary-search-tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Tree",
+                    "nameTranslated": "二叉树",
+                    "slug": "binary-tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-12-22T15:28:26.447971+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：递归 思路和算法 要解决这道题首先我们要了解二叉搜索树有什么性质可以给我们利用，由题目给出的信息我们可以知道：如果该二叉树的左子树不为空，则左子树上所有节点的值均小于它的根节点的值； 若它的右子树不空，则右子树上所有节点的值均大于它的根节点的值；它的左右子树也为二叉搜索树。 这启示我们设计一个递归函数 help",
+            "topic": {
+                "id": 531802,
+                "subscribed": false,
+                "commentCount": 13,
+                "viewCount": 11533,
+                "post": {
+                    "id": 1248451,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 56,
+            "isEditorsPick": false,
+            "hitCount": 22597,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "legal-binary-search-tree-lcci",
+                "questionFrontendId": "面试题 04.05"
+            },
+            "next": {
+                "slug": "qian-xu-zhong-xu-hou-xu-san-chong-fang-f-90zr",
+                "title": "前序中序后序，三种方法，一个视频讲透！（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

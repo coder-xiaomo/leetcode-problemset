@@ -1,0 +1,144 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "d79ba3",
+            "title": "统计 X 和 Y 频数相等的子矩阵数量",
+            "content": "#### 方法一：二维前缀和\n\n**思路及解法**\n\n我们可以顺着题目的条件来寻找子矩阵：\n\n首先是包含 $\\textit{grid}[0][0]$，根据这个条件，我们已经知道了子矩阵的左上角，只需要确定右下角的元素便可确定一个子矩阵。\n\n其次是 $X$ 与 $Y$ 的频数要相等，那么可以根据 $X$ 和 $Y$ 的频数来计数，出现一个 $X$ 计数加一，出现一个 $Y$ 计数减一，出现一个 $.$ 则保持计数不变。那么只需要判断一个子矩阵的总计数是否为 $0$ 即可判断 $X$ 与 $Y$ 的频数是否相等，这里的计数可以通过二维前缀和来统计。\n\n最后这个子矩阵中至少要包含一个 $X$ 才能计算在答案内，因此在进行二维前缀和处理时可以在前缀和矩阵中多开辟一个维度来判断以 $(i, j)$ 为右下角的子矩阵中是否包含 $X$。判断方式如下：\n\n1. 当 $\\textit{grid}[i][j] = X$ 时，这个以 $(i, j)$ 为右下角的子矩阵必定包含 $X$。\n2. 当 $\\textit{grid}[i][j] \\neq X$ 时，这个以 $(i, j)$ 为右下角的子矩阵是否包含 $X$ 可以通过以 $(i - 1, j)$ 为右下角的子矩阵以及以 $(i, j - 1)$ 为右下角的子矩阵中是否存在 $X$ 来判断，这两个子矩阵中的任意一个存在 $X$ 即可判断当前子矩阵中存在 $X$。\n\n当然，我们还可以通过构建两个前缀和矩阵来分别统计并比较子矩阵中 $X$ 以及 $Y$ 的数量，此处不再赘述。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int numberOfSubmatrices(vector<vector<char>>& grid) {\n        int n = grid.size(), m = grid[0].size();\n        int ans = 0;\n        vector<vector<array<int, 2>>> sum(n + 1, vector<array<int, 2>>(m + 1));\n        for (int i = 0; i < n; i++) {\n            for (int j = 0; j < m; j++) {\n                if (grid[i][j] == 'X') {\n                    sum[i + 1][j + 1][0] =\n                        sum[i + 1][j][0] + sum[i][j + 1][0] - sum[i][j][0] + 1;\n                    sum[i + 1][j + 1][1] = 1;\n                } else if (grid[i][j] == 'Y') {\n                    sum[i + 1][j + 1][0] =\n                        sum[i + 1][j][0] + sum[i][j + 1][0] - sum[i][j][0] - 1;\n                    sum[i + 1][j + 1][1] = sum[i + 1][j][1] | sum[i][j + 1][1];\n                } else {\n                    sum[i + 1][j + 1][0] =\n                        sum[i + 1][j][0] + sum[i][j + 1][0] - sum[i][j][0];\n                    sum[i + 1][j + 1][1] = sum[i + 1][j][1] | sum[i][j + 1][1];\n                }\n                ans += (!sum[i + 1][j + 1][0] && sum[i + 1][j + 1][1]) ? 1 : 0;\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int numberOfSubmatrices(char[][] grid) {\n        int n = grid.length, m = grid[0].length;\n        int ans = 0;\n        int[][][] sum = new int[n + 1][m + 1][2];\n        for (int i = 0; i < n; i++) {\n            for (int j = 0; j < m; j++) {\n                if (grid[i][j] == 'X') {\n                    sum[i + 1][j + 1][0] =\n                        sum[i + 1][j][0] + sum[i][j + 1][0] - sum[i][j][0] + 1;\n                    sum[i + 1][j + 1][1] = 1;\n                } else if (grid[i][j] == 'Y') {\n                    sum[i + 1][j + 1][0] =\n                        sum[i + 1][j][0] + sum[i][j + 1][0] - sum[i][j][0] - 1;\n                    sum[i + 1][j + 1][1] = sum[i + 1][j][1] | sum[i][j + 1][1];\n                } else {\n                    sum[i + 1][j + 1][0] =\n                        sum[i + 1][j][0] + sum[i][j + 1][0] - sum[i][j][0];\n                    sum[i + 1][j + 1][1] = sum[i + 1][j][1] | sum[i][j + 1][1];\n                }\n                ans += (sum[i + 1][j + 1][0] == 0 && sum[i + 1][j + 1][1] == 1) ? 1 : 0;\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar numberOfSubmatrices = function(grid) {\n    const n = grid.length, m = grid[0].length;\n    let ans = 0;\n    const sum = new Array(n + 1).fill(0).map(() =>\n        new Array(m + 1).fill(0).map(() => [0, 0])\n    );\n\n    for (let i = 0; i < n; i++) {\n        for (let j = 0; j < m; j++) {\n            if (grid[i][j] === 'X') {\n                sum[i + 1][j + 1][0] =\n                    sum[i + 1][j][0] + sum[i][j + 1][0] - sum[i][j][0] + 1;\n                sum[i + 1][j + 1][1] = 1;\n            } else if (grid[i][j] === 'Y') {\n                sum[i + 1][j + 1][0] =\n                    sum[i + 1][j][0] + sum[i][j + 1][0] - sum[i][j][0] - 1;\n                sum[i + 1][j + 1][1] = sum[i + 1][j][1] | sum[i][j + 1][1];\n            } else {\n                sum[i + 1][j + 1][0] =\n                    sum[i + 1][j][0] + sum[i][j + 1][0] - sum[i][j][0];\n                sum[i + 1][j + 1][1] = sum[i + 1][j][1] | sum[i][j + 1][1];\n            }\n            if (sum[i + 1][j + 1][0] === 0 && sum[i + 1][j + 1][1] === 1) {\n                ans++;\n            }\n        }\n    }\n    return ans;\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def numberOfSubmatrices(self, grid: List[List[str]]) -> int:\n        n, m = len(grid), len(grid[0])\n        ans = 0\n        sum = [[[0, 0] for _ in range(m + 1)] for _ in range(n + 1)]\n\n        for i in range(n):\n            for j in range(m):\n                if grid[i][j] == 'X':\n                    sum[i + 1][j + 1][0] = (\n                        sum[i + 1][j][0] + sum[i][j + 1][0] - sum[i][j][0] + 1\n                    )\n                    sum[i + 1][j + 1][1] = 1\n                elif grid[i][j] == 'Y':\n                    sum[i + 1][j + 1][0] = (\n                        sum[i + 1][j][0] + sum[i][j + 1][0] - sum[i][j][0] - 1\n                    )\n                    sum[i + 1][j + 1][1] = sum[i + 1][j][1] | sum[i][j + 1][1]\n                else:\n                    sum[i + 1][j + 1][0] = (\n                        sum[i + 1][j][0] + sum[i][j + 1][0] - sum[i][j][0]\n                    )\n                    sum[i + 1][j + 1][1] = sum[i + 1][j][1] | sum[i][j + 1][1]\n                if sum[i + 1][j + 1][0] == 0 and sum[i + 1][j + 1][1] == 1:\n                    ans += 1\n\n        return ans\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int NumberOfSubmatrices(char[][] grid) {\n        int n = grid.Length, m = grid[0].Length;\n        int ans = 0;\n        int[,,] sum = new int[n + 1, m + 1, 2];\n        \n        for (int i = 0; i < n; i++) {\n            for (int j = 0; j < m; j++) {\n                if (grid[i][j] == 'X') {\n                    sum[i + 1, j + 1, 0] =\n                        sum[i + 1, j, 0] + sum[i, j + 1, 0] - sum[i, j, 0] + 1;\n                    sum[i + 1, j + 1, 1] = 1;\n                } else if (grid[i][j] == 'Y') {\n                    sum[i + 1, j + 1, 0] =\n                        sum[i + 1, j, 0] + sum[i, j + 1, 0] - sum[i, j, 0] - 1;\n                    sum[i + 1, j + 1, 1] = (sum[i + 1, j, 1] | sum[i, j + 1, 1]) == 1 ? 1 : 0;\n                } else {\n                    sum[i + 1, j + 1, 0] =\n                        sum[i + 1, j, 0] + sum[i, j + 1, 0] - sum[i, j, 0];\n                    sum[i + 1, j + 1, 1] = (sum[i + 1, j, 1] | sum[i, j + 1, 1]) == 1 ? 1 : 0;\n                }\n                \n                if (sum[i + 1, j + 1, 0] == 0 && sum[i + 1, j + 1, 1] == 1) {\n                    ans++;\n                }\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc numberOfSubmatrices(grid [][]byte) int {\n    n := len(grid)\n    m := len(grid[0])\n    ans := 0\n    \n    sum := make([][][]int, n+1)\n    for i := range sum {\n        sum[i] = make([][]int, m+1)\n        for j := range sum[i] {\n            sum[i][j] = make([]int, 2)\n        }\n    }\n    \n    for i := 0; i < n; i++ {\n        for j := 0; j < m; j++ {\n            if grid[i][j] == 'X' {\n                sum[i+1][j+1][0] = sum[i+1][j][0] + sum[i][j+1][0] - sum[i][j][0] + 1\n                sum[i+1][j+1][1] = 1\n            } else if grid[i][j] == 'Y' {\n                sum[i+1][j+1][0] = sum[i+1][j][0] + sum[i][j+1][0] - sum[i][j][0] - 1\n                if sum[i+1][j][1] == 1 || sum[i][j+1][1] == 1 {\n                    sum[i+1][j+1][1] = 1\n                } else {\n                    sum[i+1][j+1][1] = 0\n                }\n            } else {\n                sum[i+1][j+1][0] = sum[i+1][j][0] + sum[i][j+1][0] - sum[i][j][0]\n                if sum[i+1][j][1] == 1 || sum[i][j+1][1] == 1 {\n                    sum[i+1][j+1][1] = 1\n                } else {\n                    sum[i+1][j+1][1] = 0\n                }\n            }\n            \n            if sum[i+1][j+1][0] == 0 && sum[i+1][j+1][1] == 1 {\n                ans++\n            }\n        }\n    }\n    return ans\n}\n```\n\n```C [sol1-C]\nint numberOfSubmatrices(char** grid, int gridSize, int* gridColSize) {\n    int n = gridSize, m = gridColSize[0];\n    int ans = 0;\n    int sum[n + 1][m + 1][2];\n\n    memset(sum, 0, sizeof(sum));\n\n    for (int i = 0; i < n; i++) {\n        for (int j = 0; j < m; j++) {\n            if (grid[i][j] == 'X') {\n                sum[i + 1][j + 1][0] =\n                    sum[i + 1][j][0] + sum[i][j + 1][0] - sum[i][j][0] + 1;\n                sum[i + 1][j + 1][1] = 1;\n            } else if (grid[i][j] == 'Y') {\n                sum[i + 1][j + 1][0] =\n                    sum[i + 1][j][0] + sum[i][j + 1][0] - sum[i][j][0] - 1;\n                sum[i + 1][j + 1][1] = sum[i + 1][j][1] | sum[i][j + 1][1];\n            } else {\n                sum[i + 1][j + 1][0] =\n                    sum[i + 1][j][0] + sum[i][j + 1][0] - sum[i][j][0];\n                sum[i + 1][j + 1][1] = sum[i + 1][j][1] | sum[i][j + 1][1];\n            }\n            if (sum[i + 1][j + 1][0] == 0 && sum[i + 1][j + 1][1] == 1) {\n                ans++;\n            }\n        }\n    }\n    return ans;\n}\n```\n\n```TypeScript [sol1-TypeScript]\nfunction numberOfSubmatrices(grid: string[][]): number {\n    const n = grid.length;\n    const m = grid[0].length;\n    let ans = 0;\n    \n    const sum: number[][][] = Array(n + 1).fill(null)\n        .map(() => Array(m + 1).fill(null)\n            .map(() => [0, 0]));\n    \n    for (let i = 0; i < n; i++) {\n        for (let j = 0; j < m; j++) {\n            if (grid[i][j] === 'X') {\n                sum[i + 1][j + 1][0] = \n                    sum[i + 1][j][0] + sum[i][j + 1][0] - sum[i][j][0] + 1;\n                sum[i + 1][j + 1][1] = 1;\n            } else if (grid[i][j] === 'Y') {\n                sum[i + 1][j + 1][0] = \n                    sum[i + 1][j][0] + sum[i][j + 1][0] - sum[i][j][0] - 1;\n                sum[i + 1][j + 1][1] = (sum[i + 1][j][1] | sum[i][j + 1][1]) ? 1 : 0;\n            } else {\n                sum[i + 1][j + 1][0] = \n                    sum[i + 1][j][0] + sum[i][j + 1][0] - sum[i][j][0];\n                sum[i + 1][j + 1][1] = (sum[i + 1][j][1] | sum[i][j + 1][1]) ? 1 : 0;\n            }\n            \n            if (sum[i + 1][j + 1][0] === 0 && sum[i + 1][j + 1][1] === 1) {\n                ans++;\n            }\n        }\n    }\n    return ans;\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn number_of_submatrices(grid: Vec<Vec<char>>) -> i32 {\n        let n = grid.len();\n        let m = grid[0].len();\n        let mut ans = 0;        \n        let mut sum = vec![vec![vec![0; 2]; m + 1]; n + 1];\n        \n        for i in 0..n {\n            for j in 0..m {\n                match grid[i][j] {\n                    'X' => {\n                        sum[i + 1][j + 1][0] = \n                            sum[i + 1][j][0] + sum[i][j + 1][0] - sum[i][j][0] + 1;\n                        sum[i + 1][j + 1][1] = 1;\n                    },\n                    'Y' => {\n                        sum[i + 1][j + 1][0] = \n                            sum[i + 1][j][0] + sum[i][j + 1][0] - sum[i][j][0] - 1;\n                        sum[i + 1][j + 1][1] = \n                            if sum[i + 1][j][1] == 1 || sum[i][j + 1][1] == 1 { 1 } else { 0 };\n                    },\n                    _ => {\n                        sum[i + 1][j + 1][0] = \n                            sum[i + 1][j][0] + sum[i][j + 1][0] - sum[i][j][0];\n                        sum[i + 1][j + 1][1] = \n                            if sum[i + 1][j][1] == 1 || sum[i][j + 1][1] == 1 { 1 } else { 0 };\n                    }\n                }\n                \n                if sum[i + 1][j + 1][0] == 0 && sum[i + 1][j + 1][1] == 1 {\n                    ans += 1;\n                }\n            }\n        }\n        ans\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(nm)$，其中 $n$ 是 $\\textit{grid}$ 的行数，$m$ 是 $\\textit{grid}$ 的列数。\n\n- 空间复杂度：$O(nm)$，构建了一个大小为 $n \\times m$ 的前缀和矩阵 $\\textit{sum}$。",
+            "slateValue": "",
+            "slug": "tong-ji-x-he-y-pin-shu-xiang-deng-de-zi-77zcu",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "d79ba3",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 0,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Matrix",
+                    "nameTranslated": "矩阵",
+                    "slug": "matrix",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Prefix Sum",
+                    "nameTranslated": "前缀和",
+                    "slug": "prefix-sum",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2026-03-16T03:27:19.852717+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：二维前缀和 思路及解法 我们可以顺着题目的条件来寻找子矩阵： 首先是包含 [latex]，根据这个条件，我们已经知道了子矩阵的左上角，只需要确定右下角的元素便可确定一个子矩阵。 其次是 [latex] 与 [latex] 的频数要相等，那么可以根据 [latex] 和 [latex] 的频数来计数，出现一个 [",
+            "topic": {
+                "id": 3926908,
+                "subscribed": false,
+                "commentCount": 28,
+                "viewCount": 16,
+                "post": {
+                    "id": 7160053,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 8,
+            "isEditorsPick": false,
+            "hitCount": 3825,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "count-submatrices-with-equal-frequency-of-x-and-y",
+                "questionFrontendId": "3212"
+            },
+            "next": {
+                "slug": "liang-chong-fang-fa-er-wei-qian-zhui-he-a6qqf",
+                "title": "两种方法：二维前缀和/维护每列字符个数（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

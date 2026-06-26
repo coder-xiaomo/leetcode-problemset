@@ -1,0 +1,144 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "QlK5Vy",
+            "title": "到达最后一个房间的最少时间 I",
+            "content": "#### 方法一：最短路 + $\\textit{Dijkstra}$\n\n**思路与算法**\n\n题目给定一个大小为 $n \\times m$ 的二维数组，需求解从位置 $(0, 0)$ 移动到位置 $(n - 1, m - 1)$ 所需的最短时间。移动时，可以从当前位置移动到上下左右四个位置，并且每个位置有最早的移动时间，在该时间之后才可往该位置移动。\n\n因此，二维数组可以看作一个大小为 $n \\times m$ 的无向图，位置 $(i, j)$ 有连向 $(i - 1, j)$、$(i + 1, j)$、$(i, j - 1)$、$(i, j + 1)$ 的无向边，我们要求解 $(0, 0)$ 到 $(n - 1, m - 1)$ 的最短路。\n\n求解最短路的算法有很多，我们这里选用 $\\textit{Dijkstra}$，可以参考「[网络延迟时间](https://leetcode.cn/problems/network-delay-time/solutions/909575/wang-luo-yan-chi-shi-jian-by-leetcode-so-6phc/)」的题解来了解 $\\textit{Dijkstra}$ 的基本流程。\n\n与普通的 $\\textit{Dijkstra}$ 不同的是，在本题中，我们设 $d[i][j]$ 表示从 $(0, 0)$ 到 $(i, j)$ 所需的最短时间，那么从 $(i, j)$ 走到相邻坐标 $(u, v)$ 的时间为 $\\max(d[i][j], \\textit{moveTime}[u][v]) + 1$。其他过程与 $\\textit{Dijkstra}$ 一致。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\n    struct State {\n        int x;\n        int y;\n        int dis;\n        State(int x, int y, int dis) : x(x), y(y), dis(dis) {};\n        bool operator < (const State &rth) const {\n            return dis > rth.dis;\n        } \n    };\npublic:\n    const int inf = 0x3f3f3f3f;\n    int minTimeToReach(vector<vector<int>>& moveTime) {\n        int n = moveTime.size(), m = moveTime[0].size();\n        vector<vector<int>> d(n, vector<int>(m, inf));\n        vector<vector<int>> v(n, vector<int>(m, 0));\n\n        int dirs[4][2] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};\n        d[0][0] = 0;\n        priority_queue<State> q;\n        q.push(State(0, 0, 0));\n\n        while (q.size()) {\n            State s = q.top();\n            q.pop();\n            if (v[s.x][s.y]) {\n                continue;\n            }\n            v[s.x][s.y] = 1;\n            for (int i = 0; i < 4; i++) {\n                int nx = s.x + dirs[i][0];\n                int ny = s.y + dirs[i][1];\n                if (nx < 0 || nx >= n || ny < 0 || ny >= m) {\n                    continue;\n                }\n                int dist = max(d[s.x][s.y], moveTime[nx][ny]) + 1;\n                if (d[nx][ny] > dist) {\n                    d[nx][ny] = dist;\n                    q.push(State(nx, ny, dist));\n                }\n            }\n        }\n        return d[n - 1][m - 1];\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass State:\n    def __init__(self, x, y, dis):\n        self.x = x\n        self.y = y\n        self.dis = dis\n\n    def __lt__(self, other):\n        return self.dis < other.dis\n\nclass Solution:\n    def minTimeToReach(self, moveTime):\n        n = len(moveTime)\n        m = len(moveTime[0])\n        inf = float('inf')\n        d = [[inf] * m for _ in range(n)]\n        v = [[0] * m for _ in range(n)]\n\n        dirs = [(1, 0), (-1, 0), (0, 1), (0, -1)]\n\n        d[0][0] = 0\n        q = []\n        heapq.heappush(q, State(0, 0, 0))\n\n        while q:\n            s = heapq.heappop(q)\n            if v[s.x][s.y]:\n                continue\n            v[s.x][s.y] = 1\n            for dx, dy in dirs:\n                nx, ny = s.x + dx, s.y + dy\n                if not (0 <= nx < n and 0 <= ny < m):\n                    continue\n                dist = max(d[s.x][s.y], moveTime[nx][ny]) + 1\n                if d[nx][ny] > dist:\n                    d[nx][ny] = dist\n                    heapq.heappush(q, State(nx, ny, dist))\n\n        return d[n-1][m-1]\n```\n\n```Rust [sol1-Rust]\nuse std::collections::BinaryHeap;\nuse std::cmp::{max, Reverse};\n\nimpl Solution {\n    pub fn min_time_to_reach(move_time: Vec<Vec<i32>>) -> i32 {\n        let n = move_time.len();\n        let m = move_time[0].len();\n        let inf = i32::MAX / 2;\n        let mut d = vec![vec![inf; m]; n];\n        let mut v = vec![vec![false; m]; n];\n        let dirs = [(1, 0), (-1, 0), (0, 1), (0, -1)];\n\n        d[0][0] = 0;\n        let mut q = BinaryHeap::new();\n        q.push(Reverse((0, 0usize, 0usize))); // (dis, x, y)\n\n        while let Some(Reverse((dis, x, y))) = q.pop() {\n            if v[x][y] {\n                continue;\n            }\n            v[x][y] = true;\n            for &(dx, dy) in dirs.iter() {\n                let nx = x as isize + dx;\n                let ny = y as isize + dy;\n                if nx < 0 || nx >= n as isize || ny < 0 || ny >= m as isize {\n                    continue;\n                }\n                let nx = nx as usize;\n                let ny = ny as usize;\n                let dist = max(d[x][y], move_time[nx][ny]) + 1;\n                if d[nx][ny] > dist {\n                    d[nx][ny] = dist;\n                    q.push(Reverse((dist, nx, ny)));\n                }\n            }\n        }\n\n        d[n - 1][m - 1]\n    }\n}\n```\n\n```Java [sol1-Java]\nclass Solution {\n    private static final int INF = 0x3f3f3f3f;\n    \n    public int minTimeToReach(int[][] moveTime) {\n        int n = moveTime.length, m = moveTime[0].length;\n        int[][] d = new int[n][m];\n        boolean[][] v = new boolean[n][m];\n        for (int i = 0; i < n; i++) {\n            Arrays.fill(d[i], INF);\n        }\n\n        int[][] dirs = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};\n        d[0][0] = 0;\n        PriorityQueue<State> q = new PriorityQueue<>();\n        q.offer(new State(0, 0, 0));\n\n        while (!q.isEmpty()) {\n            State s = q.poll();\n            if (v[s.x][s.y]) {\n                continue;\n            }\n            v[s.x][s.y] = true;\n            for (int[] dir : dirs) {\n                int nx = s.x + dir[0];\n                int ny = s.y + dir[1];\n                if (nx < 0 || nx >= n || ny < 0 || ny >= m) {\n                    continue;\n                }\n                int dist = Math.max(d[s.x][s.y], moveTime[nx][ny]) + 1;\n                if (d[nx][ny] > dist) {\n                    d[nx][ny] = dist;\n                    q.offer(new State(nx, ny, dist));\n                }\n            }\n        }\n        return d[n - 1][m - 1];\n    }\n\n    static class State implements Comparable<State> {\n        int x, y, dis;\n        State(int x, int y, int dis) {\n            this.x = x;\n            this.y = y;\n            this.dis = dis;\n        }\n        @Override\n        public int compareTo(State other) {\n            return Integer.compare(this.dis, other.dis);\n        }\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    private const int INF = 0x3f3f3f3f;\n\n    private class State : IComparable<State> {\n        public int x;\n        public int y;\n        public int dis;\n        \n        public State(int x, int y, int dis) {\n            this.x = x;\n            this.y = y;\n            this.dis = dis;\n        }\n        \n        public int CompareTo(State other) {\n            return this.dis.CompareTo(other.dis);\n        }\n    }\n\n    public int MinTimeToReach(int[][] moveTime) {\n        int n = moveTime.Length;\n        int m = moveTime[0].Length;\n        int[,] d = new int[n, m];\n        bool[,] v = new bool[n, m];\n        for (int i = 0; i < n; i++) {\n            for (int j = 0; j < m; j++) {\n                d[i, j] = INF;\n            }\n        }\n\n        int[][] dirs = new int[][] {\n            new int[] {1, 0},\n            new int[] {-1, 0},\n            new int[] {0, 1},\n            new int[] {0, -1}\n        };\n\n        d[0, 0] = 0;\n        var pq = new PriorityQueue<State, int>();\n        pq.Enqueue(new State(0, 0, 0), 0);\n\n        while (pq.Count > 0) {\n            State s = pq.Dequeue();\n            if (v[s.x, s.y]) {\n                continue;\n            }\n            v[s.x, s.y] = true;\n            foreach (var dir in dirs) {\n                int nx = s.x + dir[0];\n                int ny = s.y + dir[1];\n                if (nx < 0 || nx >= n || ny < 0 || ny >= m) {\n                    continue;\n                }\n                int dist = Math.Max(d[s.x, s.y], moveTime[nx][ny]) + 1;\n                if (d[nx, ny] > dist) {\n                    d[nx, ny] = dist;\n                    pq.Enqueue(new State(nx, ny, dist), dist);\n                }\n            }\n        }\n\n        return d[n - 1, m - 1];\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc minTimeToReach(moveTime [][]int) int {\n\tn, m := len(moveTime), len(moveTime[0])\n\td := make([][]int, n)\n\tv := make([][]bool, n)\n\tfor i := range d {\n\t\td[i] = make([]int, m)\n\t\tv[i] = make([]bool, m)\n\t\tfor j := range d[i] {\n\t\t\td[i][j] = math.MaxInt32\n\t\t}\n\t}\n\n\tdirs := [][]int{{1, 0}, {-1, 0}, {0, 1}, {0, -1}}\n\td[0][0] = 0\n\tq := &PriorityQueue{}\n\theap.Push(q, State{0, 0, 0})\n\n\tfor q.Len() > 0 {\n\t\ts := heap.Pop(q).(State)\n\t\tif v[s.x][s.y] {\n\t\t\tcontinue\n\t\t}\n\t\tv[s.x][s.y] = true\n\t\tfor _, dir := range dirs {\n\t\t\tnx, ny := s.x + dir[0], s.y + dir[1]\n\t\t\tif nx < 0 || nx >= n || ny < 0 || ny >= m {\n\t\t\t\tcontinue\n\t\t\t}\n\t\t\tdist := max(d[s.x][s.y], moveTime[nx][ny]) + 1\n\t\t\tif d[nx][ny] > dist {\n\t\t\t\td[nx][ny] = dist\n\t\t\t\theap.Push(q, State{nx, ny, dist})\n\t\t\t}\n\t\t}\n\t}\n\n\treturn d[n - 1][m - 1]\n}\n\ntype State struct {\n\tx, y, dis int\n}\n\ntype PriorityQueue []State\n\nfunc (pq PriorityQueue) Len() int           { \n    return len(pq) \n}\n\nfunc (pq PriorityQueue) Less(i, j int) bool { \n    return pq[i].dis < pq[j].dis \n}\n\nfunc (pq PriorityQueue) Swap(i, j int) { \n    pq[i], pq[j] = pq[j], pq[i] \n}\n\nfunc (pq *PriorityQueue) Push(x interface{}) { \n    *pq = append(*pq, x.(State)) \n}\n\nfunc (pq *PriorityQueue) Pop() interface{} {\n\told := *pq\n\tn := len(old)\n\tx := old[n - 1]\n\t*pq = old[:n - 1]\n\treturn x\n}\n```\n\n```C [sol1-C]\n#define MIN_QUEUE_SIZE 64\n\ntypedef struct Element {\n    int x;\n    int y;\n    int dist;\n} Element;\n\ntypedef bool (*compare)(const void *, const void *);\n\ntypedef struct PriorityQueue {\n    Element *arr;\n    int capacity;\n    int queueSize;\n    compare lessFunc;\n} PriorityQueue;\n\nstatic bool greater(const void *a, const void *b) {\n    Element *e1 = (Element *)a;\n    Element *e2 = (Element *)b;\n    return e1->dist > e2->dist;\n}\n\nstatic void memswap(void *m1, void *m2, size_t size){\n    unsigned char *a = (unsigned char*)m1;\n    unsigned char *b = (unsigned char*)m2;\n    while (size--) {\n        *b ^= *a ^= *b ^= *a;\n        a++;\n        b++;\n    }\n}\n\nstatic void swap(Element *arr, int i, int j) {\n    memswap(&arr[i], &arr[j], sizeof(Element));\n}\n\nstatic void down(Element *arr, int size, int i, compare cmpFunc) {\n    for (int k = 2 * i + 1; k < size; k = 2 * k + 1) {\n        if (k + 1 < size && cmpFunc(&arr[k], &arr[k + 1])) {\n            k++;\n        }\n        if (cmpFunc(&arr[k], &arr[(k - 1) / 2])) {\n            break;\n        }\n        swap(arr, k, (k - 1) / 2);\n    }\n}\n\nPriorityQueue *createPriorityQueue(compare cmpFunc) {\n    PriorityQueue *obj = (PriorityQueue *)malloc(sizeof(PriorityQueue));\n    obj->capacity = MIN_QUEUE_SIZE;\n    obj->arr = (Element *)malloc(sizeof(Element) * obj->capacity);\n    obj->queueSize = 0;\n    obj->lessFunc = cmpFunc;\n    return obj;\n}\n\nvoid heapfiy(PriorityQueue *obj) {\n    for (int i = obj->queueSize / 2 - 1; i >= 0; i--) {\n        down(obj->arr, obj->queueSize, i, obj->lessFunc);\n    }\n}\n\nvoid enQueue(PriorityQueue *obj, Element *e) {\n    if (obj->queueSize == obj->capacity) {\n        obj->capacity *= 2;\n        obj->arr = realloc(obj->arr, sizeof(Element) * obj->capacity);\n    }\n    memcpy(&obj->arr[obj->queueSize], e, sizeof(Element));\n    for (int i = obj->queueSize; i > 0 && obj->lessFunc(&obj->arr[(i - 1) / 2], &obj->arr[i]); i = (i - 1) / 2) {\n        swap(obj->arr, i, (i - 1) / 2);\n    }\n    obj->queueSize++;\n}\n\nElement* deQueue(PriorityQueue *obj) {\n    swap(obj->arr, 0, obj->queueSize - 1);\n    down(obj->arr, obj->queueSize - 1, 0, obj->lessFunc);\n    Element *e =  &obj->arr[obj->queueSize - 1];\n    obj->queueSize--;\n    return e;\n}\n\nbool isEmpty(const PriorityQueue *obj) {\n    return obj->queueSize == 0;\n}\n\nElement* front(const PriorityQueue *obj) {\n    if (obj->queueSize == 0) {\n        return NULL;\n    } else {\n        return &obj->arr[0];\n    }\n}\n\nvoid clear(PriorityQueue *obj) {\n    obj->queueSize = 0;\n}\n\nint size(const PriorityQueue *obj) {\n    return obj->queueSize;\n}\n\nvoid freeQueue(PriorityQueue *obj) {\n    free(obj->arr);\n    free(obj);\n}\n\nconst int inf = 0x3f3f3f3f;\n\nint minTimeToReach(int** moveTime, int moveTimeSize, int* moveTimeColSize) {\n    int n = moveTimeSize, m = moveTimeColSize[0];\n    int d[n][m], v[n][m];\n    memset(d, 0x3f, sizeof(d));\n    memset(v, 0, sizeof(v));\n\n    int dirs[4][2] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};\n    d[0][0] = 0;\n    PriorityQueue *q = createPriorityQueue(greater);\n    Element e = {0, 0, 0};\n    enQueue(q, &e);\n\n    while (!isEmpty(q)) {\n        Element *p = front(q);\n        Element s = {p->x, p->y, p->dist};\n        deQueue(q);\n        if (v[s.x][s.y]) {\n            continue;\n        }\n        v[s.x][s.y] = 1;\n        for (int i = 0; i < 4; i++) {\n            int nx = s.x + dirs[i][0];\n            int ny = s.y + dirs[i][1];\n            if (nx < 0 || nx >= n || ny < 0 || ny >= m) {\n                continue;\n            }\n            int dist = fmax(d[s.x][s.y], moveTime[nx][ny]) + 1;\n            if (d[nx][ny] > dist) {\n                d[nx][ny] = dist;\n                e.x = nx;\n                e.y = ny;\n                e.dist = dist;\n                enQueue(q, &e);\n            }\n        }\n    }\n    freeQueue(q);\n    return d[n - 1][m - 1];\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar minTimeToReach = function(moveTime) {\n    const n = moveTime.length, m = moveTime[0].length;\n    const d = Array.from({ length: n }, () => Array(m).fill(Infinity));\n    const v = Array.from({ length: n }, () => Array(m).fill(false));\n    const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];  \n    const q = new PriorityQueue((a, b) => {\n            return a.dist < b.dist ? -1 : 1;\n        }\n    );\n\n    d[0][0] = 0;\n    q.enqueue({x: 0, y: 0, dist: 0});\n    while (!q.isEmpty()) {\n        const s = q.dequeue();\n        if (v[s.x][s.y]) {\n            continue;\n        }\n        v[s.x][s.y] = true;\n        for (const [dx, dy] of dirs) {\n            const nx = s.x + dx, ny = s.y + dy;\n            if (nx < 0 || nx >= n || ny < 0 || ny >= m) {\n                continue;\n            }\n            const dist = Math.max(d[s.x][s.y], moveTime[nx][ny]) + 1;\n            if (d[nx][ny] > dist) {\n                d[nx][ny] = dist;\n                q.enqueue({x: nx, y: ny, dist: dist});\n            }\n        }\n    }\n\n    return d[n - 1][m - 1];\n};\n```\n\n```TypeScript [sol1-TypeScript]\ninterface State {\n    x: number;\n    y: number;\n    dist: number;\n}\n\nfunction minTimeToReach(moveTime: number[][]): number {\n    const n = moveTime.length;\n    const m = moveTime[0].length;\n    const d: number[][] = Array.from({ length: n }, () => Array(m).fill(Infinity));\n    const v: boolean[][] = Array.from({ length: n }, () => Array(m).fill(false));\n    const dirs: [number, number][] = [[1, 0], [-1, 0], [0, 1], [0, -1]];\n    const q = new PriorityQueue<State>((a, b) => a.dist - b.dist);\n\n    d[0][0] = 0;\n    q.enqueue({ x: 0, y: 0, dist: 0 });\n    while (!q.isEmpty()) {\n        const s = q.dequeue();\n        if (v[s.x][s.y]) {\n            continue;\n        }\n        v[s.x][s.y] = true;\n        for (const [dx, dy] of dirs) {\n            const nx = s.x + dx;\n            const ny = s.y + dy;\n            if (nx < 0 || nx >= n || ny < 0 || ny >= m) {\n                continue;\n            }\n            const dist = Math.max(d[s.x][s.y], moveTime[nx][ny]) + 1;\n            if (d[nx][ny] > dist) {\n                d[nx][ny] = dist;\n                q.enqueue({ x: nx, y: ny, dist });\n            }\n        }\n    }\n\n    return d[n - 1][m - 1];\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(nm\\log(nm))$，其中 $n$ 和 $m$ 分别是 $\\textit{moveTime}$ 的行数和列数。总共有 $nm$ 个点，$O(nm)$ 条边，我们使用最小堆来实现 $\\textit{dijkstra}$ 算法，最多入堆和出堆 $O(nm)$ 次，因此总体时间复杂度为 $O(nm\\log(nm))$。\n\n- 空间复杂度：$O(nm)$。",
+            "slateValue": "",
+            "slug": "dao-da-zui-hou-yi-ge-fang-jian-de-zui-sh-i9zw",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "QlK5Vy",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 7,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Graph",
+                    "nameTranslated": "图",
+                    "slug": "graph",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Shortest Path",
+                    "nameTranslated": "最短路",
+                    "slug": "shortest-path",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2025-05-05T15:21:41.766626+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：最短路 + [latex] 思路与算法 题目给定一个大小为 [latex] 的二维数组，需求解从位置 [latex] 移动到位置 [latex] 所需的最短时间。移动时，可以从当前位置移动到上下左右四个位置，并且每个位置有最早的移动时间，在该时间之后才可往该位置移动。 因此，二维数组可以看作一个大小为 [lat",
+            "topic": {
+                "id": 3669493,
+                "subscribed": false,
+                "commentCount": 37,
+                "viewCount": 112,
+                "post": {
+                    "id": 6699170,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 63,
+            "isEditorsPick": false,
+            "hitCount": 13635,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "find-minimum-time-to-reach-last-room-i",
+                "questionFrontendId": "3341"
+            },
+            "next": {
+                "slug": "dijkstra-zui-duan-lu-pythonjavacgo-by-en-7nj3",
+                "title": "Dijkstra 最短路（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

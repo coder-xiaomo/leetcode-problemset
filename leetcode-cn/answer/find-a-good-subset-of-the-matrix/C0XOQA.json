@@ -1,0 +1,150 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "C0XOQA",
+            "title": "找到矩阵中的好子集",
+            "content": "#### 方法一：分类讨论\n\n**思路**\n\n对所选出来的行数进行分类讨论，有以下几种情况：\n\n+ 假设答案至少一行，那么需要这一行满足全为 $0$。\n\n+ 假设答案至少两行，那么不存在一列这两行都是 $1$。分别用 $x$ 和 $y$ 表示这两行所表示的数，能推出至少存在两行 $x & y == 0$。\n\n+ 假设答案至少三行，那么这三行每一列加起来的和不超过 $1$。这个条件比两行的情况更严格，如果两行都找不到答案，那么一定没有三行的情况了。\n\n+ 假设答案至少四行，那么这四行每一列加起来的和不超过 $2$。如果两行找不到答案，说明任选两行至少存在一列这两行都是 $1$。同时这一列这两行已经都是 $1$ 了，那么这一列的其他两行必须是 $0$ 才满足条件。所以，当答案有四行的情况下，需要满足任选两行这一列都是 $1$ 同时其他两行必须是 $0$ 至少需要 $C_4^2 = 6$ 列，但题意说矩阵的列数 $n <= 5$，因此这种情况不存在。\n\n+ 一般的，对于任意一行，假设答案至少需要选取 $k$ 行。考虑任选两行至少存在一列这两行都是 $1$ 的构造，一共需要 $k-1$ 对构造，当这一列选择了 $1$ 后，其他 $k-1$ 行最多有 $\\frac {k} {2} - 1$ 个 $1$，所以最多能贡献 $\\frac {k} {2} - 1$ 个构造。因为 $\\frac{k-1} {\\frac{k} {2} - 1} > 2$， 所以这一行至少需要 $3$ 个 $1$ 才能达到 $k-1$ 个构造，同时因为列数不超过 $5$，所以至多有 $2$ 列是 $0$。因此任意一行 $1$ 的个数比 $0$ 更多，进而推出任选 $k$ 行，$1$ 的总数比 $0$ 更多，无法找到一个合法的构造满足题意。\n\n综上所述，只需要考虑答案小于等于两行的情况。每行二进制所表示的数一共有 $2^n$ 种情况，其中 $n$ 为矩阵的列数。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<int> goodSubsetofBinaryMatrix(vector<vector<int>>& grid) {\n        vector<int> ans;\n        unordered_map<int, int> mp;\n        int m = grid.size();\n        int n = grid[0].size();\n\n        for (int j = 0; j < m; j++) {\n            int st = 0;\n            for (int i = 0; i < n; i++) {\n                st |= (grid[j][i] << i);\n            }\n            mp[st] = j;\n        }\n\n        if (mp.count(0)) {\n            ans.push_back(mp[0]);\n            return ans;\n        }\n\n        for (auto [x, i]: mp) {\n            for (auto [y, j]: mp) {\n                if (!(x & y)) {\n                    return {min(i, j), max(i, j)};\n                }\n            }\n        }\n\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public List<Integer> goodSubsetofBinaryMatrix(int[][] grid) {\n        List<Integer> ans = new ArrayList<Integer>();\n        Map<Integer, Integer> mp = new HashMap<Integer, Integer>();\n        int m = grid.length;\n        int n = grid[0].length;\n\n        for (int j = 0; j < m; j++) {\n            int st = 0;\n            for (int i = 0; i < n; i++) {\n                st |= (grid[j][i] << i);\n            }\n            mp.put(st, j);\n        }\n\n        if (mp.containsKey(0)) {\n            ans.add(mp.get(0));\n            return ans;\n        }\n\n        for (Map.Entry<Integer, Integer> entry1 : mp.entrySet()) {\n            int x = entry1.getKey(), i = entry1.getValue();\n            for (Map.Entry<Integer, Integer> entry2 : mp.entrySet()) {\n                int y = entry2.getKey(), j = entry2.getValue();\n                if ((x & y) == 0) {\n                    List<Integer> list = new ArrayList<Integer>();\n                    list.add(Math.min(i, j));\n                    list.add(Math.max(i, j));\n                    return list;\n                }\n            }\n        }\n\n        return ans;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public IList<int> GoodSubsetofBinaryMatrix(int[][] grid) {\n        IList<int> ans = new List<int>();\n        IDictionary<int, int> dic = new Dictionary<int, int>();\n        int m = grid.Length;\n        int n = grid[0].Length;\n\n        for (int j = 0; j < m; j++) {\n            int st = 0;\n            for (int i = 0; i < n; i++) {\n                st |= (grid[j][i] << i);\n            }\n            if (!dic.ContainsKey(st)) {\n                dic.Add(st, j);\n            } else {\n                dic[st] = j;\n            }\n        }\n\n        if (dic.ContainsKey(0)) {\n            ans.Add(dic[0]);\n            return ans;\n        }\n\n        foreach (KeyValuePair<int, int> pair1 in dic) {\n            int x = pair1.Key, i = pair1.Value;\n            foreach (KeyValuePair<int, int> pair2 in dic) {\n                int y = pair2.Key, j = pair2.Value;\n                if ((x & y) == 0) {\n                    IList<int> list = new List<int>();\n                    list.Add(Math.Min(i, j));\n                    list.Add(Math.Max(i, j));\n                    return list;\n                }\n            }\n        }\n\n        return ans;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc goodSubsetofBinaryMatrix(grid [][]int) []int {\n    ans := []int{}\n    mp := make(map[int]int)\n    m := len(grid)\n    n := len(grid[0])\n    for j := 0; j < m; j++ {\n        st := 0\n        for i := 0; i < n; i++ {\n            st |= (grid[j][i] << i)\n        }\n        mp[st] = j\n    }\n    if _, ok := mp[0]; ok {\n        ans = append(ans, mp[0])\n        return ans\n    }\n    for x, i := range mp {\n        for y, j := range mp {\n            if x & y == 0 {\n                return []int{min(i, j), max(i, j)}\n            }\n        }\n    }\n    return ans\n}\n```\n\n```C [sol1-C]\ntypedef struct {\n    int key;\n    int val;\n    UT_hash_handle hh;\n} HashItem; \n\nHashItem *hashFindItem(HashItem **obj, int key) {\n    HashItem *pEntry = NULL;\n    HASH_FIND_INT(*obj, &key, pEntry);\n    return pEntry;\n}\n\nbool hashAddItem(HashItem **obj, int key, int val) {\n    if (hashFindItem(obj, key)) {\n        return false;\n    }\n    HashItem *pEntry = (HashItem *)malloc(sizeof(HashItem));\n    pEntry->key = key;\n    pEntry->val = val;\n    HASH_ADD_INT(*obj, key, pEntry);\n    return true;\n}\n\nbool hashSetItem(HashItem **obj, int key, int val) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        hashAddItem(obj, key, val);\n    } else {\n        pEntry->val = val;\n    }\n    return true;\n}\n\nint hashGetItem(HashItem **obj, int key, int defaultVal) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        return defaultVal;\n    }\n    return pEntry->val;\n}\n\nvoid hashFree(HashItem **obj) {\n    HashItem *curr = NULL, *tmp = NULL;\n    HASH_ITER(hh, *obj, curr, tmp) {\n        HASH_DEL(*obj, curr);  \n        free(curr);\n    }\n}\n\nint* goodSubsetofBinaryMatrix(int** grid, int gridSize, int* gridColSize, int* returnSize) {\n    int* ans = NULL;\n    HashItem *mp = NULL;\n    int m = gridSize;\n    int n = gridColSize[0];\n\n    for (int j = 0; j < m; j++) {\n        int st = 0;\n        for (int i = 0; i < n; i++) {\n            st |= (grid[j][i] << i);\n        }\n        hashAddItem(&mp, st, j);\n    }\n    if (hashFindItem(&mp, 0)) {\n        ans = (int *)malloc(sizeof(int));\n        ans[0] = hashGetItem(&mp, 0, 0);\n        *returnSize = 1;\n        hashFree(&mp);\n        return ans;\n    }\n\n    for (HashItem *pEntry1 = mp; pEntry1 != NULL; pEntry1 = pEntry1->hh.next) {\n        int x = pEntry1->key, i = pEntry1->val;\n        for (HashItem *pEntry2 = mp; pEntry2 != NULL; pEntry2 = pEntry2->hh.next) {\n            int y = pEntry2->key, j = pEntry2->val;\n            if (!(x & y)) {\n                ans = (int *)malloc(sizeof(int) * 2);\n                ans[0] = fmin(i, j);\n                ans[1] = fmax(i, j);\n                *returnSize = 2;\n                hashFree(&mp);\n                return ans;\n            }\n        }\n    }\n    *returnSize = 0;\n    hashFree(&mp);\n    return ans;\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def goodSubsetofBinaryMatrix(self, grid: List[List[int]]) -> List[int]:\n        ans = []\n        mp = {}\n        m = len(grid)\n        n = len(grid[0])\n\n        for j in range(m):\n            st = 0\n            for i in range(n):\n                st |= (grid[j][i] << i)\n            mp[st] = j\n        if 0 in mp:\n            ans.append(mp[0])\n            return ans\n        for x, i in mp.items():\n            for y, j in mp.items():\n                if not (x & y):\n                    return [min(i, j), max(i, j)]\n        return ans\n```\n\n```JavaScript [sol1-JavaScript]\nvar goodSubsetofBinaryMatrix = function(grid) {\n    let ans = [];\n    let mp = new Map();\n    let m = grid.length;\n    let n = grid[0].length;\n    for (let j = 0; j < m; j++) {\n        let st = 0;\n        for (let i = 0; i < n; i++) {\n            st |= (grid[j][i] << i);\n        }\n        mp.set(st, j);\n    }\n\n    if (mp.has(0)) {\n        ans.push(mp.get(0));\n        return ans;\n    }\n\n    for (let [x, i] of mp.entries()) {\n        for (let [y, j] of mp.entries()) {\n            if (!(x & y)) {\n                return [Math.min(i, j), Math.max(i, j)];\n            }\n        }\n    }\n\n    return ans;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction goodSubsetofBinaryMatrix(grid: number[][]): number[] {\n    let ans: number[] = [];\n    let mp: Map<number, number> = new Map();\n    let m: number = grid.length;\n    let n: number = grid[0].length;\n    for (let j = 0; j < m; j++) {\n        let st: number = 0;\n        for (let i = 0; i < n; i++) {\n            st |= (grid[j][i] << i);\n        }\n        mp.set(st, j);\n    }\n\n    if (mp.has(0)) {\n        ans.push(mp.get(0)!);\n        return ans;\n    }\n\n    for (let [x, i] of mp) {\n        for (let [y, j] of mp) {\n            if (!(x & y)) {\n                return [Math.min(i, j), Math.max(i, j)];\n            }\n        }\n    }\n\n    return ans;\n};\n```\n\n```Rust [sol1-Rust]\nuse std::collections::HashMap;\n\nimpl Solution {\n    pub fn good_subsetof_binary_matrix(grid: Vec<Vec<i32>>) -> Vec<i32> {\n        let mut ans: Vec<i32> = vec![];\n        let mut mp: HashMap<i32, i32> = HashMap::new();\n        let m = grid.len();\n        let n = grid[0].len();\n\n        for j in 0..m {\n            let mut st = 0;\n            for i in 0..n {\n                st |= grid[j][i] << i;\n            }\n            mp.insert(st, j as i32);\n        }\n        if mp.contains_key(&0) {\n            ans.push(*mp.get(&0).unwrap());\n            return ans;\n        }\n        for (&x, &i) in &mp {\n            for (&y, &j) in &mp {\n                if x & y == 0 {\n                    return vec![i.min(j), i.max(j)];\n                }\n            }\n        }\n        ans\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(nm + C^2)$，其中 $m$ 为矩阵的行数，$n$ 为矩阵的列数，$C = 2^n$ 表示每一行所表示数的范围。\n\n- 空间复杂度：$O(2^n)$，其中 $n$ 为矩阵的列数。",
+            "slateValue": "",
+            "slug": "zhao-dao-ju-zhen-zhong-de-hao-zi-ji-by-l-qldc",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "C0XOQA",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 20,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Bit Manipulation",
+                    "nameTranslated": "位运算",
+                    "slug": "bit-manipulation",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Matrix",
+                    "nameTranslated": "矩阵",
+                    "slug": "matrix",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2024-06-21T02:09:43.286783+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：分类讨论 思路 对所选出来的行数进行分类讨论，有以下几种情况： 假设答案至少一行，那么需要这一行满足全为 $0$。 假设答案至少两行，那么不存在一列这两行都是 $1$。分别用 $x$ 和 $y$ 表示这两行所表示的数，能推出至少存在两行 $x & y == 0$。 假设答案至少三行，那么这三行每一列加起来的和不",
+            "topic": {
+                "id": 2817195,
+                "subscribed": false,
+                "commentCount": 39,
+                "viewCount": 592,
+                "post": {
+                    "id": 5142157,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 24,
+            "isEditorsPick": false,
+            "hitCount": 9332,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "find-a-good-subset-of-the-matrix",
+                "questionFrontendId": "2732"
+            },
+            "next": {
+                "slug": "xiang-xi-fen-xi-wei-shi-yao-zhi-duo-kao-mbl6a",
+                "title": "严格证明+三种计算方法（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

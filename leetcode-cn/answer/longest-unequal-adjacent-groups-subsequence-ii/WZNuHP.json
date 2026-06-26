@@ -1,0 +1,144 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "WZNuHP",
+            "title": "最长相邻不相等子序列 II",
+            "content": "#### 方法一：动态规划\n\n**思路与算法**\n\n题目要求找到 $[0, 1, ..., n - 1]$ 中的**最长子序列**，该子序列中满足前后相邻**下标**对应的 $\\textit{groups}$ 值不同，且相邻**下标**对应的 $\\textit{words}$ 的汉明距离为 $1$。与「[最长相邻不相等子序列 I](https://leetcode.cn/problems/longest-unequal-adjacent-groups-subsequence-i/)」题目类似，我们仍可采用动态规划来解决该问题。\n\n设 $\\textit{dp}[i]$ 表示以下标 $i$ 为结尾的**最长子序列**长度，设 $\\text{HammingDistance}(s,t)$ 表示两个字符串 $s,t$ 的「[**汉明距离**](https://baike.baidu.com/item/%E6%B1%89%E6%98%8E%E8%B7%9D%E7%A6%BB/475174)」。子序列中如果下标 $i$ 可以添加在下标 $j$ 之后，则此时一定满足 $\\textit{groups}[i] \\neq \\textit{groups}[j], j < i$ 且 $\\text{HammingDistance}(\\textit{words}[i], \\textit{words}[j]) = 1$，此时下标 $i$ 可以添加到下标 $j$ 之后，此时以下标 $i$ 为结尾的**最长子序列**长度为 $\\textit{dp}[i] = \\textit{dp}[j] + 1$，我们可以得到动态规划递推公式如下：\n\n$$\n\\textit{dp}[i] = \\max(\\textit{dp}[i], \\textit{dp}[j] + 1) \\quad if \\quad \\textit{groups}[i] \\neq \\textit{groups}[j],\\text{HammingDistance}(\\textit{words}[i], \\textit{words}[j]) = 1\n$$\n\n对于下标 $i$，我们可以枚举 $i$ 之前的下标，即可求得以 $i$ 为结尾的**最长子序列**的长度，依次求出以每个下标为结尾的**最长子序列**长度即可找到 $[0, 1, ..., n - 1]$ \n 中的**最长子序列**长度。为了方便计算，我们用 $\\textit{prev}[i]$ 记载以下标 $i$ 为结尾的**最长子序列**中 $i$ 的上一个下标。当我们找到**最长子序列**的结尾下标 $i$ 时，沿着 $i$ 往前即可找到整个序列的下标，并将每个下标对应的字符串加入到数组中，对整个数组反转后的结果即为答案。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<string> getWordsInLongestSubsequence(vector<string>& words, vector<int>& groups) {\n        int n = groups.size();\n        vector<int> dp(n, 1);\n        vector<int> prev(n, -1);\n        int maxIndex = 0;\n        for (int i = 1; i < n; i++) {\n            for (int j = 0; j < i; j++) {\n                if (check(words[i], words[j]) == 1 && dp[j] + 1 > dp[i] && groups[i] != groups[j]) {\n                    dp[i] = dp[j] + 1;\n                    prev[i] = j;\n                }\n            }\n            if (dp[i] > dp[maxIndex]) {\n                maxIndex = i;\n            }\n        }\n\n        vector<string> ans;\n        for (int i = maxIndex; i >= 0; i = prev[i]) {\n            ans.emplace_back(words[i]);\n        }\n        reverse(ans.begin(), ans.end());\n        return ans;\n    }\n\n    bool check(string &s1, string &s2) {\n        if (s1.size() != s2.size()) {\n            return false;\n        }\n        int diff = 0;\n        for (int i = 0; i < s1.size(); i++) {\n            diff += s1[i] != s2[i];\n            if (diff > 1) {\n                return false;\n            }\n        }\n        return diff == 1;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public List<String> getWordsInLongestSubsequence(String[] words, int[] groups) {\n        int n = groups.length;\n        int[] dp = new int[n];\n        int[] prev = new int[n];\n        Arrays.fill(dp, 1);\n        Arrays.fill(prev, -1);\n        int maxIndex = 0;\n        for (int i = 1; i < n; i++) {\n            for (int j = 0; j < i; j++) {\n                if (check(words[i], words[j]) && dp[j] + 1 > dp[i] && groups[i] != groups[j]) {\n                    dp[i] = dp[j] + 1;\n                    prev[i] = j;\n                }\n            }\n            if (dp[i] > dp[maxIndex]) {\n                maxIndex = i;\n            }\n        }\n        List<String> ans = new ArrayList<>();\n        for (int i = maxIndex; i >= 0; i = prev[i]) {\n            ans.add(words[i]);\n        }\n        Collections.reverse(ans);\n        return ans;\n    }\n\n    private boolean check(String s1, String s2) {\n        if (s1.length() != s2.length()) {\n            return false;\n        }\n        int diff = 0;\n        for (int i = 0; i < s1.length(); i++) {\n            if (s1.charAt(i) != s2.charAt(i)) {\n                if (++diff > 1) {\n                    return false;\n                }\n            }\n        }\n        return diff == 1;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public IList<string> GetWordsInLongestSubsequence(string[] words, int[] groups) {\n        int n = groups.Length;\n        int[] dp = new int[n];\n        int[] prev = new int[n];\n        Array.Fill(dp, 1);\n        Array.Fill(prev, -1);\n        int maxIndex = 0;\n\n        for (int i = 1; i < n; i++) {\n            for (int j = 0; j < i; j++) {\n                if (Check(words[i], words[j]) && dp[j] + 1 > dp[i] && groups[i] != groups[j]) {\n                    dp[i] = dp[j] + 1;\n                    prev[i] = j;\n                }\n            }\n            if (dp[i] > dp[maxIndex]) {\n                maxIndex = i;\n            }\n        }\n\n        List<string> ans = new List<string>();\n        for (int i = maxIndex; i >= 0; i = prev[i]) {\n            ans.Add(words[i]);\n        }\n        ans.Reverse();\n        return ans;\n    }\n\n    private bool Check(string s1, string s2) {\n        if (s1.Length != s2.Length) {\n            return false;\n        }\n        int diff = 0;\n        for (int i = 0; i < s1.Length; i++) {\n            if (s1[i] != s2[i]) {\n                if (++diff > 1) {\n                    return false;\n                }\n            }\n        }\n        return diff == 1;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def getWordsInLongestSubsequence(self, words: List[str], groups: List[int]) -> List[str]:\n        n = len(groups)\n        dp = [1] * n\n        prev_ = [-1] * n\n        max_index = 0\n\n        for i in range(1, n):\n            for j in range(i):\n                if self.check(words[i], words[j]) and dp[j] + 1 > dp[i] and groups[i] != groups[j]:\n                    dp[i] = dp[j] + 1\n                    prev_[i] = j\n            if dp[i] > dp[max_index]:\n                max_index = i\n\n        ans = []\n        i = max_index\n        while i >= 0:\n            ans.append(words[i])\n            i = prev_[i]\n        ans.reverse()\n        return ans\n\n    def check(self, s1: str, s2: str) -> bool:\n        if len(s1) != len(s2):\n            return False\n        diff = 0\n        for c1, c2 in zip(s1, s2):\n            if c1 != c2:\n                diff += 1\n                if diff > 1:\n                    return False\n        return diff == 1\n```\n\n```Go [sol1-Go]\nfunc getWordsInLongestSubsequence(words []string, groups []int) []string {\n    n := len(groups)\n\tdp := make([]int, n)\n\tprev := make([]int, n)\n\tfor i := range dp {\n\t\tdp[i] = 1\n\t\tprev[i] = -1\n\t}\n\tmaxIndex := 0\n\n\tfor i := 1; i < n; i++ {\n\t\tfor j := 0; j < i; j++ {\n\t\t\tif check(words[i], words[j]) && dp[j]+1 > dp[i] && groups[i] != groups[j] {\n\t\t\t\tdp[i] = dp[j] + 1\n\t\t\t\tprev[i] = j\n\t\t\t}\n\t\t}\n\t\tif dp[i] > dp[maxIndex] {\n\t\t\tmaxIndex = i\n\t\t}\n\t}\n\n\tans := []string{}\n\tfor i := maxIndex; i >= 0; i = prev[i] {\n\t\tans = append(ans, words[i])\n\t}\n\treverse(ans)\n\treturn ans\n}\n\nfunc check(s1, s2 string) bool {\n\tif len(s1) != len(s2) {\n\t\treturn false\n\t}\n\tdiff := 0\n\tfor i := 0; i < len(s1); i++ {\n\t\tif s1[i] != s2[i] {\n\t\t\tdiff++\n            if diff > 1 {\n                return false\n            }\n\t\t}\n\t}\n\treturn diff == 1\n}\n\nfunc reverse(arr []string) {\n\tfor i, j := 0, len(arr) - 1; i < j; i, j = i + 1, j - 1 {\n\t\tarr[i], arr[j] = arr[j], arr[i]\n\t}\n}\n```\n\n```C [sol1-C]\nbool check(const char *s1, const char *s2) {\n    if (strlen(s1) != strlen(s2)) {\n        return false;\n    }\n    int diff = 0;\n    for (int i = 0; s1[i]; i++) {\n        if (s1[i] != s2[i]) {\n            if (++diff > 1) {\n                return false;\n            }\n        }\n    }\n    return diff == 1;\n}\n\nchar **getWordsInLongestSubsequence(char **words, int wordsSize, int *groups, int groupsSize, int *returnSize) {\n    int *dp = (int *)malloc(wordsSize * sizeof(int));\n    int *prev = (int *)malloc(wordsSize * sizeof(int));\n    for (int i = 0; i < wordsSize; i++) {\n        dp[i] = 1;\n        prev[i] = -1;\n    }\n    int maxIndex = 0;\n    for (int i = 1; i < wordsSize; i++) {\n        for (int j = 0; j < i; j++) {\n            if (check(words[i], words[j]) && dp[j] + 1 > dp[i] && groups[i] != groups[j]) {\n                dp[i] = dp[j] + 1;\n                prev[i] = j;\n            }\n        }\n        if (dp[i] > dp[maxIndex]) {\n            maxIndex = i;\n        }\n    }\n\n    int count = 0;\n    for (int i = maxIndex; i >= 0; i = prev[i]) {\n        count++;\n    }\n\n    char **ans = (char **)malloc(count * sizeof(char *));\n    int index = 0;\n    for (int i = maxIndex; i >= 0; i = prev[i]) {\n        ans[index++] = words[i];\n    }\n    for (int i = 0; i < count / 2; i++) {\n        char *temp = ans[i];\n        ans[i] = ans[count - 1 - i];\n        ans[count - 1 - i] = temp;\n    }\n\n    *returnSize = count;\n    free(dp);\n    free(prev);\n    return ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar getWordsInLongestSubsequence = function(words, groups) {\n    const n = groups.length;\n    const dp = new Array(n).fill(1);\n    const prev = new Array(n).fill(-1);\n    let maxIndex = 0;\n\n    for (let i = 1; i < n; i++) {\n        for (let j = 0; j < i; j++) {\n            if (check(words[i], words[j]) && dp[j] + 1 > dp[i] && groups[i] !== groups[j]) {\n                dp[i] = dp[j] + 1;\n                prev[i] = j;\n            }\n        }\n        if (dp[i] > dp[maxIndex]) {\n            maxIndex = i;\n        }\n    }\n\n    const ans = [];\n    for (let i = maxIndex; i >= 0; i = prev[i]) {\n        ans.push(words[i]);\n    }\n    ans.reverse();\n    return ans;\n};\n\nconst check = (s1, s2) => {\n    if (s1.length !== s2.length) {\n        return false;\n    }\n    let diff = 0;\n    for (let i = 0; i < s1.length; i++) {\n        if (s1[i] !== s2[i]) {\n            if (++diff > 1) {\n                return false;\n            }\n        }\n    }\n    return diff === 1;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction getWordsInLongestSubsequence(words: string[], groups: number[]): string[] {\n    const n = groups.length;\n    const dp = new Array(n).fill(1);\n    const prev = new Array(n).fill(-1);\n    let maxIndex = 0;\n\n    for (let i = 1; i < n; i++) {\n        for (let j = 0; j < i; j++) {\n            if (check(words[i], words[j]) && dp[j] + 1 > dp[i] && groups[i] !== groups[j]) {\n                dp[i] = dp[j] + 1;\n                prev[i] = j;\n            }\n        }\n        if (dp[i] > dp[maxIndex]) {\n            maxIndex = i;\n        }\n    }\n\n    const ans = [];\n    for (let i = maxIndex; i >= 0; i = prev[i]) {\n        ans.push(words[i]);\n    }\n    ans.reverse();\n    return ans;\n};\n\nfunction check(s1: string, s2: string): boolean {\n    if (s1.length !== s2.length) {\n        return false;\n    }\n    let diff = 0;\n    for (let i = 0; i < s1.length; i++) {\n        if (s1[i] !== s2[i]) {\n            if (++diff > 1) {\n                return false;\n            }\n        }\n    }\n    return diff === 1;\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn get_words_in_longest_subsequence(words: Vec<String>, groups: Vec<i32>) -> Vec<String> {\n        let n = groups.len();\n        let mut dp = vec![1; n];\n        let mut prev = vec![-1; n];\n        let mut max_index = 0;\n        for i in 1..n {\n            for j in 0..i {\n                if Self::check(&words[i], &words[j]) && dp[j] + 1 > dp[i] && groups[i] != groups[j] {\n                    dp[i] = dp[j] + 1;\n                    prev[i] = j as i32;\n                }\n            }\n            if dp[i] > dp[max_index] {\n                max_index = i;\n            }\n        }\n        let mut ans = Vec::new();\n        let mut i = max_index as i32;\n        while i >= 0 {\n            ans.push(words[i as usize].clone());\n            i = prev[i as usize];\n        }\n        ans.reverse();\n        ans\n    }\n\n    fn check(s1: &String, s2: &String) -> bool {\n        if s1.len() != s2.len() {\n            return false;\n        }\n        let mut diff = 0;\n        for (c1, c2) in s1.chars().zip(s2.chars()) {\n            if c1 != c2 {\n                diff += 1;\n                if diff > 1 {\n                    return false;\n                }\n            }\n        }\n        diff == 1\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n^2L)$，其中 $n$ 表示给定数组的长度，$L$ 表示字符串数组 $\\textit{word}$ 中字符串的长度。计算两个字符串的汉明码距离需要的时间为 $L$，找到以索引 $i$ 为结尾的**最长子序列**的需要遍历 $i$ 之前的所有索引，此时需要的时间为 $O(nL)$，求出以每个索引为结尾的**最长子序列**长度此时需要总时间为 $O(n^2L)$。\n\n- 空间复杂度：$O(n)$。其中 $n$ 表示给定数组的长度。需要存储以每个索引为结尾的最长子序列长度，一共需要的空间为 $O(n)$。",
+            "slateValue": "",
+            "slug": "zui-chang-xiang-lin-bu-xiang-deng-zi-xu-zh7yv",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "WZNuHP",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 10,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2025-05-06T02:11:29.275480+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 思路与算法 题目要求找到 [latex] 中的最长子序列，该子序列中满足前后相邻下标对应的 [latex] 值不同，且相邻下标对应的 [latex] 的汉明距离为 [latex]。与「最长相邻不相等子序列 I」题目类似，我们仍可采用动态规划来解决该问题。 设 [latex] 表示以下标 [latex]",
+            "topic": {
+                "id": 3669641,
+                "subscribed": false,
+                "commentCount": 7,
+                "viewCount": 60,
+                "post": {
+                    "id": 6699468,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 17,
+            "isEditorsPick": false,
+            "hitCount": 6405,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "longest-unequal-adjacent-groups-subsequence-ii",
+                "questionFrontendId": "2901"
+            },
+            "next": {
+                "slug": "zi-xu-lie-dp-de-si-kao-tao-lu-pythonjava-kmaf",
+                "title": "两种方法：从 O(n^2) 到 O(n)（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

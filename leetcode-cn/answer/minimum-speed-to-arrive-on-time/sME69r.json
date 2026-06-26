@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "sME69r",
+            "title": "准时到达的列车最小时速",
+            "content": "#### 方法一：二分查找\n\n**提示 $1$**\n\n随着火车时速增加，到达终点的时间会减小。\n\n**思路与算法**\n\n根据 **提示 $1$**，我们可以用二分的方法寻找到能够按时到达的**最小**时速。\n\n由于时速必须为正整数，因此二分的下界为 $1$；对于二分的上界，我们考虑 $\\textit{hours}$ 为两位小数，因此对于最后一段路程，最小的时限为 $0.01$，那么最高的时速要求即为 $\\textit{dist}[i]/0.01 \\le 10^7$，同时为二分时速的上界。\n\n在二分过程中，假设当前时速为 $\\textit{mid}$，我们计算对应时速下到达终点的时间 $t$，并与 $\\textit{hour}$ 比较以判断能否按时到达。\n\n假设 $\\textit{dist}$ 的长度为 $n$，我们考虑第 $i$ 段花费的时间。对于前 $n - 1$ 段，我们需要加上等待通向下一个地点的火车的时间，因此花费的时间为 $\\lceil \\textit{dist}[i] / \\textit{mid} \\rceil$。而对于最后一段，花费的时间为 $\\textit{dist}[n-1] / \\textit{mid}$。\n\n显然，前 $n - 1$ 段至少需要 $n - 1$ 时间完成，同时最后一段的花费时间必定为正数。因此如果时限 $\\textit{hour} \\le n - 1$，那么显然无法完成，此时应返回 $-1$。而只要 $\\textit{hour} > n - 1$，那么一定存在符合要求的时速。\n\n**细节**\n\n在代码实现中，为了避免浮点数造成的潜在误差，我们需要转化为**整数**之间的比较。\n\n假设当前时速为 $\\textit{mid}$，前 $n - 1$ 段花费的时间为 $t$，那么如果能够准时到达终点，必定有：\n\n$$\nt + \\frac{\\textit{dist}[n-1]}{\\textit{mid}} \\le \\textit{hour}.\n$$\n\n首先，考虑不等式左边，$t$ 为整数，但 $\\textit{dist}[n-1]/\\textit{mid}$ 为分数，因此我们需要在不等式两边同时乘 $\\textit{mid}$，即可将不等式左边转化为整数：\n\n$$\n\\textit{mid}\\cdot t + \\textit{dist}[n-1] \\le \\textit{mid}\\cdot\\textit{hour}.\n$$\n\n其次，考虑不等式右边，由于时限 $\\textit{hour}$ 为两位小数，因此我们引入 $\\textit{hr} = 100 \\textit{hour}$ 以将其转为整数，并在不等式两边同时乘 $100$：\n\n$$\n100(\\textit{mid}\\cdot t + \\textit{dist}[n-1]) \\le \\textit{mid}\\cdot\\textit{hr}.\n$$\n\n此时，不等式两边均为整数。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int minSpeedOnTime(vector<int>& dist, double hour) {\n        int n = dist.size();\n        // 将 hour 乘 100 以转为整数\n        long long hr = llround(hour * 100);\n        // 时间必须要大于路程段数减 1\n        if (hr <= (n - 1) * 100){\n            return -1;\n        }\n        // 二分\n        int l = 1;\n        int r = 1e7;\n        while (l < r){\n            int mid = l + (r - l) / 2;\n            // 判断当前时速是否满足时限\n            long long t = 0;\n            // 前 n-1 段中第 i 段贡献的时间： ceil(dist[i] / mid)\n            for (int i = 0; i < n - 1; ++i){\n                t += (dist[i] - 1) / mid + 1;\n            }\n            // 最后一段贡献的时间： dist[n-1] / mid\n            t *= mid;\n            t += dist[n-1];\n            if (t * 100 <= hr * mid){   // 通分以转化为整数比较\n                r = mid;\n            }\n            else{\n                l = mid + 1;\n            }\n        }\n        return l;   // 满足条件的最小时速\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int minSpeedOnTime(int[] dist, double hour) {\n        int n = dist.length;\n        // 将 hour 乘 100 以转为整数\n        long hr = Math.round(hour * 100);\n        // 时间必须要大于路程段数减 1\n        if (hr <= (n - 1) * 100) {\n            return -1;\n        }\n        // 二分\n        int l = 1;\n        int r = 10000000;\n        while (l < r) {\n            int mid = l + (r - l) / 2;\n            // 判断当前时速是否满足时限\n            long t = 0;\n            // 前 n-1 段中第 i 段贡献的时间： ceil(dist[i] / mid)\n            for (int i = 0; i < n - 1; ++i) {\n                t += (dist[i] - 1) / mid + 1;\n            }\n            // 最后一段贡献的时间： dist[n-1] / mid\n            t *= mid;\n            t += dist[n - 1];\n            if (t * 100 <= hr * mid) { // 通分以转化为整数比较\n                r = mid;\n            } else {\n                l = mid + 1;\n            }\n        }\n        return l; // 满足条件的最小时速\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MinSpeedOnTime(int[] dist, double hour) {\n        int n = dist.Length;\n        // 将 hour 乘 100 以转为整数\n        long hr = (long)Math.Round(hour * 100);\n        // 时间必须要大于路程段数减 1\n        if (hr <= (n - 1) * 100) {\n            return -1;\n        }\n        // 二分\n        int l = 1;\n        int r = 10000000;\n        while (l < r) {\n            int mid = l + (r - l) / 2;\n            // 判断当前时速是否满足时限\n            long t = 0;\n            // 前 n-1 段中第 i 段贡献的时间： ceil(dist[i] / mid)\n            for (int i = 0; i < n - 1; ++i) {\n                t += (dist[i] - 1) / mid + 1;\n            }\n            // 最后一段贡献的时间： dist[n-1] / mid\n            t *= mid;\n            t += dist[n - 1];\n            if (t * 100 <= hr * mid) { // 通分以转化为整数比较\n                r = mid;\n            } else {\n                l = mid + 1;\n            }\n        }\n        return l; // 满足条件的最小时速\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc minSpeedOnTime(dist []int, hour float64) int {\n    n := len(dist)\n    // 将 hour 乘 100 以转为整数\n    hr := int(math.Round(hour * 100))\n    // 时间必须要大于路程段数减 1\n    if hr <= (n - 1) * 100 {\n        return -1\n    }\n    // 二分\n    l, r := 1, 10000000\n    for l < r {\n        mid := l + (r - l) / 2\n        // 判断当前时速是否满足时限\n        t := 0\n        // 前 n-1 段中第 i 段贡献的时间： ceil(dist[i] / mid)\n        for i := 0; i < n - 1; i++ {\n            t += (dist[i] - 1) / mid + 1\n        }\n        // 最后一段贡献的时间： dist[n-1] / mid\n        t *= mid\n        t += dist[n - 1]\n        if t * 100 <= hr * mid { // 通分以转化为整数比较\n            r = mid\n        } else {\n            l = mid + 1\n        }\n    }\n    return l // 满足条件的最小时速\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def minSpeedOnTime(self, dist: List[int], hour: float) -> int:\n        n = len(dist)\n        hr = round(hour * 100)\n        # 时间必须要大于路程段数减 1\n        if hr <= 100 * (n - 1):\n            return -1\n        # 判断当前时速是否满足时限\n        def check(speed: int) -> bool:\n            t = 0\n            # 前 n-1 段中第 i 段贡献的时间： ceil(dist[i] / mid)\n            for i in range(n - 1):\n                t += (dist[i] - 1) // speed + 1\n            # 最后一段贡献的时间： dist[n-1] / mid\n            t *= speed\n            t += dist[-1]\n            return t * 100 <= hr * speed   # 通分以转化为整数比较\n        \n        # 二分\n        l, r = 1, 10 ** 7\n        while l < r:\n            mid = l + (r - l) // 2\n            if check(mid):\n                r = mid\n            else:\n                l = mid + 1\n        return l   # 满足条件的最小时速\n```\n\n```C [sol1-C]\nint minSpeedOnTime(int* dist, int distSize, double hour) {\n    int n = distSize;\n    // 将 hour 乘 100 以转为整数\n    long long hr = llround(hour * 100);\n    // 时间必须要大于路程段数减 1\n    if (hr <= (n - 1) * 100) {\n        return -1;\n    }\n    // 二分\n    int l = 1;\n    int r = 10000000;\n    while (l < r) {\n        int mid = l + (r - l) / 2;\n        // 判断当前时速是否满足时限\n        long long t = 0;\n        // 前 n-1 段中第 i 段贡献的时间： ceil(dist[i] / mid)\n        for (int i = 0; i < n - 1; ++i) {\n            t += (dist[i] - 1) / mid + 1;\n        }\n        // 最后一段贡献的时间： dist[n-1] / mid\n        t *= mid;\n        t += dist[n - 1];\n        if (t * 100 <= hr * mid) { // 通分以转化为整数比较\n            r = mid;\n        } else {\n            l = mid + 1;\n        }\n    }\n    return l; // 满足条件的最小时速\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar minSpeedOnTime = function(dist, hour) {\n    const n = dist.length;\n    // 将 hour 乘 100 以转为整数\n    const hr = Math.round(hour * 100);\n    // 时间必须要大于路程段数减 1\n    if (hr <= (n - 1) * 100) {\n        return -1;\n    }\n    // 二分\n    let l = 1;\n    let r = 10000000;\n    while (l < r) {\n        const mid = l + Math.floor((r - l) / 2);\n        // 判断当前时速是否满足时限\n        let t = 0;\n        // 前 n-1 段中第 i 段贡献的时间： ceil(dist[i] / mid)\n        for (let i = 0; i < n - 1; ++i) {\n            t += Math.floor((dist[i] - 1) / mid) + 1;\n        }\n        // 最后一段贡献的时间： dist[n-1] / mid\n        t *= mid;\n        t += dist[n - 1];\n        if (t * 100 <= hr * mid) { // 通分以转化为整数比较\n            r = mid;\n        } else {\n            l = mid + 1;\n        }\n    }\n    return l; // 满足条件的最小时速\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction minSpeedOnTime(dist: number[], hour: number): number {\n    const n = dist.length;\n    // 将 hour 乘 100 以转为整数\n    const hr = Math.round(hour * 100);\n    // 时间必须要大于路程段数减 1\n    if (hr <= (n - 1) * 100) {\n        return -1;\n    }\n    // 二分\n    let l = 1;\n    let r = 10000000;\n    while (l < r) {\n        const mid = l + Math.floor((r - l) / 2);\n        // 判断当前时速是否满足时限\n        let t = 0;\n        // 前 n-1 段中第 i 段贡献的时间： ceil(dist[i] / mid)\n        for (let i = 0; i < n - 1; ++i) {\n            t += Math.floor((dist[i] - 1) / mid) + 1;\n        }\n        // 最后一段贡献的时间： dist[n-1] / mid\n        t *= mid;\n        t += dist[n - 1];\n        if (t * 100 <= hr * mid) { // 通分以转化为整数比较\n            r = mid;\n        } else {\n            l = mid + 1;\n        }\n    }\n    return l; // 满足条件的最小时速\n};\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn min_speed_on_time(dist: Vec<i32>, hour: f64) -> i32 {\n        let n = dist.len();\n        // 将 hour 乘 100 以转为整数\n        let hr = (hour * 100.0).round() as i64;\n        // 时间必须要大于路程段数减 1\n        if hr <= ((n as i64 - 1) * 100) {\n            return -1;\n        }\n        // 二分\n        let mut l = 1;\n        let mut r = 10_000_000;\n        while l < r {\n            let mid = l + (r - l) / 2;\n            // 判断当前时速是否满足时限\n            let mut t = 0i64;\n            // 前 n-1 段中第 i 段贡献的时间： ceil(dist[i] / mid)\n            for i in 0..n - 1 {\n                t += (dist[i] as i64 - 1) / mid as i64 + 1;\n            }\n            // 最后一段贡献的时间： dist[n-1] / mid\n            t *= mid as i64;\n            t += dist[n - 1] as i64;\n            if t * 100 <= hr * mid as i64 { // 通分以转化为整数比较\n                r = mid;\n            } else {\n                l = mid + 1;\n            }\n        }\n        l // 满足条件的最小时速\n    }\n}\n```\n\n```Cangjie [sol1-Cangjie]\nclass Solution {\n    func minSpeedOnTime(dist: Array<Int64>, hour: Float64): Int64 {\n        let n = dist.size\n        // 将 hour 乘 100 以转为整数\n        let eps = 1e-9\n        let hr = Int64((hour + eps) * 100.0)\n        // 时间必须要大于路程段数减 1\n        if (hr <= (n - 1) * 100) {\n            return -1\n        }\n        // 二分\n        var l = 1\n        var r = 10000000\n        while (l < r) {\n            let mid = l + (r - l) / 2\n            // 判断当前时速是否满足时限\n            var t = 0\n            // 前 n-1 段中第 i 段贡献的时间： ceil(dist[i] / mid)\n            for(i in 0..(n - 1)) {\n                t += (dist[i] - 1) / mid + 1\n            }\n            println(\"mid = ${mid}\")\n            // 最后一段贡献的时间： dist[n-1] / mid\n            t *= mid\n            t += dist[n - 1]\n            if (t * 100 <= hr * mid) { // 通分以转化为整数比较\n                r = mid\n            } else {\n                l = mid + 1\n            }\n        }\n        return l // 满足条件的最小时速\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n\\log(C))$，其中 $n$ 为 $\\textit{dist}$ 的长度，$C$ 为二分的上下界之差。每一次二分都需要 $O(n)$ 的时间计算花费的总时间。\n\n- 空间复杂度：$O(1)$，我们只使用了常数个变量。",
+            "slateValue": "",
+            "slug": "zhun-shi-dao-da-de-lie-che-zui-xiao-shi-tl9df",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "sME69r",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 28,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Cangjie",
+                    "nameTranslated": "",
+                    "slug": "cangjie",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-05-23T06:28:03.342364+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：二分查找 提示 [latex] 随着火车时速增加，到达终点的时间会减小。 思路与算法 根据 提示 [latex]，我们可以用二分的方法寻找到能够按时到达的最小时速。 由于时速必须为正整数，因此二分的下界为 [latex]；对于二分的上界，我们考虑 [latex] 为两位小数，因此对于最后一段路程，最小的时限为 ",
+            "topic": {
+                "id": 791412,
+                "subscribed": false,
+                "commentCount": 74,
+                "viewCount": 5054,
+                "post": {
+                    "id": 1744085,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 36,
+            "isEditorsPick": false,
+            "hitCount": 18908,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "minimum-speed-to-arrive-on-time",
+                "questionFrontendId": "1870"
+            },
+            "next": {
+                "slug": "bi-mian-fu-dian-yun-suan-de-xie-fa-by-en-9fc6",
+                "title": "极致优化！避免浮点误差的写法（Python/Java/C++/C/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

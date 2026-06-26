@@ -1,0 +1,150 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "yucOPS",
+            "title": "子序列最大优雅度",
+            "content": "#### 方法一：贪心\n\n首先将二维整数数组 $\\textit{items}$ 按照 $\\textit{profit}$ 从大到小进行排序。当子序列为前 $k$ 个项目时，子序列的利润总和 $\\textit{total}\\_\\textit{profit}$ 最大，但是 $\\textit{distinct}\\_\\textit{categories}$ 不一定为最大。考虑第 $k + 1$ 个项目时，如果将它与已选的 $k$ 个项目之一进行替换，那么显然只能使 $\\textit{distinct}\\_\\textit{categories}$ 增加，是否替换有几种情况：\n\n- 如果 $k + 1$ 个项目与已选的 $k$ 个项目的已有类别相同，那么选择它后，$\\textit{distinct}\\_\\textit{categories}$ 不会增加，但是 $\\textit{total}\\_\\textit{profit}$ 可能会减少，总体优雅度不会增加，所以不选择该项目。\n\n- 如果 $k + 1$ 个项目与已选的 $k$ 个项目的已有类别都不相同，那么选择它后，对应的替换项目有两种情况：\n\n    - 如果对应的替换项目的类别只出现一次，那么替换后，$\\textit{distinct}\\_\\textit{categories}$ 不变，总体优雅度也不会增加，所以不选择该项目。\n\n    - 如果对应的替换项目的类别出现两次以上，取利润最小的项目进行替换，那么替换后，$\\textit{distinct}\\_\\textit{categories}$ 会增加，总体优雅度有可能增加，所以可以选择该项目。（如果现在不选择该项目，后续出现类似的情况时，因为利润是从大到小排序的，总体优雅度不会更大。）\n\n经过以上分类讨论后，我们知道每次考虑新增一个项目时，只有一种情况可能使总体优雅度更大。在求解过程中，我们可以使用栈来维护在已选的 $k$ 个项目中，类别出现两次以上且利润非最大的所有项目，同时因为项目已经按照利润从大到小排序，所以栈顶元素为利润类别出现两次以上且利润最小的项目。求得以上所有可能的子序列的优雅度，取最大值为结果。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    long long findMaximumElegance(vector<vector<int>>& items, int k) {\n        sort(items.begin(), items.end(), [&](const vector<int> &item1, const vector<int> &item2) -> bool {\n            return item1[0] > item2[0];\n        });\n        unordered_set<int> categorySet;\n        long long res = 0, profit = 0;\n        stack<int> st;\n        for (int i = 0; i < items.size(); i++) {\n            if (i < k) {\n                profit += items[i][0];\n                if (categorySet.count(items[i][1]) == 0) {\n                    categorySet.insert(items[i][1]);\n                } else {\n                    st.push(items[i][0]);\n                }\n            } else if (categorySet.count(items[i][1]) == 0 && !st.empty()) {\n                profit += items[i][0] - st.top();\n                st.pop();\n                categorySet.insert(items[i][1]);\n            }\n            res = max(res, (long long)(profit + categorySet.size() * categorySet.size()));\n        }\n        return res;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public long findMaximumElegance(int[][] items, int k) {\n        Arrays.sort(items, (item0, item1) -> item1[0] - item0[0]);\n        var categorySet = new HashSet<Integer>();\n        long profit = 0, res = 0;\n        var st = new ArrayDeque<Integer>();\n        for (int i = 0; i < items.length; i++) {\n            if (i < k) {\n                profit += items[i][0];\n                if (!categorySet.add(items[i][1])) {\n                    st.push(items[i][0]);\n                }\n            } else if (!st.isEmpty() && categorySet.add(items[i][1])) {\n                profit += items[i][0] - st.pop();\n            }\n            res = Math.max(res, profit + (long)categorySet.size() * categorySet.size());\n        }\n        return res;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public long FindMaximumElegance(int[][] items, int k) {\n        Array.Sort(items, (item0, item1) => item1[0] - item0[0]);\n        ISet<int> categorySet = new HashSet<int>();\n        long profit = 0, res = 0;\n        Stack<int> st = new Stack<int>();\n        for (int i = 0; i < items.Length; i++) {\n            if (i < k) {\n                profit += items[i][0];\n                if (!categorySet.Add(items[i][1])) {\n                    st.Push(items[i][0]);\n                }\n            } else if (st.Count > 0 && categorySet.Add(items[i][1])) {\n                profit += items[i][0] - st.Pop();\n            }\n            res = Math.Max(res, profit + (long)categorySet.Count * categorySet.Count);\n        }\n        return res;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc findMaximumElegance(items [][]int, k int) int64 {\n    sort.Slice(items, func(i, j int) bool {\n        return items[i][0] > items[j][0]\n    })\n    categorySet := map[int]bool{}\n    var res, profit int64\n    var st []int\n    for i, item := range items {\n        if i < k {\n            profit += int64(item[0])\n            if categorySet[item[1]] {\n                st = append(st, item[0])\n            } else {\n                categorySet[item[1]] = true\n            }\n        } else if !categorySet[item[1]] && len(st) > 0 {\n            profit += int64(item[0] - st[len(st) - 1])\n            st = st[:len(st)-1]\n            categorySet[item[1]] = true\n        }\n        res = max(res, profit + int64(len(categorySet) * len(categorySet)))\n    }\n    return res\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def findMaximumElegance(self, items: List[List[int]], k: int) -> int:\n        items.sort(key = lambda item: -item[0])\n        categorySet = set()\n        res, profit = 0, 0\n        st = []\n        for i, item in enumerate(items):\n            if i < k:\n                profit += item[0]\n                if item[1] in categorySet:\n                    st.append(item[0])\n                else:\n                    categorySet.add(item[1])\n            elif item[1] not in categorySet and len(st) > 0:\n                profit += item[0] - st.pop()\n                categorySet.add(item[1])\n            res = max(res, profit + len(categorySet) * len(categorySet))\n        return res\n```\n\n```C [sol1-C]\nint cmp(const void *p0, const void *p1) {\n    return (*(const int **)p1)[0] - (*(const int **)p0)[0];\n}\n\nlong long findMaximumElegance(int **items, int itemsSize, int *itemsColSize, int k){\n    qsort(items, itemsSize, sizeof(int *), cmp);\n    int *categorySet = (int *)malloc((itemsSize + 1) * sizeof(int));\n    memset(categorySet, 0, (itemsSize + 1) * sizeof(int));\n    long long res = 0, profit = 0;\n    int *st = (int *)malloc(itemsSize * sizeof(int));\n    long long ms = 0, mc = 0;\n    for (int i = 0; i < itemsSize; i++) {\n        if (i < k) {\n            profit += items[i][0];\n            if (categorySet[items[i][1]] == 0) {\n                categorySet[items[i][1]] = 1;\n                mc++;\n            } else {\n                st[ms++] = items[i][0];\n            }\n        } else if (categorySet[items[i][1]] == 0 && ms > 0) {\n            profit += items[i][0] - st[--ms];\n            categorySet[items[i][1]] = 1;\n            mc++;\n        }\n        res = fmax(res, profit + mc * mc);\n    }\n    free(st);\n    free(categorySet);\n    return res;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar findMaximumElegance = function(items, k) {\n    items.sort((item0, item1) => item1[0] - item0[0])\n    let categorySet = new Set();\n    let profit = 0, res = 0;\n    let st = [];\n    for (let i = 0; i < items.length; i++) {\n        if (i < k) {\n            profit += items[i][0];\n            if (!categorySet.has(items[i][1])) { \n                categorySet.add(items[i][1]);\n            } else {\n                st.push(items[i][0]);\n            }\n        } else if (st.length > 0 && !categorySet.has(items[i][1])) {\n            profit += items[i][0] - st.pop();\n            categorySet.add(items[i][1]);\n        }\n        res = Math.max(res, profit + categorySet.size * categorySet.size);\n    }\n    return res;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction findMaximumElegance(items: number[][], k: number): number {\n    items.sort((item0, item1) => item1[0] - item0[0])\n    let categorySet = new Set();\n    let profit = 0, res = 0;\n    let st = [];\n    for (let i = 0; i < items.length; i++) {\n        if (i < k) {\n            profit += items[i][0];\n            if (!categorySet.has(items[i][1])) { \n                categorySet.add(items[i][1]);\n            } else {\n                st.push(items[i][0]);\n            }\n        } else if (st.length > 0 && !categorySet.has(items[i][1])) {\n            profit += items[i][0] - st.pop();\n            categorySet.add(items[i][1]);\n        }\n        res = Math.max(res, profit + categorySet.size * categorySet.size);\n    }\n    return res;\n};\n```\n\n```Rust [sol1-Rust]\nuse std::collections::{HashSet, VecDeque};\n\nimpl Solution {\n    pub fn find_maximum_elegance(mut items: Vec<Vec<i32>>, k: i32) -> i64 {\n        items.sort_unstable_by_key(|item| -item[0]);\n        let (mut categorySet, mut st) = (HashSet::new(), VecDeque::new());\n        let (mut res, mut profit) = (0 as i64, 0 as i64);\n        for (i, item) in items.iter().enumerate() {\n            if i < k as usize {\n                profit += item[0] as i64;\n                if !categorySet.contains(&item[1]) {\n                    categorySet.insert(item[1]);\n                } else {\n                    st.push_back(item[0]);\n                }\n            } else if (!categorySet.contains(&item[1]) && !st.is_empty()) {\n                profit += (item[0] - st.back().unwrap()) as i64;\n                st.pop_back();\n                categorySet.insert(item[1]);\n            }\n            res = res.max(profit + (categorySet.len() * categorySet.len()) as i64);\n        }\n        res as i64\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log n)$，其中 $n$ 为数组 $\\textit{items}$ 的长度。排序需要 $O(n \\log n)$，求解答案需要 $O(n)$。\n\n- 空间复杂度：$O(n)$。栈与哈希表的空间开销为 $O(n)$。",
+            "slateValue": "",
+            "slug": "zi-xu-lie-zui-da-you-ya-du-by-leetcode-s-mw6g",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "yucOPS",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 24,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Stack",
+                    "nameTranslated": "栈",
+                    "slug": "stack",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Greedy",
+                    "nameTranslated": "贪心",
+                    "slug": "greedy",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2024-06-11T03:32:38.896729+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：贪心 首先将二维整数数组 $\\textit{items}$ 按照 $\\textit{profit}$ 从大到小进行排序。当子序列为前 $k$ 个项目时，子序列的利润总和 $\\textit{total}_\\textit{profit}$ 最大，但是 $\\textit{distinct}_\\textit{categ",
+            "topic": {
+                "id": 2807350,
+                "subscribed": false,
+                "commentCount": 60,
+                "viewCount": 687,
+                "post": {
+                    "id": 5126027,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 42,
+            "isEditorsPick": false,
+            "hitCount": 10798,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "maximum-elegance-of-a-k-length-subsequence",
+                "questionFrontendId": "2813"
+            },
+            "next": {
+                "slug": "fan-hui-tan-xin-pythonjavacgo-by-endless-v2w1",
+                "title": "反悔贪心（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

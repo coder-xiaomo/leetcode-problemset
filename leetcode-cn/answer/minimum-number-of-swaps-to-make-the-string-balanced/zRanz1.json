@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "zRanz1",
+            "title": "使字符串平衡的最小交换次数",
+            "content": "#### 方法一：猜测结论 + 构造答案\n\n**提示 $1$**\n\n记 $\\textit{cnt}[i]$ 表示字符串 $s[0..i]$ 的前缀和，其中左括号 $[$ 记为 $1$，右括号 $]$ 记为 $-1$。\n\n如果所有的前缀和均大于等于 $0$，那么字符串 $s$ 就是平衡的。\n\n**提示 $1$ 解释**\n\n我们可以将求前缀和的过程看成使用栈处理字符串 $s$ 的过程。\n\n我们对 $s$ 进行一次遍历，如果遍历到左括号，那么将其入栈。如果遍历到右括号，那么将栈顶的一个左括号与其匹配并弹出。\n\n如果栈始终是合法的（即不会有遍历到右括号但栈顶没有左括号的情况），那么 $s$ 就是平衡的。如果遇到了不合法的情况，那么可以可能栈「欠了」一个左括号。所以 $\\textit{cnt}$ 中每一个正数（以及 $0$）记录了遍历到当前位置的栈中包含的左括号数量，每一个负数记录了遍历到当前位置的栈欠着的左括号的个数的相反数。\n\n因此，如果 $\\textit{cnt}$ 中的所有元素均大于 $0$，说明栈没有欠过左括号，即字符串 $s$ 是平衡的。\n\n**提示 $2$**\n\n我们可以猜测一个结论：\n\n> 设 $\\textit{cnt}$ 中的最小值为 $\\textit{cnt}[i]$，那么最少需要交换的次数为： \n>\n> $$\n> \\lceil \\frac{-\\textit{cnt}[i]}{2} \\rceil\n> $$\n\n其中 $\\lceil x \\rceil$ 表示将 $x$ 向上取整。\n\n猜测这个结论的缘由是比较直观的：$\\textit{cnt}[i]$ 表示遍历的过程中，栈最多欠了 $-\\textit{cnt}[i]$ 个左括号。为了使得 $s$ 平衡，我们需要在此之前补上一些左括号，而补括号的唯一方法是将前面的右括号与后面的左括号进行交换，一次交换会使得 $\\textit{cnt}[i]$ 的值增加 $2$（原先是右括号权值为 $-1$，现在是左括号权值为 $1$，变化量为 $2$），因此至少需要交换 $\\lceil \\dfrac{-\\textit{cnt}[i]}{2} \\rceil$ 次。\n\n那么我们能否构造出一种交换 $\\lceil \\dfrac{-\\textit{cnt}[i]}{2} \\rceil$ 次的方法呢？由于我们希望每交换一次，$-\\textit{cnt}[i]$ 的值减少 $2$，因此可以考虑使用数学归纳法：\n\n- 当 $-\\textit{cnt}[i] = 0$ 时，字符串 $s$ 是平衡的，需要交换的次数为 $0$；\n\n- 假设当 $-\\textit{cnt}[i] = k$ 时需要交换的次数与我们的猜测相符，那么当 $-\\textit{cnt}[i] = k+2$ 时：\n\n    - 我们记 $\\textit{cnt}$ 中第一个负数的出现位置为 $\\textit{first}$，那么 $s[\\textit{first}]$ 一定是一个右括号；\n\n    - 我们记 $\\textit{cnt}$ 中最后一个负数的出现位置为 $\\textit{last}$，那么 $\\textit{last}$ 一定不为 $n-1$（因为 $s$ 中左右括号数量相同），并且 $s[\\textit{last} + 1]$ 一定是一个左括号；\n\n    - 我们交换 $s[\\textit{first}]$ 与 $s[\\textit{last} + 1]$。对于所有在 $[0, \\textit{first} - 1] \\cup [\\textit{last} + 1, n-1)$ 范围内的下标，它们对应的 $\\textit{cnt}$ 值均为不变（且均为非负数），对于所有在 $[\\textit{first}, \\textit{last}]$ 范围内的下标，它们对应的 $\\textit{cnt}$ 值均增加了 $2$。由于所有的负数都在 $[\\textit{first}, \\textit{last}]$ 范围内，因此 $\\textit{cnt}[i]$ 也会增加 $2$，那么我们通过一次交换就归纳到了 $-\\textit{cnt}[i] = k$ 的情况。\n\n- 需要注意的是，$-\\textit{cnt}[i] = 1$ 的情况也会归纳到 $-\\textit{cnt}[i] = 0$（而不是 $-\\textit{cnt}[i] = -1$），这也是答案中包含上取整的来由。\n\n我们通过数学归纳法给出了一种交换的构造，因此最少的交换次数即为 $\\lceil \\dfrac{-\\textit{cnt}[i]}{2} \\rceil$ 中的最小值。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int minSwaps(string s) {\n        int cnt = 0, mincnt = 0;\n        for (char ch: s) {\n            if (ch == '[') {\n                cnt += 1;\n            }\n            else {\n                cnt -= 1;\n                mincnt = min(mincnt, cnt);\n            }\n        }\n        return (-mincnt + 1) / 2;\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def minSwaps(self, s: str) -> int:\n        cnt = mincnt = 0\n        for ch in s:\n            if ch == '[':\n                cnt += 1\n            else:\n                cnt -= 1\n                mincnt = min(mincnt, cnt)\n        return (-mincnt + 1) // 2\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int minSwaps(String s) {\n        int cnt = 0, mincnt = 0;\n        for (char ch : s.toCharArray()) {\n            if (ch == '[') {\n                cnt += 1;\n            } else {\n                cnt -= 1;\n                mincnt = Math.min(mincnt, cnt);\n            }\n        }\n        return (-mincnt + 1) / 2;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MinSwaps(string s) {\n        int cnt = 0, mincnt = 0;\n        foreach (char ch in s) {\n            if (ch == '[') {\n                cnt += 1;\n            } else {\n                cnt -= 1;\n                mincnt = Math.Min(mincnt, cnt);\n            }\n        }\n        return (-mincnt + 1) / 2;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc minSwaps(s string) int {\n    cnt, mincnt := 0, 0\n    for _, ch := range s {\n        if ch == '[' {\n            cnt++\n        } else {\n            cnt--\n            mincnt = min(mincnt, cnt)\n        }\n    }\n    return (-mincnt + 1) / 2\n}\n```\n\n```C [sol1-C]\nint minSwaps(char* s) {\n    int cnt = 0, mincnt = 0;\n    for (int i = 0; s[i] != '\\0'; ++i) {\n        if (s[i] == '[') {\n            cnt += 1;\n        } else {\n            cnt -= 1;\n            mincnt = fmin(mincnt, cnt);\n        }\n    }\n    return (-mincnt + 1) / 2;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar minSwaps = function(s) {\n    let cnt = 0, mincnt = 0;\n    for (let ch of s) {\n        if (ch === '[') {\n            cnt += 1;\n        } else {\n            cnt -= 1;\n            mincnt = Math.min(mincnt, cnt);\n        }\n    }\n    return Math.floor((-mincnt + 1) / 2);\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction minSwaps(s: string): number {\n    let cnt = 0, mincnt = 0;\n    for (let ch of s) {\n        if (ch === '[') {\n            cnt += 1;\n        } else {\n            cnt -= 1;\n            mincnt = Math.min(mincnt, cnt);\n        }\n    }\n    return Math.floor((-mincnt + 1) / 2);\n};\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn min_swaps(s: String) -> i32 {\n        let mut cnt = 0;\n        let mut mincnt = 0;\n        for ch in s.chars() {\n            if ch == '[' {\n                cnt += 1;\n            } else {\n                cnt -= 1;\n                mincnt = mincnt.min(cnt);\n            }\n        }\n        (-mincnt + 1) / 2\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是字符串 $s$ 的长度。\n\n- 空间复杂度：$O(1)$。",
+            "slateValue": "",
+            "slug": "shi-zi-fu-chuan-ping-heng-de-zui-xiao-ji-f7ye",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "zRanz1",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 18,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-08-08T04:12:34.394869+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：猜测结论 + 构造答案 提示 [latex] 记 [latex] 表示字符串 [latex] 的前缀和，其中左括号 [latex] 记为 [latex]，右括号 [latex] 记为 [latex]。 如果所有的前缀和均大于等于 [latex]，那么字符串 [latex] 就是平衡的。 提示 [latex] 解",
+            "topic": {
+                "id": 922748,
+                "subscribed": false,
+                "commentCount": 67,
+                "viewCount": 4352,
+                "post": {
+                    "id": 1991710,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 48,
+            "isEditorsPick": false,
+            "hitCount": 18818,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "minimum-number-of-swaps-to-make-the-string-balanced",
+                "questionFrontendId": "1963"
+            },
+            "next": {
+                "slug": "go-tan-xin-by-endlesscheng-7h9n",
+                "title": "贪心，三种写法，一步步优化（Python/Java/C++/C/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

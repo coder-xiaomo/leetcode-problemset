@@ -1,0 +1,156 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "eFzu9B",
+            "title": "收集所有金币可获得的最大积分",
+            "content": "#### 方法一：记忆化搜索\n\n根据题意，如果节点 $\\textit{node}$ 的所有祖先节点总共做了 $f$ 次除二操作，那么节点 $\\textit{node}$ 的值变成 $\\lfloor \\dfrac{\\textit{coins}[\\textit{node}]}{2^f} \\rfloor$。令 $\\text{dfs}(\\textit{node}, f)$ 表示所有祖先节点总共做了 $f$ 次除二操作，以节点 $\\textit{node}$ 为根节点的子树可以获得的最大积分，$U$ 为节点 $\\textit{node}$ 的子节点集合：\n\n- 当 $\\textit{node}$ 进行操作一时，有 $\\text{dfs}(\\textit{node}, f) = \\sum_{\\textit{child} \\in U} \\text{dfs}(\\textit{child}, f) + \\lfloor \\dfrac{\\textit{coins}[\\textit{node}]}{2^f} \\rfloor - k$。\n\n- 当 $\\textit{node}$ 进行操作二时，有 $\\text{dfs}(\\textit{node}, f) = \\sum_{\\textit{child} \\in U} \\text{dfs}(\\textit{child}, f + 1) + \\lfloor \\dfrac{\\textit{coins}[\\textit{node}]}{2^{f+1}} \\rfloor$\n\n那么 $\\text{dfs}(\\textit{node}, f)$ 取以上两种情况的最大值。基于以上递推公式，答案可以通过深度优先搜索求解，同时为了不重复计算，使用 $\\textit{memo}$ 来记录求解过程的中间值。\n\n按照以上方法，$f$ 的取值范围取决于树的高度，最坏情况下可能有 $f = n - 1$。考虑到当一个子树的所有节点的金币数量都等于 $0$ 时，它可以获得的最大积分为 $0$，而当 $f \\ge 14$ 时，由于题目范围的 $\\textit{coins}$ 小于等于 $10^4$，而 $2^{14} \\gt 10^4$，所以此时 $\\textit{coins}$ 都等于 $0$。那么，在记忆化搜索过程中，当 $f + 1 \\ge 14$ 时，可以直接计算 $\\sum_{\\textit{child} \\in U} \\text{dfs}(\\textit{child}, f + 1) = 0$，不需要再进行搜索。\n\n```C++ [sol1-C++]\nclass Solution {\nprivate:\n    vector<vector<int>> memo;\n    vector<vector<int>> children;\n\npublic:\n    int dfs(int node, int parent, int f, vector<int> &coins, int k) {\n        if (memo[node][f] >= 0) {\n            return memo[node][f];\n        }\n        int res0 = (coins[node] >> f) - k, res1 = coins[node] >> (f + 1);\n        for (int child : children[node]) {\n            if (child == parent) {\n                continue;\n            }\n            res0 += dfs(child, node, f, coins, k);\n            if (f + 1 < 14) {\n                res1 += dfs(child, node, f + 1, coins, k);\n            }\n        }\n        return memo[node][f] = max(res0, res1);\n    }\n\n    int maximumPoints(vector<vector<int>>& edges, vector<int>& coins, int k) {\n        int n = coins.size();\n        children = vector<vector<int>>(n);\n        for (const auto &edge : edges) {\n            children[edge[0]].push_back(edge[1]);\n            children[edge[1]].push_back(edge[0]);\n        }\n        memo = vector<vector<int>>(n, vector<int>(14, -1));\n        return dfs(0, -1, 0, coins, k);\n    }\n};\n```\n\n```Go [sol1-Go]\nfunc maximumPoints(edges [][]int, coins []int, k int) int {\n    n := len(coins)\n    children := make([][]int, n)\n    for _, edge := range edges {\n        u, v := edge[0], edge[1]\n        children[u] = append(children[u], v)\n        children[v] = append(children[v], u)\n    }\n\n    memo := make([][]int, n)\n    for i := range memo {\n        memo[i] = make([]int, 14)\n        for j := range memo[i] {\n            memo[i][j] = -1\n        }\n    }\n\n    var dfs func(node, parent, f int) int\n    dfs = func(node, parent, f int) int {\n        if memo[node][f] >= 0 {\n            return memo[node][f]\n        }\n        res0, res1 := (coins[node] >> f) - k, coins[node] >> (f + 1)\n        for _, child := range children[node] {\n            if child == parent {\n                continue\n            }\n            res0 += dfs(child, node, f)\n            if f+1 < 14 {\n                res1 += dfs(child, node, f+1)\n            }\n        }\n        memo[node][f] = max(res0, res1)\n        return memo[node][f]\n    }\n\n    return dfs(0, -1, 0)\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def maximumPoints(self, edges: List[List[int]], coins: List[int], k: int) -> int:\n        n = len(coins)\n        children = [[] for _ in range(n)]\n        for u, v in edges:\n            children[u].append(v)\n            children[v].append(u)\n\n        @cache\n        def dfs(node, parent, f):\n            res0 = (coins[node] >> f) - k\n            res1 = coins[node] >> (f + 1) if f + 1 < 14 else 0\n            for child in children[node]:\n                if child == parent:\n                    continue\n                res0 += dfs(child, node, f)\n                if f + 1 < 14:\n                    res1 += dfs(child, node, f + 1)\n            return max(res0, res1)\n\n        return dfs(0, -1, 0)\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int maximumPoints(int[][] edges, int[] coins, int k) {\n        int n = coins.length;\n        List<List<Integer>> children = new ArrayList<>();\n        for (int i = 0; i < n; i++) {\n            children.add(new ArrayList<>());\n        }\n        for (int[] edge : edges) {\n            children.get(edge[0]).add(edge[1]);\n            children.get(edge[1]).add(edge[0]);\n        }\n        int[][] memo = new int[n][14];\n        for (int i = 0; i < n; i++) {\n            Arrays.fill(memo[i], -1);\n        }\n        return dfs(0, -1, 0, coins, k, children, memo);\n    }\n\n    private int dfs(int node, int parent, int f, int[] coins, int k, List<List<Integer>> children, int[][] memo) {\n        if (memo[node][f] != -1) {\n            return memo[node][f];\n        }\n        int res0 = (coins[node] >> f) - k;\n        int res1 = coins[node] >> (f + 1);\n        for (int child : children.get(node)) {\n            if (child == parent) {\n                continue;\n            }\n            res0 += dfs(child, node, f, coins, k, children, memo);\n            if (f + 1 < 14) {\n                res1 += dfs(child, node, f + 1, coins, k, children, memo);\n            }\n        }\n        memo[node][f] = Math.max(res0, res1);\n        return memo[node][f];\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MaximumPoints(int[][] edges, int[] coins, int k) {\n        int n = coins.Length;\n        var children = new List<List<int>>();\n        for (int i = 0; i < n; i++) {\n            children.Add(new List<int>());\n        }\n        foreach (var edge in edges) {\n            children[edge[0]].Add(edge[1]);\n            children[edge[1]].Add(edge[0]);\n        }\n        var memo = new int[n, 14];\n        for (int i = 0; i < n; i++) {\n            for (int j = 0; j < 14; j++) {\n                memo[i, j] = -1;\n            }\n        }\n        return Dfs(0, -1, 0, coins, k, children, memo);\n    }\n\n    private int Dfs(int node, int parent, int f, int[] coins, int k, List<List<int>> children, int[,] memo) {\n        if (memo[node, f] != -1) {\n            return memo[node, f];\n        }\n        int res0 = (coins[node] >> f) - k;\n        int res1 = coins[node] >> (f + 1);\n        foreach (int child in children[node]) {\n            if (child == parent) {\n                continue;\n            }\n            res0 += Dfs(child, node, f, coins, k, children, memo);\n            if (f + 1 < 14) {\n                res1 += Dfs(child, node, f + 1, coins, k, children, memo);\n            }\n        }\n        memo[node, f] = Math.Max(res0, res1);\n        return memo[node, f];\n    }\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar maximumPoints = function(edges, coins, k) {\n    const n = coins.length;\n    const children = Array.from({ length: n }, () => []);\n    for (const edge of edges) {\n        children[edge[0]].push(edge[1]);\n        children[edge[1]].push(edge[0]);\n    }\n    const memo = Array.from({ length: n }, () => Array(14).fill(-1));\n\n    const dfs = (node, parent, f) => {\n        if (memo[node][f] >= 0) {\n            return memo[node][f];\n        }\n        let res0 = (coins[node] >> f) - k, res1 = coins[node] >> (f + 1);\n        for (const child of children[node]) {\n            if (child === parent) {\n                continue;\n            }\n            res0 += dfs(child, node, f);\n            if (f + 1 < 14) {\n                res1 += dfs(child, node, f + 1);\n            }\n        }\n        return memo[node][f] = Math.max(res0, res1);\n    };\n\n    return dfs(0, -1, 0);\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction maximumPoints(edges: number[][], coins: number[], k: number): number {\n    const n = coins.length;\n    const children: number[][] = Array.from({ length: n }, () => []);\n    for (const edge of edges) {\n        children[edge[0]].push(edge[1]);\n        children[edge[1]].push(edge[0]);\n    }\n    const memo: number[][] = Array.from({ length: n }, () => Array(14).fill(-1));\n\n    const dfs = (node: number, parent: number, f: number): number => {\n        if (memo[node][f] >= 0) {\n            return memo[node][f];\n        }\n        let res0 = (coins[node] >> f) - k;\n        let res1 = coins[node] >> (f + 1);\n        for (const child of children[node]) {\n            if (child === parent) {\n                continue;\n            }\n            res0 += dfs(child, node, f);\n            if (f + 1 < 14) {\n                res1 += dfs(child, node, f + 1);\n            }\n        }\n        return memo[node][f] = Math.max(res0, res1);\n    };\n\n    return dfs(0, -1, 0);\n}\n```\n\n```C [sol1-C]\nint dfs(int node, int parent, int f, int* coins, int k, int **children, int *childCount, int **memo) {\n    if (memo[node][f] != -1) {\n        return memo[node][f];\n    }\n    int res0 = (coins[node] >> f) - k;\n    int res1 = coins[node] >> (f + 1);\n    for (int i = 0; i < childCount[node]; ++i) {\n        int child = children[node][i];\n        if (child == parent) {\n            continue;\n        }\n        res0 += dfs(child, node, f, coins, k, children, childCount, memo);\n        if (f + 1 < 14) {\n            res1 += dfs(child, node, f + 1, coins, k, children, childCount, memo);\n        }\n    }\n    return memo[node][f] = fmax(res0, res1);\n}\n\nint maximumPoints(int **edges, int edgesSize, int *edgesColSize, int *coins, int coinsSize, int k) {\n    int* childCount = (int*)malloc(coinsSize * sizeof(int));\n    memset(childCount, 0, coinsSize * sizeof(int));\n    for (int i = 0; i < edgesSize; ++i) {\n        int u = edges[i][0];\n        int v = edges[i][1];\n        childCount[u]++;\n        childCount[v]++;\n    }\n\n    int** children = (int**)malloc(coinsSize * sizeof(int*));\n    for (int i = 0; i < coinsSize; ++i) {\n        children[i] = (int*)malloc(childCount[i] * sizeof(int));\n    }\n    memset(childCount, 0, coinsSize * sizeof(int));\n    for (int i = 0; i < edgesSize; ++i) {\n        int u = edges[i][0];\n        int v = edges[i][1];\n        children[u][childCount[u]++] = v;\n        children[v][childCount[v]++] = u;\n    }\n\n    int **memo = (int **)malloc(coinsSize * sizeof(int *));\n    for (int i = 0; i < coinsSize; i++) {\n        memo[i] = (int *)malloc(14 * sizeof(int));\n        memset(memo[i], -1, 14 * sizeof(int));\n    }\n    int result = dfs(0, -1, 0, coins, k, children, childCount, memo);\n    for (int i = 0; i < coinsSize; ++i) {\n        free(children[i]);\n        free(memo[i]);\n    }\n    free(children);\n    free(memo);\n    free(childCount);\n    return result;\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    fn dfs(node: usize, parent: Option<usize>, f: usize, coins: &Vec<i32>, k: i32, children: &Vec<Vec<usize>>, memo: &mut Vec<Vec<i32>>) -> i32 {\n        if memo[node][f] >= 0 {\n            return memo[node][f];\n        }\n        let mut res0 = (coins[node] >> f) - k;\n        let mut res1 = coins[node] >> (f + 1);\n        for &child in &children[node] {\n            if Some(child) == parent {\n                continue;\n            }\n            res0 += Solution::dfs(child, Some(node), f, coins, k, children, memo);\n            if f + 1 < 14 {\n                res1 += Solution::dfs(child, Some(node), f + 1, coins, k, children, memo);\n            }\n        }\n        memo[node][f] = res0.max(res1);\n        memo[node][f]\n    }\n\n    pub fn maximum_points(edges: Vec<Vec<i32>>, coins: Vec<i32>, k: i32) -> i32 {\n        let n = coins.len();\n        let mut children = vec![vec![]; n];\n        for edge in edges {\n            children[edge[0] as usize].push(edge[1] as usize);\n            children[edge[1] as usize].push(edge[0] as usize);\n        }\n        let mut memo = vec![vec![-1; 14]; n];\n        Solution::dfs(0, None, 0, &coins, k, &children, &mut memo)\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\times C)$，其中 $n$ 是节点的数目，$C = 14$ 取决于 $\\textit{coins}$ 的取值范围。\n\n- 空间复杂度：$O(n \\times C)$。",
+            "slateValue": "",
+            "slug": "shou-ji-suo-you-jin-bi-ke-huo-de-de-zui-d6zuo",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "eFzu9B",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 8,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Bit Manipulation",
+                    "nameTranslated": "位运算",
+                    "slug": "bit-manipulation",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Tree",
+                    "nameTranslated": "树",
+                    "slug": "tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Depth-First Search",
+                    "nameTranslated": "深度优先搜索",
+                    "slug": "depth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2025-01-14T14:21:20.646775+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：记忆化搜索 根据题意，如果节点 [latex] 的所有祖先节点总共做了 [latex] 次除二操作，那么节点 [latex] 的值变成 [latex]。令 [latex] 表示所有祖先节点总共做了 [latex] 次除二操作，以节点 [latex] 为根节点的子树可以获得的最大积分，[latex] 为节点 [l",
+            "topic": {
+                "id": 3047557,
+                "subscribed": false,
+                "commentCount": 14,
+                "viewCount": 472,
+                "post": {
+                    "id": 5509546,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 26,
+            "isEditorsPick": false,
+            "hitCount": 5702,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "maximum-points-after-collecting-coins-from-all-nodes",
+                "questionFrontendId": "2920"
+            },
+            "next": {
+                "slug": "shu-xing-dp-ji-yi-hua-sou-suo-by-endless-phzx",
+                "title": "树形 DP：记忆化搜索 / 递推（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

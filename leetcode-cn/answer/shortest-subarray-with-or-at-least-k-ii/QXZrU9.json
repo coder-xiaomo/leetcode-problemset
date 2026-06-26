@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "QXZrU9",
+            "title": "或值至少为 K 的最短子数组 II",
+            "content": "#### 方法一：滑动窗口\n\n**思路与算法**\n\n根据**或**运算的性质可以知道，给定的元素 $A$ 与任意元素 $B$ 进行**或**运算的结果一定满足 $A|B \\ge A$，由此可以知道对于任意子数组的长度增加元素后按位**或**运算的结果一定大于等于增加前的结果，满足单调性。由此可知当每次固定数组的右端点时，我们可以使用**二分查找**或者**滑动窗口**来找到**最短**特别子数组的长度。\n\n我们每次用 $[\\text{left}, \\textit{right}]$ 表示滑动窗口，每次固定右端点 $\\textit{right}$，如果当前窗口内子数组按位**或**的结果大于等于 $k$，此时向右移动左端点 $\\textit{left}$ 直到窗口内子数组的值按位**或**的结果刚好满足小于 $k$ 为止，此时以 $\\textit{right}$ 为右端点的**最短**特别子数组长度即为 $\\textit{right} - \\textit{left} + 1$。\n\n为了实时计算当前窗口中子数组**或**运算的结果，我们需要维护二进制位每一位中 $1$ 出现的次数，如果当前位中 $1$ 的出现的次数为 $0$，则按位**或**运算后该位为 $0$，否则该位则为 $1$。由于给定数组 $\\textit{nums}$ 中的元素大小不超过 $10^9$ ，因此最多需要考虑二进制表示的前 $30$ 位。我们需要维护一个长度为 $30$ 的数组 $\\textit{bits}$，其中 $\\textit{bits}[i]$ 表示滑动窗口中满足二进制表示的从低到高第 $i$ 位的值为 $1$ 的元素个数。\n\n具体计算过程如下：\n\n+ 初始时 $\\textit{left} = \\textit{right} = 0$。每次将滑动窗口的右端点 $\\textit{right}$ 向右移动一位，并更新 $\\textit{bits}$ 数组，通过计算 $\\textit{bits}$ 数组，如果当前窗口内子数组按位**或**的结果大于等于 $k$ 时，窗口内的子数组一定为**特别**子数组，则尝试应向右移动左端点 $\\textit{right}$，并更新 $\\textit{bits}$ 数组。\n\n+ 向右移动左端点直到当窗口内子数组按位**或**的结果小于 $k$ 或者 $\\textit{left} > \\textit{right}$ 时，此时不再移动左端点 $\\textit{left}$。在移动窗口的过程中，我们同时更新**最短**特别子数组长度的长度。\n\n+ 由于可能存在整个数组中所有元素按位**或**的结果小于 $k$，此时不存在**特别**子数组，此时应返回 $-1$。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int minimumSubarrayLength(vector<int>& nums, int k) {\n        int n = nums.size();\n        vector<int> bits(30);\n        auto calc = [](vector<int> &bits) -> int {\n            int ans = 0;\n            for (int i = 0; i < bits.size(); i++) {\n                if (bits[i] > 0) {\n                    ans |= 1 << i;\n                }\n            }\n            return ans;\n        };\n\n        int res = INT_MAX;\n        for (int left = 0, right = 0; right < n; right++) {\n            for (int i = 0; i < 30; i++) {\n                bits[i] += (nums[right] >> i) & 1;\n            }\n            while (left <= right && calc(bits) >= k) {\n                res = min(res, right - left + 1);\n                for (int i = 0; i < 30; i++) {\n                    bits[i] -= (nums[left] >> i) & 1;\n                }\n                left++;\n            }\n        }\n        \n        return res == INT_MAX ? -1: res;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int minimumSubarrayLength(int[] nums, int k) {\n        int n = nums.length;\n        int[] bits = new int[30];\n        int res = Integer.MAX_VALUE;\n        for (int left = 0, right = 0; right < n; right++) {\n            for (int i = 0; i < 30; i++) {\n                bits[i] += (nums[right] >> i) & 1;\n            }\n            while (left <= right && calc(bits) >= k) {\n                res = Math.min(res, right - left + 1);\n                for (int i = 0; i < 30; i++) {\n                    bits[i] -= (nums[left] >> i) & 1;\n                }\n                left++;\n            }\n        }\n\n        return res == Integer.MAX_VALUE ? -1 : res;\n    }\n\n    private int calc(int[] bits) {\n        int ans = 0;\n        for (int i = 0; i < bits.length; i++) {\n            if (bits[i] > 0) {\n                ans |= 1 << i;\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MinimumSubarrayLength(int[] nums, int k) {\n        int n = nums.Length;\n        int[] bits = new int[30];\n        int res = int.MaxValue;\n\n        for (int left = 0, right = 0; right < n; right++) {\n            for (int i = 0; i < 30; i++) {\n                bits[i] += (nums[right] >> i) & 1;\n            }\n            while (left <= right && Calc(bits) >= k) {\n                res = Math.Min(res, right - left + 1);\n                for (int i = 0; i < 30; i++) {\n                    bits[i] -= (nums[left] >> i) & 1;\n                }\n                left++;\n            }\n        }\n\n        return res == int.MaxValue ? -1 : res;\n    }\n\n    private int Calc(int[] bits) {\n        int ans = 0;\n        for (int i = 0; i < bits.Length; i++) {\n            if (bits[i] > 0) {\n                ans |= 1 << i;\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc minimumSubarrayLength(nums []int, k int) int {\n    n := len(nums)\n\tbits := make([]int, 30)\n\tres := math.MaxInt32\n\n\tfor left, right := 0, 0; right < n; right++ {\n\t\tfor i := 0; i < 30; i++ {\n\t\t\tbits[i] += (nums[right] >> i) & 1\n\t\t}\n\t\tfor left <= right && calc(bits) >= k {\n\t\t\tres = min(res, right - left + 1)\n\t\t\tfor i := 0; i < 30; i++ {\n\t\t\t\tbits[i] -= (nums[left] >> i) & 1\n\t\t\t}\n\t\t\tleft++\n\t\t}\n\t}\n\n\tif res == math.MaxInt32 {\n\t\treturn -1\n\t}\n\treturn res\n}\n\nfunc calc(bits []int) int {\n\tans := 0\n\tfor i := 0; i < len(bits); i++ {\n\t\tif bits[i] > 0 {\n\t\t\tans |= 1 << i\n\t\t}\n\t}\n\treturn ans\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def minimumSubarrayLength(self, nums: List[int], k: int) -> int:\n        n = len(nums)\n        bits = [0] * 30\n        res = inf\n        def calc(bits):\n            return sum(1 << i for i in range(30) if bits[i] > 0)\n\n        left = 0\n        for right in range(n):\n            for i in range(30):\n                bits[i] += (nums[right] >> i) & 1\n            while left <= right and calc(bits) >= k:\n                res = min(res, right - left + 1)\n                for i in range(30):\n                    bits[i] -= (nums[left] >> i) & 1\n                left += 1\n\n        return -1 if res == inf else res\n```\n\n```C [sol1-C]\nint calc(int* bits) {\n    int ans = 0;\n    for (int i = 0; i < 30; i++) {\n        if (bits[i] > 0) {\n            ans |= 1 << i;\n        }\n    }\n    return ans;\n}\n\nint minimumSubarrayLength(int* nums, int numsSize, int k) {\n    int bits[30] = {0};\n    int res = INT_MAX;\n\n    for (int left = 0, right = 0; right < numsSize; right++) {\n        for (int i = 0; i < 30; i++) {\n            bits[i] += (nums[right] >> i) & 1;\n        }\n        while (left <= right && calc(bits) >= k) {\n            res = fmin(res, right - left + 1);\n            for (int i = 0; i < 30; i++) {\n                bits[i] -= (nums[left] >> i) & 1;\n            }\n            left++;\n        }\n    }\n\n    return res == INT_MAX ? -1 : res;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar minimumSubarrayLength = function(nums, k) {\n    const n = nums.length;\n    const bits = new Array(30).fill(0);\n    let res = Number.MAX_SAFE_INTEGER;;\n\n    const calc = (bits) => {\n        let ans = 0;\n        for (let i = 0; i < bits.length; i++) {\n            if (bits[i] > 0) {\n                ans |= 1 << i;\n            }\n        }\n        return ans;\n    };\n\n    let left = 0;\n    for (let right = 0; right < n; right++) {\n        for (let i = 0; i < 30; i++) {\n            bits[i] += (nums[right] >> i) & 1;\n        }\n        while (left <= right && calc(bits) >= k) {\n            res = Math.min(res, right - left + 1);\n            for (let i = 0; i < 30; i++) {\n                bits[i] -= (nums[left] >> i) & 1;\n            }\n            left++;\n        }\n    }\n\n    return res === Number.MAX_SAFE_INTEGER ? -1 : res;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction minimumSubarrayLength(nums: number[], k: number): number {\n    const n = nums.length;\n    const bits = new Array(30).fill(0);\n    let res = Infinity;\n\n    const calc = (bits: number[]): number => {\n        let ans = 0;\n        for (let i = 0; i < bits.length; i++) {\n            if (bits[i] > 0) {\n                ans |= 1 << i;\n            }\n        }\n        return ans;\n    };\n\n    let left = 0;\n    for (let right = 0; right < n; right++) {\n        for (let i = 0; i < 30; i++) {\n            bits[i] += (nums[right] >> i) & 1;\n        }\n        while (left <= right && calc(bits) >= k) {\n            res = Math.min(res, right - left + 1);\n            for (let i = 0; i < 30; i++) {\n                bits[i] -= (nums[left] >> i) & 1;\n            }\n            left++;\n        }\n    }\n\n    return res === Infinity ? -1 : res;\n};\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn minimum_subarray_length(nums: Vec<i32>, k: i32) -> i32 {\n        let n = nums.len();\n        let mut bits = [0; 30];\n        let mut res = i32::MAX;\n\n        let calc = |bits: &[i32]| -> i32 {\n            let mut ans = 0;\n            for i in 0..30 {\n                if bits[i] > 0 {\n                    ans |= 1 << i;\n                }\n            }\n            ans\n        };\n\n        let mut left = 0;\n        for right in 0..n {\n            for i in 0..30 {\n                bits[i] += (nums[right] >> i) & 1;\n            }\n            while left <= right && calc(&bits) >= k {\n                res = res.min((right - left + 1) as i32);\n                for i in 0..30 {\n                    bits[i] -= (nums[left] >> i) & 1;\n                }\n                left += 1;\n            }\n        }\n\n        if res == i32::MAX {\n            -1\n        } else {\n            res\n        }\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log U)$，其中 $n$ 表示给定数组 $\\textit{nums}$ 的长度，$U$ 表示数组中的最大的元素。由于使用滑动窗口遍历需要的时间为 $O(n)$，每次更新窗口元素时需要实时计算当前子数组按位**或**的值需要的时间为 $O(\\log U)$，此时需要的总时间即为 $O(n \\log U)$。\n\n- 空间复杂度：$O(\\log U)$。计算时需要存储当前子数组中每一个二进制位中的统计情况，最多有 $\\log U$ 位需要记录，因此需要的空间为 $\\log U$。",
+            "slateValue": "",
+            "slug": "huo-zhi-zhi-shao-wei-k-de-zui-duan-zi-sh-rzf8",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "QXZrU9",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 14,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Sliding Window",
+                    "nameTranslated": "滑动窗口",
+                    "slug": "sliding-window",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2025-01-06T07:48:48.060808+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：滑动窗口 思路与算法 根据或运算的性质可以知道，给定的元素 [latex] 与任意元素 [latex] 进行或运算的结果一定满足 [latex]，由此可以知道对于任意子数组的长度增加元素后按位或运算的结果一定大于等于增加前的结果，满足单调性。由此可知当每次固定数组的右端点时，我们可以使用二分查找或者滑动窗口来找",
+            "topic": {
+                "id": 3040101,
+                "subscribed": false,
+                "commentCount": 37,
+                "viewCount": 586,
+                "post": {
+                    "id": 5496902,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 30,
+            "isEditorsPick": false,
+            "hitCount": 10063,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "shortest-subarray-with-or-at-least-k-ii",
+                "questionFrontendId": "3097"
+            },
+            "next": {
+                "slug": "zi-shu-zu-orandgcd-tong-yong-mo-ban-pyth-n8xj",
+                "title": "两种方法：LogTrick/滑动窗口+栈（Python/Java/C++/C/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

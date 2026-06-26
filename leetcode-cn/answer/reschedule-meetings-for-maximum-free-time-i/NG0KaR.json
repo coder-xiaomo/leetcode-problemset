@@ -1,0 +1,144 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "NG0KaR",
+            "title": "重新安排会议得到最多空余时间 I",
+            "content": "#### 方法一：贪心 + 前缀和\n\n根据题意，平移一个会议可以将该会议左右两侧相邻的空余时间段进行合并，那么对 $k$ 个会议进行平移时，最多可以将 $k + 1$ 个空余时间段进行合并（当且仅当 $k$ 个会议相邻）。当进行平移的 $k$ 个相邻的会议固定时，令合并的第一个空余时间段的开始时间为 $\\textit{left}$，合并的最后一个空余时间段的结束时间为 $\\textit{right}$，那么合并的 $k + 1$ 个空余时间段的总长等于总时间间隔 $\\textit{right} - \\textit{left}$ 减去 $k$ 个会议的时间总长。\n\n预计算 $n$ 个会议的时间前缀和 $\\textit{sum}$，方便后续计算相邻 $k$ 个会议的时间总长。然后枚举 $k$ 个相邻会议最右边的会议为 $i$，显然 $i \\ge k - 1$，那么 $k$ 个相邻会议为区间 $[i - k + 1, i]$，我们计算以下几个值：\n\n- $k$ 个会议时间总长 $\\textit{sum}[i + 1] - \\textit{sum}[i - k + 1]$\n\n- 合并的第一个空余时间段的开始时间：\n\n$$\n\\textit{left}_i =\n\\begin{cases}\n0 & \\text{if } i \\le k - 1 \\\\\nendTime[i - k] & \\text{if } i \\gt k - 1 \\\\\n\\end{cases}\n$$\n\n- 最后一个空余时间段的结束时间：\n\n$$\n\\textit{right}_i =\n\\begin{cases}\n\\textit{eventTime} & \\text{if } i = n - 1 \\\\\n\\textit{startTime}[i + 1] & \\text{if } i \\neq n - 1 \\\\\n\\end{cases}\n$$\n\n那么就可以计算合并的 $k + 1$ 个空余时间段的总长 $\\textit{right}_i - \\textit{left}_i - (\\textit{sum}[i + 1] - \\textit{sum}[i - k + 1])$，最终返回所有枚举结果的最大值。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int maxFreeTime(int eventTime, int k, vector<int>& startTime, vector<int>& endTime) {\n        int n = startTime.size(), res = 0;\n        vector<int> sum(n + 1);\n        for (int i = 0; i < n; i++) {\n            sum[i + 1] = sum[i] + endTime[i] - startTime[i];\n        }\n        for (int i = k - 1; i < n; i++) {\n            int right = i == n - 1 ? eventTime : startTime[i + 1];\n            int left = i == k - 1 ? 0 : endTime[i - k];\n            res = max(res, right - left - (sum[i + 1] - sum[i - k + 1]));\n        }\n        return res;\n    }\n};\n```\n\n```Go [sol1-Go]\nfunc maxFreeTime(eventTime int, k int, startTime []int, endTime []int) int {\n    n := len(startTime)\n    res := 0\n    sum := make([]int, n + 1)\n    for i := 0; i < n; i++ {\n        sum[i + 1] = sum[i] + endTime[i] - startTime[i]\n    }\n    for i := k - 1; i < n; i++ {\n        var right int\n        if i == n - 1 {\n            right = eventTime\n        } else {\n            right = startTime[i + 1]\n        }\n        var left int\n        if i == k - 1 {\n            left = 0\n        } else {\n            left = endTime[i - k]\n        }\n        res = max(res, right - left - (sum[i + 1] - sum[i - k + 1]))\n    }\n    return res\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def maxFreeTime(self, eventTime: int, k: int, startTime: List[int], endTime: List[int]) -> int:\n        n = len(startTime)\n        res = 0\n        total = [0] * (n + 1)\n        for i in range(n):\n            total[i + 1] = total[i] + endTime[i] - startTime[i]\n        for i in range(k - 1, n):\n            right = eventTime if i == n - 1 else startTime[i + 1]\n            left = 0 if i == k - 1 else endTime[i - k]\n            res = max(res, right - left - (total[i + 1] - total[i - k + 1]))\n        return res\n```\n\n```Java [sol1-Java]\npublic class Solution {\n    public int maxFreeTime(int eventTime, int k, int[] startTime, int[] endTime) {\n        int n = startTime.length, res = 0;\n        int[] sum = new int[n + 1];\n        for (int i = 0; i < n; i++) {\n            sum[i + 1] = sum[i] + endTime[i] - startTime[i];\n        }\n        for (int i = k - 1; i < n; i++) {\n            int right = i == n - 1 ? eventTime : startTime[i + 1];\n            int left = i == k - 1 ? 0 : endTime[i - k];\n            res = Math.max(res, right - left - (sum[i + 1] - sum[i - k + 1]));\n        }\n        return res;\n    }\n}\n```\n\n```TypeScript [sol1-TypeScript]\nfunction maxFreeTime(eventTime: number, k: number, startTime: number[], endTime: number[]): number {\n    let n = startTime.length, res = 0;\n    let sum: number[] = new Array(n + 1).fill(0);\n    for (let i = 0; i < n; i++) {\n        sum[i + 1] = sum[i] + endTime[i] - startTime[i];\n    }\n    for (let i = k - 1; i < n; i++) {\n        let right = i === n - 1 ? eventTime : startTime[i + 1];\n        let left = i === k - 1 ? 0 : endTime[i - k];\n        res = Math.max(res, right - left - (sum[i + 1] - sum[i - k + 1]));\n    }\n    return res;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar maxFreeTime = function(eventTime, k, startTime, endTime) {\n    let n = startTime.length, res = 0;\n    let sum = new Array(n + 1).fill(0);\n    for (let i = 0; i < n; i++) {\n        sum[i + 1] = sum[i] + endTime[i] - startTime[i];\n    }\n    for (let i = k - 1; i < n; i++) {\n        let right = i === n - 1 ? eventTime : startTime[i + 1];\n        let left = i === k - 1 ? 0 : endTime[i - k];\n        res = Math.max(res, right - left - (sum[i + 1] - sum[i - k + 1]));\n    }\n    return res;\n};\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MaxFreeTime(int eventTime, int k, int[] startTime, int[] endTime) {\n        int n = startTime.Length, res = 0;\n        int[] sum = new int[n + 1];\n        for (int i = 0; i < n; i++) {\n            sum[i + 1] = sum[i] + endTime[i] - startTime[i];\n        }\n        for (int i = k - 1; i < n; i++) {\n            int right = i == n - 1 ? eventTime : startTime[i + 1];\n            int left = i == k - 1 ? 0 : endTime[i - k];\n            res = Math.Max(res, right - left - (sum[i + 1] - sum[i - k + 1]));\n        }\n        return res;\n    }\n}\n```\n\n```C [sol1-C]\nint maxFreeTime(int eventTime, int k, int* startTime, int startSize, int* endTime, int endSize) {\n    int n = startSize;\n    int res = 0;\n    int* sum = (int*)calloc(n + 1, sizeof(int));\n    for (int i = 0; i < n; i++) {\n        sum[i + 1] = sum[i] + endTime[i] - startTime[i];\n    }\n    for (int i = k - 1; i < n; i++) {\n        int right = (i == n - 1) ? eventTime : startTime[i + 1];\n        int left = (i == k - 1) ? 0 : endTime[i - k];\n        int val = right - left - (sum[i + 1] - sum[i - k + 1]);\n        res = fmax(res, val);\n    }\n    free(sum);\n    return res;\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn max_free_time(event_time: i32, k: i32, start_time: Vec<i32>, end_time: Vec<i32>) -> i32 {\n        let n = start_time.len();\n        let k = k as usize;\n        let mut res = 0;\n        let mut sum = vec![0; n + 1];\n        for i in 0..n {\n            sum[i + 1] = sum[i] + end_time[i] - start_time[i];\n        }\n        for i in (k - 1)..n {\n            let right = if i == n - 1 { event_time } else { start_time[i + 1] };\n            let left = if i == k - 1 { 0 } else { end_time[i - k] };\n            res = res.max(right - left - (sum[i + 1] - sum[i - k + 1]));\n        }\n        res\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是所有会议的数目。\n\n- 空间复杂度：$O(n)$。\n\n#### 方法二：贪心 + 滑动窗口\n\n方法一中，我们使用了会议时长的前缀和数组来计算 $k$ 个相邻会议的时间总长，这里同样可以使用滑动窗口来计算 $k$ 个相邻会议的时间总长。具体地，我们使用 $t$ 来计算窗口内会议的时间总长，依次将会议 $i$ 加入窗口：\n\n- 将 $i$ 加入窗口中，计算 $t = t + \\textit{endTime}[i] - \\textit{startTime}[i]$\n\n- 根据方法一计算 $\\textit{left}_i$ 和 $\\textit{right}_i$，那么窗口内的会议平移时，合并的空余时间段的总长为 $\\textit{right}_i - \\textit{left}_i - t$\n\n- 如果窗口的会议数量等于 $k$，即 $i \\ge k - 1$ 时，需要将会议 $i - k + 1$ 移出窗口，保证后续加入会议时窗口内会议的数量小于等于 $k$，计算 $t = t - (\\textit{endTime}[i - k + 1] - \\textit{startTime}[i - k + 1])$\n\n返回合并的空余时间段总长的最大值。\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    int maxFreeTime(int eventTime, int k, vector<int>& startTime, vector<int>& endTime) {\n        int n = startTime.size(), res = 0, t = 0;\n        for (int i = 0; i < n; i++) {\n            t += endTime[i] - startTime[i];\n            int left = i <= k - 1 ? 0 : endTime[i - k];\n            int right = i == n - 1 ? eventTime : startTime[i + 1];\n            res = max(res, right - left - t);\n            if (i >= k - 1) {\n                t -= endTime[i - k + 1] - startTime[i - k + 1];\n            }\n        }\n        return res;\n    }\n};\n```\n\n```Go [sol2-Go]\nfunc maxFreeTime(eventTime int, k int, startTime []int, endTime []int) int {\n    n := len(startTime)\n    res := 0\n    t := 0\n    for i := 0; i < n; i++ {\n        t += endTime[i] - startTime[i]\n        var left int\n        if i <= k - 1 {\n            left = 0\n        } else {\n            left = endTime[i - k]\n        }\n        var right int\n        if i == n - 1 {\n            right = eventTime\n        } else {\n            right = startTime[i + 1]\n        }\n        if right - left - t > res {\n            res = right - left - t\n        }\n        if i >= k - 1 {\n            t -= endTime[i - k + 1] - startTime[i - k + 1]\n        }\n    }\n    return res\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def maxFreeTime(self, eventTime: int, k: int, startTime: List[int], endTime: List[int]) -> int:\n        n = len(startTime)\n        res = 0\n        t = 0\n        for i in range(n):\n            t += endTime[i] - startTime[i]\n            left = 0 if i <= k - 1 else endTime[i - k]\n            right = eventTime if i == n - 1 else startTime[i + 1]\n            res = max(res, right - left - t)\n            if i >= k - 1:\n                t -= endTime[i - k + 1] - startTime[i - k + 1]\n        return res\n```\n\n```Java [sol2-Java]\npublic class Solution {\n    public int maxFreeTime(int eventTime, int k, int[] startTime, int[] endTime) {\n        int n = startTime.length, res = 0, t = 0;\n        for (int i = 0; i < n; i++) {\n            t += endTime[i] - startTime[i];\n            int left = i <= k - 1 ? 0 : endTime[i - k];\n            int right = i == n - 1 ? eventTime : startTime[i + 1];\n            res = Math.max(res, right - left - t);\n            if (i >= k - 1) {\n                t -= endTime[i - k + 1] - startTime[i - k + 1];\n            }\n        }\n        return res;\n    }\n}\n```\n\n```TypeScript [sol2-TypeScript]\nfunction maxFreeTime(eventTime: number, k: number, startTime: number[], endTime: number[]): number {\n    let n = startTime.length, res = 0, t = 0;\n    for (let i = 0; i < n; i++) {\n        t += endTime[i] - startTime[i];\n        let left = i <= k - 1 ? 0 : endTime[i - k];\n        let right = i === n - 1 ? eventTime : startTime[i + 1];\n        res = Math.max(res, right - left - t);\n        if (i >= k - 1) {\n            t -= endTime[i - k + 1] - startTime[i - k + 1];\n        }\n    }\n    return res;\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar maxFreeTime = function(eventTime, k, startTime, endTime) {\n    let n = startTime.length, res = 0, t = 0;\n    for (let i = 0; i < n; i++) {\n        t += endTime[i] - startTime[i];\n        let left = i <= k - 1 ? 0 : endTime[i - k];\n        let right = i === n - 1 ? eventTime : startTime[i + 1];\n        res = Math.max(res, right - left - t);\n        if (i >= k - 1) {\n            t -= endTime[i - k + 1] - startTime[i - k + 1];\n        }\n    }\n    return res;\n};\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    public int MaxFreeTime(int eventTime, int k, int[] startTime, int[] endTime) {\n        int n = startTime.Length, res = 0, t = 0;\n        for (int i = 0; i < n; i++) {\n            t += endTime[i] - startTime[i];\n            int left = i <= k - 1 ? 0 : endTime[i - k];\n            int right = i == n - 1 ? eventTime : startTime[i + 1];\n            res = Math.Max(res, right - left - t);\n            if (i >= k - 1) {\n                t -= endTime[i - k + 1] - startTime[i - k + 1];\n            }\n        }\n        return res;\n    }\n}\n```\n\n```C [sol2-C]\nint maxFreeTime(int eventTime, int k, int* startTime, int startSize, int* endTime, int endSize) {\n    int n = startSize;\n    int res = 0, t = 0;\n    for (int i = 0; i < n; i++) {\n        t += endTime[i] - startTime[i];\n        int left = (i <= k - 1) ? 0 : endTime[i - k];\n        int right = (i == n - 1) ? eventTime : startTime[i + 1];\n        if (right - left - t > res) res = right - left - t;\n        if (i >= k - 1) {\n            t -= endTime[i - k + 1] - startTime[i - k + 1];\n        }\n    }\n    return res;\n}\n```\n\n```Rust [sol2-Rust]\nimpl Solution {\n    pub fn max_free_time(event_time: i32, k: i32, start_time: Vec<i32>, end_time: Vec<i32>) -> i32 {\n        let n = start_time.len();\n        let k = k as usize;\n        let mut res: i32 = 0;\n        let mut t: i32 = 0;\n\n        for i in 0..n {\n            t += end_time[i] - start_time[i];\n            let left = if i <= k - 1 { 0 } else { end_time[i - k] };\n            let right = if i == n - 1 { event_time } else { start_time[i + 1] };\n            res = res.max(right - left - t);\n            if i >= k - 1 {\n                t -= end_time[i - k + 1] - start_time[i - k + 1];\n            }\n        }\n        res\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是所有会议的数目。\n\n- 空间复杂度：$O(1)$。",
+            "slateValue": "",
+            "slug": "zhong-xin-an-pai-hui-yi-de-dao-zui-duo-k-wm8c",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "NG0KaR",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 6,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Greedy",
+                    "nameTranslated": "贪心",
+                    "slug": "greedy",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Sliding Window",
+                    "nameTranslated": "滑动窗口",
+                    "slug": "sliding-window",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2025-07-01T01:41:11.805598+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：贪心 + 前缀和 根据题意，平移一个会议可以将该会议左右两侧相邻的空余时间段进行合并，那么对 [latex] 个会议进行平移时，最多可以将 [latex] 个空余时间段进行合并（当且仅当 [latex] 个会议相邻）。当进行平移的 [latex] 个相邻的会议固定时，令合并的第一个空余时间段的开始时间为 [la",
+            "topic": {
+                "id": 3712357,
+                "subscribed": false,
+                "commentCount": 13,
+                "viewCount": 47,
+                "post": {
+                    "id": 6779408,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 27,
+            "isEditorsPick": false,
+            "hitCount": 8306,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "reschedule-meetings-for-maximum-free-time-i",
+                "questionFrontendId": "3439"
+            },
+            "next": {
+                "slug": "zhuan-huan-cheng-ding-chang-hua-dong-chu-1kg1",
+                "title": "转化成定长滑动窗口（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

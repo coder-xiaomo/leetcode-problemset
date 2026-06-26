@@ -1,0 +1,132 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "AIdRYT",
+            "title": "拿出最少数目的魔法豆",
+            "content": "#### 方法一：数学\n\n**提示 $1$**\n\n我们可以将问题转化为：\n\n> 寻找某一个数字 $x$，当我们将豆子数量小于 $x$ 的袋子清空，并将豆子数量大于 $x$ 的袋中豆子数量变为 $x$ 时，拿出的豆子数量最少。\n\n那么，$x$ 一定等于某一个袋子的豆子数。\n\n**提示 $1$ 证明**\n\n我们可以用反证法来证明上述命题。当 $x$ 不等于某一个袋子的豆子数时，我们可以分两种情况讨论：\n\n- $x$ 大于最多袋子的豆子数：不妨设**最多**的袋子豆子数为 $y$，所有袋子豆子总数为 $\\textit{total}$，则：\n  - $x$ 对应拿出的豆子数为 $\\textit{total}$；\n  - $y$ 对应拿出的豆子数为 $\\textit{total} - y \\times n_y$，其中 $n_y > 1$ 为豆子数为 $y$ 的袋子数量。\n\n- $x$ 小于最多袋子的豆子数：假设豆子数量**大于** $x$ 的袋子中**最小**的豆子数量为 $y$，所有袋子豆子总数为 $\\textit{total}$，则：\n  - $x$ 对应拿出的豆子数为 $\\textit{total} - x \\times n_x$，其中 $n_x > 1$ 为豆子数大于等于 $x$ 的袋子数量；\n  - $y$ 对应拿出的豆子数为 $\\textit{total} - y \\times n_y$，其中 $n_y = n_x$ 为豆子数大于等于 $y$ 的袋子数量。\n\n对于上述两种情况而言，都存在至少一种等于某个袋子豆子数的情况，对应拿出的豆子数更低。\n\n**思路与算法**\n\n我们不妨设 $\\textit{beans}$ 数组的长度为 $n$。根据**提示 $1$**，最少的豆子数量即为：\n\n$$\n\\min_{x \\in \\textit{beans}} (\\textit{total} - x \\times n_x).\n$$\n\n容易发现，对于每一个 $x$，都需要 $O(n)$ 的时间复杂度计算豆子数大于等于 $x$ 的袋子数量 $n_x$，那么总时间复杂度为 $O(n^2)$，不符合题目要求。因此我们需要简化计算 $n_x$ 的时间复杂度。\n\n我们可以对 $\\textit{beans}$ 数组升序排序。那么对于排序后数组下标为 $i$ 的元素，对应的 $n_x$ 即为 $n - i$。这样一来，我们只需要 $O(1)$ 的时间复杂度就可以计算出上文的每个 $n_x$。与此同时，上式变为：\n\n\n$$\n\\min_{0 \\le i < n} (\\textit{total} - \\textit{beans}[i] \\times (n - i)).\n$$\n\n那么，我们只需要遍历排序后的 $\\textit{beans}$ 数组，并维护上式的最小值，最终将最小值返回作为答案即可。\n\n**细节**\n\n在计算最小值的过程中，$\\textit{total}$ 和 $\\textit{beans}[i] \\times (n - i)$ 都有可能超过 $32$ 位有符号整数的上界，因此对于 $\\texttt{C++}$ 等语言，我们需要使用 $64$ 位整数来维护并计算上述变量与最小值。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    long long minimumRemoval(vector<int>& beans) {\n        int n = beans.size();\n        sort(beans.begin(), beans.end());\n        long long total = accumulate(beans.begin(), beans.end(), 0LL); // 豆子总数\n        long long res = total; // 最少需要移除的豆子数\n        for (int i = 0; i < n; i++) {\n            res = min(res, total - (long long)beans[i] * (n - i));\n        }\n        return res;\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def minimumRemoval(self, beans: List[int]) -> int:\n        n = len(beans)\n        beans.sort()\n        total = sum(beans) # 豆子总数\n        res = total # 最少需要移除的豆子数\n        for i in range(n):\n            res = min(res, total - beans[i] * (n - i))\n        return res\n```\n\n```Go [sol1-Go]\nfunc minimumRemoval(beans []int) int64 {\n    n := len(beans)\n    sort.Ints(beans)\n    total := int64(0) // 豆子总数\n    for _, bean := range beans {\n        total += int64(bean)\n    }\n    res := total // 最少需要移除的豆子数\n    for i := 0; i < n; i++ {\n        res = min(res, total - int64(beans[i]) * int64(n - i))\n    }\n    return res\n}\n```\n\n```C [sol1-C]\nint cmp(const void *p1, const void *p2) {\n    return *(const int *)p1 - *(const int *)p2;\n}\n\nlong long minimumRemoval(int* beans, int beansSize){\n    qsort(beans, beansSize, sizeof(int), cmp);\n    long long total = 0; // 豆子总数\n    for (int i = 0; i < beansSize; i++) {\n        total += beans[i];\n    }\n    long long res = total; // 最少需要移除的豆子数\n    for (int i = 0; i < beansSize; i++) {\n        long long t = total - (long long)beans[i] * (beansSize - i);\n        res = res > t ? t : res;\n    }\n    return res;\n}\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public long minimumRemoval(int[] beans) {\n        int n = beans.length;\n        Arrays.sort(beans);\n        long total = 0; // 豆子总数\n        for (int i = 0; i < n; i++) {\n            total += beans[i];\n        }\n        long res = total; // 最少需要移除的豆子数\n        for (int i = 0; i < n; i++) {\n            res = Math.min(res, total - (long) beans[i] * (n - i));\n        }\n        return res;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public long MinimumRemoval(int[] beans) {\n        int n = beans.Length;\n        Array.Sort(beans);\n        long total = 0; // 豆子总数\n        for (int i = 0; i < n; i++) {\n            total += beans[i];\n        }\n        long res = total; // 最少需要移除的豆子数\n        for (int i = 0; i < n; i++) {\n            res = Math.Min(res, total - (long) beans[i] * (n - i));\n        }\n        return res;\n    }\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar minimumRemoval = function(beans) {\n    let n = beans.length\n    beans.sort((a, b) => a - b);\n    let total = beans.reduce((a, b) => a + b, 0); // 豆子总数\n    let res = total; // 最少需要移除的豆子数\n    for (let i = 0; i < n; i++) {\n        res = Math.min(res, total - beans[i] * (n - i));\n    }\n    return res;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction minimumRemoval(beans: number[]): number {\n    let n = beans.length\n    beans.sort((a, b) => a - b);\n    let total = beans.reduce((a, b) => a + b, 0); // 豆子总数\n    let res = total; // 最少需要移除的豆子数\n    for (let i = 0; i < n; i++) {\n        res = Math.min(res, total - beans[i] * (n - i));\n    }\n    return res;\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log n)$，其中 $n$ 为 $\\textit{beans}$ 数组的长度。即为排序的时间复杂度。\n\n- 空间复杂度：$O(\\log n)$，即为排序的栈空间开销。",
+            "slateValue": "",
+            "slug": "na-chu-zui-shao-shu-mu-de-mo-fa-dou-by-l-dhsl",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "AIdRYT",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 30,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Greedy",
+                    "nameTranslated": "贪心",
+                    "slug": "greedy",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-02-16T09:24:35.569311+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：数学 提示 $1$ 我们可以将问题转化为： 寻找某一个数字 $x$，当我们将豆子数量小于 $x$ 的袋子清空，并将豆子数量大于 $x$ 的袋中豆子数量变为 $x$ 时，拿出的豆子数量最少。 那么，$x$ 一定等于某一个袋子的豆子数。 提示 $1$ 证明 我们可以用反证法来证明上述命题。当 $x$ 不等于某一个袋",
+            "topic": {
+                "id": 1270306,
+                "subscribed": false,
+                "commentCount": 91,
+                "viewCount": 3215,
+                "post": {
+                    "id": 2654173,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 46,
+            "isEditorsPick": false,
+            "hitCount": 21120,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "removing-minimum-number-of-magic-beans",
+                "questionFrontendId": "2171"
+            },
+            "next": {
+                "slug": "pai-xu-hou-yi-ci-bian-li-by-endlesscheng-36g8",
+                "title": "枚举最后袋子中魔法豆的数目（Python/Java/C++/C/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

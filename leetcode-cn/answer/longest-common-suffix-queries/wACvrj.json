@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "wACvrj",
+            "title": "最长公共后缀查询",
+            "content": "#### 方法一：字典树\n\n**思路与算法**\n\n关于字典树 $\\text{Trie}$，可以阅读题目 [「实现 $\\text{Trie}$ (前缀树)」](https://leetcode.cn/problems/implement-trie-prefix-tree/solutions/717239/shi-xian-trie-qian-zhui-shu-by-leetcode-ti500/) 的题解。做本题之前需要对字典树有基本的了解。\n\n在本题中，对于每个待查询的字符串，我们需要找到 $\\textit{wordsContainer}$ 中和它拥有最长公共后缀并且最短、最先出现的那个字符串。我们从头遍历 $\\textit{wordsContainer}$，将其中的每个字符串倒序插入字典树。后面处理每个查询时，在字典树上倒序遍历待查询的字符串，直到无法再继续遍历时，最后停留的节点所表示的后缀就是最长的公共后缀。\n\n但这样还不够，我们需要知道这个后缀在哪个最短的字符串中出现，因此在节点上记录一下当时所有插入的字符串中，经过该节点的、长度最小的那个字符串的下标。由于我们是从前往后遍历的，所以天然满足「最先出现」这一要求。这样一来，在 $\\text{Trie}$ 树上遍历查询字符串结束时停留的那个节点上记录的下标即为答案。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Trie {\npublic:\n    Trie(): tot_(0) {\n        for (int i = 0; i < N; i++) {\n            memset(tr_[i], 0, sizeof(tr_[i]));\n            min_len_[i] = INT_MAX;\n            idx_[i] = INT_MAX;\n        }\n    }\n    void clear() {\n        for (int i = 0; i <= tot_; i++) {\n            memset(tr_[i], 0, sizeof(tr_[i]));\n            min_len_[i] = INT_MAX;\n            idx_[i] = INT_MAX;\n        }\n        tot_ = 0;\n    }\n    void insert(const string &s, int idx) {\n        int p = 0;\n        if (min_len_[p] > s.length()) {\n            min_len_[p] = s.length();\n            idx_[p] = idx;\n        }\n        for (auto &ch : s) {\n            int c = ch - 'a';\n            if (tr_[p][c] == 0) {\n                tr_[p][c] = ++tot_;\n            }\n            p = tr_[p][c];\n            if (min_len_[p] > s.length()) {\n                min_len_[p] = s.length();\n                idx_[p] = idx;\n            }\n        }\n    }\n    int query(const string &s) {\n        int p = 0;\n        for (auto &ch : s) {\n            int c = ch - 'a';\n            if (tr_[p][c] != 0) {\n                p = tr_[p][c];\n            } else {\n                break;\n            }\n        }\n        return idx_[p];\n    }\nprivate:\n    static constexpr int N = 500010, M = 26;\n    int tot_;\n    int tr_[N][M];\n    int min_len_[N];\n    int idx_[N];\n};\n\nTrie tr;\n\nclass Solution {\npublic:\n    vector<int> stringIndices(vector<string>& wordsContainer, vector<string>& wordsQuery) {\n        tr.clear();\n        int n = wordsContainer.size();\n        int m = wordsQuery.size();\n        for (int i = 0; i < n; i++) {\n            string s = wordsContainer[i];\n            reverse(s.begin(), s.end());\n            tr.insert(s, i);\n        }\n\n        vector<int> res(m);\n        for (int i = 0; i < m; i++) {\n            string s = wordsQuery[i];\n            reverse(s.begin(), s.end());\n            res[i] = tr.query(s);\n        }\n        return res;\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass TrieNode:\n    def __init__(self):\n        self.children = {}\n        self.min_len = float('inf')\n        self.idx = float('inf')\n\n\nclass Trie:\n    def __init__(self):\n        self.root = TrieNode()\n    \n    def insert(self, s: str, idx: int):\n        node = self.root\n        if len(s) < node.min_len:\n            node.min_len = len(s)\n            node.idx = idx\n        \n        for ch in s:\n            c = ch\n            if c not in node.children:\n                node.children[c] = TrieNode()\n            node = node.children[c]\n            \n            if len(s) < node.min_len:\n                node.min_len = len(s)\n                node.idx = idx\n    \n    def query(self, s: str) -> int:\n        node = self.root\n        \n        for ch in s:\n            if ch in node.children:\n                node = node.children[ch]\n            else:\n                break\n        \n        return node.idx\n\n\nclass Solution:\n    def stringIndices(self, wordsContainer: List[str], wordsQuery: List[str]) -> List[int]:\n        trie = Trie()\n        \n        for i, word in enumerate(wordsContainer):\n            reversed_word = word[::-1]\n            trie.insert(reversed_word, i)\n        \n        res = []\n        for query in wordsQuery:\n            reversed_query = query[::-1]\n            res.append(trie.query(reversed_query))\n        \n        return res\n```\n\n```Rust [sol1-Rust]\nstruct TrieNode {\n    children: [Option<Box<TrieNode>>; 26],\n    min_len: usize,\n    idx: usize,\n}\n\nimpl TrieNode {\n    fn new() -> Self {\n        TrieNode {\n            children: Default::default(),\n            min_len: usize::MAX,\n            idx: usize::MAX,\n        }\n    }\n}\n\nstruct Trie {\n    root: TrieNode,\n}\n\nimpl Trie {\n    fn new() -> Self {\n        Trie {\n            root: TrieNode::new(),\n        }\n    }\n\n    fn insert(&mut self, s: &str, idx: usize) {\n        let len = s.len();\n        let mut node = &mut self.root;\n\n        if len < node.min_len {\n            node.min_len = len;\n            node.idx = idx;\n        }\n\n        for ch in s.chars() {\n            let c = (ch as usize) - ('a' as usize);\n            if node.children[c].is_none() {\n                node.children[c] = Some(Box::new(TrieNode::new()));\n            }\n            node = node.children[c].as_mut().unwrap();\n            \n            if len < node.min_len {\n                node.min_len = len;\n                node.idx = idx;\n            }\n        }\n    }\n\n    fn query(&self, s: &str) -> usize {\n        let mut node = &self.root;\n\n        for ch in s.chars() {\n            let c = (ch as usize) - ('a' as usize);\n            match &node.children[c] {\n                Some(next) => node = &**next,\n                None => break,\n            }\n        }\n\n        node.idx\n    }\n}\nimpl Solution {\n    pub fn string_indices(words_container: Vec<String>, words_query: Vec<String>) -> Vec<i32> {\n        let mut trie = Trie::new();\n\n        for (i, word) in words_container.iter().enumerate() {\n            let reversed: String = word.chars().rev().collect();\n            trie.insert(&reversed, i);\n        }\n\n        let mut res = Vec::with_capacity(words_query.len());\n        for query in words_query.iter() {\n            let reversed: String = query.chars().rev().collect();\n            res.push(trie.query(&reversed) as i32);\n        }\n\n        res\n    }\n}\n```\n\n```Java [sol1-Java]\nclass TrieNode {\n    TrieNode[] children = new TrieNode[26];\n    int minLen = Integer.MAX_VALUE;\n    int idx = Integer.MAX_VALUE;\n    \n    TrieNode() {\n        for (int i = 0; i < 26; i++) {\n            children[i] = null;\n        }\n    }\n}\n\nclass Trie {\n    TrieNode root = new TrieNode();\n    \n    void insert(String s, int idx) {\n        int len = s.length();\n        TrieNode node = root;\n        \n        if (len < node.minLen) {\n            node.minLen = len;\n            node.idx = idx;\n        }\n        \n        for (char ch : s.toCharArray()) {\n            int c = ch - 'a';\n            if (node.children[c] == null) {\n                node.children[c] = new TrieNode();\n            }\n            node = node.children[c];\n            \n            if (len < node.minLen) {\n                node.minLen = len;\n                node.idx = idx;\n            }\n        }\n    }\n    \n    int query(String s) {\n        TrieNode node = root;\n        \n        for (char ch : s.toCharArray()) {\n            int c = ch - 'a';\n            if (node.children[c] != null) {\n                node = node.children[c];\n            } else {\n                break;\n            }\n        }\n        \n        return node.idx;\n    }\n}\n\nclass Solution {\n    public int[] stringIndices(String[] wordsContainer, String[] wordsQuery) {\n        Trie trie = new Trie();\n        \n        for (int i = 0; i < wordsContainer.length; i++) {\n            String reversed = new StringBuilder(wordsContainer[i]).reverse().toString();\n            trie.insert(reversed, i);\n        }\n        \n        int[] res = new int[wordsQuery.length];\n        for (int i = 0; i < wordsQuery.length; i++) {\n            String query = wordsQuery[i];\n            String reversed = new StringBuilder(query).reverse().toString();\n            res[i] = trie.query(reversed);\n        }\n        \n        return res;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class TrieNode {\n    public TrieNode[] Children = new TrieNode[26];\n    public int MinLen = int.MaxValue;\n    public int Idx = int.MaxValue;\n    \n    public TrieNode() {\n        for (int i = 0; i < 26; i++) {\n            Children[i] = null;\n        }\n    }\n}\n\npublic class Trie {\n    public TrieNode Root = new TrieNode();\n    \n    public void Insert(string s, int idx) {\n        int len = s.Length;\n        TrieNode node = Root;\n        if (len < node.MinLen) {\n            node.MinLen = len;\n            node.Idx = idx;\n        }\n        foreach (char ch in s) {\n            int c = ch - 'a';\n            if (node.Children[c] == null) {\n                node.Children[c] = new TrieNode();\n            }\n            node = node.Children[c];\n            \n            if (len < node.MinLen) {\n                node.MinLen = len;\n                node.Idx = idx;\n            }\n        }\n    }\n    \n    public int Query(string s) {\n        TrieNode node = Root;\n        \n        foreach (char ch in s) {\n            int c = ch - 'a';\n            if (node.Children[c] != null) {\n                node = node.Children[c];\n            } else {\n                break;\n            }\n        }\n        \n        return node.Idx;\n    }\n}\n\npublic class Solution {\n    public int[] StringIndices(string[] wordsContainer, string[] wordsQuery) {\n        Trie trie = new Trie();\n        \n        for (int i = 0; i < wordsContainer.Length; i++) {\n            char[] chars = wordsContainer[i].ToCharArray();\n            Array.Reverse(chars);\n            string reversed = new string(chars);\n            trie.Insert(reversed, i);\n        }\n        \n        int[] res = new int[wordsQuery.Length];\n        for (int i = 0; i < wordsQuery.Length; i++) {\n            char[] chars = wordsQuery[i].ToCharArray();\n            Array.Reverse(chars);\n            string reversed = new string(chars);\n            res[i] = trie.Query(reversed);\n        }\n        \n        return res;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc stringIndices(wordsContainer []string, wordsQuery []string) []int {\n    trie := NewTrie()\n    for i, word := range wordsContainer {\n        reversed := reverseString(word)\n        trie.Insert(reversed, i)\n    }\n    \n    res := make([]int, len(wordsQuery))\n    for i, query := range wordsQuery {\n        reversed := reverseString(query)\n        res[i] = trie.Query(reversed)\n    }\n    \n    return res\n}\n\nfunc reverseString(s string) string {\n    runes := []rune(s)\n    for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {\n        runes[i], runes[j] = runes[j], runes[i]\n    }\n    return string(runes)\n}\n\ntype TrieNode struct {\n    children [26]*TrieNode\n    minLen   int\n    idx      int\n}\n\nfunc NewTrieNode() *TrieNode {\n    return &TrieNode{\n        children: [26]*TrieNode{},\n        minLen:   math.MaxInt32,\n        idx:      math.MaxInt32,\n    }\n}\n\ntype Trie struct {\n    root *TrieNode\n}\n\nfunc NewTrie() *Trie {\n    return &Trie{root: NewTrieNode()}\n}\n\nfunc (t *Trie) Insert(s string, idx int) {\n    length := len(s)\n    node := t.root\n    \n    if length < node.minLen {\n        node.minLen = length\n        node.idx = idx\n    }\n    \n    for i := 0; i < length; i++ {\n        c := s[i] - 'a'\n        if node.children[c] == nil {\n            node.children[c] = NewTrieNode()\n        }\n        node = node.children[c]\n        \n        if length < node.minLen {\n            node.minLen = length\n            node.idx = idx\n        }\n    }\n}\n\nfunc (t *Trie) Query(s string) int {\n    node := t.root\n    \n    for i := 0; i < len(s); i++ {\n        c := s[i] - 'a'\n        if node.children[c] != nil {\n            node = node.children[c]\n        } else {\n            break\n        }\n    }\n    \n    return node.idx\n}\n```\n\n```C [sol1-C]\n#define ALPHABET_SIZE 26\n\ntypedef struct TrieNode {\n    struct TrieNode* children[ALPHABET_SIZE];\n    int minLen;\n    int idx;\n} TrieNode;\n\nTrieNode* createTrieNode() {\n    TrieNode* node = (TrieNode*)malloc(sizeof(TrieNode));\n    for (int i = 0; i < ALPHABET_SIZE; i++) {\n        node->children[i] = NULL;\n    }\n    node->minLen = INT_MAX;\n    node->idx = INT_MAX;\n    return node;\n}\n\nvoid insert(TrieNode* root, const char* s, int idx) {\n    int len = strlen(s);\n    TrieNode* node = root;\n    \n    if (len < node->minLen) {\n        node->minLen = len;\n        node->idx = idx;\n    }\n    \n    for (int i = 0; i < len; i++) {\n        int c = s[i] - 'a';\n        if (node->children[c] == NULL) {\n            node->children[c] = createTrieNode();\n        }\n        node = node->children[c];\n        if (len < node->minLen) {\n            node->minLen = len;\n            node->idx = idx;\n        }\n    }\n}\n\nint query(TrieNode* root, const char* s) {\n    TrieNode* node = root;\n    int len = strlen(s);\n    for (int i = 0; i < len; i++) {\n        int c = s[i] - 'a';\n        if (node->children[c] != NULL) {\n            node = node->children[c];\n        } else {\n            break;\n        }\n    }\n    \n    return node->idx;\n}\n\nvoid freeTrie(TrieNode *root) {\n    for (int i = 0; i < ALPHABET_SIZE; i++) {\n        if (root->children[i]) {\n            freeTrie(root->children[i]);\n        }\n    }\n    free(root);\n}\n\nvoid reverseString(char* str) {\n    int len = strlen(str);\n    for (int i = 0, j = len - 1; i < j; i++, j--) {\n        char ch = str[i];\n        str[i] = str[j];\n        str[j] = ch;\n    }\n}\n\nint* stringIndices(char** wordsContainer, int containerSize, char** wordsQuery, int querySize, int* returnSize) {\n    TrieNode* root = createTrieNode();\n    for (int i = 0; i < containerSize; i++) {\n        reverseString(wordsContainer[i]);\n        insert(root, wordsContainer[i], i);\n    }\n    \n    int* res = (int*)malloc(querySize * sizeof(int));\n    for (int i = 0; i < querySize; i++) {\n        reverseString(wordsQuery[i]);\n        res[i] = query(root, wordsQuery[i]);\n    }\n    \n    *returnSize = querySize;\n    freeTrie(root);\n\n    return res;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nclass TrieNode {\n    constructor() {\n        this.children = new Array(26);\n        for (let i = 0; i < 26; i++) {\n            this.children[i] = null;\n        }\n        this.minLen = Infinity;\n        this.idx = Infinity;\n    }\n}\n\nclass Trie {\n    constructor() {\n        this.root = new TrieNode();\n    }\n    \n    insert(s, idx) {\n        const len = s.length;\n        let node = this.root;\n        \n        if (len < node.minLen) {\n            node.minLen = len;\n            node.idx = idx;\n        }\n        \n        for (let i = 0; i < len; i++) {\n            const c = s.charCodeAt(i) - 97;\n            if (node.children[c] === null) {\n                node.children[c] = new TrieNode();\n            }\n            node = node.children[c];\n            \n            if (len < node.minLen) {\n                node.minLen = len;\n                node.idx = idx;\n            }\n        }\n    }\n    \n    query(s) {\n        let node = this.root;\n        const len = s.length;\n        \n        for (let i = 0; i < len; i++) {\n            const c = s.charCodeAt(i) - 97;\n            if (node.children[c] !== null) {\n                node = node.children[c];\n            } else {\n                break;\n            }\n        }\n        \n        return node.idx;\n    }\n}\n\nfunction stringIndices(wordsContainer, wordsQuery) {\n    const trie = new Trie();\n    \n    for (let i = 0; i < wordsContainer.length; i++) {\n        const reversed = wordsContainer[i].split('').reverse().join('');\n        trie.insert(reversed, i);\n    }\n    \n    const res = [];\n    for (const query of wordsQuery) {\n        const reversed = query.split('').reverse().join('');\n        res.push(trie.query(reversed));\n    }\n    \n    return res;\n}\n```\n\n```TypeScript [sol1-TypeScript]\nclass TrieNode {\n    children: (TrieNode | null)[] = new Array(26);\n    minLen: number = Infinity;\n    idx: number = Infinity;\n    \n    constructor() {\n        for (let i = 0; i < 26; i++) {\n            this.children[i] = null;\n        }\n    }\n}\n\nclass Trie {\n    root: TrieNode = new TrieNode();\n    \n    insert(s: string, idx: number): void {\n        const len = s.length;\n        let node = this.root;\n        \n        if (len < node.minLen) {\n            node.minLen = len;\n            node.idx = idx;\n        }\n        \n        for (let i = 0; i < len; i++) {\n            const c = s.charCodeAt(i) - 97;\n            if (node.children[c] === null) {\n                node.children[c] = new TrieNode();\n            }\n            node = node.children[c]!;\n            \n            if (len < node.minLen) {\n                node.minLen = len;\n                node.idx = idx;\n            }\n        }\n    }\n    \n    query(s: string): number {\n        let node = this.root;\n        const len = s.length;\n        \n        for (let i = 0; i < len; i++) {\n            const c = s.charCodeAt(i) - 97;\n            if (node.children[c] !== null) {\n                node = node.children[c]!;\n            } else {\n                break;\n            }\n        }\n        \n        return node.idx;\n    }\n}\n\nfunction stringIndices(wordsContainer: string[], wordsQuery: string[]): number[] {\n    const trie = new Trie();\n    \n    for (let i = 0; i < wordsContainer.length; i++) {\n        const reversed = wordsContainer[i].split('').reverse().join('');\n        trie.insert(reversed, i);\n    }\n    \n    const res: number[] = [];\n    for (const query of wordsQuery) {\n        const reversed = query.split('').reverse().join('');\n        res.push(trie.query(reversed));\n    }\n    \n    return res;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(N + M)$，其中 $N$ 是 $\\textit{wordsContainer}$ 中所有字符串的长度之和，$M$ 是 $\\textit{wordsQuery}$ 中所有字符串的长度之和。\n- 空间复杂度：$O(N)$，其中 $N$ 是 $\\textit{wordsContainer}$ 中所有字符串的长度之和。实际上每个节点有 $\\textit{26}$ 个指向子节点的指针，在计算实际占用的内存时，需要考虑这一因素，但由于属于常数项，不计入渐进复杂度。",
+            "slateValue": "",
+            "slug": "zui-chang-gong-gong-hou-zhui-cha-xun-by-vdo0f",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "wACvrj",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 3,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Trie",
+                    "nameTranslated": "字典树",
+                    "slug": "trie",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python3",
+                    "nameTranslated": "",
+                    "slug": "python3",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2026-05-21T02:01:03.836048+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：字典树 思路与算法 关于字典树 [latex]，可以阅读题目 「实现 [latex] (前缀树)」 的题解。做本题之前需要对字典树有基本的了解。 在本题中，对于每个待查询的字符串，我们需要找到 [latex] 中和它拥有最长公共后缀并且最短、最先出现的那个字符串。我们从头遍历 [latex]，将其中的每个字符串",
+            "topic": {
+                "id": 3971813,
+                "subscribed": false,
+                "commentCount": 16,
+                "viewCount": 10,
+                "post": {
+                    "id": 7239354,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 6,
+            "isEditorsPick": false,
+            "hitCount": 3590,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "longest-common-suffix-queries",
+                "questionFrontendId": "3093"
+            },
+            "next": {
+                "slug": "zi-dian-shu-wei-hu-zui-duan-chang-du-he-r3h3j",
+                "title": "字典树+维护最短长度和下标（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

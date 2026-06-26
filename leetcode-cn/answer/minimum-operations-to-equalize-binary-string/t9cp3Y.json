@@ -1,0 +1,156 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "t9cp3Y",
+            "title": "使二进制字符串全为 1 的最少操作次数",
+            "content": "#### 方法一：广度优先搜索\n\n根据题意可知，题目定义的操作与 $s$ 的字符所在下标无关，因此我们可以使用字符串中 $`0'$ 的数目 $m$ 来表示每次操作后得到的翻转结果。\n\n令 $n$ 为字符串 $s$ 的长度。对于 $m$，在一次操作中，我们可以选择 $c$ 个 $`0'$ 和 $k - c$ 个 $`1'$ 进行翻转，那么 $c$ 的取值需要满足以下约束：\n\n1. 最多取 $\\min(m, k)$ 个 $`0'$，即\n\n$$0 \\le c \\le \\min(m, k)$$\n\n2. 最多取 $n - m$ 个 $`1'$，即\n\n$$k - c \\le n - m$$\n\n将以上范围汇总，有：\n\n$$\n\\max(k - n + m, 0) \\le c \\le \\min(m, k)\n$$\n\n令 $c_1 = \\max(k - n + m, 0)$ 和 $c_2 = \\min(m, k)$，那么一次操作后字符串 $m$ 可以得到的翻转结果为：\n\n$$\nm + k - 2 * c, c \\in [c1, c2]\n$$\n\n观察可知 $m$ 一次操作得到的翻转结果为奇数连续区间或偶数连续区间。因此我们可以基于广度优先搜索来计算使字符串中所有字符都等于 $`1'$ 所需的最少操作次数。同时根据以上定义，翻转结果取值范围为 $[0, n]$，我们使用两个有序集合分别保存还没计算出最少操作次数的奇数翻转结果和偶数翻转结果，使用数组 $\\textit{dist}$ 记录初始字符串 $s$ 到每个翻转结果的最少操作次数，将初始字符串对应的翻转结果放到队列中，并从对应有序集合中移除：\n\n1. 从队列中获取元素 $m$，那么一次操作后 $m$ 可以得到的最小翻转结果为 $\\textit{lnode} = m + k - 2 \\times c_2$，最大翻转结果为 $\\textit{rnode} = m + k - 2 \\times c_1$\n\n2. 根据 $\\textit{lnode}$ 的奇偶性，选择对应的有序集合\n\n3. 不断查找有序集合，找到满足 $\\textit{lnode} \\le m_2 \\le \\textit{rnode}$ 的元素 $m_2$，那么有 $\\textit{dist}[m_2] = \\textit{dist}[m] + 1$，将 $m_2$ 放到队列，并从有序集合删除\n\n4. 队列为空时，直接终止流程\n\n执行完广度优先搜索后，如果操作后能得到翻转结果 $0$，那么返回 $\\textit{dist}[0]$，否则返回 $-1$。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int minOperations(string s, int k) {\n        int n = s.size(), m = 0;\n        vector<int> dist(n + 1, INT_MAX);\n        vector<set<int>> nodeSets(2);\n        for (int i = 0; i <= n; i++) {\n            nodeSets[i % 2].insert(i);\n            if (i < n && s[i] == '0') {\n                m++;\n            }\n        }\n        queue<int> q;\n        q.push(m);\n        dist[m] = 0;\n        nodeSets[m % 2].erase(m);\n        while (!q.empty()) {\n            m = q.front();\n            q.pop();\n            int c1 = max(k - n + m, 0), c2 = min(m, k);\n            int lnode = m + k - 2 * c2, rnode = m + k - 2 * c1;\n            auto& nodeSet = nodeSets[lnode % 2];\n            for (auto iter = nodeSet.lower_bound(lnode); iter != nodeSet.end() && *iter <= rnode;) {\n                int m2 = *iter;\n                dist[m2] = dist[m] + 1;\n                q.push(m2);\n                iter = next(iter);\n                nodeSet.erase(m2);\n            }\n        }\n        return dist[0] == INT_MAX ? -1 : dist[0];\n    }\n};\n```\n\n```Go [sol1-Go]\nfunc minOperations(s string, k int) int {\n\tn, m := len(s), 0\n\tdist := make([]int, n+1)\n\tfor i := range dist {\n\t\tdist[i] = math.MaxInt32\n\t}\n\tnodeSets := make([]*redblacktree.Tree, 2)\n\tnodeSets[0] = redblacktree.NewWithIntComparator()\n\tnodeSets[1] = redblacktree.NewWithIntComparator()\n\tfor i := 0; i <= n; i++ {\n\t\tnodeSets[i % 2].Put(i, struct{}{})\n\t\tif i < n && s[i] == '0' {\n\t\t\tm++\n\t\t}\n\t}\n\tq := []int{m}\n\tdist[m] = 0\n\tnodeSets[m % 2].Remove(m)\n\tfor len(q) > 0 {\n\t\tm := q[0]\n        q = q[1:]\n\t\tc1, c2 := max(k - n + m, 0), min(k, m)\n\t\tlnode, rnode := m + k - 2 * c2, m + k - 2 * c1\n\t\tnodeSet := nodeSets[lnode % 2]\n\t\tfor m2, found := nodeSet.Ceiling(lnode); found && m2.Key.(int) <= rnode; m2, found = nodeSet.Ceiling(lnode) {\n\t\t\tdist[m2.Key.(int)] = dist[m] + 1\n            q = append(q, m2.Key.(int))\n\t\t\tnodeSet.Remove(m2.Key.(int))\n\t\t}\n\t}\n\tif dist[0] == math.MaxInt32 {\n\t\treturn -1\n\t}\n\treturn dist[0]\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def minOperations(self, s: str, k: int) -> int:\n        n, m = len(s), s.count('0')\n        dist = [math.inf] * (n + 1)\n        nodeSets = [\n            SortedList(range(0, n + 1, 2)),\n            SortedList(range(1, n + 1, 2))\n        ]\n        q = deque([m])\n        dist[m] = 0\n        nodeSets[m % 2].remove(m)\n        while q:\n            m = q.popleft()\n            c1, c2 = max(k - n + m, 0), min(m, k)\n            lnode, rnode = m + k - 2 * c2, m + k - 2 * c1\n            nodeSet = nodeSets[lnode % 2]\n            idx = nodeSet.bisect_left(lnode)\n            while idx < len(nodeSet) and nodeSet[idx] <= rnode:\n                m2 = nodeSet[idx]\n                dist[m2] = dist[m] + 1\n                q.append(m2)\n                nodeSet.pop(idx)\n        return -1 if dist[0] == math.inf else dist[0]\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int minOperations(String s, int k) {\n        int n = s.length(), m = 0;\n        int[] dist = new int[n + 1];\n        Arrays.fill(dist, Integer.MAX_VALUE);\n        List<TreeSet<Integer>> nodeSets = new ArrayList<>();\n        nodeSets.add(new TreeSet<>());\n        nodeSets.add(new TreeSet<>());\n        for (int i = 0; i <= n; i++) {\n            nodeSets.get(i % 2).add(i);\n            if (i < n && s.charAt(i) == '0') {\n                m++;\n            }\n        }\n        Queue<Integer> q = new ArrayDeque<>();\n        q.offer(m);\n        dist[m] = 0;\n        nodeSets.get(m % 2).remove(m);\n        while (!q.isEmpty()) {\n            m = q.poll();\n            int c1 = Math.max(k - n + m, 0), c2 = Math.min(m, k);\n            int lnode = m + k - 2 * c2, rnode = m + k - 2 * c1;\n            TreeSet<Integer> nodeSet = nodeSets.get(lnode % 2);\n            for (Integer m2 = nodeSet.ceiling(lnode); m2 != null && m2 <= rnode; m2 = nodeSet.ceiling(lnode)) {\n                dist[m2] = dist[m] + 1;\n                q.offer(m2);\n                nodeSet.remove(m2);\n            }\n        }\n        return dist[0] == Integer.MAX_VALUE ? -1 : dist[0];\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MinOperations(string s, int k) {\n        int n = s.Length, m = 0;\n        int[] dist = new int[n + 1];\n        for (int i = 0; i <= n; i++) dist[i] = int.MaxValue;\n        \n        List<SortedSet<int>> nodeSets = new List<SortedSet<int>>();\n        nodeSets.Add(new SortedSet<int>());\n        nodeSets.Add(new SortedSet<int>());\n        for (int i = 0; i <= n; i++) {\n            nodeSets[i % 2].Add(i);\n            if (i < n && s[i] == '0') {\n                m++;\n            }\n        }\n        \n        Queue<int> q = new Queue<int>();\n        q.Enqueue(m);\n        dist[m] = 0;\n        nodeSets[m % 2].Remove(m);\n        while (q.Count > 0) {\n            m = q.Dequeue();\n            int c1 = Math.Max(k - n + m, 0);\n            int c2 = Math.Min(m, k);\n            int lnode = m + k - 2 * c2;\n            int rnode = m + k - 2 * c1;\n            \n            var nodeSet = nodeSets[lnode % 2];\n            var toRemove = new List<int>();\n            var view = nodeSet.GetViewBetween(lnode, rnode);\n            foreach (var val in view) {\n                toRemove.Add(val);\n            }\n            foreach (int m2 in toRemove) {\n                dist[m2] = dist[m] + 1;\n                q.Enqueue(m2);\n                nodeSet.Remove(m2);\n            }\n        }\n        \n        return dist[0] == int.MaxValue ? -1 : dist[0];\n    }\n}\n```\n\n```C [sol1-C]\ntypedef struct AVLNode {\n    int val;\n    struct AVLNode* left;\n    struct AVLNode* right;\n    int height;\n} AVLNode;\n\ntypedef struct {\n    AVLNode* root;\n    int size;\n} AVLTree;\n\ntypedef struct {\n    int* data;\n    int front;\n    int rear;\n    int capacity;\n} Queue;\n\nint getHeight(AVLNode* node) {\n    return node ? node->height : 0;\n}\n\nint max(int a, int b) {\n    return a > b ? a : b;\n}\n\nAVLNode* createAVLNode(int val) {\n    AVLNode* node = (AVLNode*)malloc(sizeof(AVLNode));\n    node->val = val;\n    node->left = NULL;\n    node->right = NULL;\n    node->height = 1;\n    return node;\n}\n\nAVLNode* rotateRight(AVLNode* y) {\n    AVLNode* x = y->left;\n    AVLNode* T2 = x->right;\n    x->right = y;\n    y->left = T2;\n    y->height = max(getHeight(y->left), getHeight(y->right)) + 1;\n    x->height = max(getHeight(x->left), getHeight(x->right)) + 1;\n    \n    return x;\n}\n\nAVLNode* rotateLeft(AVLNode* x) {\n    AVLNode* y = x->right;\n    AVLNode* T2 = y->left;\n    \n    y->left = x;\n    x->right = T2;\n    x->height = max(getHeight(x->left), getHeight(x->right)) + 1;\n    y->height = max(getHeight(y->left), getHeight(y->right)) + 1;\n    \n    return y;\n}\n\nint getBalance(AVLNode* node) {\n    if (!node) return 0;\n    return getHeight(node->left) - getHeight(node->right);\n}\n\nAVLNode* insertNode(AVLNode* node, int val) {\n    if (!node) {\n        return createAVLNode(val);\n    }\n    if (val < node->val) {\n        node->left = insertNode(node->left, val);\n    } else if (val > node->val) {\n        node->right = insertNode(node->right, val);\n    } else {\n        return node;\n    }\n    \n    node->height = 1 + max(getHeight(node->left), getHeight(node->right));\n    int balance = getBalance(node);\n    if (balance > 1 && val < node->left->val) {\n        return rotateRight(node);\n    }\n    if (balance < -1 && val > node->right->val) {\n        return rotateLeft(node);\n    }\n    if (balance > 1 && val > node->left->val) {\n        node->left = rotateLeft(node->left);\n        return rotateRight(node);\n    }\n    if (balance < -1 && val < node->right->val) {\n        node->right = rotateRight(node->right);\n        return rotateLeft(node);\n    }\n    \n    return node;\n}\n\nAVLNode* minValueNode(AVLNode* node) {\n    AVLNode* current = node;\n    while (current && current->left) {\n        current = current->left;\n    }\n    return current;\n}\n\nAVLNode* deleteNode(AVLNode* root, int val) {\n    if (!root) {\n        return NULL;\n    }\n    if (val < root->val) {\n        root->left = deleteNode(root->left, val);\n    } else if (val > root->val) {\n        root->right = deleteNode(root->right, val);\n    } else {\n        if (!root->left || !root->right) {\n            AVLNode* temp = root->left ? root->left : root->right;\n            if (!temp) {\n                free(root);\n                return NULL;\n            } else {\n                AVLNode* child = temp;\n                *root = *child;\n                free(child);\n            }\n        } else {\n            AVLNode* temp = minValueNode(root->right);\n            root->val = temp->val;\n            root->right = deleteNode(root->right, temp->val);\n        }\n    }\n    \n    if (!root) {\n        return NULL;\n    }\n\n    root->height = 1 + max(getHeight(root->left), getHeight(root->right));\n    int balance = getBalance(root);\n    if (balance > 1 && getBalance(root->left) >= 0) {\n        return rotateRight(root);\n    }\n    if (balance > 1 && getBalance(root->left) < 0) {\n        root->left = rotateLeft(root->left);\n        return rotateRight(root);\n    }\n    if (balance < -1 && getBalance(root->right) <= 0) {\n        return rotateLeft(root);\n    }\n    if (balance < -1 && getBalance(root->right) > 0) {\n        root->right = rotateRight(root->right);\n        return rotateLeft(root);\n    }\n    \n    return root;\n}\n\nint lowerBound(AVLNode* root, int val) {\n    int result = -1;\n    AVLNode* current = root;\n    \n    while (current) {\n        if (current->val >= val) {\n            result = current->val;\n            current = current->left;\n        } else {\n            current = current->right;\n        }\n    }\n    \n    return result;\n}\n\nAVLTree* createAVLTree() {\n    AVLTree* tree = (AVLTree*)malloc(sizeof(AVLTree));\n    tree->root = NULL;\n    tree->size = 0;\n    return tree;\n}\n\nvoid avlInsert(AVLTree* tree, int val) {\n    tree->root = insertNode(tree->root, val);\n    tree->size++;\n}\n\nvoid avlRemove(AVLTree* tree, int val) {\n    tree->root = deleteNode(tree->root, val);\n    tree->size--;\n}\n\nQueue* createQueue(int capacity) {\n    Queue* q = (Queue*)malloc(sizeof(Queue));\n    q->data = (int*)malloc(capacity * sizeof(int));\n    q->front = 0;\n    q->rear = 0;\n    q->capacity = capacity;\n    return q;\n}\n\nvoid enqueue(Queue* q, int val) {\n    if (q->rear < q->capacity) {\n        q->data[q->rear++] = val;\n    }\n}\n\nint dequeue(Queue* q) {\n    if (q->front < q->rear) {\n        return q->data[q->front++];\n    }\n    return -1;\n}\n\nint isQueueEmpty(Queue* q) {\n    return q->front >= q->rear;\n}\n\nvoid freeQueue(Queue* q) {\n    if (q) {\n        free(q->data);\n        free(q);\n    }\n}\n\nvoid freeAVLNode(AVLNode* node) {\n    if (node) {\n        freeAVLNode(node->left);\n        freeAVLNode(node->right);\n        free(node);\n    }\n}\n\nvoid freeAVLTree(AVLTree* tree) {\n    if (tree) {\n        freeAVLNode(tree->root);\n        free(tree);\n    }\n}\n\nint minOperations(char* s, int k) {\n    int n = strlen(s);\n    int m = 0;\n    \n    int* dist = (int*)malloc((n + 1) * sizeof(int));\n    for (int i = 0; i <= n; i++) {\n        dist[i] = INT_MAX;\n    }\n    \n    AVLTree* trees[2];\n    trees[0] = createAVLTree();\n    trees[1] = createAVLTree();\n    for (int i = 0; i <= n; i++) {\n        avlInsert(trees[i % 2], i);\n        if (i < n && s[i] == '0') {\n            m++;\n        }\n    }\n    \n    Queue* q = createQueue(n + 1);\n    enqueue(q, m);\n    dist[m] = 0;\n    avlRemove(trees[m % 2], m);\n    \n    while (!isQueueEmpty(q)) {\n        m = dequeue(q);\n        int c1 = (k - n + m) > 0 ? (k - n + m) : 0;\n        int c2 = m < k ? m : k;\n        int lnode = m + k - 2 * c2;\n        int rnode = m + k - 2 * c1;\n        \n        AVLTree* currentTree = trees[lnode % 2];\n        while (true) {\n            int nodeVal = lowerBound(currentTree->root, lnode);\n            if (nodeVal == -1 || nodeVal > rnode) {\n                break;\n            }\n            dist[nodeVal] = dist[m] + 1;\n            enqueue(q, nodeVal);\n            avlRemove(currentTree, nodeVal);\n            lnode = nodeVal + 1;\n        }\n    }\n    \n    int result = dist[0] == INT_MAX ? -1 : dist[0];\n    free(dist);\n    freeQueue(q);\n    freeAVLTree(trees[0]);\n    freeAVLTree(trees[1]);\n    \n    return result;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nconst { AvlTree } = require('@datastructures-js/binary-search-tree');\n\nvar minOperations = function(s, k) {\n    const n = s.length;\n    let m = 0;\n\n    const dist = new Array(n + 1).fill(Infinity);\n    const nodeTrees = [new AvlTree(), new AvlTree()];\n    for (let i = 0; i <= n; i++) {\n        nodeTrees[i % 2].insert(i);\n        if (i < n && s[i] === '0') {\n            m++;\n        }\n    }\n\n    const queue = new Array(n + 1);\n    let head = 0, tail = 0;\n    queue[tail++] = m;\n\n    dist[m] = 0;\n    nodeTrees[m % 2].remove(m);\n\n    while (head < tail) {\n        const currentM = queue[head++];\n        const c1 = Math.max(k - n + currentM, 0);\n        const c2 = Math.min(currentM, k);\n        const lnode = currentM + k - 2 * c2;\n        const rnode = currentM + k - 2 * c1;\n        const currentTree = nodeTrees[lnode % 2];\n        let node = currentTree.upperBound(lnode, true);\n\n        while (node !== null) {\n            const nodeValue = node.getValue();\n            if (nodeValue > rnode) {\n                break;\n            }\n            dist[nodeValue] = dist[currentM] + 1;\n            queue[tail++] = nodeValue;\n            const nextNode = currentTree.upperBound(nodeValue, false);\n            currentTree.remove(nodeValue);\n            node = nextNode;\n        }\n    }\n\n    return dist[0] === Infinity ? -1 : dist[0];\n}\n```\n\n```TypeScript [sol1-TypeScript]\nimport { AvlTree, AvlTreeNode } from '@datastructures-js/binary-search-tree';\n\nfunction minOperations(s: string, k: number): number {\n    const n: number = s.length;\n    let m: number = 0;\n    const dist: number[] = new Array(n + 1).fill(Number.MAX_SAFE_INTEGER);\n\n    const nodeTrees: AvlTree<number>[] = [new AvlTree<number>(), new AvlTree<number>()];\n    for (let i = 0; i <= n; i++) {\n        nodeTrees[i % 2].insert(i);\n        if (i < n && s.charAt(i) === '0') {\n            m++;\n        }\n    }\n\n    const queue: number[] = new Array(n + 1);\n    let head: number = 0, tail: number = 0;\n    queue[tail++] = m;\n    dist[m] = 0;\n    nodeTrees[m % 2].remove(m);\n\n    while (head < tail) {\n        const currentM: number = queue[head++];\n        const c1: number = Math.max(k - n + currentM, 0);\n        const c2: number = Math.min(currentM, k);\n        const lnode: number = currentM + k - 2 * c2;\n        const rnode: number = currentM + k - 2 * c1;\n        const currentTree: AvlTree<number> = nodeTrees[lnode % 2];\n\n        let node: AvlTreeNode<number> | null = currentTree.upperBound(lnode, true);\n        while (node !== null) {\n            const nodeValue: number = node.getValue();\n            if (nodeValue > rnode) {\n                break;\n            }\n            dist[nodeValue] = dist[currentM] + 1;\n            queue[tail++] = nodeValue;\n\n            const nextNode: AvlTreeNode<number> | null = currentTree.upperBound(nodeValue, false);\n            currentTree.remove(nodeValue);\n            node = nextNode;\n        }\n    }\n\n    return dist[0] === Number.MAX_SAFE_INTEGER ? -1 : dist[0];\n}\n```\n\n```Rust [sol1-Rust]\nuse std::collections::{VecDeque, BTreeSet};\nuse std::cmp;\n\nimpl Solution {\n    pub fn min_operations(s: String, k: i32) -> i32 {\n        let k = k as usize;\n        let chars: Vec<char> = s.chars().collect();\n        let n = chars.len();\n        let mut m = 0;\n        let mut dist = vec![i32::MAX; n + 1];\n        let mut node_sets = [BTreeSet::new(), BTreeSet::new()];\n        \n        for i in 0..=n {\n            node_sets[i % 2].insert(i);\n            if i < n && chars[i] == '0' {\n                m += 1;\n            }\n        }\n        \n        let mut q = VecDeque::new();\n        q.push_back(m);\n        dist[m] = 0;\n        node_sets[m % 2].remove(&m);\n        \n        while let Some(current_m) = q.pop_front() {\n            let c1 = cmp::max(k as i32 - n as i32 + current_m as i32, 0) as usize;\n            let c2 = cmp::min(current_m, k);\n            \n            let lnode = current_m + k - 2 * c2;\n            let rnode = current_m + k - 2 * c1;\n            let node_set = &mut node_sets[lnode % 2];\n            let range: Vec<usize> = node_set.range(lnode..=rnode).copied().collect();\n            \n            for m2 in range {\n                dist[m2] = dist[current_m] + 1;\n                q.push_back(m2);\n                node_set.remove(&m2);\n            }\n        }\n        \n        if dist[0] == i32::MAX { -1 } else { dist[0] }\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log n)$，其中 $n$ 是字符串 $s$ 的长度。有序集合查找的时间复杂度为 $O(\\log n)$，总共有 $n$ 次查找。\n\n- 空间复杂度：$O(n)$，其中 $n$ 是字符串 $s$ 的长度。",
+            "slateValue": "",
+            "slug": "shi-er-jin-zhi-zi-fu-chuan-quan-wei-1-de-2z1u",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "t9cp3Y",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 5,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Breadth-First Search",
+                    "nameTranslated": "广度优先搜索",
+                    "slug": "breadth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Union Find",
+                    "nameTranslated": "并查集",
+                    "slug": "union-find",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Ordered Set",
+                    "nameTranslated": "有序集合",
+                    "slug": "ordered-set",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2026-02-22T03:48:25.967542+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：广度优先搜索 根据题意可知，题目定义的操作与 [latex] 的字符所在下标无关，因此我们可以使用字符串中 [latex] 的数目 [latex] 来表示每次操作后得到的翻转结果。 令 [latex] 为字符串 [latex] 的长度。对于 [latex]，在一次操作中，我们可以选择 [latex] 个 [la",
+            "topic": {
+                "id": 3906195,
+                "subscribed": false,
+                "commentCount": 6,
+                "viewCount": 15,
+                "post": {
+                    "id": 7124885,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 18,
+            "isEditorsPick": false,
+            "hitCount": 5795,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "minimum-operations-to-equalize-binary-string",
+                "questionFrontendId": "3666"
+            },
+            "next": {
+                "slug": "shu-xue-zuo-fa-pythonjavacgo-by-endlessc-ol6s",
+                "title": "两种方法：BFS / 数学（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

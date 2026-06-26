@@ -1,0 +1,116 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "lBDyH0",
+            "title": "最小跳跃次数",
+            "content": "## 题意概述：\n\n给定一个数组 `jump`，长度为 `N`，在第 `i` 个位置可以选择跳到 `0..i-1` 和 `i + jump[i]`，问从 `0` 跳过 `n-1` 的最小跳跃次数是多少。\n\n### 方法一：动态规划\n\n我们可以利用一个巧妙的性质来使用动态规划：假设某一个位置只需要 `w` 步可以跳到，那么这个位置之前的步数，最多只需要 `w+1` 步。\n所以我们可以用一个数组 `maxdis[w]` 表示 `w` 步可以跳到的最远位置。对于位置 `i`而言，满足 `maxdis[w] > i` 条件的最小 `w+1` 是往左跳到达 `i` 的最小操作次数。\n因此递推方程为\n1. `f[i] = min(f[i], w+1)`:  用往左跳到达 `i` 的最小操作数 `w+1`\n2. `f[i+jump[i]] = min(f[i+jump[i],f[i]+1)`:  从 `i` 往右跳到 `i+jump[i]` 更新 `f[i+jump[i]]`\n3. `maxdis[f[i+jump[i]]] = max(maxdis[f[i+jump[i]]], i+jump[i])`: 更新 `f[i+jump[i]]` 次操作到达最远距离。\n\n我们知道 `maxdis` 是单调的，所以只需要一个单调指针维护对应的 `w` 即可。\n\n```C++ []\nclass Solution {\nprivate:\n    int f[10000000 + 7];\n    int maxdis[10000000 + 7];\npublic:\n    int minJump(vector<int>& jump) {\n        int n = jump.size();\n        int w = 0;\n        int ans = 1000000000;\n\n        for (int i=1; i<=n; ++i) {\n            f[i] = 1000000000;\n            maxdis[i] = 0;\n        }\n        f[1] = 0;\n        maxdis[0] = 1;\n\n        for (int i=1; i<=n; ++i) {\n            if (i > maxdis[w]) { // 更新单调指针\n                ++w;\n            }\n            f[i] = min(f[i], w+1); // 用 maxdis[w] 更新 f[i]\n            int next = i + jump[i-1]; // 第一步跳跃更新\n\n            if (next > n) {\n                ans = min(ans, f[i] + 1);\n            } else if (f[next] > f[i] + 1) {\n                f[next] = f[i] + 1;\n                maxdis[f[next]] = max(maxdis[f[next]], next);\n            }\n        }\n\n        return ans;\n    }\n};\n```\n\n```Python []\nclass Solution:\n    def minJump(self, jump: List[int]) -> int:\n        res = n = len(jump)\n        f = [n]*(n+1)\n        f[0] = 0\n        max_dis = [0]*(n+1) \n        curr_min_num = 0\n        for i in range(0,n):\n            if i>max_dis[curr_min_num]:\n                curr_min_num += 1\n            f[i] = min(f[i],curr_min_num+1)\n            \n            jump_tmp = i+jump[i]\n            if jump_tmp>=n:\n                res = min(res,f[i]+1)\n            else:\n                f[jump_tmp] = min(f[jump_tmp],f[i]+1)\n                max_dis[f[i]+1] = max(max_dis[f[i]+1],jump_tmp)\n        return res\n```\n\n```Go []\nfunc minJump(jump []int) int {\n    n := len(jump)\n    res := len(jump)\n    var f[1000001]int\n    var max_dis[1000001]int\n    for i:=0; i<=n; i++{\n        f[i] = n+1;\n        max_dis[i] = 0;\n    }\n    f[0] = 0\n    curr_min_num := 0\n    for i:=0; i<n; i++{\n        if i>max_dis[curr_min_num]{\n            curr_min_num += 1\n        }\n        f[i] = Min(f[i], curr_min_num+1)\n\n        jump_tmp := i+jump[i]\n        if jump_tmp>=n {\n            res = Min(res,f[i]+1)\n        }else{\n            f[jump_tmp] = Min(f[jump_tmp],f[i]+1)\n            max_dis[f[i]+1] = Max(max_dis[f[i]+1],jump_tmp)\n        }\n    }\n    return res\n}\n\nfunc Min(x, y int) int {\n    if x < y {\n        return x\n    }\n    return y\n}\n \nfunc Max(x, y int) int {\n    if x > y {\n        return x\n    }\n    return y\n}\n```\n\n\n#### 复杂度分析\n\n* 时间复杂度：$O(n)$。\n\n* 空间复杂度：$O(n)$。\n\n\n\n### 方法二：广度优先搜索\n常规广度优先搜索在处理弹簧往左跳的情况时，时间复杂度到达 `O(N^2)`。\n在常规广度优先搜索的基础上，我们可以记录一个最大的 `far` 值进行优化，用来表示当前从 `[0, far-1]` 均已被搜索到。 \n因此当搜索到编号 `i` 弹簧时，往左跳的操作，仅需遍历 `[far, i-1]` 区间（ far <=  i-1 ）；搜索结束时，更新 `far = max(far, i+1)`。\n由于 `far` 的更新操作，使往左跳操作的遍历区间是不存在重复的，因此往左跳遍历的总时间复杂度为 `O(N)`\n\n```Python []\nclass Solution:\n    def minJump(self, jump):\n        res = n = len(jump)\n        visited = [False]*(n+1)\n        queue = [[0,1]]\n        visited[0] = True\n        curr, far = 0, 1\n        while curr<len(queue):\n            idx, step = queue[curr][0], queue[curr][1]\n            curr += 1\n            if idx + jump[idx] >= n:\n                return step\n            if not visited[idx+jump[idx]]:\n                queue.append([idx+jump[idx], step+1])\n                visited[idx+jump[idx]] = True\n            for j in range(far, idx):\n                if not visited[j]:\n                    queue.append([j, step+1])\n                    visited[j] = True\n            far = max(far, idx+1)\n        return -1\n```\n\n```Go []\nfunc minJump(jump []int) int {\n    if len(jump) == 0 {\n        return 0\n    }\n    n := len(jump)\n    queue := [][]int{}\n    visited := map[int]int{}\n    queue = append(queue, []int{0, 1})\n    visited[0] = 1\n    far := 1\n    for i := 0; i < len(queue); i++ {\n        idx, step := queue[i][0], queue[i][1]\n        if idx + jump[idx] >= n {\n           return step\n        }\n        if _, ok := visited[idx + jump[idx]]; !ok {\n            queue = append(queue, []int{idx + jump[idx], step + 1})\n            visited[idx + jump[idx]] = step + 1\n        }\n       \n        for j := far; j < idx; j++ {\n            if _, ok := visited[j]; !ok {\n                queue = append(queue, []int{j, step + 1})\n                visited[j] = step + 1\n            }\n        }\n        far = Max(far, idx)\n    }\n    return -1\n}\n \nfunc Min(x, y int) int {\n    if x < y {\n        return x\n    }\n    return y\n}\n \nfunc Max(x, y int) int {\n    if x > y {\n        return x\n    }\n    return y\n}\n\n```\n\n#### 复杂度分析\n\n* 时间复杂度：$O(n)$。\n\n* 空间复杂度：$O(n)$。\n\n\n### 方法三：线段树\n\n考虑第 `i` 个位置，可以直接跳到  `i+jump[i]`，也可以跳两步跳到所有的 `i+1 .. i+jump[i]-1`。所以就有了递推方程：\n- `f[i+jump[i]] = max(f[i + jump[i]], f[i] + 1)` 向右跳\n- `f[j] = max(f[j], f[i] + 2), i < j < i+jump[i]` 向左跳\n\n那么区间更新，单点查询，可以用线段树来维护，具体操作如下:\n- `clearT()` 线段树初始化。编号 `0` 弹簧操作数为 `0`；其余的最小操作数为 `-1`，表示暂不可到达\n- `setTree(cl,cr,val)` 更新编号 `cl ~ cr` 之间弹簧的最小操作数为 `val`。如果内部弹簧最小操作数已经小于等于 `val`，则保持不变，否则更新为 `val`\n- `getTree(curr)` 获得编号 `curr` 弹簧的跳跃最小值\n\n最少需要 `num = getTree(i)` 次操作到编号 `i` 弹簧处，从 `i` 处跳跃的两种情况，即 `setTree(i+jump[i], i+jump[i], num+1)` 以及 `setTree(i+1, i+jump[i]-1, num+2)`\n\n```Go []\nvar g[4000001]int\nfunc minJump(jump []int) int {\n    n := len(jump)\n    res := n\n    clearTree(0,0,n-1)\n    for i:=0; i<n; i++{ \n        curr := getTree(0,0,n-1,i)\n        if i + jump[i] >= n {\n            res = min(res, curr+1)\n        }else {\n            setTree(0,0,n-1,i+jump[i],i+jump[i],curr+1)\n        }\n        if i+1<=i+jump[i]-1 {\n            setTree(0,0,n-1,i+1,min(n-1,i+jump[i]-1),curr+2)\n        }\n    }\n    return res\n}\n\nfunc setTree(index, l, r, cl, cr, val int){\n    if g[index]!=-1 && g[index] <= val {\n        return \n    }\n    if cl<=l && r<= cr {\n        if g[index]==-1 {\n            g[index] = val\n        } else {\n            g[index] = min(g[index],val)\n        }\n        return \n    }\n    mid := (l+r)/2\n    if cl<=mid {\n        setTree(index*2+1, l, mid, cl, cr, val)\n    }\n    if mid+1<=cr {\n        setTree(index*2+2, mid+1, r, cl, cr, val)\n    }\n}\n\nfunc getTree(index, l, r, curr int) int {\n    if l==r {\n        return g[index]\n    }\n    mid := (l+r)/2\n    var res int;\n    if curr<=mid {\n        res = getTree(index*2+1, l, mid, curr)\n    }else{\n        res = getTree(index*2+2, mid+1, r, curr)\n    }\n    if g[index] != -1 {\n        if res == -1 {\n            res = g[index]\n        } else {\n            res = min(g[index],res)\n        }\n    }\n    return res\n}\n\nfunc clearTree(index, l, r int){\n    g[index] = -1\n    if l==r {\n        if l==0{\n            g[index] = 0\n        }\n        return\n    }\n    mid := (l+r)/2\n    clearTree(index*2+1, l, mid)\n    clearTree(index*2+2, mid+1,r)\n}\n\nfunc min(x, y int) int {\n    if x < y {\n        return x\n    }\n    return y\n}\n \nfunc max(x, y int) int {\n    if x > y {\n        return x\n    }\n    return y\n}\n```\n\n\n#### 复杂度分析\n\n* 时间复杂度：$O(n * log(n))$。\n\n* 空间复杂度：$O(n)$。",
+            "slateValue": "",
+            "slug": "zui-xiao-tiao-yue-ci-shu-by-leetcode-solution",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "lBDyH0",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 27,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 0,
+                    "reactionType": "AWESOME"
+                },
+                {
+                    "count": 0,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Breadth-First Search",
+                    "nameTranslated": "广度优先搜索",
+                    "slug": "breadth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Segment Tree",
+                    "nameTranslated": "线段树",
+                    "slug": "segment-tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-04-21T05:21:19.729311+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "题意概述： 给定一个数组 jump，长度为 N，在第 i 个位置可以选择跳到 0..i-1 和 i + jump[i]，问从 0 跳过 n-1 的最小跳跃次数是多少。 方法一：动态规划 我们可以利用一个巧妙的性质来使用动态规划：假设某一个位置只需要 w 步可以跳到，那么这个位置之前的步数，最多只需要 w+1 步。 所以",
+            "topic": {
+                "id": 212916,
+                "subscribed": false,
+                "commentCount": 31,
+                "viewCount": 12069,
+                "post": {
+                    "id": 572446,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 49,
+            "isEditorsPick": false,
+            "hitCount": 24122,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "zui-xiao-tiao-yue-ci-shu",
+                "questionFrontendId": "LCP 09"
+            },
+            "next": {
+                "slug": "jian-dan-yi-dong-de-dong-tai-gui-hua-wan-fa-by-don",
+                "title": "简单易懂的动态规划玩法（13ms）"
+            },
+            "prev": null
+        }
+    }
+}

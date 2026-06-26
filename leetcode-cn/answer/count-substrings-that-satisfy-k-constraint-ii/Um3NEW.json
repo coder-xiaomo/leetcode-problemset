@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "Um3NEW",
+            "title": "统计满足 K 约束的子字符串数量 II",
+            "content": "#### 方法一：滑动窗口 + 前缀数组\n\n**思路与算法**\n\n我们使用「滑动窗口」的技巧。\n首先，我们枚举每一个子字符串结束位置 $j$，更新子字符串 $0$ 和 $1$ 的数量统计。如果当前子字符串不再满足 $k$ 约束，则对于当前左端点 $i$，字符串的右端点在 $j$ 开始不符合 $k$ 约束，我们记录 $\\textit{right}[i] = j$。然后我们向右移动左端点，重复这个过程直到子字符串满足 $k$ 约束。\n\n此时子字符串长度为 $j - i + 1$，以位置 $j$ 结束的子字符串，小于等于这个长度都满足 $k$ 约束，我们更新前缀数组，用于计算滑动窗口找到的子字符串数量的前缀和。\n\n对于每一个查询 $[l, r]$， 我们分为两部分：\n1. 右端点在 $i = \\textit{right}[l]$ 之前的子字符串全都满足 $k$ 约束， 总共数量为 $(i - l + 1) * (i - l) / 2$。\n2. 右端点在 $i$ 及其之后的子字符串, 我们用前缀数组计算，数量为 $\\textit{prefix}[r + 1] - \\textit{prefix}[i]$。\n\n两部分相加即为查询结果，最后返回所有查询的结果。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<long long> countKConstraintSubstrings(string s, int k, vector<vector<int>>& queries) {\n        int n = s.size();\n        vector<int> count(2, 0);\n        vector<int> right(n, n);\n        vector<long long> prefix(n + 1, 0);\n        int i = 0;\n        for (int j = 0; j < n; ++j) {\n            count[s[j] - '0']++;\n            while (count[0] > k && count[1] > k) {\n                count[s[i] - '0']--;\n                right[i] = j;\n                i++;\n            }\n            prefix[j + 1] = prefix[j] + j - i + 1;\n        }\n\n        vector<long long> res;\n        for (auto& query : queries) {\n            int l = query[0], r = query[1];\n            int i = min(right[l], r + 1);\n            long long part1 = 1LL * (i - l + 1) * (i - l) / 2;\n            long long part2 = prefix[r + 1] - prefix[i];\n            res.push_back(part1 + part2);\n        }\n        return res;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public long[] countKConstraintSubstrings(String s, int k, int[][] queries) {\n        int n = s.length();\n        int[] count = new int[2];\n        int[] right = new int[n];\n        Arrays.fill(right, n);\n        long[] prefix = new long[n + 1];\n        for (int i = 0, j = 0; j < n; ++j) {\n            count[s.charAt(j) - '0']++;\n            while (count[0] > k && count[1] > k) {\n                count[s.charAt(i) - '0']--;\n                right[i] = j;\n                i++;\n            }\n            prefix[j + 1] = prefix[j] + j - i + 1;\n        }\n\n        long[] res = new long[queries.length];\n        for (int q = 0; q < queries.length; q++) {\n            int l = queries[q][0], r = queries[q][1];\n            int i = Math.min(right[l], r + 1);\n            long part1 = (long) (i - l + 1) * (i - l) / 2;\n            long part2 = prefix[r + 1] - prefix[i];\n            res[q] = part1 + part2;\n        }\n        return res;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def countKConstraintSubstrings(self, s: str, k: int, queries: List[List[int]]) -> List[int]:\n        n = len(s)\n        count = [0, 0]\n        prefix = [0] * (n + 1)\n        right = [n] * n\n        i = 0\n        for j in range(n):\n            count[int(s[j])] += 1\n            while count[0] > k and count[1] > k:\n                count[int(s[i])] -= 1\n                right[i] = j\n                i += 1\n            prefix[j + 1] = prefix[j] + j - i + 1\n\n        res = []\n        for l, r in queries:\n            i = min(right[l], r + 1)\n            part1 = (i - l + 1) * (i - l) // 2\n            part2 = prefix[r + 1] - prefix[i]\n            res.append(part1 + part2)\n        return res\n```\n\n```JavaScript [sol1-JavaScript]\nvar countKConstraintSubstrings = function(s, k, queries) {\n    const n = s.length;\n    const count = [0, 0];\n    const right = Array(n).fill(n);\n    const prefix = Array(n + 1).fill(0);\n    let i = 0;\n    for (let j = 0; j < n; ++j) {\n        count[s[j] - '0']++;\n        while (count[0] > k && count[1] > k) {\n            count[s[i] - '0']--;\n            right[i] = j;\n            i++;\n        }\n        prefix[j + 1] = prefix[j] + j - i + 1;\n    }\n\n    const res = [];\n    for (const query of queries) {\n        const l = query[0], r = query[1];\n        const i = Math.min(right[l], r + 1);\n        const part1 = Math.floor((i - l + 1) * (i - l) / 2);\n        const part2 = prefix[r + 1] - prefix[i];\n        res.push(part1 + part2);\n    }\n    return res;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction countKConstraintSubstrings(s: string, k: number, queries: number[][]): number[] {\n    const n = s.length;\n    const count = [0, 0];\n    const right = Array(n).fill(n);\n    const prefix = Array(n + 1).fill(0);\n    let i = 0;\n    for (let j = 0; j < n; ++j) {\n        count[parseInt(s[j], 10)]++;\n        while (count[0] > k && count[1] > k) {\n            count[parseInt(s[i], 10)]--;\n            right[i] = j;\n            i++;\n        }\n        prefix[j + 1] = prefix[j] + j - i + 1;\n    }\n\n    const res = [];\n    for (const query of queries) {\n        const l = query[0], r = query[1];\n        const i = Math.min(right[l], r + 1);\n        const part1 = Math.floor((i - l + 1) * (i - l) / 2);\n        const part2 = prefix[r + 1] - prefix[i];\n        res.push(part1 + part2);\n    }\n    return res;\n};\n```\n\n```Go [sol1-Go]\nfunc countKConstraintSubstrings(s string, k int, queries [][]int) []int64 {\n    n := len(s)\n    count := [2]int{}\n    right := make([]int, n)\n    for i := range right {\n        right[i] = n\n    }\n    prefix := make([]int64, n+1)\n    i := 0\n    for j := 0; j < n; j++ {\n        count[int(s[j]-'0')]++\n        for count[0] > k && count[1] > k {\n            count[int(s[i]-'0')]--\n            right[i] = j\n            i++\n        }\n        prefix[j+1] = prefix[j] + int64(j-i+1)\n    }\n\n    res := make([]int64, 0, len(queries))\n    for _, query := range queries {\n        l, r := query[0], query[1]\n        i := min(right[l], r+1)\n        part1 := int64(i-l+1) * int64(i-l) / 2\n        part2 := prefix[r+1] - prefix[i]\n        res = append(res, part1+part2)\n    }\n    return res\n}\n\nfunc min(a, b int) int {\n    if a < b {\n        return a\n    }\n    return b\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public long[] CountKConstraintSubstrings(string s, int k, int[][] queries) {\n        int n = s.Length;\n        int[] count = new int[2];\n        int[] right = new int[n];\n        Array.Fill(right, n);\n        long[] prefix = new long[n + 1];\n        for (int i = 0, j = 0; j < n; ++j) {\n            count[s[j] - '0']++;\n            while (count[0] > k && count[1] > k) {\n                count[s[i] - '0']--;\n                right[i] = j;\n                i++;\n            }\n            prefix[j + 1] = prefix[j] + j - i + 1;\n        }\n\n        long[] res = new long[queries.Length];\n        for (int q = 0; q < queries.Length; q++) {\n            int l = queries[q][0], r = queries[q][1];\n            int i = Math.Min(right[l], r + 1);\n            long part1 = (long)(i - l + 1) * (i - l) / 2;\n            long part2 = prefix[r + 1] - prefix[i];\n            res[q] = part1 + part2;\n        }\n        return res;\n    }\n}\n```\n\n```C [sol1-C]\nlong long* countKConstraintSubstrings(char* s, int k, int** queries, int queriesSize, int* queriesColSize, int* returnSize) {\n    int n = strlen(s);\n    int count[2] = {0};\n    int *right = (int*)malloc(sizeof(int) * n);\n    for (int i = 0; i < n; i++) {\n        right[i] = n;\n    }\n    long long *prefix = (long long*)malloc(sizeof(long long) * (n + 1));\n    memset(prefix, 0, sizeof(long long) * (n + 1));\n    int i = 0;\n    for (int j = 0; j < n; ++j) {\n        count[s[j] - '0']++;\n        while (count[0] > k && count[1] > k) {\n            count[s[i] - '0']--;\n            right[i] = j;\n            i++;\n        }\n        prefix[j + 1] = prefix[j] + j - i + 1;\n    }\n\n    *returnSize = queriesSize;\n    long long *res = (long long*)malloc(sizeof(long long) * queriesSize);\n    for (int q = 0; q < queriesSize; q++) {\n        int l = queries[q][0], r = queries[q][1];\n        int i = (right[l] < r + 1) ? right[l] : r + 1;\n        long long part1 = (long long)(i - l + 1) * (i - l) / 2;\n        long long part2 = prefix[r + 1] - prefix[i];\n        res[q] = part1 + part2;\n    }\n    free(right);\n    free(prefix);\n    return res;\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn count_k_constraint_substrings(s: String, k: i32, queries: Vec<Vec<i32>>) -> Vec<i64> {\n        let n = s.len();\n        let s: Vec<u8> = s.bytes().collect(); // Convert to bytes for faster access\n        let mut count = [0, 0];\n        let mut right: Vec<usize> = vec![n; n];\n        let mut prefix: Vec<i64> = vec![0; n + 1];\n        let mut i = 0;\n\n        for j in 0..n {\n            count[s[j] as usize - b'0' as usize] += 1; // Direct byte access\n            while count[0] > k && count[1] > k {\n                count[s[i] as usize - b'0' as usize] -= 1;\n                right[i] = j;\n                i += 1;\n            }\n            prefix[j + 1] = prefix[j] + (j - i + 1) as i64;\n        }\n\n        let mut res: Vec<i64> = Vec::with_capacity(queries.len()); // Pre-allocate for efficiency\n        for query in queries {\n            let l = query[0] as usize;\n            let r = query[1] as usize;\n            let i = std::cmp::min(right[l], r + 1);\n            let part1 = (i - l + 1) * (i - l) / 2;\n            let part2 = prefix[r + 1] - prefix[i];\n            res.push(part1 as i64 + part2);\n        }\n        res\n    }\n}\n```\n\n\n**复杂度分析**\n\n- 时间复杂度：$O(n + q)$，其中 $n$ 是数组的长度，$q$ 是查询的数量。\n\n- 空间复杂度：$O(n)$，其中 $n$ 是数组的长度，不包含返回结果。",
+            "slateValue": "",
+            "slug": "tong-ji-man-zu-k-yue-shu-de-zi-zi-fu-chu-f4kb",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "Um3NEW",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 12,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Sliding Window",
+                    "nameTranslated": "滑动窗口",
+                    "slug": "sliding-window",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2024-11-04T01:19:27.984607+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：滑动窗口 + 前缀数组 思路与算法 我们使用「滑动窗口」的技巧。 首先，我们枚举每一个子字符串结束位置 [latex]，更新子字符串 [latex] 和 [latex] 的数量统计。如果当前子字符串不再满足 [latex] 约束，则对于当前左端点 [latex]，字符串的右端点在 [latex] 开始不符合 [",
+            "topic": {
+                "id": 2976328,
+                "subscribed": false,
+                "commentCount": 33,
+                "viewCount": 690,
+                "post": {
+                    "id": 5392406,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 50,
+            "isEditorsPick": false,
+            "hitCount": 9743,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "count-substrings-that-satisfy-k-constraint-ii",
+                "questionFrontendId": "3261"
+            },
+            "next": {
+                "slug": "hua-dong-chuang-kou-qian-zhui-he-er-fen-jzo25",
+                "title": "滑动窗口+前缀和+二分查找/双指针（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,102 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "8lXElT",
+            "title": "设计位集",
+            "content": "#### 方法一：利用数组实现\n\n**思路与算法**\n\n根据题意，我们需要在 $O(1)$ 的时间复杂度内实现 $\\texttt{fix()}, \\texttt{unfix()}, \\texttt{flip()}, \\texttt{all()}, \\texttt{one()}, \\texttt{count()}$ 方法，并在 $O(n)$ 的时间复杂度内实现 $\\texttt{toString()}$ 方法。\n\n我们首先考虑用一个长度为 $\\textit{size}$ 的**数组** $\\textit{arr}$ 来实现 bitset，其中第 $k$ 个元素的数值等于第 $k$ 位的数值。它支持在 $O(1)$ 的时间复杂度内实现 $\\texttt{fix()}, \\texttt{unfix()}$ 这两个方法，但其他方法都需要 $O(n)$ 来实现。\n\n进一步地，考虑到每一次执行 $\\texttt{fix()}, \\texttt{unfix()}$ 操作时，都最多只有一个位被翻转，因此 $1$ 的位数最多改变 $1$。同时，在 $\\texttt{flip()}$ 操作前后 $1$ 的位数之和即为 $\\textit{size}$。\n\n那么我们可以用额外的**整数** $\\textit{cnt}$ 来维护 **$1$ 的位数**。$\\textit{cnt}$ 的初始值为 $0$，在每次更新 $\\textit{arr}$ 时，我们都对应更新 $\\textit{cnt}$ 的数值。基于此，我们可以在不影响其余方法的复杂度时，在 $O(1)$ 的时间复杂度内实现 $\\texttt{all()}, \\texttt{one()}, \\texttt{count()}$ 这三个方法。\n\n至此，我们只剩 $\\texttt{flip()}$ 方法的复杂度不符合要求。由于反转两次等于不变，且反转和赋值操作可交换，因此我们也可以通过一个**二进制位** $\\textit{reversed}$ 来表示**反转操作的次数奇偶性**。$\\textit{reversed}$ 的初值为 $0$；在每次 $\\texttt{flip()}$ 时，我们可以通过对 $\\textit{reversed}$ 与 $1$ 取异或来代替翻转整个数组。除此以外，第 $k$ 位的数值即为 $\\textit{arr}[k] \\oplus \\textit{reversed}$，其中 $\\oplus$ 为按位异或。同理，在执行某一位赋值操作时，如果该位的数值会发生变化，我们只需要将该数值与 $1$ 取异或即可。\n\n按照上面的方法，我们就可以在不影响其余操作的时间复杂度下，将 $\\texttt{flip()}$ 方法的复杂度也降低为 $O(1)$。\n\n综上，我们可以通过以下三个元素来实现 $\\texttt{Bitset}$ 类：\n\n- $\\textit{arr}$：长度为 $\\textit{size}$ 的数组，用来存储每一位的取值；\n\n- $\\textit{cnt}$：整数，用来统计 $1$ 的位数；\n\n- $\\textit{reversed}$：二进制位，用来统计反转操作的次数奇偶性。\n\n各个方法的具体实现详见代码。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Bitset {\nprivate:\n    vector<int> arr;   // 存储每一位的数组\n    int cnt = 0;   // 1 的个数\n    int reversed = 0;   // 反转操作的次数奇偶性\npublic:\n    Bitset(int size) {\n        arr.resize(size);\n        cnt = 0;\n        reversed = 0;\n    }\n    \n    void fix(int idx) {\n        if ((arr[idx] ^ reversed) == 0) {\n            arr[idx] ^= 1;\n            ++cnt;\n        }\n    }\n    \n    void unfix(int idx) {\n        if ((arr[idx] ^ reversed) == 1) {\n            arr[idx] ^= 1;\n            --cnt;\n        }\n    }\n    \n    void flip() {\n        reversed ^= 1;\n        cnt = arr.size() - cnt;\n    }\n    \n    bool all() {\n        return cnt == arr.size();\n    }\n    \n    bool one() {\n        return cnt > 0;\n    }\n    \n    int count() {\n        return cnt;\n    }\n    \n    string toString() {\n        string res;\n        for (int bit: arr) {\n            res.push_back('0' + (bit ^ reversed));\n        }\n        return res;\n    }\n};\n```\n\n\n```Python [sol1-Python3]\nclass Bitset:\n\n    def __init__(self, size: int):\n        self.arr = [0] * size   # 存储每一位的数组\n        self.cnt = 0   # 1 的个数\n        self.reversed = 0   # 反转操作的次数奇偶性\n\n    def fix(self, idx: int) -> None:\n        if self.arr[idx] ^ self.reversed == 0:\n            self.arr[idx] ^= 1\n            self.cnt += 1\n\n    def unfix(self, idx: int) -> None:\n        if self.arr[idx] ^ self.reversed == 1:\n            self.arr[idx] ^= 1\n            self.cnt -= 1\n\n    def flip(self) -> None:\n        self.reversed ^= 1\n        self.cnt = len(self.arr) - self.cnt\n\n    def all(self) -> bool:\n        return self.cnt == len(self.arr)\n\n    def one(self) -> bool:\n        return self.cnt > 0\n\n    def count(self) -> int:\n        return self.cnt\n\n    def toString(self) -> str:\n        res = \"\"\n        for bit in self.arr:\n            res += str(bit ^ self.reversed) \n        return res\n```\n\n\n**复杂度分析**\n\n- 时间复杂度：$O(k_1n + k_2)$，其中 $n$ 为位集的长度$\\textit{size}$，$k_1$ 为 $\\texttt{toString()}$ 操作的次数，$k_2$ 为其他操作的次数。预处理和单次 $\\texttt{toString()}$ 操作的时间复杂度均为 $O(n)$，其余单次操作的时间复杂度为 $O(1)$。\n\n- 空间复杂度：$O(n)$，即为辅助数组的空间开销。",
+            "slateValue": "",
+            "slug": "she-ji-wei-ji-by-leetcode-solution-w8qh",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "8lXElT",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 9,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Bit Manipulation",
+                    "nameTranslated": "位运算",
+                    "slug": "bit-manipulation",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Design",
+                    "nameTranslated": "设计",
+                    "slug": "design",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-02-07T02:59:35.804346+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：利用数组实现 思路与算法 根据题意，我们需要在 $O(1)$ 的时间复杂度内实现 $\\texttt{fix()}, \\texttt{unfix()}, \\texttt{flip()}, \\texttt{all()}, \\texttt{one()}, \\texttt{count()}$ 方法，并在 $O(n)$ ",
+            "topic": {
+                "id": 1249207,
+                "subscribed": false,
+                "commentCount": 10,
+                "viewCount": 2262,
+                "post": {
+                    "id": 2615668,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 7,
+            "isEditorsPick": false,
+            "hitCount": 5944,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "design-bitset",
+                "questionFrontendId": "2166"
+            },
+            "next": {
+                "slug": "lan-biao-ji-fa-by-endlesscheng-f07m",
+                "title": "懒标记法"
+            },
+            "prev": null
+        }
+    }
+}

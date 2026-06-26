@@ -1,0 +1,150 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "xVxXzi",
+            "title": "奇偶频次间的最大差值 II",
+            "content": "#### 方法一：枚举两个字符 + 双指针\n\n**思路与算法**\n\n由于字符串 $s$ 仅包含数字字符 $[0, 4]$，因此我们可以首先枚举题目描述中的字符 $a$ 和 $b$，其中 $a$ 需要出现奇数次，$b$ 需要出现偶数次，且 $a$ 和 $b$ 不相同。一个字符出现次数的奇偶性可以用一个二进制位表示，其中 $0$ 表示出现偶数次，$1$ 表示出现奇数次。将 $a$ 出现次数的奇偶性放置在前，$b$ 出现次数的奇偶性放置在后，就会有 $4$ 种不同的情况，即 $[00, 01, 10, 11]$，我们需要找到的字符串，必须对应着 $10$ 的情况。\n\n考虑使用双指针解决这个问题，右指针 $\\textit{right}$ 每次向右移动一个位置，表示子字符串的右端点。在移动时，我们需要更新字符串到下标 $\\textit{right}$ 为止的，字符 $a$ 和 $b$ 出现的次数 $\\textit{cnt}_a$ 和 $\\textit{cnt}_b$，对应的状态即为：\n\n$$\n\\textit{status}_\\textit{right} = (\\textit{cnt}_a \\bmod 2) \\times 2 + (\\textit{cnt}_b \\bmod 2)\n$$\n\n同时，左指针 $\\textit{left}$ 只会在满足要求时，才会向右移动一个位置。也就是说，只有下标小于等于 $\\textit{left}$ 的位置，才能作为子字符串的左端点。我们用 $\\textit{prev}_a$ 和 $\\textit{prev}_b$ 记录到下标 $\\textit{left}$ 为止的，字符 $a$ 和 $b$ 出现的次数，那么只有同时满足下面两个条件时，才会移动左指针：\n\n- $\\textit{right} - \\textit{left} \\geq k$，即子字符串的长度至少为 $k$；\n- $\\textit{cnt}_b - \\textit{prev}_b \\geq 2$，即字符 $b$ 需要出现偶数次，但需要排除出现 $0$ 次的情况。\n\n对于一个满足要求的左指针，它对应的答案是 $(\\textit{cnt}_a - \\textit{cnt}_b) - (\\textit{prev}_a - \\textit{prev}_b)$，因此我们需要用长度为 $4$ 的数组 $\\textit{best}$ 来维护每一种情况下 $\\textit{prev}_a - \\textit{prev}_b$ 的**最小值**，即：\n\n$$\n\\textit{status}_\\textit{left} = (\\textit{prev}_a \\bmod 2) \\times 2 + (\\textit{prev}_b \\bmod 2)\n$$\n\n并且会用 $\\textit{prev}_a - \\textit{prev}_b$ 的值去更新 $\\textit{best}[\\textit{status}_\\textit{left}]$。\n\n在左指针移动完成后，我们就可以对当前的右指针计算答案了，由于我们需要一个情况为 $10$ 的子字符串，因此需要左端点的状态是 $\\textit{status}_\\textit{right} \\oplus (10)_2$，其中 $\\oplus$ 表示异或运算。这样一来，答案即为：\n\n$$\n(\\textit{cnt}_a - \\textit{cnt}_b) - \\textit{best}[\\textit{status}_\\textit{right} \\oplus (10)_2]\n$$\n\n最终的答案即为上述所有可能中的最大值。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int maxDifference(string s, int k) {\n        auto getStatus = [](int cnt_a, int cnt_b) -> int {\n            return ((cnt_a & 1) << 1) | (cnt_b & 1);\n        };\n\n        int n = s.size();\n        int ans = INT_MIN;\n        for (char a = '0'; a <= '4'; ++a) {\n            for (char b = '0'; b <= '4'; ++b) {\n                if (a == b) {\n                    continue;\n                }\n                int best[4] = {INT_MAX, INT_MAX, INT_MAX, INT_MAX};\n                int cnt_a = 0, cnt_b = 0;\n                int prev_a = 0, prev_b = 0;\n                int left = -1;\n                for (int right = 0; right < n; ++right) {\n                    cnt_a += (s[right] == a);\n                    cnt_b += (s[right] == b);\n                    while (right - left >= k && cnt_b - prev_b >= 2) {\n                        int left_status = getStatus(prev_a, prev_b);\n                        best[left_status] = min(best[left_status], prev_a - prev_b);\n                        ++left;\n                        prev_a += (s[left] == a);\n                        prev_b += (s[left] == b);\n                    }\n                    int right_status = getStatus(cnt_a, cnt_b);\n                    if (best[right_status ^ 0b10] != INT_MAX) {\n                        ans = max(ans, cnt_a - cnt_b - best[right_status ^ 0b10]);\n                    }\n                }\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def maxDifference(self, s: str, k: int) -> int:\n        def getStatus(cnt_a: int, cnt_b: int) -> int:\n            return ((cnt_a & 1) << 1) | (cnt_b & 1)\n        \n        n = len(s)\n        ans = float(\"-inf\")\n        for a in [\"0\", \"1\", \"2\", \"3\", \"4\"]:\n            for b in [\"0\", \"1\", \"2\", \"3\", \"4\"]:\n                if a == b:\n                    continue\n                \n                best = [float(\"inf\")] * 4\n                cnt_a = cnt_b = 0\n                prev_a = prev_b = 0\n                left = -1\n                for right in range(n):\n                    cnt_a += (s[right] == a)\n                    cnt_b += (s[right] == b)\n                    while right - left >= k and cnt_b - prev_b >= 2:\n                        left_status = getStatus(prev_a, prev_b)\n                        best[left_status] = min(best[left_status], prev_a - prev_b)\n                        left += 1\n                        prev_a += (s[left] == a)\n                        prev_b += (s[left] == b)\n                    \n                    right_status = getStatus(cnt_a, cnt_b)\n                    if best[right_status ^ 0b10] != float(\"inf\"):\n                        ans = max(ans, cnt_a - cnt_b - best[right_status ^ 0b10])\n\n        return ans\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int maxDifference(String s, int k) {\n        int n = s.length();\n        int ans = Integer.MIN_VALUE;\n        for (char a = '0'; a <= '4'; ++a) {\n            for (char b = '0'; b <= '4'; ++b) {\n                if (a == b) {\n                    continue;\n                }\n                int[] best = new int[4];\n                Arrays.fill(best, Integer.MAX_VALUE);\n                int cnt_a = 0, cnt_b = 0;\n                int prev_a = 0, prev_b = 0;\n                int left = -1;\n                \n                for (int right = 0; right < n; ++right) {\n                    cnt_a += (s.charAt(right) == a) ? 1 : 0;\n                    cnt_b += (s.charAt(right) == b) ? 1 : 0;\n                    \n                    while (right - left >= k && cnt_b - prev_b >= 2) {\n                        int left_status = getStatus(prev_a, prev_b);\n                        best[left_status] = Math.min(best[left_status], prev_a - prev_b);\n                        ++left;\n                        prev_a += (s.charAt(left) == a) ? 1 : 0;\n                        prev_b += (s.charAt(left) == b) ? 1 : 0;\n                    }\n                    \n                    int right_status = getStatus(cnt_a, cnt_b);\n                    if (best[right_status ^ 0b10] != Integer.MAX_VALUE) {\n                        ans = Math.max(ans, cnt_a - cnt_b - best[right_status ^ 0b10]);\n                    }\n                }\n            }\n        }\n        return ans;\n    }\n    \n    private int getStatus(int cnt_a, int cnt_b) {\n        return ((cnt_a & 1) << 1) | (cnt_b & 1);\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MaxDifference(string s, int k) {\n        int n = s.Length;\n        int ans = int.MinValue;\n        foreach (char a in new char[]{'0', '1', '2', '3', '4'}) {\n            foreach (char b in new char[]{'0', '1', '2', '3', '4'}) {\n                if (a == b) {\n                    continue;\n                }\n                int[] best = new int[4];\n                Array.Fill(best, int.MaxValue);\n                int cntA = 0, cntB = 0;\n                int prevA = 0, prevB = 0;\n                int left = -1;\n                for (int right = 0; right < n; right++) {\n                    if (s[right] == a) {\n                        cntA++;\n                    }\n                    if (s[right] == b) {\n                        cntB++;\n                    }\n                    while (right - left >= k && cntB - prevB >= 2) {\n                        int leftStatus = GetStatus(prevA, prevB);\n                        best[leftStatus] = Math.Min(best[leftStatus], prevA - prevB);\n                        left++;\n                        if (s[left] == a) {\n                            prevA++;\n                        }\n                        if (s[left] == b) {\n                            prevB++;\n                        }\n                    }\n                    int rightStatus = GetStatus(cntA, cntB);\n                    if (best[rightStatus ^ 0b10] != int.MaxValue) {\n                        ans = Math.Max(ans, (cntA - cntB) - best[rightStatus ^ 0b10]);\n                    }\n                }\n            }\n        }\n        return ans;\n    }\n    \n    private int GetStatus(int cntA, int cntB) {\n        return ((cntA & 1) << 1) | (cntB & 1);\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc maxDifference(s string, k int) int {\n\tn := len(s)\n\tans := math.MinInt32\n\tfor _, a := range []byte{'0', '1', '2', '3', '4'} {\n\t\tfor _, b := range []byte{'0', '1', '2', '3', '4'} {\n\t\t\tif a == b {\n\t\t\t\tcontinue\n\t\t\t}\n\t\t\tbest := make([]int, 4)\n\t\t\tfor i := range best {\n\t\t\t\tbest[i] = math.MaxInt32\n\t\t\t}\n\t\t\tcntA, cntB := 0, 0\n\t\t\tprevA, prevB := 0, 0\n\t\t\tleft := -1\n\t\t\tfor right := 0; right < n; right++ {\n\t\t\t\tif s[right] == a {\n\t\t\t\t\tcntA++\n\t\t\t\t}\n\t\t\t\tif s[right] == b {\n\t\t\t\t\tcntB++\n\t\t\t\t}\n\t\t\t\tfor right-left >= k && cntB-prevB >= 2 {\n\t\t\t\t\tleftStatus := getStatus(prevA, prevB)\n\t\t\t\t\tif prevA-prevB < best[leftStatus] {\n\t\t\t\t\t\tbest[leftStatus] = prevA - prevB\n\t\t\t\t\t}\n\t\t\t\t\tleft++\n\t\t\t\t\tif s[left] == a {\n\t\t\t\t\t\tprevA++\n\t\t\t\t\t}\n\t\t\t\t\tif s[left] == b {\n\t\t\t\t\t\tprevB++\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t\trightStatus := getStatus(cntA, cntB)\n\t\t\t\tif best[rightStatus ^ 0b10] != math.MaxInt32 {\n\t\t\t\t\tcurrent := (cntA - cntB) - best[rightStatus ^ 0b10]\n\t\t\t\t\tif current > ans {\n\t\t\t\t\t\tans = current\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t}\n\treturn ans\n}\n\nfunc getStatus(cntA, cntB int) int {\n\treturn ((cntA & 1) << 1) | (cntB & 1)\n}\n```\n\n```C [sol1-C]\nint getStatus(int cnt_a, int cnt_b) {\n    return ((cnt_a & 1) << 1) | (cnt_b & 1);\n}\n\nint maxDifference(char* s, int k) {\n    int n = strlen(s);\n    int ans = INT_MIN;\n\n    for (char a = '0'; a <= '4'; ++a) {\n        for (char b = '0'; b <= '4'; ++b) {\n            if (a == b) {\n                continue;\n            }\n            int best[4] = {INT_MAX, INT_MAX, INT_MAX, INT_MAX};\n            int cnt_a = 0, cnt_b = 0;\n            int prev_a = 0, prev_b = 0;\n            int left = -1;\n            for (int right = 0; right < n; ++right) {\n                cnt_a += (s[right] == a) ? 1 : 0;\n                cnt_b += (s[right] == b) ? 1 : 0;\n                \n                while (right - left >= k && cnt_b - prev_b >= 2) {\n                    int left_status = getStatus(prev_a, prev_b);\n                    if (prev_a - prev_b < best[left_status]) {\n                        best[left_status] = prev_a - prev_b;\n                    }\n                    ++left;\n                    prev_a += (s[left] == a) ? 1 : 0;\n                    prev_b += (s[left] == b) ? 1 : 0;\n                }\n                \n                int right_status = getStatus(cnt_a, cnt_b);\n                if (best[right_status ^ 0b10] != INT_MAX) {\n                    int current = cnt_a - cnt_b - best[right_status ^ 0b10];\n                    if (current > ans) {\n                        ans = current;\n                    }\n                }\n            }\n        }\n    }\n    \n    return ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar maxDifference = function(s, k) {\n    const n = s.length;\n    let ans = -Infinity;\n    \n    const getStatus = (cnt_a, cnt_b) => {\n        return ((cnt_a & 1) << 1) | (cnt_b & 1);\n    };\n    \n    for (const a of ['0', '1', '2', '3', '4', '5']) {\n        for (const b of ['0', '1', '2', '3', '4', '5']) {\n            if (a === b) {\n                continue;\n            }\n            const best = [Infinity, Infinity, Infinity, Infinity];\n            let cnt_a = 0, cnt_b = 0;\n            let prev_a = 0, prev_b = 0;\n            let left = -1;\n            \n            for (let right = 0; right < n; right++) {\n                cnt_a += s[right] === a ? 1 : 0;\n                cnt_b += s[right] === b ? 1 : 0;\n                \n                while (right - left >= k && cnt_b - prev_b >= 2) {\n                    const left_status = getStatus(prev_a, prev_b);\n                    best[left_status] = Math.min(best[left_status], prev_a - prev_b);\n                    left++;\n                    prev_a += s[left] === a ? 1 : 0;\n                    prev_b += s[left] === b ? 1 : 0;\n                }\n                \n                const right_status = getStatus(cnt_a, cnt_b);\n                if (best[right_status ^ 0b10] !== Infinity) {\n                    ans = Math.max(ans, cnt_a - cnt_b - best[right_status ^ 0b10]);\n                }\n            }\n        }\n    }\n    return ans;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction maxDifference(s: string, k: number): number {\n    const n = s.length;\n    let ans = -Infinity;\n    \n    const getStatus = (cnt_a: number, cnt_b: number): number => {\n        return ((cnt_a & 1) << 1) | (cnt_b & 1);\n    };\n    \n    for (const a of ['0', '1', '2', '3', '4', '5']) {\n        for (const b of ['0', '1', '2', '3', '4', '5']) {\n            if (a === b) {\n                continue;\n            }\n            const best: number[] = [Infinity, Infinity, Infinity, Infinity];\n            let cnt_a = 0, cnt_b = 0;\n            let prev_a = 0, prev_b = 0;\n            let left = -1;\n            for (let right = 0; right < n; right++) {\n                cnt_a += s[right] === a ? 1 : 0;\n                cnt_b += s[right] === b ? 1 : 0;\n                \n                while (right - left >= k && cnt_b - prev_b >= 2) {\n                    const left_status = getStatus(prev_a, prev_b);\n                    best[left_status] = Math.min(best[left_status], prev_a - prev_b);\n                    left++;\n                    prev_a += s[left] === a ? 1 : 0;\n                    prev_b += s[left] === b ? 1 : 0;\n                }\n                \n                const right_status = getStatus(cnt_a, cnt_b);\n                if (best[right_status ^ 0b10] !== Infinity) {\n                    ans = Math.max(ans, cnt_a - cnt_b - best[right_status ^ 0b10]);\n                }\n            }\n        }\n    }\n    return ans;\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn max_difference(s: String, k: i32) -> i32 {\n        let n = s.len();\n        let mut ans = i32::MIN;\n        let chars: Vec<char> = s.chars().collect();\n        \n        fn get_status(cnt_a: i32, cnt_b: i32) -> i32 {\n            ((cnt_a & 1) << 1) | (cnt_b & 1)\n        }\n        \n        for a in ['0', '1', '2', '3', '4', '5'] {\n            for b in ['0', '1', '2', '3', '4', '5'] {\n                if a == b { \n                    continue; \n                }\n                \n                let mut best = [i32::MAX; 4];\n                let (mut cnt_a, mut cnt_b) = (0, 0);\n                let (mut prev_a, mut prev_b) = (0, 0);\n                let mut left = -1;\n                \n                for right in 0..n {\n                    cnt_a += if chars[right] == a { 1 } else { 0 };\n                    cnt_b += if chars[right] == b { 1 } else { 0 };\n                    \n                    while (right as i32 - left) >= k && (cnt_b - prev_b) >= 2 {\n                        let left_status = get_status(prev_a, prev_b) as usize;\n                        best[left_status] = best[left_status].min(prev_a - prev_b);\n                        left += 1;\n                        prev_a += if chars[left as usize] == a { 1 } else { 0 };\n                        prev_b += if chars[left as usize] == b { 1 } else { 0 };\n                    }\n                    \n                    let right_status = get_status(cnt_a, cnt_b) as usize;\n                    if best[right_status ^ 0b10] != i32::MAX {\n                        ans = ans.max(cnt_a - cnt_b - best[right_status ^ 0b10]);\n                    }\n                }\n            }\n        }\n        ans\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n\\times|\\Sigma|^2)$，其中 $n$ 是字符串 $s$ 的长度，$\\Sigma$ 是字符集，在本题中 $s$ 只包含数字 $[0, 4]$，因此 $|\\Sigma| = 5$。枚举字符 $a$ 和 $b$ 需要的时间为 $O(|\\Sigma|^2)$，每一次枚举需要使用双指针 $\\textit{left}$ 和 $\\textit{right}$ 计算答案，两个指针分别会遍历整个字符串 $s$ 一次，时间复杂度为 $O(n)$。\n\n- 空间复杂度：$O(1)$。",
+            "slateValue": "",
+            "slug": "qi-ou-pin-ci-jian-de-zui-da-chai-zhi-ii-vnz1n",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "xVxXzi",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 5,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Two Pointers",
+                    "nameTranslated": "双指针",
+                    "slug": "two-pointers",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Prefix Sum",
+                    "nameTranslated": "前缀和",
+                    "slug": "prefix-sum",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2025-06-06T03:01:04.710266+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：枚举两个字符 + 双指针 思路与算法 由于字符串 [latex] 仅包含数字字符 [latex]，因此我们可以首先枚举题目描述中的字符 [latex] 和 [latex]，其中 [latex] 需要出现奇数次，[latex] 需要出现偶数次，且 [latex] 和 [latex] 不相同。一个字符出现次数的奇偶",
+            "topic": {
+                "id": 3694397,
+                "subscribed": false,
+                "commentCount": 16,
+                "viewCount": 52,
+                "post": {
+                    "id": 6746543,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 27,
+            "isEditorsPick": false,
+            "hitCount": 7494,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "maximum-difference-between-even-and-odd-frequency-ii",
+                "questionFrontendId": "3445"
+            },
+            "next": {
+                "slug": "mei-ju-qian-zhui-he-hua-dong-chuang-kou-6cwsm",
+                "title": "枚举+前缀和+滑动窗口（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

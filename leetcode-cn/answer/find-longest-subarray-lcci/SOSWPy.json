@@ -1,0 +1,132 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "SOSWPy",
+            "title": "字母与数字",
+            "content": "#### 方法一：转换 + 前缀和\n\n一个子数组包含的字母和数字的个数相同，等价于该子数组包含的字母和数字的个数之差为 $0$。因此可以将原数组做转换，每个字母对应 $1$，每个数字对应 $-1$，则转换后的数组中，每个子数组的元素和为该子数组对应的原始子数组的字母和数字的个数之差，如果转换后数组中的一个子数组的元素和为 $0$，则该子数组对应的原始子数组包含的字母和数字的个数相同。问题等价于在转换后的数组中寻找元素和为 $0$ 的最长子数组。\n\n为了在转换后的数组中寻找元素和为 $0$ 的子数组，可以计算转换后的数组的前缀和，如果两个下标对应的前缀和相等，则这两个下标之间的子数组的元素和为 $0$。\n\n如果同一个前缀和出现多次，则该前缀和对应的最长子数组的长度为该前缀和的第一次出现的下标与最后一次出现的下标之间的子数组，因此为了在转换后的数组中寻找元素和为 $0$ 的最长子数组，需要记录每个前缀和第一次出现的下标。\n\n使用哈希表记录每个前缀和第一次出现的下标。由于空前缀的前缀和是 $0$ 且对应下标 $-1$，因此首先将前缀和 $0$ 与下标 $-1$ 存入哈希表。\n\n从左到右遍历数组，遍历过程中维护元素和为 $0$ 的最长子数组的长度 $\\textit{maxLength}$ 与开始下标 $\\textit{startIndex}$，初始时 $\\textit{maxLength} = 0$，$\\textit{startIndex} = -1$。当遍历到下标 $i$ 时，如果前缀和是 $\\textit{sum}$，则执行如下操作。\n\n- 如果哈希表中已经存在前缀和 $\\textit{sum}$，则从哈希表中得到前缀和 $\\textit{sum}$ 第一次出现的下标 $\\textit{firstIndex}$，以下标 $i$ 结尾的元素和为 $0$ 的最长子数组的长度是 $i - \\textit{firstIndex}$，该最长子数组的下标范围是 $[\\textit{firstIndex} + 1, i]$。如果 $i - \\textit{firstIndex} > \\textit{maxLength}$，则将 $\\textit{maxLength}$ 更新为 $i - \\textit{firstIndex}$，将 $\\textit{startIndex}$ 更新为 $\\textit{firstIndex} + 1$；如果 $i - \\textit{firstIndex} \\le \\textit{maxLength}$，则不更新 $\\textit{maxLength}$ 与 $\\textit{startIndex}$。\n\n- 如果哈希表中不存在前缀和 $\\textit{sum}$，则下标 $i$ 为前缀和 $\\textit{sum}$ 第一次出现的下标，将前缀和 $\\textit{sum}$ 与下标 $i$ 存入哈希表。\n\n遍历结束之后，根据 $\\textit{maxLength}$ 与 $\\textit{startIndex}$ 的值返回结果。\n\n- 如果 $\\textit{maxLength} > 0$，则原数组中存在字母和数字的个数相同的子数组，根据 $\\textit{maxLength}$ 与 $\\textit{startIndex}$ 得到原数组中包含的字母和数字的个数相同的最长子数组，返回该最长子数组。\n\n- 如果 $\\textit{maxLength} = 0$，则原数组中不存在字母和数字的个数相同的子数组，返回空数组。\n\n从左到右遍历数组的过程中，只有当遇到的子数组长度大于已有的最大长度时才会更新最大子数组的长度与开始下标，因此每次更新最大子数组的长度与开始下标之后，不存在长度等于已有的最大长度且开始下标更小的子数组。如果有多个最长子数组，则 $\\textit{startIndex}$ 为这些最长子数组中的最小的左端点下标值。\n\n实现方面，不需要创建并计算转换后的数组，只需要将原数组中的字母和数字分别对应 $1$ 和 $-1$，在遍历过程中计算前缀和即可。\n\n```Python [sol1-Python3]\nclass Solution:\n    def findLongestSubarray(self, array: List[str]) -> List[str]:\n        indices = {0: -1}\n        sum = 0\n        maxLength = 0\n        startIndex = -1\n        for i, s in enumerate(array):\n            if '0' <= s[0] <= '9':\n                sum += 1\n            else:\n                sum -= 1\n            if sum in indices:\n                firstIndex = indices[sum]\n                if i - firstIndex > maxLength:\n                    maxLength = i - firstIndex\n                    startIndex = firstIndex + 1\n            else:\n                indices[sum] = i\n        if maxLength == 0:\n            return []\n        return array[startIndex: startIndex + maxLength]\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public String[] findLongestSubarray(String[] array) {\n        Map<Integer, Integer> indices = new HashMap<Integer, Integer>();\n        indices.put(0, -1);\n        int sum = 0;\n        int maxLength = 0;\n        int startIndex = -1;\n        int n = array.length;\n        for (int i = 0; i < n; i++) {\n            if (Character.isLetter(array[i].charAt(0))) {\n                sum++;\n            } else {\n                sum--;\n            }\n            if (indices.containsKey(sum)) {\n                int firstIndex = indices.get(sum);\n                if (i - firstIndex > maxLength) {\n                    maxLength = i - firstIndex;\n                    startIndex = firstIndex + 1;\n                }\n            } else {\n                indices.put(sum, i);\n            }\n        }\n        if (maxLength == 0) {\n            return new String[0];\n        }\n        String[] ans = new String[maxLength];\n        System.arraycopy(array, startIndex, ans, 0, maxLength);\n        return ans;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public string[] FindLongestSubarray(string[] array) {\n        IDictionary<int, int> indices = new Dictionary<int, int>();\n        indices.Add(0, -1);\n        int sum = 0;\n        int maxLength = 0;\n        int startIndex = -1;\n        int n = array.Length;\n        for (int i = 0; i < n; i++) {\n            if (char.IsLetter(array[i][0])) {\n                sum++;\n            } else {\n                sum--;\n            }\n            if (indices.ContainsKey(sum)) {\n                int firstIndex = indices[sum];\n                if (i - firstIndex > maxLength) {\n                    maxLength = i - firstIndex;\n                    startIndex = firstIndex + 1;\n                }\n            } else {\n                indices.Add(sum, i);\n            }\n        }\n        if (maxLength == 0) {\n            return new string[0];\n        }\n        string[] ans = new string[maxLength];\n        Array.Copy(array, startIndex, ans, 0, maxLength);\n        return ans;\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<string> findLongestSubarray(vector<string>& array) {\n        unordered_map<int, int> indices;\n        indices[0] = -1;\n        int sum = 0;\n        int maxLength = 0;\n        int startIndex = -1;\n        int n = array.size();\n        for (int i = 0; i < n; i++) {\n            if (isalpha(array[i][0])) {\n                sum++;\n            } else {\n                sum--;\n            }\n            if (indices.count(sum)) {\n                int firstIndex = indices[sum];\n                if (i - firstIndex > maxLength) {\n                    maxLength = i - firstIndex;\n                    startIndex = firstIndex + 1;\n                }\n            } else {\n                indices[sum] = i;\n            }\n        }\n        if (maxLength == 0) {\n            return {};\n        }\n        return vector<string>(array.begin() + startIndex, array.begin() + startIndex + maxLength);\n    }\n};\n```\n\n```C [sol1-C]\ntypedef struct {\n    int key;\n    int val;\n    UT_hash_handle hh;\n} HashItem; \n\nHashItem *hashFindItem(HashItem **obj, int key) {\n    HashItem *pEntry = NULL;\n    HASH_FIND_INT(*obj, &key, pEntry);\n    return pEntry;\n}\n\nbool hashAddItem(HashItem **obj, int key, int val) {\n    if (hashFindItem(obj, key)) {\n        return false;\n    }\n    HashItem *pEntry = (HashItem *)malloc(sizeof(HashItem));\n    pEntry->key = key;\n    pEntry->val = val;\n    HASH_ADD_INT(*obj, key, pEntry);\n    return true;\n}\n\nbool hashSetItem(HashItem **obj, int key, int val) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        hashAddItem(obj, key, val);\n    } else {\n        pEntry->val = val;\n    }\n    return true;\n}\n\nint hashGetItem(HashItem **obj, int key, int defaultVal) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        return defaultVal;\n    }\n    return pEntry->val;\n}\n\nvoid hashFree(HashItem **obj) {\n    HashItem *curr = NULL, *tmp = NULL;\n    HASH_ITER(hh, *obj, curr, tmp) {\n        HASH_DEL(*obj, curr);  \n        free(curr);             \n    }\n}\n\nchar** findLongestSubarray(char** array, int arraySize, int* returnSize) {\n    HashItem *indices = NULL;\n    hashAddItem(&indices, 0, -1);\n    int sum = 0;\n    int maxLength = 0;\n    int startIndex = -1;\n    int n = arraySize;\n    for (int i = 0; i < n; i++) {\n        if (isalpha(array[i][0])) {\n            sum++;\n        } else {\n            sum--;\n        }\n        if (hashFindItem(&indices, sum)) {\n            int firstIndex = hashGetItem(&indices, sum, 0);\n            if (i - firstIndex > maxLength) {\n                maxLength = i - firstIndex;\n                startIndex = firstIndex + 1;\n            }\n        } else {\n            hashAddItem(&indices, sum, i);\n        }\n    }\n    hashFree(&indices);\n    if (maxLength == 0) {\n        *returnSize = 0;\n        return NULL;\n    }\n    *returnSize = maxLength;\n    char **ans = (char **)malloc(sizeof(char *) * maxLength);\n    memcpy(ans, array + startIndex, sizeof(char *) * maxLength);\n    return ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar findLongestSubarray = function(array) {\n    const indices = new Map();\n    indices.set(0, -1);\n    let sum = 0;\n    let maxLength = 0;\n    let startIndex = -1;\n    const n = array.length;\n    for (let i = 0; i < n; i++) {\n        if (isLetter(array[i][0])) {\n            sum++;\n        } else {\n            sum--;\n        }\n        if (indices.has(sum)) {\n            const firstIndex = indices.get(sum);\n            if (i - firstIndex > maxLength) {\n                maxLength = i - firstIndex;\n                startIndex = firstIndex + 1;\n            }\n        } else {\n            indices.set(sum, i);\n        }\n    }\n    if (maxLength === 0) {\n        return [];\n    }\n    return [...array.slice(startIndex, startIndex + maxLength)];\n};\n\nconst isLetter = (ch) => {\n    return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z';\n}\n```\n\n```go [sol1-Golang]\nfunc findLongestSubarray(array []string) []string {\n    indices := map[int]int{}\n    sum := 0\n    startIndex := -1\n    maxLength := 0\n    indices[0] = -1\n    for i, s := range array {\n        if s[0] >= '0' && s[0] <= '9' {\n            sum++\n        } else {\n            sum--\n        }\n        if firstIndex, ok := indices[sum]; ok {\n            if i-firstIndex > maxLength {\n                maxLength = i - firstIndex\n                startIndex = firstIndex + 1\n            }\n        } else {\n            indices[sum] = i\n        }\n    }\n    if maxLength == 0 {\n        return []string{}\n    }\n    return array[startIndex : startIndex+maxLength]\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 是数组的长度。需要遍历数组一次计算符合要求的最长子数组的长度与开始下标，对于数组中的每个元素的操作时间都是 $O(1)$，因此遍历时间是 $O(n)$，生成结果数组需要 $O(n)$ 的时间。\n\n- 空间复杂度：$O(n)$，其中 $n$ 是数组的长度。哈希表需要 $O(n)$ 的空间。注意返回值不计入空间复杂度。",
+            "slateValue": "",
+            "slug": "zi-mu-yu-shu-zi-by-leetcode-solution-ezf4",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "SOSWPy",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 30,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Prefix Sum",
+                    "nameTranslated": "前缀和",
+                    "slug": "prefix-sum",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-03-10T03:38:32.819706+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：转换 + 前缀和 一个子数组包含的字母和数字的个数相同，等价于该子数组包含的字母和数字的个数之差为 $0$。因此可以将原数组做转换，每个字母对应 $1$，每个数字对应 $-1$，则转换后的数组中，每个子数组的元素和为该子数组对应的原始子数组的字母和数字的个数之差，如果转换后数组中的一个子数组的元素和为 $0$，",
+            "topic": {
+                "id": 2159214,
+                "subscribed": false,
+                "commentCount": 61,
+                "viewCount": 1158,
+                "post": {
+                    "id": 4109384,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 42,
+            "isEditorsPick": false,
+            "hitCount": 19763,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "find-longest-subarray-lcci",
+                "questionFrontendId": "面试题 17.05"
+            },
+            "next": {
+                "slug": "tao-lu-qian-zhui-he-ha-xi-biao-xiao-chu-3mb11",
+                "title": "【套路】前缀和+哈希表，消除分支的技巧（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

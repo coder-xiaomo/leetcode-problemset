@@ -1,0 +1,150 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "Qir1qi",
+            "title": "公司命名",
+            "content": "#### 方法一：按照首字母进行分组\n\n**思路与算法**\n\n为了方便叙述，我们称数组 $\\textit{idea}$ 中的字符串为「候选名字」，需要求解数目的名字为「公司名字」。\n\n我们选择两个候选名字 $\\textit{idea}_A$ 和 $\\textit{idea}_B$，交换它们的首字母，如果得到的两个新的字符串都没有在数组 $\\textit{idea}$ 中出现过，那么它们的拼接就是一个有效的公司名字。\n\n基于上述的交换流程，我们可以考虑将所有的候选名字按照首字母进行分组，这样一来：\n\n- 如果两个候选名字拥有同样的首字母，那么它们一定无法得到有效的公司名字；\n- 如果两个候选名字拥有不同的首字母，那么它们有可能得到有效的公司名字。\n\n我们用哈希映射 $\\textit{names}$ 存储所有的候选名字，它的键是首字母，值是去除首字母后，每个候选名字的剩余部分。因此，我们可以枚举两个不同的首字母 $\\textit{pre}_A$ 和 $\\textit{pre}_B$，计算以它们为首字母的有效的公司名字数量：\n\n- 考虑两个候选名字 $\\textit{idea}_A = (\\textit{pre}_A, \\textit{suf}_A)$ 和 $\\textit{idea}_B = (\\textit{pre}_B, \\textit{suf}_B)$，交换后会得到 $(\\textit{pre}_B, \\textit{suf}_A)$ 和 $(\\textit{pre}_A, \\textit{suf}_B)$。也就是说，只要 $\\textit{suf}_A$ 不在 $\\textit{names}[\\textit{pre}_B]$ 中出现，以及 $\\textit{suf}_B$ 不在 $\\textit{names}[\\textit{pre}_A]$ 中出现即可。\n\n- 而「$\\textit{suf}_A$ 不在 $\\textit{names}[\\textit{pre}_B]$ 中出现」的部分，就是 $\\textit{names}[\\textit{pre}_A]$ 与 $\\textit{names}[\\textit{pre}_B]$ 的差集；\n\n- 同理，「$\\textit{suf}_B$ 不在 $\\textit{names}[\\textit{pre}_A]$ 中出现」的部分，就是 $\\textit{names}[\\textit{pre}_B]$ 与 $\\textit{names}[\\textit{pre}_A]$ 的差集。这两部分是对称的；\n\n- 因此，首字母 $\\textit{pre}_A$ 和 $\\textit{pre}_B$ 对应的有效的公司名字数量，就是：\n    $$\n    \\big|\\textit{names}[\\textit{pre}_A] - \\textit{names}[\\textit{pre}_B]\\big| \\times \\big|\\textit{names}[\\textit{pre}_B] - \\textit{names}[\\textit{pre}_A]\\big| \\tag{1}\n    $$\n    其中 $| \\cdot |$ 表示集合大小，$-$ 表示集合的差集运算。\n\n枚举所有不同的 $\\textit{pre}_A$ 和 $\\textit{pre}_B$，即可得到最终的答案。\n\n**细节**\n\n在 $(1)$ 中需要计算两次集合的差集，但实际上我们只需要知道差集的**大小**而不是**差集本身**。对于集合 $A, B$，有 $A - B = A \\backslash (A \\cap B)$，其中 $\\backslash$ 表示将元素去除，$\\cap$ 表示集合的交集运算。因此，我们只需要计算一次集合的交集即可，通过 $|A| - |A \\cap B|$ 以及 $|B| - |A \\cap B|$ 即可快速得到两个差集的大小。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    long long distinctNames(vector<string>& ideas) {\n        unordered_map<char, unordered_set<string>> names;\n        for (const string& idea: ideas) {\n            names[idea[0]].insert(idea.substr(1, idea.size() - 1));\n        }\n\n        auto get_intersect_size = [](const unordered_set<string>& a, const unordered_set<string>& b) -> size_t {\n            size_t ans = 0;\n            for (const string& s: a) {\n                if (b.count(s)) {\n                    ++ans;\n                }\n            }\n            return ans;\n        };\n\n        long long ans = 0;\n        for (auto&& [pre_a, set_a]: names) {\n            for (auto&& [pre_b, set_b]: names) {\n                if (pre_a == pre_b) {\n                    continue;\n                }\n                int intersect = get_intersect_size(set_a, set_b);\n                ans += static_cast<long long>(set_a.size() - intersect) * (set_b.size() - intersect);\n            }\n        }\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public long distinctNames(String[] ideas) {\n        Map<Character, Set<String>> names = new HashMap<Character, Set<String>>();\n        for (String idea : ideas) {\n            names.putIfAbsent(idea.charAt(0), new HashSet<String>());\n            names.get(idea.charAt(0)).add(idea.substring(1));\n        }\n        long ans = 0;\n        for (Map.Entry<Character, Set<String>> entryA : names.entrySet()) {\n            char preA = entryA.getKey();\n            Set<String> setA = entryA.getValue();\n            for (Map.Entry<Character, Set<String>> entryB : names.entrySet()) {\n                char preB = entryB.getKey();\n                Set<String> setB = entryB.getValue();\n                if (preA == preB) {\n                    continue;\n                }\n                int intersect = getIntersectSize(setA, setB);\n                ans += (long) (setA.size() - intersect) * (setB.size() - intersect);\n            }\n        }\n        return ans;\n    }\n\n    public int getIntersectSize(Set<String> a, Set<String> b) {\n        int ans = 0;\n        for (String s : a) {\n            if (b.contains(s)) {\n                ans++;\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public long DistinctNames(string[] ideas) {\n        IDictionary<char, ISet<string>> names = new Dictionary<char, ISet<string>>();\n        foreach (string idea in ideas) {\n            names.TryAdd(idea[0], new HashSet<string>());\n            names[idea[0]].Add(idea.Substring(1));\n        }\n        long ans = 0;\n        foreach (KeyValuePair<char, ISet<string>> pairA in names) {\n            char preA = pairA.Key;\n            ISet<string> setA = pairA.Value;\n            foreach (KeyValuePair<char, ISet<string>> pairB in names) {\n                char preB = pairB.Key;\n                ISet<string> setB = pairB.Value;\n                if (preA == preB) {\n                    continue;\n                }\n                int intersect = GetIntersectSize(setA, setB);\n                ans += (long) (setA.Count - intersect) * (setB.Count - intersect);\n            }\n        }\n        return ans;\n    }\n\n    public int GetIntersectSize(ISet<string> a, ISet<string> b) {\n        int ans = 0;\n        foreach (string s in a) {\n            if (b.Contains(s)) {\n                ans++;\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def distinctNames(self, ideas: List[str]) -> int:\n        names = defaultdict(set)\n        for idea in ideas:\n            names[idea[0]].add(idea[1:])\n        \n        ans = 0\n        for pre_a, set_a in names.items():\n            for pre_b, set_b in names.items():\n                if pre_a == pre_b:\n                    continue\n                intersect = len(set_a & set_b)\n                ans += (len(set_a) - intersect) * (len(set_b) - intersect)\n        return ans\n```\n\n```Go [sol1-Go]\nfunc distinctNames(ideas []string) int64 {\n    names := make(map[byte]map[string]struct{})\n\tfor _, idea := range ideas {\n\t\tif _, exists := names[idea[0]]; !exists {\n\t\t\tnames[idea[0]] = make(map[string]struct{})\n\t\t}\n\t\tnames[idea[0]][idea[1:]] = struct{}{}\n\t}\n\n\tgetIntersectSize := func(a, b map[string]struct{}) int {\n\t\tcount := 0\n\t\tfor key := range a {\n\t\t\tif _, found := b[key]; found {\n\t\t\t\tcount++\n\t\t\t}\n\t\t}\n\t\treturn count\n\t}\n\n\tvar ans int64 = 0\n\tfor preA, setA := range names {\n\t\tfor preB, setB := range names {\n\t\t\tif preA == preB {\n\t\t\t\tcontinue\n\t\t\t}\n\t\t\tintersect := getIntersectSize(setA, setB)\n\t\t\tans += int64(len(setA) - intersect) * int64(len(setB) - intersect)\n\t\t}\n\t}\n\treturn ans\n}\n```\n\n```C [sol1-C]\n#define MAX_STR_SIZE 16\n\ntypedef struct {\n    char key[MAX_STR_SIZE];\n    UT_hash_handle hh;\n} HashItem; \n\nHashItem *hashFindItem(HashItem **obj, const char* key) {\n    HashItem *pEntry = NULL;\n    HASH_FIND_STR(*obj, key, pEntry);\n    return pEntry;\n}\n\nbool hashAddItem(HashItem **obj, const char* key) {\n    if (hashFindItem(obj, key)) {\n        return false;\n    }\n    HashItem *pEntry = (HashItem *)malloc(sizeof(HashItem));\n    sprintf(pEntry->key, \"%s\", key);\n    HASH_ADD_STR(*obj, key, pEntry);\n    return true;\n}\n\nvoid hashFree(HashItem **obj) {\n    HashItem *curr = NULL, *tmp = NULL;\n    HASH_ITER(hh, *obj, curr, tmp) {\n        HASH_DEL(*obj, curr);  \n        free(curr);\n    }\n}\n\nsize_t get_intersect_size(const HashItem *a,  const HashItem *b) {\n    size_t ans = 0;\n    for (HashItem *pEntry = a; pEntry; pEntry = pEntry->hh.next) {\n        if (hashFindItem(&b, pEntry->key)) {\n            ++ans;\n        }\n    }\n    return ans;\n}\n\nlong long distinctNames(char** ideas, int ideasSize) {\n    HashItem *names[26] = {NULL};\n    for (int i = 0; i < ideasSize; i++) {\n        hashAddItem(&names[ideas[i][0] - 'a'], ideas[i] + 1);\n    }\n\n    long long ans = 0;\n    for (int i = 0; i < 26; i++) {\n        if (names[i] == NULL) {\n            continue;\n        }\n        int lenA = HASH_COUNT(names[i]);\n        for (int j = i + 1; j < 26; j++) {\n            if (names[j] == NULL) {\n                continue;\n            }\n            int lenB = HASH_COUNT(names[j]);           \n            int intersect = get_intersect_size(names[i], names[j]);\n            ans += 2 * (lenA - intersect) * (lenB - intersect);\n        }\n    }\n    for (int i = 0; i < 26; i++) {\n        hashFree(&names[i]);\n    }\n    return ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar distinctNames = function(ideas) {\n    const names = new Map();\n    \n    for (const idea of ideas) {\n        const suffix = idea.slice(1);\n        if (!names.has(idea[0])) {\n            names.set(idea[0], new Set());\n        }\n        names.get(idea[0]).add(suffix);\n    }\n\n    const getIntersectSize = (a, b) => {\n        let count = 0;\n        for (const s of a) {\n            if (b.has(s)) count++;\n        }\n        return count;\n    };\n\n    let ans = 0;\n    for (const [preA, setA] of names) {\n        for (const [preB, setB] of names) {\n            if (preA === preB) continue;\n            const intersect = getIntersectSize(setA, setB);\n            ans += (setA.size - intersect) * (setB.size - intersect);\n        }\n    }\n    return ans;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction distinctNames(ideas: string[]): number {\n    const names = new Map<string, Set<string>>();\n    for (const idea of ideas) {\n        if (!names.has(idea[0])) {\n            names.set(idea[0], new Set());\n        }\n        names.get(idea[0])!.add(idea.slice(1));\n    }\n\n    const getIntersectSize = (a: Set<string>, b: Set<string>): number => {\n        let count = 0;\n        for (const s of a) {\n            if (b.has(s)) count++;\n        }\n        return count;\n    };\n\n    let ans = 0;\n    for (const [preA, setA] of names) {\n        for (const [preB, setB] of names) {\n            if (preA === preB) continue;\n            const intersect = getIntersectSize(setA, setB);\n            ans += (setA.size - intersect) * (setB.size - intersect);\n        }\n    }\n    return ans;\n};\n```\n\n```Rust [sol1-Rust]\nuse std::collections::{HashMap, HashSet};\n\nimpl Solution {\n    pub fn distinct_names(ideas: Vec<String>) -> i64 {\n        let mut names: HashMap<char, HashSet<String>> = HashMap::new();\n\n        for idea in ideas.iter() {\n            let first_char = idea.chars().next().unwrap();\n            let suffix = idea[1..].to_string();\n            names.entry(first_char).or_insert_with(HashSet::new).insert(suffix);\n        }\n\n        let get_intersect_size = |a: &HashSet<String>, b: &HashSet<String>| -> usize {\n            a.intersection(b).count()\n        };\n\n        let mut ans: i64 = 0;\n        for (pre_a, set_a) in names.iter() {\n            for (pre_b, set_b) in names.iter() {\n                if pre_a == pre_b {\n                    continue;\n                }\n                let intersect = get_intersect_size(set_a, set_b);\n                ans += (set_a.len() - intersect) as i64 * (set_b.len() - intersect) as i64;\n            }\n        }\n        ans\n    }\n}\n```\n\n```Cangjie [sol1-Cangjie]\nimport std.collection.*\n\nclass Solution {\n    func distinctNames(ideas: Array<String>): Int64 {\n        let names = HashMap<Byte, HashSet<String>>()\n        for (idea in ideas) {\n            let tmp = HashSet<String>(idea[1..])\n            if (names.contains(idea[0])) {\n                names[idea[0]].put(idea[1..])\n            }else{\n                names.put(idea[0], tmp)\n            }\n        }\n        var ans:Int64 = 0\n        for (entryA in names) {\n            let preA = entryA[0]\n            let setA:HashSet<String> = entryA[1]\n            for (entryB in names) {\n                let preB = entryB[0]\n                let setB:HashSet<String> = entryB[1]\n                if (preA == preB) {\n                    continue\n                }\n                let intersect = getIntersectSize(setA, setB)\n                ans += (setA.size - intersect) * (setB.size - intersect)\n            }\n        }\n        return ans\n    }\n    \n    func getIntersectSize(a: HashSet<String>, b: HashSet<String>): Int {\n        var ans = 0\n        for (s in a) {\n            if (b.contains(s)) {\n                ans++\n            }\n        }\n        return ans\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(nl|\\Sigma|)$，其中 $n$ 是数组 $\\textit{ideas}$ 的长度，$l$ 是候选名字的平均长度，$|\\Sigma|$ 是字符集，本题字符集为小写字母，$|\\Sigma| = 26$。构造哈希表需要的时间为 $O(nl)$；枚举的时间复杂度计算如下：\n    - 枚举 $\\textit{pre}_a$ 的时间为 $O(|\\Sigma|)$；\n    - 内层枚举 $\\textit{pre}_b$ 以及计算交集的部分，会遍历 $\\textit{names}[\\textit{pre}_A]$ 一共 $|\\textit{names}| - 1$ 次，剩余的每个 $\\textit{names}[\\textit{pre}_b]$ 各 $1$ 次；\n    - 因此总计下来，哈希表 $\\textit{names}$ 中的每个值都遍历了 $2(|\\textit{names}|-1)$ 次，也就是所有候选名字都被遍历了 $2(|\\textit{names}| - 1)$ 次。哈希表的大小不会超过 $|\\Sigma|$，即 $|\\textit{names}| \\leq |\\Sigma|$就可以得到这部分的时间复杂度为 $O(nl|\\Sigma|)$。\n\n- 空间复杂度：$O(nl)$，即为哈希表需要使用的空间。哈希表本质上存储了数组 $\\textit{ideas}$ 中所有候选名字除去首字符的部分，空间为 $O(n(l-1)) = O(nl)$，与 $\\Sigma$ 无关。",
+            "slateValue": "",
+            "slug": "gong-si-ming-ming-by-leetcode-solution-v1s3",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "Qir1qi",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 17,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Cangjie",
+                    "nameTranslated": "",
+                    "slug": "cangjie",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2024-09-21T03:05:05.959968+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：按照首字母进行分组 思路与算法 为了方便叙述，我们称数组 [latex] 中的字符串为「候选名字」，需要求解数目的名字为「公司名字」。 我们选择两个候选名字 [latex] 和 [latex]，交换它们的首字母，如果得到的两个新的字符串都没有在数组 [latex] 中出现过，那么它们的拼接就是一个有效的公司名字",
+            "topic": {
+                "id": 2924661,
+                "subscribed": false,
+                "commentCount": 19,
+                "viewCount": 855,
+                "post": {
+                    "id": 5312024,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 26,
+            "isEditorsPick": false,
+            "hitCount": 11051,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "naming-a-company",
+                "questionFrontendId": "2306"
+            },
+            "next": {
+                "slug": "by-endlesscheng-ruz8",
+                "title": "两种方法：按照首字母分组/按照后缀分组（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

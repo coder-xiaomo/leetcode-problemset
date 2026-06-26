@@ -1,0 +1,136 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "vaIs7k",
+            "title": "皇位继承顺序",
+            "content": "#### 方法一：多叉树的前序遍历\n\n**思路与算法**\n\n我们可以发现，题目中定义的 $\\texttt{Successor(x, curOrder)}$ 函数，与多叉树的前序遍历过程是一致的：\n\n- 「返回 $\\texttt{x}$ 不在 $\\texttt{curOrder}$ 中最年长的孩子」对应着选择 $\\texttt{x}$ 在树中的一个子节点，递归地进行遍历操作；\n\n- 「返回 $\\texttt{Successor(x} ~的父亲\\texttt{, curOrder)}$」对应着当我们将以 $\\texttt{x}$ 为根的子树遍历完成后，回溯到 $\\texttt{x}$ 的父节点继续进行遍历；\n\n- 「返回 $\\texttt{null}$」对应着我们将整棵树遍历完成。\n\n因此，对于题目中需要实现的每一个函数，我们可以分别设计出如下的算法：\n\n- $\\texttt{ThroneInheritance(kingName)}$：我们将 $\\texttt{kingName}$ 作为树的根节点；\n\n- $\\texttt{birth(parentName, childName)}$：我们在树中添加一条从 $\\texttt{parentName}$ 到 $\\texttt{childName}$ 的边，将 $\\texttt{childName}$ 作为 $\\texttt{parentName}$ 的子节点；\n\n- $\\texttt{death(name)}$：我们使用一个哈希集合记录所有的死亡人员，将 $\\texttt{name}$ 加入该哈希集合中；\n\n- $\\texttt{getInheritanceOrder()}$：我们从根节点开始对整棵树进行前序遍历。需要注意的是，**如果遍历到死亡人员，那么不能将其加入继承顺序列表中**。\n\n**细节**\n\n那么我们如何存储这棵树呢？\n\n一种可行的方法是使用哈希映射。记哈希映射为 $\\textit{edges}$，那么对于 $\\textit{edges}$ 中的每一个键值对 $(k, v)$，键 $k$ 表示一个人，值 $v$ 以列表的形式存放了这个人所有的孩子，列表可以为空。\n\n这样一来，对于 $\\texttt{birth(parentName, childName)}$ 操作，我们只需要将 $\\texttt{childName}$ 加入 $\\texttt{parentName}$ 在哈希映射中的列表末尾即可。\n\n**代码**\n\n```C++ [sol1-C++]\nclass ThroneInheritance {\nprivate:\n    unordered_map<string, vector<string>> edges;\n    unordered_set<string> dead;\n    string king;\n\npublic:\n    ThroneInheritance(string kingName): king{move(kingName)} {}\n    \n    void birth(string parentName, string childName) {\n        edges[move(parentName)].push_back(move(childName));\n    }\n    \n    void death(string name) {\n        dead.insert(move(name));\n    }\n    \n    vector<string> getInheritanceOrder() {\n        vector<string> ans;\n\n        function<void(const string&)> preorder = [&](const string& name) {\n            if (!dead.count(name)) {\n                ans.push_back(name);\n            }\n            if (edges.count(name)) {\n                for (const string& childName: edges[name]) {\n                    preorder(childName);\n                }\n            }\n        };\n\n        preorder(king);\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass ThroneInheritance {\n    Map<String, List<String>> edges;\n    Set<String> dead;\n    String king;\n\n    public ThroneInheritance(String kingName) {\n        edges = new HashMap<String, List<String>>();\n        dead = new HashSet<String>();\n        king = kingName;\n    }\n    \n    public void birth(String parentName, String childName) {\n        List<String> children = edges.getOrDefault(parentName, new ArrayList<String>());\n        children.add(childName);\n        edges.put(parentName, children);\n    }\n    \n    public void death(String name) {\n        dead.add(name);\n    }\n    \n    public List<String> getInheritanceOrder() {\n        List<String> ans = new ArrayList<String>();\n        preorder(ans, king);\n        return ans;\n    }\n\n    private void preorder(List<String> ans, String name) {\n        if (!dead.contains(name)) {\n            ans.add(name);\n        }\n        List<String> children = edges.getOrDefault(name, new ArrayList<String>());\n        for (String childName : children) {\n            preorder(ans, childName);\n        }\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class ThroneInheritance {\n    Dictionary<string, IList<string>> edges;\n    ISet<string> dead;\n    string king;\n\n    public ThroneInheritance(string kingName) {\n        edges = new Dictionary<string, IList<string>>();\n        dead = new HashSet<string>();\n        king = kingName;\n    }\n    \n    public void Birth(string parentName, string childName) {\n        IList<string> children;\n        if (edges.TryGetValue(parentName, out children)) {\n            children.Add(childName);\n            edges[parentName] = children;\n        } else {\n            children = new List<string>();\n            children.Add(childName);\n            edges.Add(parentName, children);\n        }\n    }\n    \n    public void Death(string name) {\n        dead.Add(name);\n    }\n    \n    public IList<string> GetInheritanceOrder() {\n        IList<string> ans = new List<string>();\n        Preorder(ans, king);\n        return ans;\n    }\n\n    private void Preorder(IList<string> ans, string name) {\n        if (!dead.Contains(name)) {\n            ans.Add(name);\n        }\n        IList<string> children = edges.TryGetValue(name, out children) ? children : new List<string>();\n        foreach (string childName in children) {\n            Preorder(ans, childName);\n        }\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass ThroneInheritance:\n\n    def __init__(self, kingName: str):\n        self.edges = defaultdict(list)\n        self.dead = set()\n        self.king = kingName\n\n    def birth(self, parentName: str, childName: str) -> None:\n        self.edges[parentName].append(childName)\n\n    def death(self, name: str) -> None:\n        self.dead.add(name)\n\n    def getInheritanceOrder(self) -> List[str]:\n        ans = list()\n\n        def preorder(name: str) -> None:\n            if name not in self.dead:\n                ans.append(name)\n            if name in self.edges:\n                for childName in self.edges[name]:\n                    preorder(childName)\n\n        preorder(self.king)\n        return ans\n```\n\n```JavaScript [sol1-JavaScript]\nvar ThroneInheritance = function(kingName) {\n    this.edges = new Map();\n    this.dead = new Set();\n    this.king = kingName;\n};\n\nThroneInheritance.prototype.birth = function(parentName, childName) {\n    if (!this.edges.has(parentName)) {\n        this.edges.set(parentName, []);\n    }\n    this.edges.get(parentName).push(childName);\n};\n\nThroneInheritance.prototype.death = function(name) {\n    this.dead.add(name);\n};\n\nThroneInheritance.prototype.getInheritanceOrder = function() {\n    const ans = [];\n\n    const preorder = (name) => {\n        if (!this.dead.has(name)) {\n            ans.push(name);\n        }\n        if (this.edges.has(name)) {\n            for (const childName of this.edges.get(name)) {\n                preorder(childName);\n            }\n        }\n    }\n\n    preorder(this.king);\n    return ans;\n};\n```\n\n```go [sol1-Golang]\ntype ThroneInheritance struct {\n    king  string\n    edges map[string][]string\n    dead  map[string]bool\n}\n\nfunc Constructor(kingName string) (t ThroneInheritance) {\n    return ThroneInheritance{kingName, map[string][]string{}, map[string]bool{}}\n}\n\nfunc (t *ThroneInheritance) Birth(parentName, childName string) {\n    t.edges[parentName] = append(t.edges[parentName], childName)\n}\n\nfunc (t *ThroneInheritance) Death(name string) {\n    t.dead[name] = true\n}\n\nfunc (t *ThroneInheritance) GetInheritanceOrder() (ans []string) {\n    var preorder func(string)\n    preorder = func(name string) {\n        if !t.dead[name] {\n            ans = append(ans, name)\n        }\n        for _, childName := range t.edges[name] {\n            preorder(childName)\n        }\n    }\n    preorder(t.king)\n    return\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：\n\n    - $\\texttt{ThroneInheritance(kingName)}$：$O(1)$；\n\n    - $\\texttt{birth(parentName, childName)}$：$O(1)$；\n\n    - $\\texttt{death(name)}$：$O(1)$；\n\n    - $\\texttt{getInheritanceOrder()}$：$O(n)$，其中 $n$ 是当前树中的总人数。我们需要对整棵树进行一次前序遍历，时间复杂度为 $O(n)$。\n\n- 空间复杂度：\n\n    - $n$ 个节点的树包含 $n-1$ 条边，因此我们需要 $O(n)$ 的空间（即哈希映射 $\\textit{edges}$）存储整棵树；\n\n    - 我们需要 $O(n)$ 的空间（即哈希集合）存储所有的死亡人员；\n\n    - 在 $\\texttt{getInheritanceOrder()}$ 中前序遍历的过程中，我们使用的是递归，需要一定的栈空间，栈空间的大小与树的高度成正比。由于树的高度不会超过树中的节点个数，因此栈空间最多为 $O(n)$。\n\n在上述的时空复杂度分析中，我们默认了所有字符串（即人名）的操作时间以及存储空间都是 $O(1)$ 的。如果读者希望将字符串的长度也看作变量，那么只需要将除了栈空间以外的所有项由 $O(1)/O(n)$ 变为 $O(l)/O(nl)$ 即可，其中 $l$ 是字符串的最大长度。",
+            "slateValue": "",
+            "slug": "huang-wei-ji-cheng-shun-xu-by-leetcode-s-p6lk",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "vaIs7k",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 42,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Tree",
+                    "nameTranslated": "树",
+                    "slug": "tree",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Depth-First Search",
+                    "nameTranslated": "深度优先搜索",
+                    "slug": "depth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Design",
+                    "nameTranslated": "设计",
+                    "slug": "design",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2021-06-19T15:15:19.310134+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：多叉树的前序遍历 思路与算法 我们可以发现，题目中定义的 $\\texttt{Successor(x, curOrder)}$ 函数，与多叉树的前序遍历过程是一致的： 「返回 $\\texttt{x}$ 不在 $\\texttt{curOrder}$ 中最年长的孩子」对应着选择 $\\texttt{x}$ 在树中的一个",
+            "topic": {
+                "id": 835863,
+                "subscribed": false,
+                "commentCount": 148,
+                "viewCount": 12755,
+                "post": {
+                    "id": 1828121,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 47,
+            "isEditorsPick": false,
+            "hitCount": 30506,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "throne-inheritance",
+                "questionFrontendId": "1600"
+            },
+            "next": {
+                "slug": "python3javacgotypescript-yi-ti-yi-jie-du-bm16",
+                "title": "[Python3/Java/C++/Go/TypeScript] 一题一解：多叉树的前序遍历（清晰题解）"
+            },
+            "prev": null
+        }
+    }
+}

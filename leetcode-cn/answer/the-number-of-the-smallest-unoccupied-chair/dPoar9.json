@@ -1,0 +1,102 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "dPoar9",
+            "title": "最小未被占据椅子的编号",
+            "content": "#### 方法一：最小堆 + 哈希表\n\n**思路与算法**\n\n对于每一个人，它会在两个时刻影响椅子占据与否的状态：\n\n- 在他到达时，他会选择占据编号最小的未被占据的椅子；\n\n- 在他离开时，他会释放之前占据的椅子。\n\n这两种情况分别对应以下操作：\n\n- 查询当前未被占据的编号**最小**的椅子，并将该椅子移出未被占据椅子的集合；\n\n- 查询某个人当前占据的椅子编号，并将该椅子加入未被占据的椅子中。\n\n那么，我们需要用一个数据结构来维护未被占据的椅子，且该数据结构需要在较低的时间复杂度内实现「查询并弹出最小值」与「插入元素」操作。我们可以用一个**最小堆**实现的优先队列来维护，假设堆的大小为 $n$，那么它可以做到在 $O(\\log n)$ 的时间复杂内完成「查询并弹出最小值」与「插入元素」操作。\n\n另外，考虑到每个人到达时都会占据当前未被占据且编号最小的椅子，那么假设总人数为 $n$，当所有人都落座时，被占据的椅子编号为 $[0, n - 1]$ 内的整数。因此，我们只需要考虑**前 $n$ 把椅子**即可。\n\n同时，我们还需要用另一个数据结构维护每个人当前占据的椅子。我们可以用**哈希表**来实现，其中人的编号为哈希表的键，对应的椅子为哈希表的值。这样我们就可以在 $O(1)$ 的时间复杂度下查询到每个人当前占据的椅子。\n\n我们需要将每个人的到达与离开操作按照时间排序以进行模拟。为了方便模拟，除了上文提及的两个数据结构外，我们可以用 $\\textit{arrival}$ 与 $\\textit{leaving}$ 两个数组**分别**记录每个人的到达与离开操作，数组的每个元素由操作时间和对应人的编号组成。同时，我们还需要将这两个数组按照时间升序排序。\n\n在模拟之前，最小堆内应包含 $[0, n - 1]$ 内的所有整数，以代表所有椅子都未被占据。模拟过程中，由于涉及到两个数组，我们可以使用双指针的方法保证模拟的时序：遍历排序后的 $\\textit{arrival}$ 数组，并用另一个指针相应地遍历 $\\textit{leaving}$ 数组。每当一个人新到达时，我们需要移动 $\\textit{leaving}$ 数组对应的指针，使得在到达时间及之前的离开操作都被处理。处理离开操作时，我们通过哈希表查询到操作执行人对应的椅子，并将其加入未被占据椅子的最小堆。随后，我们再处理到达操作，首先从最小堆中查询并弹出最小值，同时将人和椅子的键值对放入哈希表中。随后我们判断操作执行人是否为目标，如果是，则返回对应的椅子作为答案。\n\n最后注意到每个人只会到达和离开一次，因此我们不需要在每个人离开时删除哈希表中对应的键值对。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int smallestChair(vector<vector<int>>& times, int targetFriend) {\n        int n = times.size();\n        vector<pair<int, int>> arrival;   // 到达操作的时刻和对应的人\n        vector<pair<int, int>> leaving;   // 离开操作的时刻和对应的人\n        for (int i = 0; i < n; ++i){\n            arrival.emplace_back(times[i][0], i);\n            leaving.emplace_back(times[i][1], i);\n        }\n        // 将到达与离开操作按照时间升序排序以方便模拟\n        sort(arrival.begin(), arrival.end());\n        sort(leaving.begin(), leaving.end());\n        priority_queue<int, vector<int>, greater<int>> available;   // 未被占据的椅子\n        for (int i = 0; i < n; ++i){\n            available.push(i);\n        }\n        unordered_map<int, int> seats;   // 每个人占据的椅子\n        // 双指针模拟\n        int j = 0;\n        for (auto&& [time, person] : arrival){\n            // 处理到达时间与之前的离开操作\n            // 将释放的椅子加入未被占据椅子中\n            while (j < n && leaving[j].first <= time){\n                available.push(seats[leaving[j].second]);\n                ++j;\n            }\n            // 处理到达操作\n            // 占据当前编号最小且未被占据的椅子\n            int seat = available.top();\n            seats[person] = seat;\n            available.pop();\n            if (person == targetFriend){\n                // 如果当前人为目标，则返回对应的椅子\n                return seat;\n            }\n        }\n        return -1;\n    }\n};\n```\n\n```Python [sol1-Python3]\nfrom heapq import heappop, heappush\n\nclass Solution:\n    def smallestChair(self, times: List[List[int]], targetFriend: int) -> int:\n        n = len(times)\n        arrival = []   # 到达操作的时刻和对应的人\n        leaving = []   # 离开操作的时刻和对应的人\n        for i in range(n):\n            arrival.append((times[i][0], i))\n            leaving.append((times[i][1], i))\n        # 将到达与离开操作按照时间升序排序以方便模拟\n        arrival.sort()\n        leaving.sort()\n        available = list(range(n))   # 未被占据的椅子\n        seats = {}   # 每个人占据的椅子\n        # 双指针模拟\n        j = 0\n        for time, person in arrival:\n            # 处理到达时间与之前的离开操作\n            # 将释放的椅子加入未被占据椅子中\n            while j < n and leaving[j][0] <= time:\n                heappush(available, seats[leaving[j][1]])\n                j += 1\n            # 处理到达操作\n            # 占据当前编号最小且未被占据的椅子\n            seat = heappop(available)\n            seats[person] = seat\n            if person == targetFriend:\n                # 如果当前人为目标，则返回对应的椅子\n                return seat\n        return -1\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n\\log n)$，其中 $n$ 为 $\\textit{times}$ 的长度。其中，预处理数据结构的时间复杂度为 $O(n\\log n)$，单次处理到达操作与离开操作的时间复杂度均为 $O(\\log n)$，而我们最多会处理 $n$ 次到达与离开操作。\n\n- 空间复杂度：$O(n)$。两个数组、最小堆、哈希表的空间开销均为 $O(n)$。",
+            "slateValue": "",
+            "slug": "zui-xiao-wei-bei-zhan-ju-yi-zi-de-bian-h-kz2d",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "dPoar9",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 5,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Heap (Priority Queue)",
+                    "nameTranslated": "堆（优先队列）",
+                    "slug": "heap-priority-queue",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2021-07-25T05:53:25.716508+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：最小堆 + 哈希表 思路与算法 对于每一个人，它会在两个时刻影响椅子占据与否的状态： 在他到达时，他会选择占据编号最小的未被占据的椅子； 在他离开时，他会释放之前占据的椅子。 这两种情况分别对应以下操作： 查询当前未被占据的编号最小的椅子，并将该椅子移出未被占据椅子的集合； 查询某个人当前占据的椅子编号，并将该",
+            "topic": {
+                "id": 895434,
+                "subscribed": false,
+                "commentCount": 18,
+                "viewCount": 2676,
+                "post": {
+                    "id": 1941182,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 20,
+            "isEditorsPick": false,
+            "hitCount": 8391,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "the-number-of-the-smallest-unoccupied-chair",
+                "questionFrontendId": "1942"
+            },
+            "next": {
+                "slug": "shuang-dui-chu-li-by-wenren7270-p6l4",
+                "title": "【双堆处理】"
+            },
+            "prev": null
+        }
+    }
+}

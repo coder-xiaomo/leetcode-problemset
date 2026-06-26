@@ -1,0 +1,139 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "MPKO2G",
+            "title": "子集中元素的最大数量",
+            "content": "#### 方法一：哈希表 + 枚举\n\n**思路与算法**\n\n题目要求我们在给定的数组中寻找一个元素尽可能多的“山峰子数组”，其遵循先递增后递减的规律，递增过程中下一个元素的次方数是前一个数的 $2$ 倍，递减过程中下一个元素的次方数是前一个数的 $\\frac{1}{2}$ 倍。\n\n由于递增的速度极快，在题目给定的范围下，该山峰子数组的最大长度很小。设给定数组的最大值为 $m$，选出的山峰子数组的第一个元素为 $x$，则其中的第 $p+1$ 个元素为 $x^{2^p}$。当 $x \\geq 2$ 时，有 $x^{2^p} \\leq m$，即 $p \\leq \\log \\log m$，$p$ 最多为 $4$。\n\n因此，我们可以枚举数组中的每一个数作为“山峰子数组”的起始元素 $x$，然后查看 $x^2$，$x^4$，$\\cdots$ 在数组中的数量是否大于等于 $2$。\n\n由于山顶的元素只有 $1$ 个，山峰子数组的长度总是奇数。在我们枚举完所有成对的元素后，如果存在单个的山顶元素，则总长度加 $1$，否则去掉一个成对元素作为山顶，总长度减 $1$。此外，还要特别考虑山峰子数组的所有元素均为 $1$ 的情况。\n\n**实现**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int maximumLength(vector<int>& nums) {\n        unordered_map<long long, int> cnt;\n        for (int num : nums) {\n            cnt[num]++;\n        }\n        int ans = 0;\n        // ans 至少是 1 的数量，向下取奇数\n        if (cnt[1] % 2 == 0) {\n            ans = cnt[1] - 1;\n        } else {\n            ans = cnt[1];\n        }\n        cnt.erase(1);\n        for (auto& [num, _] : cnt) {\n            int res = 0;\n            long long x = num;\n            for (; cnt.contains(x) && cnt[x] > 1; x *= x) {\n                res += 2;\n            }\n            ans = max(ans, res + (cnt.contains(x) ? 1 : -1));\n        }\n        return ans;\n    }\n};\n```\n\n```Python3 [sol1-Python3]\nclass Solution:\n    def maximumLength(self, nums: List[int]) -> int:\n        cnt = Counter(nums)\n\n        one_cnt = cnt.get(1, 0)\n\n        # ans 至少是 1 的数量，向下取奇数\n        ans = one_cnt if one_cnt % 2 else one_cnt - 1\n\n        cnt.pop(1, None)\n\n        for num in cnt:\n            res = 0\n            x = num\n            while x in cnt and cnt[x] > 1:\n                res += 2\n                x *= x\n            ans = max(ans, res + (1 if x in cnt else -1))\n\n        return ans\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int maximumLength(int[] nums) {\n        Map<Long, Integer> cnt = new HashMap<>();\n        for (int num : nums) {\n            cnt.merge((long) num, 1, Integer::sum);\n        }\n\n        int oneCnt = cnt.getOrDefault(1L, 0);\n        // ans 至少是 1 的数量，向下取奇数\n        int ans = (oneCnt & 1) == 1 ? oneCnt : oneCnt - 1;\n\n        cnt.remove(1L);\n\n        for (long num : cnt.keySet()) {\n            int res = 0;\n            long x = num;\n\n            while (cnt.containsKey(x) && cnt.get(x) > 1) {\n                res += 2;\n                x *= x;\n            }\n\n            ans = Math.max(ans, res + (cnt.containsKey(x) ? 1 : -1));\n        }\n\n        return ans;\n    }\n}\n```\n\n```Golang [sol1-Golang]\nfunc maximumLength(nums []int) int {\n\tcnt := map[int64]int{}\n\tfor _, num := range nums {\n\t\tcnt[int64(num)]++\n\t}\n\n    // ans 至少是 1 的数量，向下取奇数\n\toneCnt := cnt[1]\n\tans := oneCnt\n\tif oneCnt%2 == 0 {\n\t\tans--\n\t}\n\n\tdelete(cnt, 1)\n\n\tfor num := range cnt {\n\t\tres := 0\n\t\tx := num\n\n\t\tfor cnt[x] > 1 {\n\t\t\tres += 2\n\t\t\tx *= x\n\t\t}\n\n\t\tif _, ok := cnt[x]; ok {\n\t\t\tans = max(ans, res+1)\n\t\t} else {\n\t\t\tans = max(ans, res-1)\n\t\t}\n\t}\n\n\treturn ans\n}\n```\n\n```C [sol1-C]\ntypedef struct {\n    long long key;\n    int cnt;\n    UT_hash_handle hh;\n} HashNode;\n\nstatic HashNode* find(HashNode* map, long long key) {\n    HashNode* p;\n    HASH_FIND(hh, map, &key, sizeof(key), p);\n    return p;\n}\n\nint maximumLength(int* nums, int numsSize) {\n    HashNode* map = NULL;\n\n    for (int i = 0; i < numsSize; i++) {\n        long long key = nums[i];\n        HashNode* p = find(map, key);\n\n        if (p == NULL) {\n            p = malloc(sizeof(HashNode));\n            p->key = key;\n            p->cnt = 1;\n            HASH_ADD(hh, map, key, sizeof(key), p);\n        } else {\n            p->cnt++;\n        }\n    }\n\n    HashNode* p = find(map, 1);\n    // ans 至少是 1 的数量，向下取奇数\n    int oneCnt = p ? p->cnt : 0;\n    int ans = (oneCnt & 1) ? oneCnt : oneCnt - 1;\n\n    if (p) {\n        HASH_DEL(map, p);\n        free(p);\n    }\n\n    HashNode *cur, *tmp;\n    HASH_ITER(hh, map, cur, tmp) {\n        int res = 0;\n        long long x = cur->key;\n\n        while ((p = find(map, x)) && p->cnt > 1) {\n            res += 2;\n            x *= x;\n        }\n\n        int cand = res + (find(map, x) ? 1 : -1);\n        if (cand > ans) {\n            ans = cand;\n        }\n    }\n\n    HASH_ITER(hh, map, cur, tmp) {\n        HASH_DEL(map, cur);\n        free(cur);\n    }\n\n    return ans;\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MaximumLength(int[] nums) {\n        var cnt = new Dictionary<long, int>();\n\n        foreach (int num in nums) {\n            cnt.TryGetValue(num, out int c);\n            cnt[num] = c + 1;\n        }\n\n        // ans 至少是 1 的数量，向下取奇数\n        cnt.TryGetValue(1, out int oneCnt);\n        int ans = (oneCnt & 1) == 1 ? oneCnt : oneCnt - 1;\n\n        cnt.Remove(1);\n\n        foreach (long num in cnt.Keys) {\n            int res = 0;\n            long x = num;\n\n            while (cnt.TryGetValue(x, out int c) && c > 1) {\n                res += 2;\n                x *= x;\n            }\n\n            ans = Math.Max(ans, res + (cnt.ContainsKey(x) ? 1 : -1));\n        }\n\n        return ans;\n    }\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar maximumLength = function(nums) {\n    const cnt = new Map();\n\n    for (const num of nums) {\n        cnt.set(num, (cnt.get(num) || 0) + 1);\n    }\n\n    // ans 至少是 1 的数量，向下取奇数\n    const oneCnt = cnt.get(1) || 0;\n    let ans = oneCnt % 2 ? oneCnt : oneCnt - 1;\n\n    cnt.delete(1);\n\n    for (const num of cnt.keys()) {\n        let res = 0;\n        let x = num;\n\n        while (cnt.has(x) && cnt.get(x) > 1) {\n            res += 2;\n            x *= x;\n        }\n\n        ans = Math.max(ans, res + (cnt.has(x) ? 1 : -1));\n    }\n\n    return ans;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction maximumLength(nums: number[]): number {\n    const cnt = new Map<number, number>();\n\n    for (const num of nums) {\n        cnt.set(num, (cnt.get(num) ?? 0) + 1);\n    }\n\n    // ans 至少是 1 的数量，向下取奇数\n    const oneCnt = cnt.get(1) ?? 0;\n    let ans = oneCnt % 2 ? oneCnt : oneCnt - 1;\n\n    cnt.delete(1);\n\n    for (const num of cnt.keys()) {\n        let res = 0;\n        let x = num;\n\n        while (cnt.has(x) && cnt.get(x)! > 1) {\n            res += 2;\n            x *= x;\n        }\n\n        ans = Math.max(ans, res + (cnt.has(x) ? 1 : -1));\n    }\n\n    return ans;\n}\n```\n\n```Rust [sol1-Rust]\nuse std::collections::HashMap;\n\nimpl Solution {\n    pub fn maximum_length(nums: Vec<i32>) -> i32 {\n        let mut cnt: HashMap<i64, i32> = HashMap::new();\n\n        for num in nums {\n            *cnt.entry(num as i64).or_insert(0) += 1;\n        }\n\n        // ans 至少是 1 的数量，向下取奇数\n        let one_cnt = *cnt.get(&1).unwrap_or(&0);\n        let mut ans = if one_cnt % 2 == 1 {\n            one_cnt\n        } else {\n            one_cnt - 1\n        };\n\n        cnt.remove(&1);\n\n        for &num in cnt.keys() {\n            let mut res = 0;\n            let mut x = num;\n\n            while matches!(cnt.get(&x), Some(&c) if c > 1) {\n                res += 2;\n                x *= x;\n            }\n\n            ans = ans.max(res + if cnt.contains_key(&x) { 1 } else { -1 });\n        }\n\n        ans\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log \\log M)$，其中 $n$ 是 $\\textit{nums}$ 的长度，$M$ 是 $\\textit{nums}$ 的最大值。我们以数组中的每个元素作为起点枚举子数组，每个子数组的长度最大为 $\\log \\log M$。\n- 空间复杂度：$O(n)$。即为哈希表所占用的空间。",
+            "slateValue": "",
+            "slug": "zi-ji-zhong-yuan-su-de-zui-da-shu-liang-5w5ze",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "MPKO2G",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Enumeration",
+                    "nameTranslated": "枚举",
+                    "slug": "enumeration",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python3",
+                    "nameTranslated": "",
+                    "slug": "python3",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2026-06-17T01:42:15.671642+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：哈希表 + 枚举 思路与算法 题目要求我们在给定的数组中寻找一个元素尽可能多的“山峰子数组”，其遵循先递增后递减的规律，递增过程中下一个元素的次方数是前一个数的 [latex] 倍，递减过程中下一个元素的次方数是前一个数的 [latex] 倍。 由于递增的速度极快，在题目给定的范围下，该山峰子数组的最大长度很小",
+            "topic": {
+                "id": 3984752,
+                "subscribed": false,
+                "commentCount": 0,
+                "viewCount": 0,
+                "post": {
+                    "id": 7263352,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 0,
+            "isEditorsPick": false,
+            "hitCount": 41,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "find-the-maximum-number-of-elements-in-subset",
+                "questionFrontendId": "3020"
+            },
+            "next": {
+                "slug": "bao-li-mei-ju-xpythonjavacgo-by-endlessc-hdmc",
+                "title": "暴力枚举，简洁写法（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

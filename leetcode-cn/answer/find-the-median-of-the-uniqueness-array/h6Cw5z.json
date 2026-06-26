@@ -1,0 +1,150 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "h6Cw5z",
+            "title": "找出唯一性数组的中位数",
+            "content": "#### 方法一：二分查找\n\n**思路与算法**\n\n根据题意可知，数组 $\\textit{nums}$ 的**唯一性数组**是由 $\\textit{nums}$ 的所有非空子数组中不同元素的个数组成，且按照从小到大进行排序。根据题意可知，假设数组 $\\textit{nums}$ 的长度为 $n$，则此时 $\\textit{nums}$ 中一共有 $\\dfrac{n\\times(n + 1)}{2}$ 个子数组，此时**唯一性数组**中一共有 $\\dfrac{n\\times(n + 1)}{2}$ 个元素，且每个元素的取值范围为 $[1,\\text{distinct}[0 \\cdots n-1]]$，根据题意**中位数**的定义，此时该中位数在**唯一性数组**数组中的排序位置为 $\\textit{median} = \\lceil \\dfrac{n \\times (n + 1)}{4} \\rceil$。暴力枚举子数组是实际复杂度为 $O(n^2)$，显然会超时。\n\n设数组 $\\textit{nums}$ 的长度为 $n$，我们令 $c_t$ 表示数组 $\\textit{nums}$ 中至多含有 $t$ 个不同元素的子数组数目，实际 $t$ 的取值范围为：$t \\in [1,\\text{distinct}[0 \\cdots n-1]]$。此时可以发现 $t$ 越大，则 $c_t$ 也越大，且满足 $c_n = \\dfrac{n\\times(n + 1)}{2}$。我们可以观察到 $c_t$ 呈现单调性，因此可以考虑使用二分查找，如果 $c_t < \\textit{median}$ 则 $t$ 一定不是中位数，因此利用二分查找找到 $t$ 的上限，此时找到满足 $c_t \\ge \\textit{median}$ 时最小的 $t$，即为**唯一性数组**的中位数。\n\n解题重点则转换为如何计算 $c_t$，注意到一个细节，如果子数组 $\\textit{nums}[i\\cdots j]$ 中含有不同元素的数目小于等于 $t$，则该子数组的任意子数组含有不同元素数目 $\\text{distinct}$ 值也一定小于等于 $t$。我们实际很容易求出 $\\textit{nums}$ 中含有 $\\text{t}$ 个不同元素的子数组数目，可以参考力扣经典题目「[2799. 统计完全子数组的数目](https://leetcode.cn/problems/count-complete-subarrays-in-an-array/description/)」，含有 $\\text{t}$ 个不同元素的子数组一定涵盖了所有小于等于 $t$ 个元素的子数组，我们可以参考「[双指针或滑动窗口](https://oi-wiki.org/misc/two-pointer/)」解法，统计所有小于等于 $t$ 个不同元素子数组数目。\n\n由于子数组越长，则不同元素个数（$\\text{distinct}$ 值）只会变大，且不会减少，满足单调性。我们用哈希表 $\\text{cnt}$ 统计窗口子数组 $\\textit{nums}[i\\cdots j]$ 中不同元素出现的次数。枚举窗口右端点 $i$，把 $\\textit{nums}[i]$ 加入到哈希表 $\\text{cnt}$ 中，即此时$\\textit{nums}[i]$ 出现次数加 $1$。如果哈希表 $\\text{cnt}$ 中元素的数目超过 $t$，就不断移出窗口左端点元素 $\\textit{nums}[j]$，即此时 $\\textit{nums}[j]$ 出现的次数减去 $1$，如果 $\\textit{nums}[j]$ 出现次数等于 $0$，则将其从哈希表 $\\text{cnt}$ 中移除，直到 $\\text{cnt}$ 中元素的数目等于 $t$为止。此时窗口的右端点为 $i$，则此时子数组 $\\textit{nums}[j\\cdots i],\\textit{nums}[j+1\\cdots i],\\textit{nums}[j+2\\cdots i],\\cdots,\\textit{nums}[i\\cdots i]$ 都满足不同元素数目小于等于 $t$，一共有 $i−j+1$ 个，加到总数 $\\textit{tot}$ 中，最终的总数 $c_t = \\textit{tot}$。我们每次检测是否满足 $c_t \\ge \\textit{median}$，如果满足则缩小 $t$，直到找到最小的 $t$ 返回即可。\n\n> 实际二分查找时，$t$ 的下限取 $1$，此时一定不存在 $0$ 个元素的子数组，$t$ 的上限为 $n$，所有子数组的不同元素数目不超过 $n$。设 $m = \\text{distinct}[0 \\cdots n-1]$，实际 $t$ 的取值范围为 $[1,m]$，且在该区间 $[1,m]$ 上的取值连续，因此一定可以找到属于某个子数组的 $\\text{distinct}$ 值。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int medianOfUniquenessArray(vector<int>& nums) {\n        int n = nums.size();\n        long long median = ((long long) n * (n + 1) / 2 + 1) / 2;\n\n        /* 检测数组中不同元素数目小于等于 t 的连续子数组数目是否大于等于 median */\n        auto check = [&](int t) -> bool {\n            unordered_map<int, int> cnt;\n            long long tot = 0;\n            for (int i = 0, j = 0; i < n; i++) {\n                cnt[nums[i]]++;\n                while (cnt.size() > t) {\n                    cnt[nums[j]]--;\n                    if (cnt[nums[j]] == 0) {\n                        cnt.erase(nums[j]);\n                    }\n                    j++;\n                }\n                tot += i - j + 1;\n            }\n            return tot >= median;\n        };\n\n        int res = 0;\n        int lo = 1, hi = n;\n        while (lo <= hi) {\n            int mid = (lo + hi) / 2;            \n            if (check(mid)) {\n                res = mid;\n                hi = mid - 1;\n            } else {\n                lo = mid + 1;\n            }\n        }\n        return res;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int medianOfUniquenessArray(int[] nums) {\n        int n = nums.length;\n        long median = ((long) n * (n + 1) / 2 + 1) / 2;\n        int res = 0;\n        int lo = 1, hi = n;\n        while (lo <= hi) {\n            int mid = (lo + hi) / 2;\n            if (check(nums, mid, median)) {\n                res = mid;\n                hi = mid - 1;\n            } else {\n                lo = mid + 1;\n            }\n        }\n        return res;\n    }\n\n    // 检测数组中不同元素数目小于等于 t 的连续子数组数目是否大于等于 median\n    public boolean check(int[] nums, int t, long median) {\n        HashMap<Integer, Integer> cnt = new HashMap<>();\n        long tot = 0;\n        for (int i = 0, j = 0; i < nums.length; i++) {\n            cnt.put(nums[i], cnt.getOrDefault(nums[i], 0) + 1);\n            while (cnt.size() > t) {\n                cnt.put(nums[j], cnt.get(nums[j]) - 1);\n                if (cnt.get(nums[j]) == 0) {\n                    cnt.remove(nums[j]);\n                }\n                j++;\n            }\n            tot += i - j + 1;\n        }\n        return tot >= median;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MedianOfUniquenessArray(int[] nums) {\n        int n = nums.Length;\n        long median = ((long) n * (n + 1) / 2 + 1) / 2;\n        int res = 0;\n        int lo = 1, hi = n;\n        while (lo <= hi) {\n            int mid = (lo + hi) / 2;\n            if (Check(nums, mid, median)) {\n                res = mid;\n                hi = mid - 1;\n            } else {\n                lo = mid + 1;\n            }\n        }\n        return res;\n    }\n\n    // 检测数组中不同元素数目小于等于 t 的连续子数组数目是否大于等于 median\n    public bool Check(int[] nums, int t, long median) {\n        Dictionary<int, int> cnt = new Dictionary<int, int>();\n        long tot = 0;\n        for (int i = 0, j = 0; i < nums.Length; i++) {\n            if (cnt.ContainsKey(nums[i])) {\n                cnt[nums[i]]++;\n            } else {\n                cnt[nums[i]] = 1;\n            }\n            while (cnt.Count > t) {\n                cnt[nums[j]]--;\n                if (cnt[nums[j]] == 0) {\n                    cnt.Remove(nums[j]);\n                }\n                j++;\n            }\n            tot += i - j + 1;\n        }\n        return tot >= median;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc medianOfUniquenessArray(nums []int) int {\n    n := len(nums)\n    median := (int64(n) * int64(n + 1) / 2 + 1) / 2\n    \n    // 检测数组中不同元素数目小于等于 t 的连续子数组数目是否大于等于 median\n    check := func(t int) bool {\n        cnt := make(map[int]int)\n        tot := int64(0)\n        for i, j := 0, 0; i < n; i++ {\n            cnt[nums[i]]++\n            for len(cnt) > t {\n                cnt[nums[j]]--\n                if cnt[nums[j]] == 0 {\n                    delete(cnt, nums[j])\n                }\n                j++\n            }\n            tot += int64(i - j + 1)\n        }\n        return tot >= median\n    }\n\n    res := 0\n    lo, hi := 1, n\n    for lo <= hi {\n        mid := (lo + hi) / 2\n        if check(mid) {\n            res = mid\n            hi = mid - 1\n        } else {\n            lo = mid + 1\n        }\n    }\n\n    return res\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def medianOfUniquenessArray(self, nums: List[int]) -> int:\n        n = len(nums)\n        median = (n * (n + 1) // 2 + 1) // 2\n        \n        # 检测数组中不同元素数目小于等于 t 的连续子数组数目是否大于等于 median\n        def check(t):\n            cnt = Counter()\n            j, tot = 0, 0\n            for i, v in enumerate(nums):\n                cnt[v] += 1\n                while len(cnt) > t:\n                    cnt[nums[j]] -= 1\n                    if cnt[nums[j]] == 0:\n                        del cnt[nums[j]]\n                    j += 1\n                tot += i - j + 1\n            return tot >= median\n\n        res = 0\n        lo, hi = 1, n\n        while lo <= hi:\n            mid = (lo + hi) // 2\n            if check(mid):\n                res = mid\n                hi = mid - 1\n            else:\n                lo = mid + 1\n\n        return res\n```\n\n```C [sol1-C]\n#define MAX_SIZE 100001\n\n// 检测数组中不同元素数目小于等于 t 的连续子数组数目是否大于等于 median\nint check(int* nums, int numsSize, int t, long long median) {\n    int cnt[MAX_SIZE] = {0};\n    long long tot = 0;\n    int diff = 0;\n    for (int i = 0, j = 0; i < numsSize; i++) {\n        cnt[nums[i]]++;\n        if (cnt[nums[i]] == 1) {\n            diff++;\n        }\n        while (diff > t) {\n            cnt[nums[j]]--;\n            if (cnt[nums[j]] == 0) {\n                diff--;\n            }\n            j++;\n        }\n        tot += i - j + 1;\n    }\n    return tot >= median;\n}\n\nint medianOfUniquenessArray(int* nums, int numsSize) {\n    int n = numsSize;\n    int lo = 1, hi = numsSize;\n    long long median = ((long long)n * (n + 1) / 2 + 1) / 2;\n    int res = 0;\n\n    while (lo <= hi) {\n        int mid = (lo + hi) / 2;\n        if (check(nums, n, mid, median)) {\n            res = mid;\n            hi = mid - 1;\n        } else {\n            lo = mid + 1;\n        }\n    }\n\n    return res;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar medianOfUniquenessArray = function(nums) {\n    const n = nums.length;\n    const median = Math.floor((n * (n + 1) / 2 + 1) / 2);\n\n    // 检测数组中不同元素数目小于等于 t 的连续子数组数目是否大于等于 median\n    function check(t) {\n        const cnt = new Map();\n        let tot = 0;\n        for (let i = 0, j = 0; i < n; i++) {\n            cnt.set(nums[i], (cnt.get(nums[i]) || 0) + 1);\n            while (cnt.size > t) {\n                cnt.set(nums[j], cnt.get(nums[j]) - 1);\n                if (cnt.get(nums[j]) === 0) {\n                    cnt.delete(nums[j]);\n                }\n                j++;\n            }\n            tot += i - j + 1;\n        }\n        return tot >= median;\n    }\n\n    let res = 0;\n    let lo = 1, hi = n;\n    while (lo <= hi) {\n        const mid = Math.floor((lo + hi) / 2);\n        if (check(mid)) {\n            res = mid;\n            hi = mid - 1;\n        } else {\n            lo = mid + 1;\n        }\n    }\n    \n    return res;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction medianOfUniquenessArray(nums: number[]): number {\n    const n = nums.length;\n    const median = Math.floor((n * (n + 1) / 2 + 1) / 2);\n    \n    // 检测数组中不同元素数目小于等于 t 的连续子数组数目是否大于等于 median\n    function check(t: number): boolean {\n        const cnt = new Map<number, number>();\n        let tot = 0;\n        for (let i = 0, j = 0; i < n; i++) {\n            cnt.set(nums[i], (cnt.get(nums[i]) || 0) + 1);\n            while (cnt.size > t) {\n                cnt.set(nums[j], (cnt.get(nums[j])! - 1));\n                if (cnt.get(nums[j]) === 0) {\n                    cnt.delete(nums[j]);\n                }\n                j++;\n            }\n            tot += i - j + 1;\n        }\n        return tot >= median;\n    }\n\n    let res = 0;\n    let lo = 1, hi = n;\n    while (lo <= hi) {\n        const mid = Math.floor((lo + hi) / 2);\n        if (check(mid)) {\n            res = mid;\n            hi = mid - 1;\n        } else {\n            lo = mid + 1;\n        }\n    }\n    return res;\n};\n```\n\n```Rust [sol1-Rust]\nuse std::collections::HashMap;\n\nimpl Solution {\n    pub fn median_of_uniqueness_array(nums: Vec<i32>) -> i32 {\n        let n = nums.len() as i64;\n        let median = ((n * (n  + 1) / 2 + 1) / 2) as i64;\n        let mut res = 0;\n        let mut lo = 1;\n        let mut hi = n as i32;\n\n        // 检测数组中不同元素数目小于等于 t 的连续子数组数目是否大于等于 median\n        fn check(nums: &[i32], t: usize, median: i64) -> bool {\n            let mut cnt: HashMap<i32, i32> = HashMap::new();\n            let mut j = 0;\n            let mut tot = 0 as i64;\n            for (i, &v) in nums.iter().enumerate() {\n                *cnt.entry(v).or_insert(0) += 1;\n                while cnt.len() > t {\n                    *cnt.entry(nums[j]).or_insert(0) -= 1;\n                    if *cnt.get(&nums[j]).unwrap_or(&0) == 0 {\n                        cnt.remove(&nums[j]);\n                    }\n                    j += 1;\n                }\n                tot += (i - j + 1) as i64;\n            }\n            tot >= median\n        }\n\n        while lo <= hi {\n            let mid = (lo + hi) / 2;\n            if check(&nums, mid as usize, median) {\n                res = mid;\n                hi = mid - 1;\n            } else {\n                lo = mid + 1;\n            }\n        }\n\n        res\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log n)$，其中 $n$ 表示给定数组的长度。通过二分查找统计子数组数目，二分查找上限为 $n$，最多需要 $\\log n$ 次二分查找，每次查找时遍历数组需要的时间为 $O(n)$，因此总的时间即为 $O(2n\\log n)$。\n\n- 空间复杂度：$O(n)$，其中 $n$ 表示给定数组的长度。需要使用哈希表统计每个元素出现的频数，数组中最多有 $n$ 个不同的元素，因此需要的空间为 $O(n)$。",
+            "slateValue": "",
+            "slug": "zhao-chu-wei-yi-xing-shu-zu-de-zhong-wei-tdob",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "h6Cw5z",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 11,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Binary Search",
+                    "nameTranslated": "二分查找",
+                    "slug": "binary-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Sliding Window",
+                    "nameTranslated": "滑动窗口",
+                    "slug": "sliding-window",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2024-08-23T02:50:46.413569+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：二分查找 思路与算法 根据题意可知，数组 [latex] 的唯一性数组是由 [latex] 的所有非空子数组中不同元素的个数组成，且按照从小到大进行排序。根据题意可知，假设数组 [latex] 的长度为 [latex]，则此时 [latex] 中一共有 [latex] 个子数组，此时唯一性数组中一共有 [lat",
+            "topic": {
+                "id": 2890132,
+                "subscribed": false,
+                "commentCount": 18,
+                "viewCount": 575,
+                "post": {
+                    "id": 5257488,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 27,
+            "isEditorsPick": false,
+            "hitCount": 8982,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "find-the-median-of-the-uniqueness-array",
+                "questionFrontendId": "3134"
+            },
+            "next": {
+                "slug": "er-fen-da-an-hua-dong-chuang-kou-pythonj-ykg9",
+                "title": "二分答案+滑动窗口（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

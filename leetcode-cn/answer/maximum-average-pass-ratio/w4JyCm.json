@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "w4JyCm",
+            "title": "最大平均通过率",
+            "content": "#### 方法一：优先队列\n\n**思路与算法**\n\n由于班级总数不会变化，因此题目所求「最大化平均通过率」等价于「最大化总通过率」。设某个班级的人数为 $\\textit{total}$，其中通过考试的人数为 $\\textit{pass}$，那么给这个班级安排一个额外通过考试的学生，其通过率会增加：\n\n$$\\frac{\\textit{pass} + 1}{\\textit{total} + 1} - \\frac{\\textit{pass}}{\\textit{total}}$$\n\n我们会优先选择通过率增加量最大的班级，这样做的正确性在于给同一个班级不断地增加安排的学生数量时，其增加的通过率是单调递减的，即：\n\n$$\\frac{\\textit{pass} + 2}{\\textit{total} + 2} - \\frac{\\textit{pass} + 1}{\\textit{total} + 1} < \\frac{\\textit{pass} + 1}{\\textit{total} + 1} - \\frac{\\textit{pass}}{\\textit{total}}$$\n\n因此当以下条件满足时，班级 $j$ 比班级 $i$ 优先级更大：\n\n$$\\frac{\\textit{pass}_i + 1}{\\textit{total}_i + 1} - \\frac{\\textit{pass}_i}{\\textit{total}_i} < \\frac{\\textit{pass}_j + 1}{\\textit{total}_j + 1} - \\frac{\\textit{pass}_j}{\\textit{total}_j}$$\n\n化简后可得：\n\n$$(\\textit{total}_j + 1) \\times (\\textit{total}_j) \\times (\\textit{total}_i - \\textit{pass}_i) < (\\textit{total}_i + 1) \\times (\\textit{total}_i) \\times (\\textit{total}_j - \\textit{pass}_j)$$\n\n我们按照上述比较规则将每个班级放入优先队列中，进行 $\\textit{extraStudents}$ 次操作。每一次操作，我们取出优先队列的堆顶元素，令其 $\\textit{pass}$ 和 $\\textit{total}$ 分别加 $1$，然后再放回优先队列。\n\n最后我们遍历优先队列的每一个班级，计算其平均通过率即可得到答案。\n\n**代码**\n\n```Python [sol1-Python3]\nclass Entry:\n    __slots__ = 'p', 't'\n\n    def __init__(self, p: int, t: int):\n        self.p = p\n        self.t = t\n\n    def __lt__(self, b: 'Entry') -> bool:\n        return (self.t - self.p) * b.t * (b.t + 1) > (b.t - b.p) * self.t * (self.t + 1)\n\nclass Solution:\n    def maxAverageRatio(self, classes: List[List[int]], extraStudents: int) -> float:\n        h = [Entry(*c) for c in classes]\n        heapify(h)\n        for _ in range(extraStudents):\n            heapreplace(h, Entry(h[0].p + 1, h[0].t + 1))\n        return sum(e.p / e.t for e in h) / len(h)\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    struct Ratio {\n        int pass, total;\n        bool operator < (const Ratio& oth) const {\n            return (long long) (oth.total + 1) * oth.total * (total - pass) < (long long) (total + 1) * total * (oth.total - oth.pass);\n        }\n    };\n\n    double maxAverageRatio(vector<vector<int>>& classes, int extraStudents) {\n        priority_queue<Ratio> q;\n        for (auto &c : classes) {\n            q.push({c[0], c[1]});\n        }\n\n        for (int i = 0; i < extraStudents; i++) {\n            auto [pass, total] = q.top();\n            q.pop();\n            q.push({pass + 1, total + 1});\n        }\n\n        double res = 0;\n        for (int i = 0; i < classes.size(); i++) {\n            auto [pass, total] = q.top();\n            q.pop();\n            res += 1.0 * pass / total;\n        }\n        return res / classes.size();\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public double maxAverageRatio(int[][] classes, int extraStudents) {\n        PriorityQueue<int[]> pq = new PriorityQueue<int[]>((a, b) -> {\n            long val1 = (long) (b[1] + 1) * b[1] * (a[1] - a[0]);\n            long val2 = (long) (a[1] + 1) * a[1] * (b[1] - b[0]);\n            if (val1 == val2) {\n                return 0;\n            }\n            return val1 < val2 ? 1 : -1;\n        });\n        for (int[] c : classes) {\n            pq.offer(new int[]{c[0], c[1]});\n        }\n\n        for (int i = 0; i < extraStudents; i++) {\n            int[] arr = pq.poll();\n            int pass = arr[0], total = arr[1];\n            pq.offer(new int[]{pass + 1, total + 1});\n        }\n\n        double res = 0;\n        for (int i = 0; i < classes.length; i++) {\n            int[] arr = pq.poll();\n            int pass = arr[0], total = arr[1];\n            res += 1.0 * pass / total;\n        }\n        return res / classes.length;\n    }\n}\n```\n\n```Go [sol1-Golang]\nfunc maxAverageRatio(classes [][]int, extraStudents int) (ans float64) {\n    h := hp(classes)\n    heap.Init(&h)\n    for ; extraStudents > 0; extraStudents-- {\n        h[0][0]++\n        h[0][1]++\n        heap.Fix(&h, 0)\n    }\n    for _, c := range h {\n        ans += float64(c[0]) / float64(c[1])\n    }\n    return ans / float64(len(classes))\n}\n\ntype hp [][]int\nfunc (h hp) Len() int { return len(h) }\nfunc (h hp) Less(i, j int) bool { a, b := h[i], h[j]; return (a[1]-a[0])*b[1]*(b[1]+1) > (b[1]-b[0])*a[1]*(a[1]+1) }\nfunc (h hp) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }\nfunc (hp) Push(interface{})     {}\nfunc (hp) Pop() (_ interface{}) { return }\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public double MaxAverageRatio(int[][] classes, int extraStudents) {\n        var pq = new PriorityQueue<int[], double>(Comparer<double>.Create((a, b) => b.CompareTo(a)));\n        foreach (var c in classes) {\n            double priority = GetPriority(c);\n            pq.Enqueue(c, priority);\n        }\n        for (; extraStudents > 0; extraStudents--) {\n            var current = pq.Dequeue();\n            current[0]++;\n            current[1]++;\n            double newPriority = GetPriority(current);\n            pq.Enqueue(current, newPriority);\n        }\n        double res = 0;\n        while (pq.Count > 0) {\n            var c = pq.Dequeue();\n            res += (double)c[0] / c[1];\n        }\n        \n        return res / classes.Length;\n    }\n    \n    private double GetPriority(int[] c) {\n        int pass = c[0];\n        int total = c[1];\n        return (double)(total - pass) / (total * (total + 1L));\n    }\n}\n```\n\n```C [sol1-C]\n#define MIN_QUEUE_SIZE 64\n\ntypedef struct Element {\n    int data[2];\n} Element;\n\ntypedef bool (*compare)(const void *, const void *);\n\ntypedef struct PriorityQueue {\n    Element *arr;\n    int capacity;\n    int queueSize;\n    compare lessFunc;\n} PriorityQueue;\n\nElement *createElement(int x, int y) {\n    Element *obj = (Element *)malloc(sizeof(Element));\n    obj->data[0] = x;\n    obj->data[1] = y;\n    return obj;\n}\n\nstatic bool greater(const void *a, const void *b) {\n    Element *e1 = (Element *)a;\n    Element *e2 = (Element *)b;\n    long long val1 = (long long) (e2->data[1] + 1) * e2->data[1] * (e1->data[1] - e1->data[0]);\n    long long val2 = (long long) (e1->data[1] + 1) * e1->data[1] * (e2->data[1] - e2->data[0]);\n    return val1 < val2;\n}\n\nstatic void memswap(void *m1, void *m2, size_t size){\n    unsigned char *a = (unsigned char*)m1;\n    unsigned char *b = (unsigned char*)m2;\n    while (size--) {\n        *b ^= *a ^= *b ^= *a;\n        a++;\n        b++;\n    }\n}\n\nstatic void swap(Element *arr, int i, int j) {\n    memswap(&arr[i], &arr[j], sizeof(Element));\n}\n\nstatic void down(Element *arr, int size, int i, compare cmpFunc) {\n    for (int k = 2 * i + 1; k < size; k = 2 * k + 1) {\n        if (k + 1 < size && cmpFunc(&arr[k], &arr[k + 1])) {\n            k++;\n        }\n        if (cmpFunc(&arr[k], &arr[(k - 1) / 2])) {\n            break;\n        }\n        swap(arr, k, (k - 1) / 2);\n    }\n}\n\nPriorityQueue *createPriorityQueue(compare cmpFunc) {\n    PriorityQueue *obj = (PriorityQueue *)malloc(sizeof(PriorityQueue));\n    obj->capacity = MIN_QUEUE_SIZE;\n    obj->arr = (Element *)malloc(sizeof(Element) * obj->capacity);\n    obj->queueSize = 0;\n    obj->lessFunc = cmpFunc;\n    return obj;\n}\n\nvoid heapfiy(PriorityQueue *obj) {\n    for (int i = obj->queueSize / 2 - 1; i >= 0; i--) {\n        down(obj->arr, obj->queueSize, i, obj->lessFunc);\n    }\n}\n\nvoid enQueue(PriorityQueue *obj, Element *e) {\n    // we need to alloc more space, just twice space size\n    if (obj->queueSize == obj->capacity) {\n        obj->capacity *= 2;\n        obj->arr = realloc(obj->arr, sizeof(Element) * obj->capacity);\n    }\n    memcpy(&obj->arr[obj->queueSize], e, sizeof(Element));\n    for (int i = obj->queueSize; i > 0 && obj->lessFunc(&obj->arr[(i - 1) / 2], &obj->arr[i]); i = (i - 1) / 2) {\n        swap(obj->arr, i, (i - 1) / 2);\n    }\n    obj->queueSize++;\n}\n\nElement* deQueue(PriorityQueue *obj) {\n    swap(obj->arr, 0, obj->queueSize - 1);\n    down(obj->arr, obj->queueSize - 1, 0, obj->lessFunc);\n    Element *e =  &obj->arr[obj->queueSize - 1];\n    obj->queueSize--;\n    return e;\n}\n\nbool isEmpty(const PriorityQueue *obj) {\n    return obj->queueSize == 0;\n}\n\nElement* front(const PriorityQueue *obj) {\n    if (obj->queueSize == 0) {\n        return NULL;\n    } else {\n        return &obj->arr[0];\n    }\n}\n\nvoid clear(PriorityQueue *obj) {\n    obj->queueSize = 0;\n}\n\nint size(const PriorityQueue *obj) {\n    return obj->queueSize;\n}\n\nvoid freeQueue(PriorityQueue *obj) {\n    free(obj->arr);\n    free(obj);\n}\n\ndouble maxAverageRatio(int** classes, int classesSize, int* classesColSize, int extraStudents) {\n    PriorityQueue *pq = createPriorityQueue(greater);\n    Element e;\n    for (int i = 0; i < classesSize; i++) {\n        e.data[0] = classes[i][0];\n        e.data[1] = classes[i][1];\n        enQueue(pq, &e);\n    }\n\n    for (int i = 0; i < extraStudents; i++) {\n        Element *p = front(pq);\n        int pass = p->data[0], total = p->data[1];\n        deQueue(pq);\n        e.data[0] = pass + 1;\n        e.data[1] = total + 1;\n        enQueue(pq, &e);\n    }\n\n    double res = 0;\n    for (int i = 0; i < classesSize; i++) {\n        Element *p = front(pq);\n        int pass = p->data[0], total = p->data[1];\n        deQueue(pq);\n        res += 1.0 * pass / total;\n    }\n    return res / classesSize;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar maxAverageRatio = function(classes, extraStudents) {\n    const pq = new PriorityQueue((a, b) => {\n        const val1 = (b[1] + 1) * b[1] * (a[1] - a[0]);\n        const val2 = (a[1] + 1) * a[1] * (b[1] - b[0]);\n        return val1 < val2 ? 1 : -1;\n    });\n\n    for (const c of classes) {\n        pq.enqueue([c[0], c[1]]);\n    }\n\n    for (let i = 0; i < extraStudents; i++) {\n        const arr = pq.dequeue();\n        const pass = arr[0], total = arr[1];\n        pq.enqueue([pass + 1, total + 1]);\n    }\n\n    let res = 0;\n    const count = classes.length;\n    while (!pq.isEmpty()) {\n        const arr = pq.dequeue();\n        const pass = arr[0], total = arr[1];\n        res += pass / total;\n    }\n    return res / count;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction maxAverageRatio(classes: number[][], extraStudents: number): number {\n    const pq = new PriorityQueue((a, b) => {\n        const val1 = (b[1] + 1) * b[1] * (a[1] - a[0]);\n        const val2 = (a[1] + 1) * a[1] * (b[1] - b[0]);\n        return val1 < val2 ? 1 : -1;\n    });\n\n    for (const c of classes) {\n        pq.enqueue([c[0], c[1]]);\n    }\n\n    for (let i = 0; i < extraStudents; i++) {\n        const arr = pq.dequeue();\n        const pass = arr[0], total = arr[1];\n        pq.enqueue([pass + 1, total + 1]);\n    }\n\n    let res = 0;\n    const count = classes.length;\n    while (!pq.isEmpty()) {\n        const arr = pq.dequeue();\n        const pass = arr[0], total = arr[1];\n        res += pass / total;\n    }\n    return res / count;\n};\n```\n\n```Rust [sol1-Rust]\nuse std::collections::BinaryHeap;\nuse std::cmp::Ordering;\n\n#[derive(PartialEq, Debug)]\nstruct ClassRatio {\n    pass: i64,\n    total: i64,\n}\n\nimpl Eq for ClassRatio {}\n\nimpl PartialOrd for ClassRatio {\n    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {\n        let val1 = (other.total + 1)  * other.total  * (self.total - self.pass) ;\n        let val2 = (self.total + 1)  * self.total  * (other.total - other.pass) ;\n        val1.partial_cmp(&val2)\n    }\n}\n\nimpl Ord for ClassRatio {\n    fn cmp(&self, other: &Self) -> Ordering {\n        let val1 = (other.total + 1)  * other.total  * (self.total - self.pass) ;\n        let val2 = (self.total + 1)  * self.total  * (other.total - other.pass) ;\n        val1.cmp(&val2)\n    }\n}\n\nimpl Solution {\n    pub fn max_average_ratio(classes: Vec<Vec<i32>>, extra_students: i32) -> f64 {\n        let mut heap = BinaryHeap::new();\n        for c in &classes {\n            heap.push(ClassRatio {\n                pass: c[0] as i64,\n                total: c[1] as i64,\n            });\n        }\n\n        for _ in 0..extra_students {\n            if let Some(mut class) = heap.pop() {\n                class.pass += 1;\n                class.total += 1;\n                heap.push(class);\n            }\n        }\n\n        let mut res = 0.0;\n        let count = classes.len() as f64;\n        while let Some(class) = heap.pop() {\n            res += class.pass as f64 / class.total as f64;\n        }\n        res / count\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O((n + m)\\log n)$ 或 $O(n + m\\log n)$，其中 $n$ 为 $\\textit{classes}$ 的长度，$m$ 等于 $\\textit{extraStudents}$。每次从优先队列中取出或者放入元素的时间复杂度为 $O(\\log n)$，共需操作 $O(n + m)$ 次，故总复杂度为 $O((n + m)\\log n)$。堆化写法的时间复杂度为 $O(n + m\\log n)$。\n\n- 空间复杂度：$O(n)$ 或 $O(1)$。使用优先队列需要用到 $O(n)$ 的空间，但若直接在 $\\textit{classes}$ 上原地堆化，则可以做到 $O(1)$ 额外空间。",
+            "slateValue": "",
+            "slug": "zui-da-ping-jun-tong-guo-lu-by-leetcode-dm7y3",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "w4JyCm",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 48,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Heap (Priority Queue)",
+                    "nameTranslated": "堆（优先队列）",
+                    "slug": "heap-priority-queue",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2023-02-18T07:06:47.348317+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：优先队列 思路与算法 由于班级总数不会变化，因此题目所求「最大化平均通过率」等价于「最大化总通过率」。设某个班级的人数为 [latex]，其中通过考试的人数为 [latex]，那么给这个班级安排一个额外通过考试的学生，其通过率会增加： [latex] 我们会优先选择通过率增加量最大的班级，这样做的正确性在于给同",
+            "topic": {
+                "id": 2118606,
+                "subscribed": false,
+                "commentCount": 102,
+                "viewCount": 1008,
+                "post": {
+                    "id": 4044017,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 80,
+            "isEditorsPick": false,
+            "hitCount": 26400,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "maximum-average-pass-ratio",
+                "questionFrontendId": "1792"
+            },
+            "next": {
+                "slug": "python3javacgo-yi-ti-yi-jie-you-xian-dui-qrmo",
+                "title": "[Python3/Java/C++/Go] 一题一解：优先队列（增量大根堆）"
+            },
+            "prev": null
+        }
+    }
+}

@@ -1,0 +1,150 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "hHCGJm",
+            "title": "二的幂数组中查询范围内的乘积",
+            "content": "#### 方法一：二进制分解 + 直接计算\n\n**思路与算法**\n\n根据题目描述，我们需要将 $n$ 分解成最少数目的 $2$ 的幂，这就提示我们将 $n$ 写成二进制表示，如果从低到高的第 $k ~ (k \\geq 0)$ 个二进制位为 $1$，那么分解中就包括 $2^k$。\n\n> 例如 $n = 11$，它的二进制表示为 $(1011)_2$，从低到高的第 $0, 1, 3$ 个二进制位为 $1$，因此分解为 $[2^0, 2^1, 2^3] = [1, 2, 8]$。\n\n在得到 $n$ 的分解后，由于题目中保证 $n \\geq 10^9 < 2^{30} - 1$，因此分解的数组中不会超过 $29$ 个元素。对于每一个询问 $[\\textit{left}, \\textit{right}]$，可以直接遍历分解数组中对应的所有元素，并计算答案，单次询问的时间复杂度为 $O(\\log n)$。\n\n同样地，不同的询问总数不会超过 $\\dfrac{29 \\times 28}{2} + 29 = 435$ 个，因此也可以使用预处理的方式，提前计算出每一种询问的答案，时间复杂度为 $O(\\log^2 n)$，之后单次询问的时间复杂度减少至 $O(1)$。\n\n方法一给出的是使用遍历直接计算的方法。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<int> productQueries(int n, vector<vector<int>>& queries) {\n        vector<int> bins;\n        int rep = 1;\n        while (n) {\n            if (n % 2 == 1) {\n                bins.push_back(rep);\n            }\n            n /= 2;\n            rep *= 2;\n        }\n\n        vector<int> ans;\n        for (const auto& query: queries) {\n            int cur = 1;\n            for (int i = query[0]; i <= query[1]; ++i) {\n                cur = static_cast<long long>(cur) * bins[i] % mod;\n            }\n            ans.push_back(cur);\n        }\n        return ans;\n    }\n\nprivate:\n    static constexpr int mod = 1000000007;\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def productQueries(self, n: int, queries: List[List[int]]) -> List[int]:\n        mod = 10**9 + 7\n\n        bins, rep = [], 1\n        while n > 0:\n            if n % 2 == 1:\n                bins.append(rep)\n            n //= 2\n            rep *= 2\n\n        ans = []\n        for left, right in queries:\n            cur = 1\n            for i in range(left, right + 1):\n                cur = cur * bins[i] % mod\n            ans.append(cur)\n        return ans\n```\n\n```Java [sol1-Java]\nclass Solution {\n    private static final int MOD = 1000000007;\n\n    public int[] productQueries(int n, int[][] queries) {\n        List<Integer> bins = new ArrayList<>();\n        int rep = 1;\n        while (n > 0) {\n            if (n % 2 == 1) {\n                bins.add(rep);\n            }\n            n /= 2;\n            rep *= 2;\n        }\n\n        int[] ans = new int[queries.length];\n        for (int i = 0; i < queries.length; i++) {\n            long cur = 1;\n            int start = queries[i][0];\n            int end = queries[i][1];\n            for (int j = start; j <= end; j++) {\n                cur = (cur * bins.get(j)) % MOD;\n            }\n            ans[i] = (int) cur;\n        }\n        return ans;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    private const int MOD = 1000000007;\n\n    public int[] ProductQueries(int n, int[][] queries) {\n        var bins = new List<int>();\n        int rep = 1;\n        while (n > 0) {\n            if (n % 2 == 1) {\n                bins.Add(rep);\n            }\n            n /= 2;\n            rep *= 2;\n        }\n\n        int[] ans = new int[queries.Length];\n        for (int i = 0; i < queries.Length; i++) {\n            long cur = 1;\n            int start = queries[i][0];\n            int end = queries[i][1];\n            for (int j = start; j <= end; ++j) {\n                cur = (cur * bins[j]) % MOD;\n            }\n            ans[i] = (int)cur;\n        }\n        return ans;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc productQueries(n int, queries [][]int) []int {\n    const mod = 1000000007\n    var bins []int\n    rep := 1\n    for n > 0 {\n        if n % 2 == 1 {\n            bins = append(bins, rep)\n        }\n        n /= 2\n        rep *= 2\n    }\n\n    ans := make([]int, 0, len(queries))\n    for _, query := range queries {\n        cur := 1\n        for i := query[0]; i <= query[1]; i++ {\n            cur = (cur * bins[i]) % mod\n        }\n        ans = append(ans, cur)\n    }\n    return ans\n}\n```\n\n```C [sol1-C]\nint* productQueries(int n, int** queries, int queriesSize, int* queriesColSize, int* returnSize) {\n    const int mod = 1000000007;\n    int* bins = (int*)malloc(32 * sizeof(int));\n    int binsSize = 0;\n    int rep = 1;\n    while (n > 0) {\n        if (n % 2 == 1) {\n            bins[binsSize++] = rep;\n        }\n        n /= 2;\n        rep *= 2;\n    }\n\n    int* ans = (int*)malloc(queriesSize * sizeof(int));\n    *returnSize = queriesSize;\n    for (int i = 0; i < queriesSize; i++) {\n        long long cur = 1;\n        for (int j = queries[i][0]; j <= queries[i][1]; j++) {\n            cur = (cur * bins[j]) % mod;\n        }\n        ans[i] = (int)cur;\n    }\n    free(bins);\n    return ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar productQueries = function(n, queries) {\n    const mod = 1000000007;\n    const bins = [];\n    let rep = 1;\n    while (n > 0) {\n        if (n % 2 === 1) {\n            bins.push(rep);\n        }\n        n = Math.floor(n / 2);\n        rep *= 2;\n    }\n\n    const ans = [];\n    for (const [start, end] of queries) {\n        let cur = 1;\n        for (let i = start; i <= end; i++) {\n            cur = (cur * bins[i]) % mod;\n        }\n        ans.push(cur);\n    }\n    return ans;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction productQueries(n: number, queries: number[][]): number[] {\n    const mod: number = 1000000007;\n    const bins: number[] = [];\n    let rep = 1;\n    while (n > 0) {\n        if (n % 2 === 1) {\n            bins.push(rep);\n        }\n        n = Math.floor(n / 2);\n        rep *= 2;\n    }\n\n    const ans: number[] = [];\n    for (const [start, end] of queries) {\n        let cur = 1;\n        for (let i = start; i <= end; i++) {\n            cur = (cur * bins[i]) % mod;\n        }\n        ans.push(cur);\n    }\n    return ans;\n};\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn product_queries(n: i32, queries: Vec<Vec<i32>>) -> Vec<i32> {\n        const MOD: i64 = 1_000_000_007;\n        let mut bins = Vec::new();\n        let mut n = n;\n        let mut rep = 1;\n        while n > 0 {\n            if n % 2 == 1 {\n                bins.push(rep);\n            }\n            n /= 2;\n            rep *= 2;\n        }\n\n        queries.iter().map(|query| {\n            let mut cur: i64 = 1;\n            for i in query[0]..=query[1] {\n                cur = (cur * bins[i as usize]) % MOD;\n            }\n            cur as i32\n        }).collect()\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(q \\times \\log n)$，其中 $q$ 是数组 $\\textit{queries}$ 的长度。\n\n- 空间复杂度：$O(\\log n)$，即为存储 $n$ 的二进制分解需要使用的空间。\n\n#### 方法二：二进制分解 + 预处理\n\n**思路与算法**\n\n方法二给出的是使用预处理方式的代码。\n\n**代码**\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    vector<int> productQueries(int n, vector<vector<int>>& queries) {\n        vector<int> bins;\n        int rep = 1;\n        while (n) {\n            if (n % 2 == 1) {\n                bins.push_back(rep);\n            }\n            n /= 2;\n            rep *= 2;\n        }\n\n        int m = bins.size();\n        vector<vector<int>> results(m, vector<int>(m));\n        for (int i = 0; i < m; ++i) {\n            int cur = 1;\n            for (int j = i; j < m; ++j) {\n                cur = static_cast<long long>(cur) * bins[j] % mod;\n                results[i][j] = cur;\n            }\n        }\n\n        vector<int> ans;\n        for (const auto& query: queries) {\n            ans.push_back(results[query[0]][query[1]]);\n        }\n        return ans;\n    }\n\nprivate:\n    static constexpr int mod = 1000000007;\n};\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def productQueries(self, n: int, queries: List[List[int]]) -> List[int]:\n        mod = 10**9 + 7\n\n        bins, rep = [], 1\n        while n > 0:\n            if n % 2 == 1:\n                bins.append(rep)\n            n //= 2\n            rep *= 2\n        \n        m = len(bins)\n        results = [[0] * m for _ in range(m)]\n        for i in range(m):\n            cur = 1\n            for j in range(i, m):\n                cur = cur * bins[j] % mod\n                results[i][j] = cur\n\n        ans = []\n        for left, right in queries:\n            ans.append(results[left][right])\n        return ans\n```\n\n```Java [sol2-Java]\nclass Solution {\n    private static final int MOD = 1000000007;\n\n    public int[] productQueries(int n, int[][] queries) {\n        List<Integer> bins = new ArrayList<>();\n        int rep = 1;\n        while (n > 0) {\n            if (n % 2 == 1) {\n                bins.add(rep);\n            }\n            n /= 2;\n            rep *= 2;\n        }\n\n        int m = bins.size();\n        int[][] results = new int[m][m];\n        for (int i = 0; i < m; i++) {\n            long cur = 1;\n            for (int j = i; j < m; j++) {\n                cur = (cur * bins.get(j)) % MOD;\n                results[i][j] = (int) cur;\n            }\n        }\n\n        int[] ans = new int[queries.length];\n        for (int i = 0; i < queries.length; i++) {\n            ans[i] = results[queries[i][0]][queries[i][1]];\n        }\n        return ans;\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    private const int MOD = 1000000007;\n\n    public int[] ProductQueries(int n, int[][] queries) {\n        var bins = new List<int>();\n        int rep = 1;\n        while (n > 0) {\n            if (n % 2 == 1) {\n                bins.Add(rep);\n            }\n            n /= 2;\n            rep *= 2;\n        }\n\n        int m = bins.Count;\n        int[,] results = new int[m, m];\n        for (int i = 0; i < m; i++) {\n            long cur = 1;\n            for (int j = i; j < m; j++) {\n                cur = (cur * bins[j]) % MOD;\n                results[i, j] = (int) cur;\n            }\n        }\n\n        int[] ans = new int[queries.Length];\n        for (int i = 0; i < queries.Length; i++) {\n            ans[i] = results[queries[i][0], queries[i][1]];\n        }\n        return ans;\n    }\n}\n```\n\n```Go [sol2-Go]\nfunc productQueries(n int, queries [][]int) []int {\n    const mod = 1000000007\n    var bins []int\n    rep := 1\n    for n > 0 {\n        if n % 2 == 1 {\n            bins = append(bins, rep)\n        }\n        n /= 2\n        rep *= 2\n    }\n\n    m := len(bins)\n    results := make([][]int, m)\n    for i := range results {\n        results[i] = make([]int, m)\n        cur := 1\n        for j := i; j < m; j++ {\n            cur = (cur * bins[j]) % mod\n            results[i][j] = cur\n        }\n    }\n\n    ans := make([]int, len(queries))\n    for i, query := range queries {\n        ans[i] = results[query[0]][query[1]]\n    }\n    return ans\n}\n```\n\n```C [sol2-C]\nint* productQueries(int n, int** queries, int queriesSize, int* queriesColSize, int* returnSize) {\n    const int mod = 1000000007;\n    int bins[32];\n    int binsSize = 0;\n    int rep = 1;\n    while (n > 0) {\n        if (n % 2 == 1) {\n            bins[binsSize++] = rep;\n        }\n        n /= 2;\n        rep *= 2;\n    }\n\n    int** results = (int**)malloc(binsSize * sizeof(int*));\n    for (int i = 0; i < binsSize; i++) {\n        results[i] = (int*)malloc(binsSize * sizeof(int));\n        long long cur = 1;\n        for (int j = i; j < binsSize; j++) {\n            cur = (cur * bins[j]) % mod;\n            results[i][j] = (int)cur;\n        }\n    }\n\n    int* ans = (int*)malloc(queriesSize * sizeof(int));\n    *returnSize = queriesSize;\n    for (int i = 0; i < queriesSize; i++) {\n        ans[i] = results[queries[i][0]][queries[i][1]];\n    }\n\n    for (int i = 0; i < binsSize; i++) {\n        free(results[i]);\n    }\n    free(results);\n    return ans;\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar productQueries = function(n, queries) {\n   const mod = 1000000007;\n    const bins = [];\n    let rep = 1;\n    while (n > 0) {\n        if (n % 2 === 1) {\n            bins.push(rep);\n        }\n        n = Math.floor(n / 2);\n        rep *= 2;\n    }\n\n    const m = bins.length;\n    const results = Array.from({ length: m }, () => new Array(m));\n    for (let i = 0; i < m; i++) {\n        let cur = 1;\n        for (let j = i; j < m; j++) {\n            cur = (cur * bins[j]) % mod;\n            results[i][j] = cur;\n        }\n    }\n\n    const ans = [];\n    for (const [start, end] of queries) {\n        ans.push(results[start][end]);\n    }\n    return ans;\n};\n```\n\n```TypeScript [sol2-TypeScript]\nfunction productQueries(n: number, queries: number[][]): number[] {\n    const mod: number = 1000000007;\n    const bins: number[] = [];\n    let rep = 1;\n    while (n > 0) {\n        if (n % 2 === 1) {\n            bins.push(rep);\n        }\n        n = Math.floor(n / 2);\n        rep *= 2;\n    }\n\n    const m = bins.length;\n    const results: number[][] = Array.from({ length: m }, () => new Array(m));\n    for (let i = 0; i < m; i++) {\n        let cur = 1;\n        for (let j = i; j < m; j++) {\n            cur = (cur * bins[j]) % mod;\n            results[i][j] = cur;\n        }\n    }\n\n    const ans: number[] = [];\n    for (const [start, end] of queries) {\n        ans.push(results[start][end]);\n    }\n    return ans;\n};\n```\n\n```Rust [sol2-Rust]\nimpl Solution {\n    pub fn product_queries(n: i32, queries: Vec<Vec<i32>>) -> Vec<i32> {\n        const MOD: i64 = 1_000_000_007;\n        let mut bins = Vec::new();\n        let mut n = n;\n        let mut rep = 1;\n        while n > 0 {\n            if n % 2 == 1 {\n                bins.push(rep);\n            }\n            n /= 2;\n            rep *= 2;\n        }\n\n        let m = bins.len();\n        let mut results = vec![vec![0; m]; m];\n        for i in 0..m {\n            let mut cur: i64 = 1;\n            for j in i..m {\n                cur = (cur * bins[j]) % MOD;\n                results[i][j] = cur as i32;\n            }\n        }\n\n        queries.iter().map(|query| results[query[0] as usize][query[1] as usize]).collect()\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(\\log^2 n + q)$，其中 $q$ 是数组 $\\textit{queries}$ 的长度。\n\n- 空间复杂度：$O(\\log^2 n)$，即为存储预处理结果需要使用的空间。",
+            "slateValue": "",
+            "slug": "er-de-mi-shu-zu-zhong-cha-xun-fan-wei-ne-ygou",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "hHCGJm",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 4,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Bit Manipulation",
+                    "nameTranslated": "位运算",
+                    "slug": "bit-manipulation",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Prefix Sum",
+                    "nameTranslated": "前缀和",
+                    "slug": "prefix-sum",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2025-08-04T01:34:48.642399+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：二进制分解 + 直接计算 思路与算法 根据题目描述，我们需要将 [latex] 分解成最少数目的 [latex] 的幂，这就提示我们将 [latex] 写成二进制表示，如果从低到高的第 [latex] 个二进制位为 [latex]，那么分解中就包括 [latex]。 例如 [latex]，它的二进制表示为 [l",
+            "topic": {
+                "id": 3741778,
+                "subscribed": false,
+                "commentCount": 17,
+                "viewCount": 35,
+                "post": {
+                    "id": 6833063,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 7,
+            "isEditorsPick": false,
+            "hitCount": 5395,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "range-product-queries-of-powers",
+                "questionFrontendId": "2438"
+            },
+            "next": {
+                "slug": "bao-li-yu-chu-li-by-endlesscheng-kt0t",
+                "title": "三种方法：暴力 / 预处理 / 前缀和（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

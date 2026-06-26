@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "Bdx4rU",
+            "title": "统计 1 显著的字符串的数量",
+            "content": "#### 方法一：枚举\n\n**思路与算法**\n\n直接枚举所有子串并判断是否是 $1$ 显著的字符串将消耗大量的时间，考虑到 $1$ 显著的字符串的特性，$1$ 的个数要大于等于 $0$ 的个数的平方，因此我们可以枚举子串中 $0$ 出现的次数，枚举的范围将缩小至 $\\sqrt n$，其中 $n$ 是字符串的长度。\n\n考虑枚举子串的右边界 $i$，然后枚举子串中 $0$ 出现的次数 $\\textit{cnt}_0$，假设前面第 $\\textit{cnt}_0$ 个 $0$ 出现的位置是 $j$，计算第 $\\textit{cnt}_0$ 至第 $\\textit{cnt}_0 + 1$ 个 $0$ 之间有多少个合法的左边界。不难想到，$\\textit{cnt}_0$ 的上限是 $\\sqrt n$，这样处理的时间复杂度总共为 $O(n\\sqrt n)$。\n\n为了方便描述，我们定义 $\\textit{pre}[j]$ 为位置 $j$ 之前最近的一个 $0$ 出现的位置，那么以 $i$ 为右端点并且包含 $\\textit{cnt}_0$ 个 $0$ 的子串最多可以包含 $\\textit{cnt}_1 = i - \\textit{pre}[j] - \\textit{cnt}_0$ 个 $1$，分情况做以下考虑：\n\n- 如果 $\\textit{cnt}_1$ 小于 $\\textit{cnt}_0^2$，那么表示不存在满足当前条件的 $1$ 显著字符串。\n- 否则，存在满足当前条件的 $1$ 显著字符串。不过，合法的左边界数量受到 $j - \\textit{pre}[j]$ 和 $\\textit{cnt}_1 - \\textit{cnt}_0^2 + 1$ 共同限制。\n\n我们对每个 $i$ 做如上处理，累加所有合法的左边界数量，即可得到答案。为了方便处理字符串最左侧的连续的 $1$，我们可以给原字符串左端加一个哨兵 $0$。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int numberOfSubstrings(string s) {\n        int n = s.size();\n        vector<int> pre(n + 1);\n        pre[0] = -1;\n        for (int i = 0; i < n; i++) {\n            if (i == 0 || (i > 0 && s[i - 1] == '0')) {\n                pre[i + 1] = i;\n            } else {\n                pre[i + 1] = pre[i];\n            }\n        }\n        int res = 0;\n        for (int i = 1; i <= n; i++) {\n            int cnt0 = s[i - 1] == '0';\n            int j = i;\n            while (j > 0 && cnt0 * cnt0 <= n) {\n                int cnt1 = (i - pre[j]) - cnt0;\n                if (cnt0 * cnt0 <= cnt1) {\n                    res += min(j - pre[j], cnt1 - cnt0 * cnt0 + 1);\n                }\n                j = pre[j];\n                cnt0++;\n            }\n        }\n        return res;\n    }\n};\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn number_of_substrings(s: String) -> i32 {\n        let chars: Vec<char> = s.chars().collect();\n        let n = chars.len();\n        let mut pre = vec![-1; n + 1];\n        for i in 0..n {\n            if i == 0 || chars[i - 1] == '0' {\n                pre[i + 1] = i as i32;\n            } else {\n                pre[i + 1] = pre[i];\n            }\n        }\n\n        let mut res = 0i32;\n        for i in 1..=n {\n            let mut cnt0 = if chars[i - 1] == '0' { 1 } else { 0 };\n            let mut j = i as i32;\n            while j > 0 && (cnt0 * cnt0) as usize <= n {\n                let cnt1 = (i as i32 - pre[j as usize]) - cnt0;\n                if cnt0 * cnt0 <= cnt1 {\n                    res += std::cmp::min(j - pre[j as usize], cnt1 - cnt0 * cnt0 + 1);\n                }\n                j = pre[j as usize];\n                cnt0 += 1;\n            }\n        }\n        res\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def numberOfSubstrings(self, s: str) -> int:\n        n = len(s)\n        pre = [-1] * (n + 1)\n        for i in range(n):\n            if i == 0 or s[i - 1] == '0':\n                pre[i + 1] = i\n            else:\n                pre[i + 1] = pre[i]\n\n        res = 0\n        for i in range(1, n + 1):\n            cnt0 = 1 if s[i - 1] == '0' else 0\n            j = i\n            while j > 0 and cnt0 * cnt0 <= n:\n                cnt1 = (i - pre[j]) - cnt0\n                if cnt0 * cnt0 <= cnt1:\n                    res += min(j - pre[j], cnt1 - cnt0 * cnt0 + 1)\n                j = pre[j]\n                cnt0 += 1\n        return res\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int numberOfSubstrings(String s) {\n        int n = s.length();\n        int[] pre = new int[n + 1];\n        pre[0] = -1;\n        for (int i = 0; i < n; i++) {\n            if (i == 0 || (i > 0 && s.charAt(i - 1) == '0')) {\n                pre[i + 1] = i;\n            } else {\n                pre[i + 1] = pre[i];\n            }\n        }\n        int res = 0;\n        for (int i = 1; i <= n; i++) {\n            int cnt0 = s.charAt(i - 1) == '0' ? 1 : 0;\n            int j = i;\n            while (j > 0 && cnt0 * cnt0 <= n) {\n                int cnt1 = (i - pre[j]) - cnt0;\n                if (cnt0 * cnt0 <= cnt1) {\n                    res += Math.min(j - pre[j], cnt1 - cnt0 * cnt0 + 1);\n                }\n                j = pre[j];\n                cnt0++;\n            }\n        }\n        return res;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int NumberOfSubstrings(string s) {\n        int n = s.Length;\n        int[] pre = new int[n + 1];\n        pre[0] = -1;\n        for (int i = 0; i < n; i++) {\n            if (i == 0 || (i > 0 && s[i - 1] == '0')) {\n                pre[i + 1] = i;\n            } else {\n                pre[i + 1] = pre[i];\n            }\n        }\n        int res = 0;\n        for (int i = 1; i <= n; i++) {\n            int cnt0 = s[i - 1] == '0' ? 1 : 0;\n            int j = i;\n            while (j > 0 && cnt0 * cnt0 <= n) {\n                int cnt1 = (i - pre[j]) - cnt0;\n                if (cnt0 * cnt0 <= cnt1) {\n                    res += Math.Min(j - pre[j], cnt1 - cnt0 * cnt0 + 1);\n                }\n                j = pre[j];\n                cnt0++;\n            }\n        }\n        return res;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc numberOfSubstrings(s string) int {\n    n := len(s)\n    pre := make([]int, n+1)\n    pre[0] = -1\n    for i := 0; i < n; i++ {\n        if i == 0 || (i > 0 && s[i - 1] == '0') {\n            pre[i + 1] = i\n        } else {\n            pre[i + 1] = pre[i]\n        }\n    }\n    res := 0\n    for i := 1; i <= n; i++ {\n        cnt0 := 0\n        if s[i - 1] == '0' {\n            cnt0 = 1\n        }\n        j := i\n        for j > 0 && cnt0 * cnt0 <= n {\n            cnt1 := (i - pre[j]) - cnt0\n            if cnt0 * cnt0 <= cnt1 {\n                add := j - pre[j]\n                if cnt1 - cnt0 * cnt0 + 1 < add {\n                    add = cnt1 - cnt0 * cnt0 + 1\n                }\n                res += add\n            }\n            j = pre[j]\n            cnt0++\n        }\n    }\n    return res\n}\n```\n\n```C [sol1-C]\nint numberOfSubstrings(char* s) {\n    int n = strlen(s);\n    int* pre = (int*)malloc((n + 1) * sizeof(int));\n    pre[0] = -1;\n    for (int i = 0; i < n; i++) {\n        if (i == 0 || (i > 0 && s[i - 1] == '0')) {\n            pre[i + 1] = i;\n        } else {\n            pre[i + 1] = pre[i];\n        }\n    }\n    int res = 0;\n    for (int i = 1; i <= n; i++) {\n        int cnt0 = s[i - 1] == '0' ? 1 : 0;\n        int j = i;\n        while (j > 0 && cnt0 * cnt0 <= n) {\n            int cnt1 = (i - pre[j]) - cnt0;\n            if (cnt0 * cnt0 <= cnt1) {\n                int add = j - pre[j];\n                if (cnt1 - cnt0 * cnt0 + 1 < add) {\n                    add = cnt1 - cnt0 * cnt0 + 1;\n                }\n                res += add;\n            }\n            j = pre[j];\n            cnt0++;\n        }\n    }\n    free(pre);\n    return res;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar numberOfSubstrings = function(s) {\n    const n = s.length;\n    const pre = new Array(n + 1);\n    pre[0] = -1;\n    for (let i = 0; i < n; i++) {\n        if (i === 0 || (i > 0 && s[i - 1] === '0')) {\n            pre[i + 1] = i;\n        } else {\n            pre[i + 1] = pre[i];\n        }\n    }\n    let res = 0;\n    for (let i = 1; i <= n; i++) {\n        let cnt0 = s[i - 1] === '0' ? 1 : 0;\n        let j = i;\n        while (j > 0 && cnt0 * cnt0 <= n) {\n            const cnt1 = (i - pre[j]) - cnt0;\n            if (cnt0 * cnt0 <= cnt1) {\n                res += Math.min(j - pre[j], cnt1 - cnt0 * cnt0 + 1);\n            }\n            j = pre[j];\n            cnt0++;\n        }\n    }\n    return res;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction numberOfSubstrings(s: string): number {\n    const n = s.length;\n    const pre: number[] = new Array(n + 1);\n    pre[0] = -1;\n    for (let i = 0; i < n; i++) {\n        if (i === 0 || (i > 0 && s[i - 1] === '0')) {\n            pre[i + 1] = i;\n        } else {\n            pre[i + 1] = pre[i];\n        }\n    }\n    let res = 0;\n    for (let i = 1; i <= n; i++) {\n        let cnt0 = s[i - 1] === '0' ? 1 : 0;\n        let j = i;\n        while (j > 0 && cnt0 * cnt0 <= n) {\n            const cnt1 = (i - pre[j]) - cnt0;\n            if (cnt0 * cnt0 <= cnt1) {\n                res += Math.min(j - pre[j], cnt1 - cnt0 * cnt0 + 1);\n            }\n            j = pre[j];\n            cnt0++;\n        }\n    }\n    return res;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n\\sqrt n)$，其中 $n$ 是字符串的长度。\n\n- 空间复杂度：$O(n)$。我们使用了数组 $\\textit{pre}$ 来标记每个位置前面最近的一个 $0$ 出现的位置，因此空间复杂度是 $O(n)$。",
+            "slateValue": "",
+            "slug": "tong-ji-1-xian-zhu-de-zi-fu-chuan-de-shu-6cnn",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "Bdx4rU",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 7,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Enumeration",
+                    "nameTranslated": "枚举",
+                    "slug": "enumeration",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python3",
+                    "nameTranslated": "",
+                    "slug": "python3",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2025-11-06T11:07:11.901623+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：枚举 思路与算法 直接枚举所有子串并判断是否是 [latex] 显著的字符串将消耗大量的时间，考虑到 [latex] 显著的字符串的特性，[latex] 的个数要大于等于 [latex] 的个数的平方，因此我们可以枚举子串中 [latex] 出现的次数，枚举的范围将缩小至 [latex]，其中 [latex] ",
+            "topic": {
+                "id": 3825138,
+                "subscribed": false,
+                "commentCount": 26,
+                "viewCount": 44,
+                "post": {
+                    "id": 6983098,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 23,
+            "isEditorsPick": false,
+            "hitCount": 6940,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "count-the-number-of-substrings-with-dominant-ones",
+                "questionFrontendId": "3234"
+            },
+            "next": {
+                "slug": "mei-ju-zi-chuan-zhong-de-0-de-ge-shu-pyt-c654",
+                "title": "枚举子串中的 0 的个数（Python/Java/C++/C/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

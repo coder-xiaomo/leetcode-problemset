@@ -1,0 +1,144 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "C3UWnR",
+            "title": "统计美丽子数组数目",
+            "content": "#### 方法一：前缀和\n\n**思路与算法**\n\n根据题意可以知，由于每次操作中需要从子数组中选择两个不同的数分别减去 $2^k$，使得子数组中所有元素均变为 $0$，由此可知对于子数组中所有元素 $2^k$ 出现的次数之和必须是偶数。换一种说法，即对于二进制中第 $i$ 位，则数组中所有元素第 $i$ 位为 $1$ 的数目一定为偶数，则此时满足数组中所有元素第 $i$ 位的异或和一定为 $0$。\n\n根据上述推论可知，如果给定的子数组 $\\textit{nums}[i\\cdots j]$ 为**美丽子数组**，则此时一定满足:\n\n$$\\textit{nums}[i] \\oplus \\textit{nums}[i + 1] \\oplus \\textit{nums}[i + 2] \\oplus \\textit{nums}[i + 3] \\cdots \\textit{nums}[j] = 0$$\n\n此时我们只需要找到满足元素异或值为 $0$ 的子数组即可。假设数组中前 $j+1$ 个元素 $\\textit{nums}[0 \\cdots j]$ 异或的结果为 $x$，即此时满足：\n\n$$\\textit{nums}[0] \\oplus \\textit{nums}[1] \\oplus \\textit{nums}[2] \\oplus \\textit{nums}[3] \\cdots \\textit{nums}[j] = x$$\n\n此时期望能够计算出以索引 $j$ 为结尾的**美丽子数组**数目，由于任意数字 $x$ 与 $0$ 异或的结果仍然为 $x$，即 $x \\oplus 0 = x$，如果此时存在 $k$ 且 $k < j$，且满足子数组 $\\textit{nums}[0\\cdots k]$ 异或的结果为 $x$，即：\n\n$$\\textit{nums}[0] \\oplus \\textit{nums}[1] \\oplus \\textit{nums}[2] \\oplus \\textit{nums}[3] \\cdots \\textit{nums}[k] = x$$\n\n则此时子数组 $\\textit{nums}[k+1 \\cdots j]$ 异或的结果一定为 $0$，此时子数组 $\\textit{nums}[k+1 \\cdots j]$ 一定为**美丽子数组**，此时只需要找到数组 $\\textit{nums}$ 满足前缀异或的结果为 $x$ 的数目，即可得到以 $j$ 为结尾的**美丽子数组**的数目。\n实际计算时，可参考「[560. 和为 K 的子数组](https://leetcode.cn/problems/subarray-sum-equals-k/solutions/238572/he-wei-kde-zi-shu-zu-by-leetcode-solution/)」方法二的解法，设 $p[i]$ 表示数组前缀 $\\textit{nums}[0\\cdots i]$ 的异或值，我们依次从小到大枚举下标 $i$，维护哈希表 $\\textit{cnt}[x]$ 表示满足前缀异或值 $p[j] = x$ 且 $j < i$ 的数目，此时以 $i$ 为结尾的**美丽子数组**的数目即为 $\\textit{cnt}[p[i]]$，将该数目累加到返回结果 $\\textit{ans}$ 中，并更新 $\\textit{cnt}[p[i]]$ 加 $1$，最后返回累加结果 $\\textit{ans}$ 即可。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    long long beautifulSubarrays(vector<int>& nums) {\n        unordered_map<int, int> cnt;\n        int mask = 0;\n        long long ans = 0;\n        cnt[0] = 1;\n        for (int x : nums) {\n            mask ^= x;\n            ans += cnt[mask]; \n            cnt[mask]++;\n        }\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public long beautifulSubarrays(int[] nums) {\n        Map<Integer, Integer> cnt = new HashMap<>();\n        int mask = 0;\n        long ans = 0;\n        cnt.put(0, 1);\n        for (int x : nums) {\n            mask ^= x;\n            ans += cnt.getOrDefault(mask, 0);\n            cnt.put(mask, cnt.getOrDefault(mask, 0) + 1);\n        }\n        return ans;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public long BeautifulSubarrays(int[] nums) {\n        Dictionary<int, int> cnt = new Dictionary<int, int>();\n        int mask = 0;\n        long ans = 0;\n        cnt[0] = 1;\n        foreach (int x in nums) {\n            mask ^= x;\n            if (cnt.ContainsKey(mask)) {\n                ans += cnt[mask];\n            }\n            if (cnt.ContainsKey(mask)) {\n                cnt[mask]++;\n            } else {\n                cnt[mask] = 1;\n            }\n        }\n        return ans;\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc beautifulSubarrays(nums []int) int64 {\n    cnt := make(map[int]int)\n    mask := 0\n    var ans int64 = 0\n    cnt[0] = 1\n    for _, x := range nums {\n        mask ^= x\n        ans += int64(cnt[mask])\n        cnt[mask]++\n    }\n    return ans\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def beautifulSubarrays(self, nums: List[int]) -> int:\n        cnt = {0: 1}\n        mask = 0\n        ans = 0\n        for x in nums:\n            mask ^= x\n            ans += cnt.get(mask, 0)\n            cnt[mask] = cnt.get(mask, 0) + 1\n        return ans\n```\n\n```C [sol1-C]\ntypedef struct {\n    int key;\n    int val;\n    UT_hash_handle hh;\n} HashItem; \n\nHashItem *hashFindItem(HashItem **obj, int key) {\n    HashItem *pEntry = NULL;\n    HASH_FIND_INT(*obj, &key, pEntry);\n    return pEntry;\n}\n\nbool hashAddItem(HashItem **obj, int key, int val) {\n    if (hashFindItem(obj, key)) {\n        return false;\n    }\n    HashItem *pEntry = (HashItem *)malloc(sizeof(HashItem));\n    pEntry->key = key;\n    pEntry->val = val;\n    HASH_ADD_INT(*obj, key, pEntry);\n    return true;\n}\n\nbool hashSetItem(HashItem **obj, int key, int val) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        hashAddItem(obj, key, val);\n    } else {\n        pEntry->val = val;\n    }\n    return true;\n}\n\nint hashGetItem(HashItem **obj, int key, int defaultVal) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        return defaultVal;\n    }\n    return pEntry->val;\n}\n\nvoid hashFree(HashItem **obj) {\n    HashItem *curr = NULL, *tmp = NULL;\n    HASH_ITER(hh, *obj, curr, tmp) {\n        HASH_DEL(*obj, curr);  \n        free(curr);\n    }\n}\n\nlong long beautifulSubarrays(int* nums, int numsSize) {\n    HashItem *cnt = NULL;\n    int mask = 0;\n    long long ans = 0;\n\n    hashAddItem(&cnt, 0, 1);\n    for (int i = 0; i < numsSize; i++) {\n        mask ^= nums[i];\n        ans += hashGetItem(&cnt, mask, 0); \n        hashSetItem(&cnt, mask, hashGetItem(&cnt, mask, 0) + 1);\n    }\n\n    return ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar beautifulSubarrays = function(nums) {\n    const cnt = new Map();\n    cnt.set(0, 1);\n    let mask = 0, ans = 0;\n    for (const x of nums) {\n        mask ^= x;\n        ans += cnt.get(mask) || 0;\n        cnt.set(mask, (cnt.get(mask) || 0) + 1);\n    }\n    return ans;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction beautifulSubarrays(nums: number[]): number {\n    const cnt = new Map<number, number>();\n    cnt.set(0, 1);\n    let mask = 0, ans = 0;\n    for (const x of nums) {\n        mask ^= x;\n        ans += cnt.get(mask) || 0;\n        cnt.set(mask, (cnt.get(mask) || 0) + 1);\n    }\n    return ans;\n};\n```\n\n```Rust [sol1-Rust]\nuse std::collections::HashMap;\n\nimpl Solution {\n    pub fn beautiful_subarrays(nums: Vec<i32>) -> i64 {\n        let mut cnt = HashMap::new();\n        cnt.insert(0, 1);\n        let mut mask = 0;\n        let mut ans = 0;\n        for x in nums {\n            mask ^= x;\n            ans += *cnt.get(&mask).unwrap_or(&0);\n            *cnt.entry(mask).or_insert(0) += 1;\n        }\n        ans\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n)$，其中 $n$ 表示给定数组 $\\textit{nums}$ 的长度。我们只需遍历一遍数组即可，需要的时间为 $O(n)$。\n\n- 空间复杂度：$O(n)$，其中 $n$ 表示给定数组 $\\textit{nums}$ 的长度。需要存储数组中前 $i$ 个元素异或的值，需要的空间为 $O(n)$。",
+            "slateValue": "",
+            "slug": "tong-ji-mei-li-zi-shu-zu-shu-mu-by-leetc-xvig",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "C3UWnR",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 11,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Prefix Sum",
+                    "nameTranslated": "前缀和",
+                    "slug": "prefix-sum",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2025-02-25T01:20:42.738839+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：前缀和 思路与算法 根据题意可以知，由于每次操作中需要从子数组中选择两个不同的数分别减去 [latex]，使得子数组中所有元素均变为 [latex]，由此可知对于子数组中所有元素 [latex] 出现的次数之和必须是偶数。换一种说法，即对于二进制中第 [latex] 位，则数组中所有元素第 [latex] 位为",
+            "topic": {
+                "id": 3088649,
+                "subscribed": false,
+                "commentCount": 18,
+                "viewCount": 474,
+                "post": {
+                    "id": 5575423,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 54,
+            "isEditorsPick": false,
+            "hitCount": 11122,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "count-the-number-of-beautiful-subarrays",
+                "questionFrontendId": "2588"
+            },
+            "next": {
+                "slug": "tao-lu-qian-zhui-he-ha-xi-biao-pythonjav-3fna",
+                "title": "转化成 560 题（Python/Java/C++/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

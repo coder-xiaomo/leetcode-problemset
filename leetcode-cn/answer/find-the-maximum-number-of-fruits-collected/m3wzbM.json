@@ -1,0 +1,144 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "m3wzbM",
+            "title": "最多可收集的水果数目",
+            "content": "#### 方法一：动态规划\n\n**思路与算法**\n\n首先，由于从左上角 $(0,0)$ 出发的小朋友只能移动 $n-1$ 次，所以他只能走主对角线。那么，我们只需要计算剩下两个小朋友收集水果总数的最大值即可。\n\n对于从右上角 $(0,n-1)$ 出发的小朋友，不难发现他只能走主对角线的上面，而不能够越过主对角线，否则在 $n-1$ 次移动后无法到达右下角。而对于另一个从左下角 $(n-1,0)$ 出发的小朋友，情况是一致的。同时由于三人不可能走进同一个房间，我们只需要考虑其中一种情况。我们可以使用动态规划计算其中一条路径，然后按主对角线翻转矩阵并复用相同的逻辑来计算得到另一条路径的结果。那么，问题转化为：\n\n- 从右上角 $(0,n-1)$ 出发，不经过主对角线，走到最后一个收集水果的房间 $(n-2,n-1)$ 所能收集到的水果总数的最大值。\n\n这个问题可以使用动态规划解决。令 $\\textit{dp}[i][j]$ 表示一个小朋友到达房间 $(i,j)$ 时最多能够收集到的水果数量。对于 $1 \\leq i \\lt n-1$ 且 $1 \\lt j \\lt n$，$\\textit{dp}[i][j]=\\max(\\textit{dp}[i-1][j-1],\\textit{dp}[i-1][j],\\textit{dp}[i-1][j+1])+\\textit{fruits}[i][j]$。同时由于终点是 $(n-2,n-1)$，即使每前一步都是从左上角走过来的，$j$ 也始终大于 $i$，所以 $j$ 可以从 $\\max(n-1-i,i+1)$ 开始枚举。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int maxCollectedFruits(vector<vector<int>>& fruits) {\n        int n = fruits.size();\n        int ans = 0;\n        for (int i = 0; i < n; ++i) {\n            ans += fruits[i][i];\n        }\n\n        auto dp = [&]() -> int {\n            vector<int> prev(n, INT_MIN), curr(n, INT_MIN);\n            prev[n - 1] = fruits[0][n - 1];\n            for (int i = 1; i < n - 1; ++i) {\n                for (int j = max(n - 1 - i, i + 1); j < n; ++j) {\n                    int best = prev[j];\n                    if (j - 1 >= 0) {\n                        best = max(best, prev[j - 1]);\n                    }\n                    if (j + 1 < n) {\n                        best = max(best, prev[j + 1]);\n                    }\n                    curr[j] = best + fruits[i][j];\n                }\n                swap(prev, curr);\n            }\n            return prev[n - 1];\n        };\n\n        ans += dp();\n\n        for (int i = 0; i < n; ++i) {\n            for (int j = 0; j < i; ++j) {\n                swap(fruits[j][i], fruits[i][j]);\n            }\n        }\n\n        ans += dp();\n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int maxCollectedFruits(int[][] fruits) {\n        int n = fruits.length;\n        int ans = 0;\n        for (int i = 0; i < n; ++i) {\n            ans += fruits[i][i];\n        }\n\n        java.util.function.Supplier<Integer> dp = () -> {\n            int[] prev = new int[n];\n            int[] curr = new int[n];\n            java.util.Arrays.fill(prev, Integer.MIN_VALUE);\n            java.util.Arrays.fill(curr, Integer.MIN_VALUE);\n            prev[n - 1] = fruits[0][n - 1];\n            for (int i = 1; i < n - 1; ++i) {\n                for (int j = Math.max(n - 1 - i, i + 1); j < n; ++j) {\n                    int best = prev[j];\n                    if (j - 1 >= 0)\n                        best = Math.max(best, prev[j - 1]);\n                    if (j + 1 < n)\n                        best = Math.max(best, prev[j + 1]);\n                    curr[j] = best + fruits[i][j];\n                }\n                int[] temp = prev;\n                prev = curr;\n                curr = temp;\n            }\n            return prev[n - 1];\n        };\n\n        ans += dp.get();\n\n        for (int i = 0; i < n; ++i) {\n            for (int j = 0; j < i; ++j) {\n                int temp = fruits[j][i];\n                fruits[j][i] = fruits[i][j];\n                fruits[i][j] = temp;\n            }\n        }\n\n        ans += dp.get();\n        return ans;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def maxCollectedFruits(self, fruits):\n        n = len(fruits)\n        ans = sum(fruits[i][i] for i in range(n))\n\n        def dp():\n            prev = [float('-inf')] * n\n            curr = [float('-inf')] * n\n            prev[n - 1] = fruits[0][n - 1]\n            for i in range(1, n - 1):\n                for j in range(max(n - 1 - i, i + 1), n):\n                    best = prev[j]\n                    if j - 1 >= 0:\n                        best = max(best, prev[j - 1])\n                    if j + 1 < n:\n                        best = max(best, prev[j + 1])\n                    curr[j] = best + fruits[i][j]\n                prev, curr = curr, prev\n            return prev[n - 1]\n\n        ans += dp()\n\n        for i in range(n):\n            for j in range(i):\n                fruits[i][j], fruits[j][i] = fruits[j][i], fruits[i][j]\n\n        ans += dp()\n        return ans\n\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MaxCollectedFruits(int[][] fruits) {\n        int n = fruits.Length;\n        int ans = 0;\n        for (int i = 0; i < n; ++i) ans += fruits[i][i];\n\n        int dp() {\n            int[] prev = Enumerable.Repeat(int.MinValue, n).ToArray();\n            int[] curr = new int[n];\n            prev[n - 1] = fruits[0][n - 1];\n            for (int i = 1; i < n - 1; ++i) {\n                Array.Fill(curr, int.MinValue);\n                for (int j = Math.Max(n - 1 - i, i + 1); j < n; ++j) {\n                    int best = prev[j];\n                    if (j - 1 >= 0) {\n                        best = Math.Max(best, prev[j - 1]);\n                    }\n                    if (j + 1 < n) {\n                        best = Math.Max(best, prev[j + 1]);\n                    }\n                    curr[j] = best + fruits[i][j];\n                }\n                var temp = prev; \n                prev = curr; \n                curr = temp;\n            }\n            return prev[n - 1];\n        }\n\n        ans += dp();\n\n        for (int i = 0; i < n; ++i) {\n            for (int j = 0; j < i; ++j) {\n                var temp = fruits[j][i]; \n                fruits[j][i] = fruits[i][j]; \n                fruits[i][j]=temp;\n            }\n        }\n\n        ans += dp();\n        return ans;\n    }\n}\n```\n\n```Golang [sol1-Golang]\nfunc maxCollectedFruits(fruits [][]int) int {\n    n := len(fruits)\n    ans := 0\n    for i := 0; i < n; i++ {\n        ans += fruits[i][i]\n    }\n\n    dp := func() int {\n        prev := make([]int, n)\n        curr := make([]int, n)\n        for i := range prev {\n            prev[i] = math.MinInt\n        }\n        prev[n-1] = fruits[0][n-1]\n        for i := 1; i < n-1; i++ {\n            for j := range curr {\n                curr[j] = math.MinInt\n            }\n            for j := max(n-1-i, i+1); j < n; j++ {\n                best := prev[j]\n                if j-1 >= 0 {\n                    best = max(best, prev[j-1])\n                }\n                if j+1 < n {\n                    best = max(best, prev[j+1])\n                }\n                curr[j] = best + fruits[i][j]\n            }\n            prev, curr = curr, prev\n        }\n        return prev[n-1]\n    }\n\n    ans += dp()\n    for i := 0; i < n; i++ {\n        for j := 0; j < i; j++ {\n            fruits[i][j], fruits[j][i] = fruits[j][i], fruits[i][j]\n        }\n    }\n    ans += dp()\n    return ans\n}\n\n```\n\n```C [sol1-C]\nint maxCollectedFruits(int** fruits, int fruitsSize, int* fruitsColSize) {\n    int ans = 0;\n    int n = fruitsSize;\n    for (int i = 0; i < n; ++i)\n        ans += fruits[i][i];\n\n    int dp() {\n        int* prev = malloc(sizeof(int) * n);\n        int* curr = malloc(sizeof(int) * n);\n        for (int i = 0; i < n; ++i) prev[i] = INT_MIN;\n        prev[n - 1] = fruits[0][n - 1];\n\n        for (int i = 1; i < n - 1; ++i) {\n            for (int j = 0; j < n; ++j) curr[j] = INT_MIN;\n            for (int j = (n - 1 - i > i + 1 ? n - 1 - i : i + 1); j < n; ++j) {\n                int best = prev[j];\n                if (j - 1 >= 0) {\n                    best = best > prev[j - 1] ? best : prev[j - 1];\n                }\n                if (j + 1 < n) {\n                    best = best > prev[j + 1] ? best : prev[j + 1];\n                }\n                curr[j] = best + fruits[i][j];\n            }\n            int* tmp = prev; \n            prev = curr; \n            curr = tmp;\n        }\n\n        int result = prev[n - 1];\n        free(prev); free(curr);\n        return result;\n    }\n\n    ans += dp();\n\n    for (int i = 0; i < n; ++i) {\n        for (int j = 0; j < i; ++j) {\n            int temp = fruits[j][i]; \n            fruits[j][i] = fruits[i][j]; \n            fruits[i][j]=temp;\n        }\n    }\n\n    ans += dp();\n    return ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar maxCollectedFruits = function(fruits) {\n    const n = fruits.length;\n    let ans = 0;\n    for (let i = 0; i < n; ++i) ans += fruits[i][i];\n\n    function dp() {\n        let prev = Array(n).fill(-Infinity);\n        let curr = Array(n).fill(-Infinity);\n        prev[n - 1] = fruits[0][n - 1];\n\n        for (let i = 1; i < n - 1; ++i) {\n            for (let j = Math.max(n - 1 - i, i + 1); j < n; ++j) {\n                let best = prev[j];\n                if (j - 1 >= 0) {\n                    best = Math.max(best, prev[j - 1]);\n                }\n                if (j + 1 < n) {\n                    best = Math.max(best, prev[j + 1]);\n                }\n                curr[j] = best + fruits[i][j];\n            }\n            [prev, curr] = [curr, prev];\n        }\n        return prev[n - 1];\n    }\n\n    ans += dp();\n    for (let i = 0; i < n; ++i){\n        for (let j = 0; j < i; ++j){\n            [fruits[i][j], fruits[j][i]] = [fruits[j][i], fruits[i][j]];\n        }\n    }\n\n    ans += dp();\n    return ans;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction maxCollectedFruits(fruits: number[][]): number {\n    const n = fruits.length;\n    let ans = 0;\n    for (let i = 0; i < n; ++i) ans += fruits[i][i];\n\n    const dp = (): number => {\n        let prev: number[] = Array(n).fill(Number.MIN_SAFE_INTEGER);\n        let curr: number[] = Array(n).fill(Number.MIN_SAFE_INTEGER);\n        prev[n - 1] = fruits[0][n - 1];\n\n        for (let i = 1; i < n - 1; ++i) {\n            for (let j = Math.max(n - 1 - i, i + 1); j < n; ++j) {\n                let best = prev[j];\n                if (j - 1 >= 0) {\n                    best = Math.max(best, prev[j - 1]);\n                }\n                if (j + 1 < n) {\n                    best = Math.max(best, prev[j + 1]);\n                }\n                curr[j] = best + fruits[i][j];\n            }\n            [prev, curr] = [curr, prev];\n        }\n\n        return prev[n - 1];\n    };\n\n    ans += dp();\n    for (let i = 0; i < n; ++i){\n        for (let j = 0; j < i; ++j){\n            [fruits[i][j], fruits[j][i]] = [fruits[j][i], fruits[i][j]];\n        }\n    }\n    ans += dp();\n    return ans;\n};\n```\n\n```Rust [sol1-Rust]\nfn dp(fruits: &Vec<Vec<i32>>, n: usize) -> i32 {\n    let mut prev = vec![i32::MIN; n];\n    let mut curr = vec![i32::MIN; n];\n\n    prev[n - 1] = fruits[0][n - 1];\n    for i in 1..n - 1 {\n        for j in (n - 1 - i).max(i + 1)..n {\n            let mut best = prev[j];\n            if j > 0 {\n                best = best.max(prev[j - 1]);\n            }\n            if j + 1 < n {\n                best = best.max(prev[j + 1]);\n            }\n            curr[j] = best + fruits[i][j];\n        }\n        std::mem::swap(&mut prev, &mut curr);\n    }\n    prev[n - 1]\n}\n\nimpl Solution {\n    pub fn max_collected_fruits(mut fruits: Vec<Vec<i32>>) -> i32 {\n        let n = fruits.len();\n        let mut ans = (0..n).map(|i| fruits[i][i]).sum::<i32>();\n\n        ans += dp(&fruits, n);\n        for i in 0..n {\n            for j in 0..i {\n                let tmp = fruits[i][j];\n                fruits[i][j] = fruits[j][i];\n                fruits[j][i] = tmp;\n            }\n        }\n        ans += dp(&fruits, n);\n        ans\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n^2)$，其中 $n$ 是 $\\textit{fruits}$ 的长度。计算上三角区域贡献的动态规划需要 $O(n^2)$。\n- 空间复杂度：$O(n)$。我们使用滚动数组将空间复杂度从 $O(n^2)$ 优化到 $O(n)$。",
+            "slateValue": "",
+            "slug": "zui-duo-ke-shou-ji-de-shui-guo-shu-mu-by-zybm",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "m3wzbM",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 5,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Matrix",
+                    "nameTranslated": "矩阵",
+                    "slug": "matrix",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2025-07-29T15:16:31.270068+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：动态规划 思路与算法 首先，由于从左上角 [latex] 出发的小朋友只能移动 [latex] 次，所以他只能走主对角线。那么，我们只需要计算剩下两个小朋友收集水果总数的最大值即可。 对于从右上角 [latex] 出发的小朋友，不难发现他只能走主对角线的上面，而不能够越过主对角线，否则在 [latex] 次移动",
+            "topic": {
+                "id": 3737099,
+                "subscribed": false,
+                "commentCount": 32,
+                "viewCount": 38,
+                "post": {
+                    "id": 6824584,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 21,
+            "isEditorsPick": false,
+            "hitCount": 5957,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "find-the-maximum-number-of-fruits-collected",
+                "questionFrontendId": "3363"
+            },
+            "next": {
+                "slug": "nao-jin-ji-zhuan-wan-wang-ge-tu-dppython-gjcm",
+                "title": "脑筋急转弯 + 网格图 DP（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

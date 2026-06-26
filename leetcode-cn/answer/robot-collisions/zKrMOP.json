@@ -1,0 +1,144 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "zKrMOP",
+            "title": "机器人碰撞",
+            "content": "#### 方法一：排序 + 栈模拟\n\n**思路与算法**\n\n由于所有机器人以相同速度移动，两个机器人发生碰撞当且仅当左侧的机器人向右移动（$\\texttt{R}$），而右侧的机器人向左移动（$\\texttt{L}$）。\n\n因此，我们首先将所有机器人按照位置从小到大排序。排序后，我们使用栈来模拟碰撞过程。按位置从左到右遍历每个机器人。当栈非空，且栈顶机器人方向为 $\\texttt{R}$、当前机器人方向为 $\\texttt{L}$ 时，二者会发生碰撞。我们弹出栈顶机器人，比较两者的健康度：\n\n- 如果栈顶机器人健康度较高，则当前机器人被移除，栈顶机器人健康度减 $1$；\n- 如果当前机器人健康度较高，则栈顶机器人被移除，当前机器人健康度减 $1$，继续与新的栈顶碰撞；\n- 如果两者健康度相等，则都被移除。\n\n如果最终当前机器人被保留，则将它压入栈中。\n\n遍历结束后，栈中剩余的机器人即为幸存者。将它们按照原始编号排序，返回健康度即可。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<int> survivedRobotsHealths(vector<int>& positions, vector<int>& healths, string directions) {\n        int n = positions.size();\n        vector<int> idx(n);\n        iota(idx.begin(), idx.end(), 0);\n        sort(idx.begin(), idx.end(), [&](int a, int b) {\n            return positions[a] < positions[b];\n        });\n\n        vector<tuple<int, int, char>> alive;\n        for (int i: idx) {\n            int curIdx = i, curHp = healths[i];\n            char curDir = directions[i];\n            while (!alive.empty()) {\n                auto [prevIdx, prevHp, prevDir] = alive.back();\n                if (prevDir == 'R' && curDir == 'L') {\n                    alive.pop_back();\n                    if (prevHp > curHp) {\n                        curIdx = prevIdx;\n                        curHp = prevHp - 1;\n                        curDir = prevDir;\n                    } else if (prevHp < curHp) {\n                        curHp -= 1;\n                    } else {\n                        curIdx = -1;\n                        break;\n                    }\n                } else {\n                    break;\n                }\n            }\n            if (curIdx != -1) {\n                alive.emplace_back(curIdx, curHp, curDir);\n            }\n        }\n\n        sort(alive.begin(), alive.end());\n        vector<int> ans;\n        for (auto& [id, hp, dir]: alive) {\n            ans.push_back(hp);\n        }\n        return ans;\n    }\n};\n```\n\n```Python [sol1-Python]\nclass Solution:\n    def survivedRobotsHealths(self, positions: List[int], healths: List[int], directions: str) -> List[int]:\n        n = len(positions)\n        idx = list(range(n))\n        idx.sort(key=lambda i: positions[i])\n\n        alive = []\n        for i in idx:\n            curIdx, curHp, curDir = i, healths[i], directions[i]\n            while alive:\n                prevIdx, prevHp, prevDir = alive[-1]\n                if prevDir == \"R\" and curDir == \"L\":\n                    alive.pop()\n                    if prevHp > curHp:\n                        curIdx, curHp, curDir = prevIdx, prevHp - 1, prevDir\n                    elif prevHp < curHp:\n                        curHp -= 1\n                    else:\n                        curIdx = -1\n                        break\n                else:\n                    break\n            if curIdx != -1:\n                alive.append((curIdx, curHp, curDir))\n\n        alive.sort(key=lambda o: o[0])\n        return list(o[1] for o in alive)\n```\n\n```C# [sol1-C#]\nclass Solution {\n    public List<Integer> survivedRobotsHealths(int[] positions, int[] healths, String directions) {\n        int n = positions.length;\n        Integer[] idx = new Integer[n];\n        for (int i = 0; i < n; i++) {\n            idx[i] = i;\n        }\n        Arrays.sort(idx, (a, b) -> Integer.compare(positions[a], positions[b]));\n        Stack<int[]> stack = new Stack<>();\n        \n        for (int i : idx) {\n            int curIdx = i;\n            int curHp = healths[i];\n            char curDir = directions.charAt(i);\n            \n            while (!stack.isEmpty()) {\n                int[] prev = stack.peek();\n                char prevDir = (char)prev[2];\n                \n                if (prevDir == 'R' && curDir == 'L') {\n                    stack.pop();\n                    if (prev[1] > curHp) {\n                        curIdx = prev[0];\n                        curHp = prev[1] - 1;\n                        curDir = prevDir;\n                    } else if (prev[1] < curHp) {\n                        curHp -= 1;\n                    } else {\n                        curIdx = -1;\n                        break;\n                    }\n                } else {\n                    break;\n                }\n            }\n            \n            if (curIdx != -1) {\n                stack.push(new int[]{curIdx, curHp, curDir});\n            }\n        }\n        \n        List<int[]> alive = new ArrayList<>(stack);\n        alive.sort((a, b) -> Integer.compare(a[0], b[0]));\n        \n        List<Integer> ans = new ArrayList<>();\n        for (int[] robot : alive) {\n            ans.add(robot[1]);\n        }\n        return ans;\n    }\n}\n```\n\n```Go [sol1-Go]\npublic class Solution {\n    public IList<int> SurvivedRobotsHealths(int[] positions, int[] healths, string directions) {\n        int n = positions.Length;\n        int[] idx = Enumerable.Range(0, n).ToArray();\n        Array.Sort(idx, (a, b) => positions[a].CompareTo(positions[b]));\n        Stack<(int index, int health, char direction)> stack = new();\n        \n        foreach (int i in idx) {\n            int curIdx = i;\n            int curHp = healths[i];\n            char curDir = directions[i];\n            \n            while (stack.Count > 0) {\n                var prev = stack.Peek();\n                if (prev.direction == 'R' && curDir == 'L') {\n                    stack.Pop();\n                    if (prev.health > curHp) {\n                        curIdx = prev.index;\n                        curHp = prev.health - 1;\n                        curDir = prev.direction;\n                    } else if (prev.health < curHp) {\n                        curHp -= 1;\n                    } else {\n                        curIdx = -1;\n                        break;\n                    }\n                } else {\n                    break;\n                }\n            }\n            \n            if (curIdx != -1) {\n                stack.Push((curIdx, curHp, curDir));\n            }\n        }\n        \n        var alive = stack.ToList();\n        alive.Sort((a, b) => a.index.CompareTo(b.index));\n        \n        return alive.Select(r => r.health).ToList();\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc survivedRobotsHealths(positions []int, healths []int, directions string) []int {\n    n := len(positions)\n    idx := make([]int, n)\n    for i := 0; i < n; i++ {\n        idx[i] = i\n    }\n    \n    sort.Slice(idx, func(a, b int) bool {\n        return positions[idx[a]] < positions[idx[b]]\n    })\n    \n    type Robot struct {\n        index   int\n        health  int\n        dir     byte\n    }\n    stack := make([]Robot, 0)\n    \n    for _, i := range idx {\n        curIdx := i\n        curHp := healths[i]\n        curDir := directions[i]\n        \n        for len(stack) > 0 {\n            prev := stack[len(stack)-1]\n            if prev.dir == 'R' && curDir == 'L' {\n                stack = stack[:len(stack)-1]\n                if prev.health > curHp {\n                    curIdx = prev.index\n                    curHp = prev.health - 1\n                    curDir = prev.dir\n                } else if prev.health < curHp {\n                    curHp -= 1\n                } else {\n                    curIdx = -1\n                    break\n                }\n            } else {\n                break\n            }\n        }\n        \n        if curIdx != -1 {\n            stack = append(stack, Robot{curIdx, curHp, curDir})\n        }\n    }\n    \n    sort.Slice(stack, func(a, b int) bool {\n        return stack[a].index < stack[b].index\n    })\n    \n    ans := make([]int, len(stack))\n    for i, r := range stack {\n        ans[i] = r.health\n    }\n    return ans\n}\n```\n\n```C [sol1-C]\ntypedef struct {\n    int index;\n    int health;\n    char dir;\n} Robot;\n\nint compareIndex(const void* a, const void* b) {\n    Robot* ra = (Robot*)a;\n    Robot* rb = (Robot*)b;\n    return ra->index - rb->index;\n}\n\nint comparePosition(const void* a, const void* b) {\n    int* ia = *(int**)a;\n    int* ib = *(int**)b;\n    return ia[1] - ib[1];\n}\n\nint* survivedRobotsHealths(int* positions, int positionsSize, int* healths, int healthsSize, \nchar* directions, int* returnSize) {\n    int n = positionsSize;\n    int** idx = (int**)malloc(n * sizeof(int*));\n    for (int i = 0; i < n; i++) {\n        idx[i] = (int*)malloc(2 * sizeof(int));\n        idx[i][0] = i;\n        idx[i][1] = positions[i];\n    }\n    \n    qsort(idx, n, sizeof(int*), comparePosition);\n    Robot* stack = (Robot*)malloc(n * sizeof(Robot));\n    int stackSize = 0;\n    \n    for (int k = 0; k < n; k++) {\n        int i = idx[k][0]; \n        int curIdx = i;\n        int curHp = healths[i];\n        char curDir = directions[i];\n        \n        while (stackSize > 0) {\n            Robot prev = stack[stackSize - 1];\n            if (prev.dir == 'R' && curDir == 'L') {\n                stackSize--;\n                if (prev.health > curHp) {\n                    curIdx = prev.index;\n                    curHp = prev.health - 1;\n                    curDir = prev.dir;\n                } else if (prev.health < curHp) {\n                    curHp -= 1;\n                } else {\n                    curIdx = -1;\n                    break;\n                }\n            } else {\n                break;\n            }\n        }\n        \n        if (curIdx != -1) {\n            stack[stackSize].index = curIdx;\n            stack[stackSize].health = curHp;\n            stack[stackSize].dir = curDir;\n            stackSize++;\n        }\n    }\n    \n    qsort(stack, stackSize, sizeof(Robot), compareIndex);\n    *returnSize = stackSize;\n    int* result = (int*)malloc(stackSize * sizeof(int));\n    for (int i = 0; i < stackSize; i++) {\n        result[i] = stack[i].health;\n    }\n    \n    for (int i = 0; i < n; i++) {\n        free(idx[i]);\n    }\n    free(idx);\n    free(stack);\n    \n    return result;\n}\n```\n\n```Java [sol1-Java]\nvar survivedRobotsHealths = function(positions, healths, directions) {\n    const n = positions.length;\n    const idx = Array.from({length: n}, (_, i) => i);\n    idx.sort((a, b) => positions[a] - positions[b]);\n    const stack = [];\n    \n    for (const i of idx) {\n        let curIdx = i;\n        let curHp = healths[i];\n        let curDir = directions[i];\n        \n        while (stack.length > 0) {\n            const prev = stack[stack.length - 1];\n            if (prev.dir === 'R' && curDir === 'L') {\n                stack.pop();\n                if (prev.health > curHp) {\n                    curIdx = prev.index;\n                    curHp = prev.health - 1;\n                    curDir = prev.dir;\n                } else if (prev.health < curHp) {\n                    curHp -= 1;\n                } else {\n                    curIdx = -1;\n                    break;\n                }\n            } else {\n                break;\n            }\n        }\n        \n        if (curIdx !== -1) {\n            stack.push({index: curIdx, health: curHp, dir: curDir});\n        }\n    }\n    \n    stack.sort((a, b) => a.index - b.index);\n    return stack.map(r => r.health);\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction survivedRobotsHealths(positions: number[], healths: number[], directions: string): number[] {\n    const n = positions.length;\n    const idx: number[] = Array.from({length: n}, (_, i) => i);\n    idx.sort((a, b) => positions[a] - positions[b]);\n    \n    interface Robot {\n        index: number;\n        health: number;\n        dir: string;\n    }\n    const stack: Robot[] = [];\n    \n    for (const i of idx) {\n        let curIdx: number = i;\n        let curHp: number = healths[i];\n        let curDir: string = directions[i];\n        \n        while (stack.length > 0) {\n            const prev = stack[stack.length - 1];\n            if (prev.dir === 'R' && curDir === 'L') {\n                stack.pop();\n                if (prev.health > curHp) {\n                    curIdx = prev.index;\n                    curHp = prev.health - 1;\n                    curDir = prev.dir;\n                } else if (prev.health < curHp) {\n                    curHp -= 1;\n                } else {\n                    curIdx = -1;\n                    break;\n                }\n            } else {\n                break;\n            }\n        }\n        \n        if (curIdx !== -1) {\n            stack.push({index: curIdx, health: curHp, dir: curDir});\n        }\n    }\n    \n    stack.sort((a, b) => a.index - b.index);\n    return stack.map(r => r.health);\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn survived_robots_healths(positions: Vec<i32>, healths: Vec<i32>, directions: String) -> Vec<i32> {\n        let n = positions.len();\n        let mut idx: Vec<usize> = (0..n).collect();\n        idx.sort_by_key(|&i| positions[i]);\n        \n        let dir_chars: Vec<char> = directions.chars().collect();\n        let mut stack: Vec<(usize, i32, char)> = Vec::new();\n        \n        for &i in &idx {\n            let mut cur_idx = i;\n            let mut cur_hp = healths[i];\n            let mut cur_dir = dir_chars[i];\n            \n            while let Some(&(prev_idx, prev_hp, prev_dir)) = stack.last() {\n                if prev_dir == 'R' && cur_dir == 'L' {\n                    stack.pop();\n                    if prev_hp > cur_hp {\n                        cur_idx = prev_idx;\n                        cur_hp = prev_hp - 1;\n                        cur_dir = prev_dir;\n                    } else if prev_hp < cur_hp {\n                        cur_hp -= 1;\n                    } else {\n                        cur_idx = usize::MAX;\n                        break;\n                    }\n                } else {\n                    break;\n                }\n            }\n            \n            if cur_idx != usize::MAX {\n                stack.push((cur_idx, cur_hp, cur_dir));\n            }\n        }\n        \n        stack.sort_by_key(|&(idx, _, _)| idx);\n        stack.into_iter().map(|(_, hp, _)| hp).collect()\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n \\log n)$，其中 $n$ 是机器人的数量。排序需要 $O(n \\log n)$ 的时间，栈模拟的部分，每个机器人至多入栈和出栈各一次，因此需要 $O(n)$ 的时间。\n\n- 空间复杂度：$O(n)$，即为排序的下标数组以及栈需要使用的空间。",
+            "slateValue": "",
+            "slug": "ji-qi-ren-peng-zhuang-by-leetcode-soluti-ob7v",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "zKrMOP",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 3,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Stack",
+                    "nameTranslated": "栈",
+                    "slug": "stack",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Sorting",
+                    "nameTranslated": "排序",
+                    "slug": "sorting",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2026-03-23T02:21:43.390842+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：排序 + 栈模拟 思路与算法 由于所有机器人以相同速度移动，两个机器人发生碰撞当且仅当左侧的机器人向右移动（[latex]），而右侧的机器人向左移动（[latex]）。 因此，我们首先将所有机器人按照位置从小到大排序。排序后，我们使用栈来模拟碰撞过程。按位置从左到右遍历每个机器人。当栈非空，且栈顶机器人方向为 ",
+            "topic": {
+                "id": 3934241,
+                "subscribed": false,
+                "commentCount": 16,
+                "viewCount": 12,
+                "post": {
+                    "id": 7172280,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 6,
+            "isEditorsPick": false,
+            "hitCount": 3332,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "robot-collisions",
+                "questionFrontendId": "2751"
+            },
+            "next": {
+                "slug": "zhan-mo-ni-by-endlesscheng-fu26",
+                "title": "用栈维护机器人（Python/Java/C++/C/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

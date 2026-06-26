@@ -1,0 +1,140 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "2r8XXU",
+            "title": "子数组范围和",
+            "content": "#### 方法一：遍历子数组\n\n**思路与算法**\n\n为了方便计算子数组的最大值与最小值，我们首先枚举子数组的左边界 $i$，然后枚举子数组的右边界 $j$，且 $i \\le j$。在枚举 $j$ 的过程中我们可以迭代地计算子数组 $[i,j]$ 的最小值 $\\textit{minVal}$ 与最大值 $\\textit{maxVal}$，然后将范围值 $\\textit{maxVal} - \\textit{minVal}$ 加到总范围和。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    long long subArrayRanges(vector<int>& nums) {\n        int n = nums.size();\n        long long ret = 0;\n        for (int i = 0; i < n; i++) {\n            int minVal = INT_MAX, maxVal = INT_MIN;\n            for (int j = i; j < n; j++) {\n                minVal = min(minVal, nums[j]);\n                maxVal = max(maxVal, nums[j]);\n                ret += maxVal - minVal;\n            }\n        }\n        return ret;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public long subArrayRanges(int[] nums) {\n        int n = nums.length;\n        long ret = 0;\n        for (int i = 0; i < n; i++) {\n            int minVal = Integer.MAX_VALUE, maxVal = Integer.MIN_VALUE;\n            for (int j = i; j < n; j++) {\n                minVal = Math.min(minVal, nums[j]);\n                maxVal = Math.max(maxVal, nums[j]);\n                ret += maxVal - minVal;\n            }\n        }\n        return ret;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public long SubArrayRanges(int[] nums) {\n        int n = nums.Length;\n        long ret = 0;\n        for (int i = 0; i < n; i++) {\n            int minVal = int.MaxValue, maxVal = int.MinValue;\n            for (int j = i; j < n; j++) {\n                minVal = Math.Min(minVal, nums[j]);\n                maxVal = Math.Max(maxVal, nums[j]);\n                ret += maxVal - minVal;\n            }\n        }\n        return ret;\n    }\n}\n```\n\n```C [sol1-C]\n#define MAX(a, b) ((a) > (b) ? (a) : (b))\n#define MIN(a, b) ((a) < (b) ? (a) : (b))\n\nlong long subArrayRanges(int* nums, int numsSize){\n    long long ret = 0;\n    for (int i = 0; i < numsSize; i++) {\n        int minVal = INT_MAX, maxVal = INT_MIN;\n        for (int j = i; j < numsSize; j++) {\n            minVal = MIN(minVal, nums[j]);\n            maxVal = MAX(maxVal, nums[j]);\n            ret += maxVal - minVal;\n        }\n    }\n    return ret;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar subArrayRanges = function(nums) {\n    const n = nums.length;\n    let ret = 0;\n    for (let i = 0; i < n; i++) {\n        let minVal = Number.MAX_VALUE, maxVal = -Number.MAX_VALUE;\n        for (let j = i; j < n; j++) {\n            minVal = Math.min(minVal, nums[j]);\n            maxVal = Math.max(maxVal, nums[j]);\n            ret += maxVal - minVal;\n        }\n    }\n    return ret;\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def subArrayRanges(self, nums: List[int]) -> int:\n        ans, n = 0, len(nums)\n        for i in range(n):\n            minVal, maxVal = inf, -inf\n            for j in range(i, n):\n                minVal = min(minVal, nums[j])\n                maxVal = max(maxVal, nums[j])\n                ans += maxVal - minVal\n        return ans\n```\n\n```go [sol1-Golang]\nfunc subArrayRanges(nums []int) (ans int64) {\n    for i, num := range nums {\n        minVal, maxVal := num, num\n        for _, v := range nums[i+1:] {\n            if v < minVal {\n                minVal = v\n            } else if v > maxVal {\n                maxVal = v\n            }\n            ans += int64(maxVal - minVal)\n        }\n    }\n    return\n}\n```\n\n**复杂度分析**\n\n+ 时间复杂度：$O(n^2)$，其中 $n$ 为数组的大小。两层循环需要 $O(n^2)$。\n\n+ 空间复杂度：$O(1)$。\n\n#### 方法二：单调栈\n\n**思路与算法**\n\n为了使子数组的最小值或最大值唯一，我们定义如果 $\\textit{nums}[i] = \\textit{nums}[j]$，那么 $\\textit{nums}[i]$ 与 $\\textit{nums}[j]$ 的逻辑大小由下标 $i$ 与下标 $j$ 的逻辑大小决定，即如果 $i < j$，那么 $\\textit{nums}[i]$ 逻辑上小于 $\\textit{nums}[j]$。\n\n根据范围和的定义，可以推出范围和 $\\textit{sum}$ 等于所有子数组的最大值之和 $\\textit{sumMax}$ 减去所有子数组的最小值之和 $\\textit{sumMin}$。\n\n假设 $\\textit{nums}[i]$ 左侧最近的比它小的数为 $\\textit{nums}[j]$，右侧最近的比它小的数为 $\\textit{nums}[k]$，那么所有以 $\\textit{nums}[i]$ 为最小值的子数组数目为 $(k - i) \\times (i - j)$。为了能获得 $\\textit{nums}[i]$ 左侧和右侧最近的比它小的数的下标，我们可以使用单调递增栈分别预处理出数组 $\\textit{minLeft}$ 和 $\\textit{minRight}$，其中 $\\textit{minLeft}[i]$ 表示 $\\textit{nums}[i]$ 左侧最近的比它小的数的下标，$\\textit{minRight}[i]$ 表示 $\\textit{nums}[i]$ 右侧最近的比它小的数的下标。\n\n> 以求解 $\\textit{minLeft}$ 为例，我们从左到右遍历整个数组 $\\textit{nums}$。处理到 $\\textit{nums}[i]$ 时，我们执行出栈操作直到栈为空或者 $\\textit{nums}$ 中以栈顶元素为下标的数逻辑上小于 $\\textit{nums}[i]$。如果栈为空，那么 $\\textit{minLeft}[i] = -1$，否则 $\\textit{minLeft}[i]$ 等于栈顶元素，然后将下标 $i$ 入栈。\n\n那么所有子数组的最小值之和 $\\textit{sumMin} = \\sum_{i=0}^{n-1} (\\textit{minRight}[i] - i) \\times (i - \\textit{minLeft}[i]) \\times \\textit{nums}[i]$。同理我们也可以求得所有子数组的最大值之和 $\\textit{sumMax}$。\n\n**代码**\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    long long subArrayRanges(vector<int>& nums) {\n        int n = nums.size();\n        vector<int> minLeft(n), minRight(n), maxLeft(n), maxRight(n);\n        stack<int> minStack, maxStack;\n        for (int i = 0; i < n; i++) {\n            while (!minStack.empty() && nums[minStack.top()] > nums[i]) {\n                minStack.pop();\n            }\n            minLeft[i] = minStack.empty() ? -1 : minStack.top();\n            minStack.push(i);\n            \n            // 如果 nums[maxStack.top()] == nums[i], 那么根据定义，\n            // nums[maxStack.top()] 逻辑上小于 nums[i]，因为 maxStack.top() < i\n            while (!maxStack.empty() && nums[maxStack.top()] <= nums[i]) { \n                maxStack.pop();\n            }\n            maxLeft[i] = maxStack.empty() ? -1 : maxStack.top();\n            maxStack.push(i);\n        }\n        minStack = stack<int>();\n        maxStack = stack<int>();\n        for (int i = n - 1; i >= 0; i--) {\n            // 如果 nums[minStack.top()] == nums[i], 那么根据定义，\n            // nums[minStack.top()] 逻辑上大于 nums[i]，因为 minStack.top() > i\n            while (!minStack.empty() && nums[minStack.top()] >= nums[i]) { \n                minStack.pop();\n            }\n            minRight[i] = minStack.empty() ? n : minStack.top();\n            minStack.push(i);\n\n            while (!maxStack.empty() && nums[maxStack.top()] < nums[i]) {\n                maxStack.pop();\n            }\n            maxRight[i] = maxStack.empty() ? n : maxStack.top();\n            maxStack.push(i);\n        }\n\n        long long sumMax = 0, sumMin = 0;\n        for (int i = 0; i < n; i++) {\n            sumMax += static_cast<long long>(maxRight[i] - i) * (i - maxLeft[i]) * nums[i];\n            sumMin += static_cast<long long>(minRight[i] - i) * (i - minLeft[i]) * nums[i];\n        }\n        return sumMax - sumMin;\n    }\n};\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public long subArrayRanges(int[] nums) {\n        int n = nums.length;\n        int[] minLeft = new int[n];\n        int[] minRight = new int[n];\n        int[] maxLeft = new int[n];\n        int[] maxRight = new int[n];\n        Deque<Integer> minStack = new ArrayDeque<Integer>();\n        Deque<Integer> maxStack = new ArrayDeque<Integer>();\n        for (int i = 0; i < n; i++) {\n            while (!minStack.isEmpty() && nums[minStack.peek()] > nums[i]) {\n                minStack.pop();\n            }\n            minLeft[i] = minStack.isEmpty() ? -1 : minStack.peek();\n            minStack.push(i);\n            \n            // 如果 nums[maxStack.peek()] == nums[i], 那么根据定义，\n            // nums[maxStack.peek()] 逻辑上小于 nums[i]，因为 maxStack.peek() < i\n            while (!maxStack.isEmpty() && nums[maxStack.peek()] <= nums[i]) { \n                maxStack.pop();\n            }\n            maxLeft[i] = maxStack.isEmpty() ? -1 : maxStack.peek();\n            maxStack.push(i);\n        }\n        minStack.clear();\n        maxStack.clear();\n        for (int i = n - 1; i >= 0; i--) {\n            // 如果 nums[minStack.peek()] == nums[i], 那么根据定义，\n            // nums[minStack.peek()] 逻辑上大于 nums[i]，因为 minStack.peek() > i\n            while (!minStack.isEmpty() && nums[minStack.peek()] >= nums[i]) { \n                minStack.pop();\n            }\n            minRight[i] = minStack.isEmpty() ? n : minStack.peek();\n            minStack.push(i);\n\n            while (!maxStack.isEmpty() && nums[maxStack.peek()] < nums[i]) {\n                maxStack.pop();\n            }\n            maxRight[i] = maxStack.isEmpty() ? n : maxStack.peek();\n            maxStack.push(i);\n        }\n\n        long sumMax = 0, sumMin = 0;\n        for (int i = 0; i < n; i++) {\n            sumMax += (long) (maxRight[i] - i) * (i - maxLeft[i]) * nums[i];\n            sumMin += (long) (minRight[i] - i) * (i - minLeft[i]) * nums[i];\n        }\n        return sumMax - sumMin;\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    public long SubArrayRanges(int[] nums) {\n        int n = nums.Length;\n        int[] minLeft = new int[n];\n        int[] minRight = new int[n];\n        int[] maxLeft = new int[n];\n        int[] maxRight = new int[n];\n        Stack<int> minStack = new Stack<int>();\n        Stack<int> maxStack = new Stack<int>();\n        for (int i = 0; i < n; i++) {\n            while (minStack.Count > 0 && nums[minStack.Peek()] > nums[i]) {\n                minStack.Pop();\n            }\n            minLeft[i] = minStack.Count == 0 ? -1 : minStack.Peek();\n            minStack.Push(i);\n            \n            // 如果 nums[maxStack.Peek()] == nums[i], 那么根据定义，\n            // nums[maxStack.Peek()] 逻辑上小于 nums[i]，因为 maxStack.Peek() < i\n            while (maxStack.Count > 0 && nums[maxStack.Peek()] <= nums[i]) { \n                maxStack.Pop();\n            }\n            maxLeft[i] = maxStack.Count == 0 ? -1 : maxStack.Peek();\n            maxStack.Push(i);\n        }\n        minStack.Clear();\n        maxStack.Clear();\n        for (int i = n - 1; i >= 0; i--) {\n            // 如果 nums[minStack.Peek()] == nums[i], 那么根据定义，\n            // nums[minStack.Peek()] 逻辑上大于 nums[i]，因为 minStack.Peek() > i\n            while (minStack.Count > 0 && nums[minStack.Peek()] >= nums[i]) { \n                minStack.Pop();\n            }\n            minRight[i] = minStack.Count == 0 ? n : minStack.Peek();\n            minStack.Push(i);\n\n            while (maxStack.Count > 0 && nums[maxStack.Peek()] < nums[i]) {\n                maxStack.Pop();\n            }\n            maxRight[i] = maxStack.Count == 0 ? n : maxStack.Peek();\n            maxStack.Push(i);\n        }\n\n        long sumMax = 0, sumMin = 0;\n        for (int i = 0; i < n; i++) {\n            sumMax += (long) (maxRight[i] - i) * (i - maxLeft[i]) * nums[i];\n            sumMin += (long) (minRight[i] - i) * (i - minLeft[i]) * nums[i];\n        }\n        return sumMax - sumMin;\n    }\n}\n```\n\n```C [sol2-C]\ntypedef struct {\n    int * stBuff;\n    int stSize;\n    int stTop;\n} Stack;\n\nvoid initStack(Stack * obj, int stSize) {\n    obj->stBuff = (int *)malloc(sizeof(int) * stSize);\n    obj->stSize = stSize;\n    obj->stTop = 0;\n}\n\nstatic inline bool pushStack(Stack * obj, int val) {\n    if (obj->stTop == obj->stSize) {\n        return false;\n    }\n    obj->stBuff[obj->stTop++] = val;\n    return true;\n}\n\nstatic inline int popStack(Stack * obj) {\n    if (obj->stTop == 0) {\n        return -1;\n    }\n    int res =  obj->stBuff[obj->stTop - 1];\n    obj->stTop--;\n    return res;\n}\n\n\nstatic inline bool isEmptyStack(const Stack * obj) {\n    return obj->stTop == 0;\n}\n\nstatic inline int topStack(const Stack * obj) {\n    if (obj->stTop == 0) {\n        return -1;\n    }\n    return obj->stBuff[obj->stTop - 1]; \n}\n\nstatic inline bool clearStack(Stack * obj) {\n    obj->stTop = 0;\n    return true;\n}\n\nstatic inline void freeStack(Stack * obj) {\n    free(obj->stBuff);\n}\n\nlong long subArrayRanges(int* nums, int numsSize){\n    int * minLeft = (int *)malloc(sizeof(int) * numsSize);\n    int * minRight = (int *)malloc(sizeof(int) * numsSize);\n    int * maxLeft = (int *)malloc(sizeof(int) * numsSize);\n    int * maxRight = (int *)malloc(sizeof(int) * numsSize);\n    Stack minStack, maxStack;\n    initStack(&minStack, numsSize);\n    initStack(&maxStack, numsSize);\n    for (int i = 0; i < numsSize; i++) {\n        while (!isEmptyStack(&minStack) && nums[topStack(&minStack)] > nums[i]) {\n            popStack(&minStack);\n        }\n        minLeft[i] = isEmptyStack(&minStack) ? -1 : topStack(&minStack);\n        pushStack(&minStack, i);\n        \n        // 如果 nums[maxStack.top()] == nums[i], 那么根据定义，\n        // nums[maxStack.top()] 逻辑上小于 nums[i]，因为 maxStack.top() < i\n        while (!isEmptyStack(&maxStack) && nums[topStack(&maxStack)] <= nums[i]) { \n            popStack(&maxStack);\n        }\n        maxLeft[i] = isEmptyStack(&maxStack) ? -1 : topStack(&maxStack);\n        pushStack(&maxStack, i);\n    }\n    clearStack(&minStack);\n    clearStack(&maxStack);\n    for (int i = numsSize - 1; i >= 0; i--) {\n        // 如果 nums[minStack.top()] == nums[i], 那么根据定义，\n        // nums[minStack.top()] 逻辑上大于 nums[i]，因为 minStack.top() > i\n        while (!isEmptyStack(&minStack) && nums[topStack(&minStack)] >= nums[i]) { \n            popStack(&minStack);\n        }\n        minRight[i] = isEmptyStack(&minStack) ? numsSize : topStack(&minStack);\n        pushStack(&minStack, i);\n\n        while (!isEmptyStack(&maxStack) && nums[topStack(&maxStack)] < nums[i]) { \n            popStack(&maxStack);\n        }\n        maxRight[i] = isEmptyStack(&maxStack) ? numsSize : topStack(&maxStack);\n        pushStack(&maxStack, i);\n    }\n    freeStack(&minStack);\n    freeStack(&maxStack);\n\n    long long sumMax = 0, sumMin = 0;\n    for (int i = 0; i < numsSize; i++) {\n        sumMax += (long long)(maxRight[i] - i) * (i - maxLeft[i]) * nums[i];\n        sumMin += (long long)(minRight[i] - i) * (i - minLeft[i]) * nums[i];\n    }\n    \n    return sumMax - sumMin;\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar subArrayRanges = function(nums) {\n    const n = nums.length;\n    const minLeft = new Array(n).fill(0);\n    const minRight = new Array(n).fill(0);\n    const maxLeft = new Array(n).fill(0);\n    const maxRight = new Array(n).fill(0);\n    let minStack = [];\n    let maxStack = [];\n    for (let i = 0; i < n; i++) {\n        while (minStack.length && nums[minStack[minStack.length - 1]] > nums[i]) {\n            minStack.pop();\n        }\n        minLeft[i] = minStack.length === 0 ? -1 : minStack[minStack.length - 1];\n        minStack.push(i);\n        \n        // 如果 nums[maxStack[maxStack.length - 1]] == nums[i], 那么根据定义，\n        // nums[maxStack[maxStack.length - 1]] 逻辑上小于 nums[i]，因为 maxStack[maxStack.length - 1] < i\n        while (maxStack.length && nums[maxStack[maxStack.length - 1]] <= nums[i]) { \n            maxStack.pop();\n        }\n        maxLeft[i] = maxStack.length === 0 ? -1 : maxStack[maxStack.length - 1];\n        maxStack.push(i);\n    }\n    minStack = [];\n    maxStack = [];\n    for (let i = n - 1; i >= 0; i--) {\n        // 如果 nums[minStack[minStack.length - 1]] == nums[i], 那么根据定义，\n        // nums[minStack[minStack.length - 1]] 逻辑上大于 nums[i]，因为 minStack[minStack.length - 1] > i\n        while (minStack.length && nums[minStack[minStack.length - 1]] >= nums[i]) { \n            minStack.pop();\n        }\n        minRight[i] = minStack.length === 0 ? n : minStack[minStack.length - 1];\n        minStack.push(i);\n\n        while (maxStack.length && nums[maxStack[maxStack.length - 1]] < nums[i]) {\n            maxStack.pop();\n        }\n        maxRight[i] = maxStack.length === 0 ? n : maxStack[maxStack.length - 1];\n        maxStack.push(i);\n    }\n\n    let sumMax = 0, sumMin = 0;\n    for (let i = 0; i < n; i++) {\n        sumMax += (maxRight[i] - i) * (i - maxLeft[i]) * nums[i];\n        sumMin += (minRight[i] - i) * (i - minLeft[i]) * nums[i];\n    }\n    return sumMax - sumMin;\n};\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def subArrayRanges(self, nums: List[int]) -> int:\n        n = len(nums)\n        minLeft, maxLeft = [0] * n, [0] * n\n        minStack, maxStack = [], []\n        for i, num in enumerate(nums):\n            while minStack and nums[minStack[-1]] > num:\n                minStack.pop()\n            minLeft[i] = minStack[-1] if minStack else -1\n            minStack.append(i)\n\n            # 如果 nums[maxStack[-1]] == num, 那么根据定义，\n            # nums[maxStack[-1]] 逻辑上小于 num，因为 maxStack[-1] < i\n            while maxStack and nums[maxStack[-1]] <= num:\n                maxStack.pop()\n            maxLeft[i] = maxStack[-1] if maxStack else -1\n            maxStack.append(i)\n\n        minRight, maxRight = [0] * n, [0] * n\n        minStack, maxStack = [], []\n        for i in range(n - 1, -1, -1):\n            num = nums[i]\n            # 如果 nums[minStack[-1]] == num, 那么根据定义，\n            # nums[minStack[-1]] 逻辑上大于 num，因为 minStack[-1] > i\n            while minStack and nums[minStack[-1]] >= num:\n                minStack.pop()\n            minRight[i] = minStack[-1] if minStack else n\n            minStack.append(i)\n\n            while maxStack and nums[maxStack[-1]] < num:\n                maxStack.pop()\n            maxRight[i] = maxStack[-1] if maxStack else n\n            maxStack.append(i)\n\n        sumMax, sumMin = 0, 0\n        for i, num in enumerate(nums):\n            sumMax += (maxRight[i] - i) * (i - maxLeft[i]) * num\n            sumMin += (minRight[i] - i) * (i - minLeft[i]) * num\n        return sumMax - sumMin\n```\n\n```go [sol2-Golang]\nfunc subArrayRanges(nums []int) int64 {\n    n := len(nums)\n    minLeft := make([]int, n)\n    maxLeft := make([]int, n)\n    var minStk, maxStk []int\n    for i, num := range nums {\n        for len(minStk) > 0 && nums[minStk[len(minStk)-1]] > num {\n            minStk = minStk[:len(minStk)-1]\n        }\n        if len(minStk) > 0 {\n            minLeft[i] = minStk[len(minStk)-1]\n        } else {\n            minLeft[i] = -1\n        }\n        minStk = append(minStk, i)\n\n        // 如果 nums[maxStk[len(maxStk)-1]] == num, 那么根据定义，\n        // nums[maxStk[len(maxStk)-1]] 逻辑上小于 num，因为 maxStk[len(maxStk)-1] < i\n        for len(maxStk) > 0 && nums[maxStk[len(maxStk)-1]] <= num {\n            maxStk = maxStk[:len(maxStk)-1]\n        }\n        if len(maxStk) > 0 {\n            maxLeft[i] = maxStk[len(maxStk)-1]\n        } else {\n            maxLeft[i] = -1\n        }\n        maxStk = append(maxStk, i)\n    }\n\n    minRight := make([]int, n)\n    maxRight := make([]int, n)\n    minStk = minStk[:0]\n    maxStk = maxStk[:0]\n    for i := n - 1; i >= 0; i-- {\n        num := nums[i]\n        // 如果 nums[minStk[len(minStk)-1]] == num, 那么根据定义，\n        // nums[minStk[len(minStk)-1]] 逻辑上大于 num，因为 minStk[len(minStk)-1] > i\n        for len(minStk) > 0 && nums[minStk[len(minStk)-1]] >= num {\n            minStk = minStk[:len(minStk)-1]\n        }\n        if len(minStk) > 0 {\n            minRight[i] = minStk[len(minStk)-1]\n        } else {\n            minRight[i] = n\n        }\n        minStk = append(minStk, i)\n\n        for len(maxStk) > 0 && nums[maxStk[len(maxStk)-1]] < num {\n            maxStk = maxStk[:len(maxStk)-1]\n        }\n        if len(maxStk) > 0 {\n            maxRight[i] = maxStk[len(maxStk)-1]\n        } else {\n            maxRight[i] = n\n        }\n        maxStk = append(maxStk, i)\n    }\n\n    var sumMax, sumMin int64\n    for i, num := range nums {\n        sumMax += int64(maxRight[i]-i) * int64(i-maxLeft[i]) * int64(num)\n        sumMin += int64(minRight[i]-i) * int64(i-minLeft[i]) * int64(num)\n    }\n    return sumMax - sumMin\n}\n```\n\n**复杂度分析**\n\n+ 时间复杂度：$O(n)$，其中 $n$ 为数组的大小。使用单调栈预处理出四个数组需要 $O(n)$，计算最大值之和与最小值之和需要 $O(n)$。\n\n+ 空间复杂度：$O(n)$。保存四个数组需要 $O(n)$；单调栈最多保存 $n$ 个元素，需要 $O(n)$。",
+            "slateValue": "",
+            "slug": "zi-shu-zu-fan-wei-he-by-leetcode-solutio-lamr",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "2r8XXU",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 90,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 14,
+                    "reactionType": "CONFUSED"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Stack",
+                    "nameTranslated": "栈",
+                    "slug": "stack",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Monotonic Stack",
+                    "nameTranslated": "单调栈",
+                    "slug": "monotonic-stack",
+                    "tagType": "TOPIC"
+                }
+            ],
+            "createdAt": "2022-03-03T01:58:03.892650+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：遍历子数组 思路与算法 为了方便计算子数组的最大值与最小值，我们首先枚举子数组的左边界 $i$，然后枚举子数组的右边界 $j$，且 $i \\le j$。在枚举 $j$ 的过程中我们可以迭代地计算子数组 $[i,j]$ 的最小值 $\\textit{minVal}$ 与最大值 $\\textit{maxVal}$，然",
+            "topic": {
+                "id": 1306203,
+                "subscribed": false,
+                "commentCount": 156,
+                "viewCount": 30512,
+                "post": {
+                    "id": 2718576,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 130,
+            "isEditorsPick": false,
+            "hitCount": 59108,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "sum-of-subarray-ranges",
+                "questionFrontendId": "2104"
+            },
+            "next": {
+                "slug": "cong-on2-dao-ondan-diao-zhan-ji-suan-mei-o1op",
+                "title": "从 O(n^2) 到 O(n)：单调栈+计算每个元素对答案的贡献"
+            },
+            "prev": null
+        }
+    }
+}

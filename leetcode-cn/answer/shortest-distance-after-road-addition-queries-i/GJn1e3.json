@@ -1,0 +1,144 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "GJn1e3",
+            "title": "新增道路查询后的最短距离 I",
+            "content": "#### 方法一：广度优先搜索\n\n因为城市之间的道路的长度都是 $1$，即边权相同，所以我们可以使用广度优先搜索算法来获取两个城市之间的最短路径。\n\n具体地，我们首先构造一个图 $\\textit{neighbors}$，$\\textit{neighbors}[i]$ 表示城市 $i$ 可以通往的其他城市集合。那么初始时，对于 $0 \\le i \\lt n - 1$，有 $\\textit{neighbors}[i] = \\{ i + 1\\}$，表示从城市 $i$ 有一条单向道路通往城市 $i + 1$。然后我们遍历查询数组 $\\textit{queries}$，令当前遍历的查询值为 $[u, v]$，我们将 $v$ 加入到 $\\textit{neighbors}[u]$ 中，然后对新的图 $\\textit{neighbors}$ 执行广度优先搜索算法，获取城市 $0$ 到城市 $n - 1$ 的最短路径长度。遍历结束后，返回最终结果。\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<int> shortestDistanceAfterQueries(int n, vector<vector<int>> &queries) {\n        vector<vector<int>> neighbors(n);\n        for (int i = 0; i < n - 1; i++) {\n            neighbors[i].push_back(i + 1);\n        }\n        vector<int> res;\n        for (auto &query : queries) {\n            neighbors[query[0]].push_back(query[1]);\n            res.push_back(bfs(n, neighbors));\n        }\n        return res;\n    }\n\n    int bfs(int n, const vector<vector<int>> &neighbors) {\n        vector<int> dist(n, -1);\n        queue<int> q;\n        q.push(0);\n        dist[0] = 0;\n        while (!q.empty()) {\n            int x = q.front();\n            q.pop();\n            for (int y : neighbors[x]) {\n                if (dist[y] >= 0) {\n                    continue;\n                }\n                q.push(y);\n                dist[y] = dist[x] + 1;\n            }\n        }\n        return dist[n - 1];\n    }\n};\n```\n\n```C [sol1-C]\ntypedef struct Node {\n    int val;\n    struct Node *next;\n} Node;\n\ntypedef struct List {\n    Node *node;\n} List;\n\nvoid push(List *list, int val) {\n    Node *node = (Node *)malloc(sizeof(Node));\n    node->next = list->node;\n    node->val = val;\n    list->node = node;\n}\n\nvoid freeList(List *list) {\n    for (Node *node = list->node; node != NULL;) {\n        Node *tmp = node;\n        node = node->next;\n        free(tmp);\n    }\n}\n\nint bfs(int n, List *neighbors) {\n    int *dist = (int *)malloc(n * sizeof(int));\n    memset(dist, 0xff, n * sizeof(int));\n    dist[0] = 0;\n    int *q = (int *)malloc(n * sizeof(int));\n    int front = 0, back = 0;\n    q[back++] = 0;\n    while (front < back) {\n        int x = q[front++];\n        for (Node *node = neighbors[x].node; node != NULL; node = node->next) {\n            if (dist[node->val] >= 0) {\n                continue;\n            }\n            q[back++] = node->val;\n            dist[node->val] = dist[x] + 1;\n        }\n    }\n    int ret = dist[n - 1];\n    free(dist);\n    free(q);\n    return ret;\n}\n\nint *shortestDistanceAfterQueries(int n, int **queries, int queriesSize, int *queriesColSize, int *returnSize) {\n    List *neighbors = (List *)malloc(n * sizeof(List));\n    memset(neighbors, 0, n * sizeof(List));\n    for (int i = 0; i < n - 1; i++) {\n        push(&neighbors[i], i + 1);\n    }\n    int* res = (int*)malloc(queriesSize * sizeof(int));\n    *returnSize = queriesSize;\n    for (int i = 0; i < queriesSize; i++) {\n        push(&neighbors[queries[i][0]], queries[i][1]);\n        res[i] = bfs(n, neighbors);\n    }\n    for (int i = 0; i < n; i++) {\n        freeList(&neighbors[i]);\n    }\n    free(neighbors);\n    return res;\n}\n```\n\n```Go [sol1-Go]\nfunc shortestDistanceAfterQueries(n int, queries [][]int) []int {\n    neighbors := make([][]int, n)\n    for i := 0; i < n - 1; i++ {\n        neighbors[i] = append(neighbors[i], i + 1)\n    }\n    var res []int\n    for _, query := range queries {\n        neighbors[query[0]] = append(neighbors[query[0]], query[1])\n        res = append(res, bfs(n, neighbors))\n    }\n    return res\n}\n\nfunc bfs(n int, neighbors [][]int) int {\n    dist := make([]int, n)\n    for i := 1; i < n; i++ {\n        dist[i] = -1\n    }\n    q := []int{0}\n    for len(q) > 0 {\n        x := q[0]\n        q = q[1:]\n        for _, y := range neighbors[x] {\n            if dist[y] >= 0 {\n                continue\n            }\n            q = append(q, y)\n            dist[y] = dist[x] + 1\n        }\n    }\n    return dist[n - 1]\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def shortestDistanceAfterQueries(self, n: int, queries: List[List[int]]) -> List[int]:\n        neighbors = [[i + 1] for i in range(n)]\n        neighbors[-1] = []\n        res = []\n        for (u, v) in queries:\n            neighbors[u].append(v)\n            res.append(self.bfs(n, neighbors))\n        return res\n\n    def bfs(self, n: int, neighbors: List[List[int]]) -> int:\n        dist = [-1 for _ in range(n)]\n        dist[0] = 0\n        q = deque([0])\n        while len(q) > 0:\n            x = q.popleft()\n            for y in neighbors[x]:\n                if dist[y] >= 0:\n                    continue\n                q.append(y)\n                dist[y] = dist[x] + 1\n        return dist[n - 1]\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int[] shortestDistanceAfterQueries(int n, int[][] queries) {\n        List<List<Integer>> neighbors = new ArrayList<>();\n        for (int i = 0; i < n; i++) {\n            neighbors.add(new ArrayList<>());\n        }\n        for (int i = 0; i < n - 1; i++) {\n            neighbors.get(i).add(i + 1);\n        }\n        int[] res = new int[queries.length];\n        for (int i = 0; i < queries.length; i++) {\n            neighbors.get(queries[i][0]).add(queries[i][1]);\n            res[i] = bfs(n, neighbors);\n        }\n        return res;\n    }\n    private int bfs(int n, List<List<Integer>> neighbors) {\n        int[] dist = new int[n];\n        for (int i = 1; i < n; i++) {\n            dist[i] = -1;\n        }\n        Queue<Integer> q = new LinkedList<>();\n        q.add(0);\n        while (!q.isEmpty()) {\n            int x = q.poll();\n            for (int y : neighbors.get(x)) {\n                if (dist[y] >= 0) {\n                    continue;\n                }\n                q.add(y);\n                dist[y] = dist[x] + 1;\n            }\n        }\n        return dist[n - 1];\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int[] ShortestDistanceAfterQueries(int n, int[][] queries) {\n        List<List<int>> neighbors = new List<List<int>>();\n        for (int i = 0; i < n; i++) {\n            neighbors.Add(new List<int>());\n        }\n        for (int i = 0; i < n - 1; i++) {\n            neighbors[i].Add(i + 1);\n        }\n        int[] res = new int[queries.Length];\n        for (int i = 0; i < queries.Length; i++) {\n            neighbors[queries[i][0]].Add(queries[i][1]);\n            res[i] = Bfs(n, neighbors);\n        }\n        return res;\n    }\n\n    private int Bfs(int n, List<List<int>> neighbors) {\n        int[] dist = new int[n];\n        for (int i = 1; i < n; i++) {\n            dist[i] = -1;\n        }\n        Queue<int> q = new Queue<int>();\n        q.Enqueue(0);\n        dist[0] = 0;\n        while (q.Count > 0) {\n            int x = q.Dequeue();\n            foreach (int y in neighbors[x]) {\n                if (dist[y] >= 0) {\n                    continue;\n                }\n                q.Enqueue(y);\n                dist[y] = dist[x] + 1;\n            }\n        }\n        return dist[n - 1];\n    }\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar shortestDistanceAfterQueries = function(n, queries) {\n    let neighbors = new Array(n).fill().map(() => []);\n    for (let i = 0; i < n - 1; i++) {\n        neighbors[i].push(i + 1);\n    }\n    let res = [];\n    for (let i = 0; i < queries.length; i++) {\n        neighbors[queries[i][0]].push(queries[i][1]);\n        res.push(bfs(n, neighbors));\n    }\n    return res;\n};\n\nvar bfs = function(n, neighbors) {\n    let dist = new Array(n).fill(-1);\n    dist[0] = 0;\n    let q = [0];\n    while (q.length > 0) {\n        let x = q.shift();\n        for (let y of neighbors[x]) {\n            if (dist[y] >= 0) {\n                continue;\n            }\n            q.push(y);\n            dist[y] = dist[x] + 1;\n        }\n    }\n    return dist[n - 1];\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction shortestDistanceAfterQueries(n: number, queries: number[][]): number[] {\n    let neighbors: number[][] = new Array(n).fill([]).map(() => []);\n    for (let i = 0; i < n - 1; i++) {\n        neighbors[i].push(i + 1);\n    }\n    let res = [];\n    for (let i = 0; i < queries.length; i++) {\n        neighbors[queries[i][0]].push(queries[i][1]);\n        res.push(bfs(n, neighbors));\n    }\n    return res;\n};\n\nfunction bfs(n: number, neighbors: number[][]): number {\n    let dist = new Array(n).fill(-1);\n    dist[0] = 0;\n    let q = [0];\n    while (q.length > 0) {\n        let x = q.shift();\n        for (let y of neighbors[x]) {\n            if (dist[y] >= 0) {\n                continue;\n            }\n            q.push(y);\n            dist[y] = dist[x] + 1;\n        }\n    }\n    return dist[n - 1];\n};\n```\n\n```Rust [sol1-Rust]\nuse std::collections::VecDeque;\n\nimpl Solution {\n    pub fn shortest_distance_after_queries(n: i32, queries: Vec<Vec<i32>>) -> Vec<i32> {\n        let mut neighbors: Vec<Vec<i32>> = vec![Vec::new(); n as usize];\n        for i in 0..n-1 {\n            neighbors[i as usize].push(i + 1);\n        }\n        let mut res: Vec<i32> = Vec::new();\n        for query in queries {\n            neighbors[query[0] as usize].push(query[1]);\n            res.push(Self::bfs(n as usize, &neighbors));\n        }\n        res\n    }\n\n    fn bfs(n: usize, neighbors: &Vec<Vec<i32>>) -> i32 {\n        let mut dist = vec![-1; n];\n        let mut q = VecDeque::new();\n        q.push_back(0);\n        dist[0] = 0;\n        while let Some(x) = q.pop_front() {\n            for &y in &neighbors[x] {\n                if dist[y as usize] >= 0 {\n                    continue;\n                }\n                q.push_back(y as usize);\n                dist[y as usize] = dist[x] + 1;\n            }\n        }\n        dist[n - 1]\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(q * (n + q))$，其中 $n$ 是城市数目，$q$ 是查询次数。每次广度优先搜索需要 $O(n + q)$，总共有 $q$ 次。\n\n- 空间复杂度：$O(n + q)$。\n\n#### 方法二：动态规划\n\n根据题意，对于任一单向道路的起始点 $u$，终止点 $v$，都有 $u \\lt v$，那么从城市 $0$ 到任一城市的路径上，所经过的城市编号是单调递增的。令 $\\textit{dp}[i]$ 表示城市 $0$ 到城市 $i$ 的最短路径，同时使用 $\\textit{prev}[i]$ 记录通往城市 $i$ 的所有单向道路的起始城市集合，那么对于 $i \\gt 0$，有 $\\textit{dp}[i] = \\min_{j \\in \\textit{prev}[i]} \\textit{dp}[j] + 1$。\n\n根据以上推论，我们可以遍历 $\\textit{queries}$，在每次查询时，更新 $\\textit{prev}$ 数组，然后更新 $\\textit{dp}$ 数组。注意到，每次新建一条从城市 $u$ 到城市 $v$ 的单向道路时，只有 $i \\ge v$ 的 $\\textit{dp}[i]$ 会发生变化，因此更新 $\\textit{dp}$ 可以从 $v$ 开始更新。\n\n```C++ [sol2-C++]\nclass Solution {\npublic:\n    vector<int> shortestDistanceAfterQueries(int n, vector<vector<int>> &queries) {\n        vector<vector<int>> prev(n);\n        vector<int> dp(n);\n        for (int i = 1; i < n; i++) {\n            prev[i].push_back(i - 1);\n            dp[i] = i;\n        }\n        vector<int> res;\n        for (auto &query : queries) {\n            prev[query[1]].push_back(query[0]);\n            for (int v = query[1]; v < n; v++) {\n                for (int u : prev[v]) {\n                    dp[v] = min(dp[v], dp[u] + 1);\n                }\n            }\n            res.push_back(dp[n - 1]);\n        }\n        return res;\n    }\n};\n```\n\n```C [sol2-C]\ntypedef struct Node {\n    int val;\n    struct Node *next;\n} Node;\n\ntypedef struct List {\n    Node *node;\n} List;\n\nvoid push(List *list, int val) {\n    Node *node = (Node *)malloc(sizeof(Node));\n    node->next = list->node;\n    node->val = val;\n    list->node = node;\n}\n\nvoid freeList(List *list) {\n    for (Node *node = list->node; node != NULL;) {\n        Node *tmp = node;\n        node = node->next;\n        free(tmp);\n    }\n}\n\nint *shortestDistanceAfterQueries(int n, int **queries, int queriesSize, int *queriesColSize, int *returnSize) {\n    List *prev = (List *)malloc(n * sizeof(List));\n    memset(prev, 0, n * sizeof(List));\n    int *dp = (int *)malloc(n * sizeof(int));\n    memset(dp, 0, n * sizeof(int));\n    for (int i = 1; i < n; i++) {\n        push(&prev[i], i - 1);\n        dp[i] = i;\n    }\n    int *res = (int *)malloc(queriesSize * sizeof(int));\n    for (int i = 0; i < queriesSize; i++) {\n        push(&prev[queries[i][1]], queries[i][0]);\n        for (int v = queries[i][1]; v < n; v++) {\n            for (Node *node = prev[v].node; node != NULL; node = node->next) {\n                dp[v] = fmin(dp[v], dp[node->val] + 1);\n            }\n        }\n        res[i] = dp[n - 1];\n    }\n    for (int i = 0; i < n; i++) {\n        freeList(&prev[i]);\n    }\n    free(prev);\n    free(dp);\n    *returnSize = queriesSize;\n    return res;\n}\n```\n\n```Go [sol2-Go]\nfunc shortestDistanceAfterQueries(n int, queries [][]int) []int {\n    prev := make([][]int, n)\n    dp := make([]int, n)\n    for i := 1; i < n; i++ {\n        prev[i] = append(prev[i], i - 1)\n        dp[i] = i\n    }\n    var res []int\n    for _, query := range queries {\n        prev[query[1]] = append(prev[query[1]], query[0])\n        for v := query[1]; v < n; v++ {\n            for _, u := range prev[v] {\n                dp[v] = min(dp[v], dp[u] + 1)\n            }\n        }\n        res = append(res, dp[n - 1])\n    }\n    return res\n}\n```\n\n```Python [sol2-Python3]\nclass Solution:\n    def shortestDistanceAfterQueries(self, n: int, queries: List[List[int]]) -> List[int]:\n        prev = [[i - 1] for i in range(n)]\n        prev[0] = []\n        dp = [i for i in range(n)]\n        res = []\n        for (x, y) in queries:\n            prev[y].append(x)\n            for v in range(y, n):\n                for u in prev[v]:\n                    dp[v] = min(dp[v], dp[u] + 1)\n            res.append(dp[-1])\n        return res\n```\n\n```Java [sol2-Java]\nclass Solution {\n    public int[] shortestDistanceAfterQueries(int n, int[][] queries) {\n        List<List<Integer>> prev = new ArrayList<>();\n        for (int i = 0; i < n; i++) {\n            prev.add(new ArrayList<>());\n        }\n        int[] dp = new int[n];\n        for (int i = 1; i < n; i++) {\n            prev.get(i).add(i - 1);\n            dp[i] = i;\n        }\n        int [] res = new int[queries.length];\n        for (int i = 0; i < queries.length; i++) {\n            prev.get(queries[i][1]).add(queries[i][0]);\n            for (int v = queries[i][1]; v < n; v++) {\n                for (int u : prev.get(v)) {\n                    dp[v] = Math.min(dp[v], dp[u] + 1);\n                }\n            }\n            res[i] = dp[n - 1];\n        }\n        return res;\n    }\n}\n```\n\n```C# [sol2-C#]\npublic class Solution {\n    public int[] ShortestDistanceAfterQueries(int n, int[][] queries) {\n        List<List<int>> prev = new List<List<int>>(n);\n        for (int i = 0; i < n; i++) {\n            prev.Add(new List<int>());\n        }\n        int[] dp = new int[n];\n        for (int i = 1; i < n; i++) {\n            prev[i].Add(i - 1);\n            dp[i] = i;\n        }\n        int[] res = new int[queries.Length];\n        for (int i = 0; i < queries.Length; i++) {\n            prev[queries[i][1]].Add(queries[i][0]);\n            for (int v = queries[i][1]; v < n; v++) {\n                foreach (int u in prev[v]) {\n                    dp[v] = Math.Min(dp[v], dp[u] + 1);\n                }\n            }\n            res[i] = dp[n - 1];\n        }\n        return res;\n    }\n}\n```\n\n```JavaScript [sol2-JavaScript]\nvar shortestDistanceAfterQueries = function(n, queries) {\n    let prev = new Array(n).fill().map(() => []);\n    for (let i = 1; i < n; i++) {\n        prev[i].push(i - 1);\n    }\n    let dp = new Array(n).fill(0).map((_, i) => i);\n    let res = new Array(queries.length);\n    for (let i = 0; i < queries.length; i++) {\n        prev[queries[i][1]].push(queries[i][0]);\n        for (let v = queries[i][1]; v < n; v++) {\n            for (let u of prev[v]) {\n                dp[v] = Math.min(dp[v], dp[u] + 1);\n            }\n        }\n        res[i] = dp[n - 1];\n    }\n    return res;\n};\n```\n\n```TypeScript [sol2-TypeScript]\nfunction shortestDistanceAfterQueries(n: number, queries: number[][]): number[] {\n    let prev: number[][] = new Array(n).fill([]).map(() => []);\n    for (let i = 1; i < n; i++) {\n        prev[i].push(i - 1);\n    }\n    let dp = new Array(n).fill(0).map((_, i) => i);\n    let res = new Array(queries.length);\n    for (let i = 0; i < queries.length; i++) {\n        prev[queries[i][1]].push(queries[i][0]);\n        for (let v = queries[i][1]; v < n; v++) {\n            for (let u of prev[v]) {\n                dp[v] = Math.min(dp[v], dp[u] + 1);\n            }\n        }\n        res[i] = dp[n - 1];\n    }\n    return res;\n};\n```\n\n```Rust [sol2-Rust]\nimpl Solution {\n    pub fn shortest_distance_after_queries(n: i32, queries: Vec<Vec<i32>>) -> Vec<i32> {\n        let mut prev: Vec<Vec<i32>> = vec![Vec::new(); n as usize];\n        let mut dp: Vec<i32> = vec![0; n as usize];\n        for i in 1..n {\n            prev[i as usize].push(i - 1);\n            dp[i as usize] = i;\n        }\n        let mut res: Vec<i32> = Vec::new();\n        for query in queries {\n            prev[query[1] as usize].push(query[0]);\n            for v in query[1] as usize..n as usize {\n                for &u in &prev[v] {\n                    dp[v] = dp[v].min(dp[u as usize] + 1);\n                }\n            }\n            res.push(dp[(n - 1) as usize]);\n        }\n        res\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(q * (n + q))$，其中 $n$ 是城市数目，$q$ 是查询次数。\n\n- 空间复杂度：$O(n + q)$。",
+            "slateValue": "",
+            "slug": "xin-zeng-dao-lu-cha-xun-hou-de-zui-duan-9smce",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "GJn1e3",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 25,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Breadth-First Search",
+                    "nameTranslated": "广度优先搜索",
+                    "slug": "breadth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Graph",
+                    "nameTranslated": "图",
+                    "slug": "graph",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2024-11-11T01:36:22.798493+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：广度优先搜索 因为城市之间的道路的长度都是 [latex]，即边权相同，所以我们可以使用广度优先搜索算法来获取两个城市之间的最短路径。 具体地，我们首先构造一个图 [latex]，[latex] 表示城市 [latex] 可以通往的其他城市集合。那么初始时，对于 [latex]，有 [latex]，表示从城市 ",
+            "topic": {
+                "id": 2984418,
+                "subscribed": false,
+                "commentCount": 22,
+                "viewCount": 839,
+                "post": {
+                    "id": 5405189,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 53,
+            "isEditorsPick": false,
+            "hitCount": 14509,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "shortest-distance-after-road-addition-queries-i",
+                "questionFrontendId": "3243"
+            },
+            "next": {
+                "slug": "liang-chong-fang-fa-bfs-dppythonjavacgo-mgunf",
+                "title": "两种方法：BFS / DP（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

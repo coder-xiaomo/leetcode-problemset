@@ -1,0 +1,139 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "elTiv1",
+            "title": "找出对应 LCP 矩阵的字符串",
+            "content": "#### 方法一：贪心构造\n\n**思路与算法**\n\n根据题目要求找到字典序最小的字符串，我们尝试从前往后构造字符串，这样每次填入字典序尽可能小的字符，就能使得构造生成的字符串字典序最小，然后我们验证构造的字符串是否满足 $\\textit{lcp}$ 的要求。\n\n根据 $\\textit{lcp}$ 的定义可知，$\\textit{lcp}[i][j]$ 为两个子字符串 $\\textit{word}[i,\\cdots,n-1]$ 与 $\\textit{word}[j,\\cdots,n-1]$ 之间的「[最长公共前缀](https://oi-wiki.org/string/sa/#lcp%E6%9C%80%E9%95%BF%E5%85%AC%E5%85%B1%E5%89%8D%E7%BC%80)」的长度，因此当 $\\textit{lcp}[i][j] > 0$ 时，此时 一定满足 $\\textit{word}[i] = \\textit{word}[j]$，我们可以利用这一性质来构造字符串 $\\textit{word}$。\n\n构造过程如下：\n\n- 顺序遍历字符串的每个位置 $i$，如果该位置为空，则我们直接写上最小的字符 $\\textit{current}$，根据 $\\textit{lcp}$ 的值，如果满足 $\\textit{lcp}[i][j] > 0$，则在位置 $j$ 填上一样的字符。如果当前最小的字符超过小写字母的最大值，则直接返回空字符串。本次填充完毕将 $\\textit{current}$ 加 $1$，然后考虑下一个为空的字符。\n\n此时构造的字符串合理性建立在考虑了所有或矛盾或不矛盾的字符相等的条件下，得出的是唯一可能为答案的字符串。接下来，我们需要判断构造的字符串是否满足对应的 $\\textit{lcp}$ 矩阵。我们知道 $\\textit{lcp}$ 矩阵可以通过动态规划直接得到，递推公式如下：\n\n$$\n\\begin{cases}\n\\textit{lcp}[i][j] = \\textit{lcp}[i+1][j+1]+1  \\quad if \\quad \\textit{word}[i] = \\textit{word}[j]  \\\\\n\\textit{lcp}[i][j] = 0  \\quad if \\quad \\textit{word}[i] \\neq \\textit{word}[j]\n\\end{cases}\n$$\n\n我们分别枚举 $(i,j)$，验证字符串 $\\textit{word}$ 是否满足 $\\textit{lcp}$ 矩阵，此时需要满足以下条件：\n\n- 当 $\\textit{word}[i] = \\textit{word}[j]$ 时，此时两个字符串的最长公共前缀长度大于 $0$，此时一定满足 $\\textit{lcp}[i][j] > 0$。当 $i = n - 1$ 或者 $j = n - 1$ 时，由于此时 $\\textit{word}[i]$ 或者 $\\textit{word}[j]$ 为字符串的结尾，因此最长公共前缀长度一定为 $1$；当 $i < n - 1$ 并且 $j < n - 1$ 时，根据动态规划递推公式可知，此时需要满足 $\\textit{lcp}[i][j] = \\textit{lcp}[i+1][j+1] + 1$；\n\n- 当 $\\textit{word}[i] \\neq \\textit{word}[j]$ 时，此时两个字符串的最长公共前缀长度为 $0$，此时 $\\textit{lcp}[i][j]$ 一定等于 $0$；\n\n我们验证当前构造的字符串是否满足以上条件，如果不满足则返回空字符串，否则返回构造的字符串 $\\textit{word}$。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    string findTheString(vector<vector<int>>& lcp) {\n        int n = lcp.size();\n        string word(n, '\\0');\n        char current = 'a';\n\n        // 依次从 'a' 到 'z' 开始构造字符串\n        for (int i = 0; i < n; i++) {\n            if (word[i] == '\\0') {\n                if (current > 'z') {\n                    return \"\";\n                }\n                word[i] = current;\n                for (int j = i + 1; j < n; j++) {\n                    if (lcp[i][j] > 0) {\n                        word[j] = word[i];\n                    }\n                }\n                current++;\n            }\n        }\n\n        // 验证构造的字符串是否满足 LCP 矩阵要求\n        for (int i = n - 1; i >= 0; i--) {\n            for (int j = n - 1; j >= 0; j--) {\n                if (word[i] != word[j]) {\n                    if (lcp[i][j]) {\n                        return \"\";\n                    }\n                } else {\n                    if (i == n - 1 || j == n - 1) {\n                        if (lcp[i][j] != 1) {\n                            return \"\";\n                        }\n                    } else {\n                        if (lcp[i][j] != lcp[i + 1][j + 1] + 1) {\n                            return \"\";\n                        }\n                    }\n                }\n            }\n        }\n\n        return word;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public String findTheString(int[][] lcp) {\n        int n = lcp.length;\n        char[] word = new char[n];\n        char current = 'a';\n\n        // 依次从 'a' 到 'z' 开始构造字符串\n        for (int i = 0; i < n; i++) {\n            if (word[i] == 0) {\n                if (current > 'z') {\n                    return \"\";\n                }\n                word[i] = current;\n                for (int j = i + 1; j < n; j++) {\n                    if (lcp[i][j] > 0) {\n                        word[j] = word[i];\n                    }\n                }\n                current++;\n            }\n        }\n\n        // 验证构造的字符串是否满足 LCP 矩阵要求\n        for (int i = n - 1; i >= 0; i--) {\n            for (int j = n - 1; j >= 0; j--) {\n                if (word[i] != word[j]) {\n                    if (lcp[i][j] != 0) {\n                        return \"\";\n                    }\n                } else {\n                    if (i == n - 1 || j == n - 1) {\n                        if (lcp[i][j] != 1) {\n                            return \"\";\n                        }\n                    } else {\n                        if (lcp[i][j] != lcp[i + 1][j + 1] + 1) {\n                            return \"\";\n                        }\n                    }\n                }\n            }\n        }\n\n        return new String(word);\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public string FindTheString(int[][] lcp) {\n        int n = lcp.Length;\n        char[] word = new char[n];\n        char current = 'a';\n\n        // 依次从 'a' 到 'z' 开始构造字符串\n        for (int i = 0; i < n; i++) {\n            if (word[i] == '\\0') {\n                if (current > 'z') {\n                    return \"\";\n                }\n                word[i] = current;\n                for (int j = i + 1; j < n; j++) {\n                    if (lcp[i][j] > 0) {\n                        word[j] = word[i];\n                    }\n                }\n                current++;\n            }\n        }\n\n        // 验证构造的字符串是否满足 LCP 矩阵要求\n        for (int i = n - 1; i >= 0; i--) {\n            for (int j = n - 1; j >= 0; j--) {\n                if (word[i] != word[j]) {\n                    if (lcp[i][j] != 0) {\n                        return \"\";\n                    }\n                } else {\n                    if (i == n - 1 || j == n - 1) {\n                        if (lcp[i][j] != 1) {\n                            return \"\";\n                        }\n                    } else {\n                        if (lcp[i][j] != lcp[i + 1][j + 1] + 1) {\n                            return \"\";\n                        }\n                    }\n                }\n            }\n        }\n\n        return new string(word);\n    }\n}\n```\n\n```Go [sol1-Go]\nfunc findTheString(lcp [][]int) string {\n    n := len(lcp)\n    word := make([]byte, n)\n    current := byte('a')\n\n    // 依次从 'a' 到 'z' 开始构造字符串\n    for i := 0; i < n; i++ {\n        if word[i] == 0 {\n            if current > 'z' {\n                return \"\"\n            }\n            word[i] = current\n            for j := i + 1; j < n; j++ {\n                if lcp[i][j] > 0 {\n                    word[j] = word[i]\n                }\n            }\n            current++\n        }\n    }\n\n     // 验证构造的字符串是否满足 LCP 矩阵要求\n    for i := n - 1; i >= 0; i-- {\n        for j := n - 1; j >= 0; j-- {\n            if word[i] != word[j] {\n                if lcp[i][j] != 0 {\n                    return \"\"\n                }\n            } else {\n                if i == n-1 || j == n-1 {\n                    if lcp[i][j] != 1 {\n                        return \"\"\n                    }\n                } else {\n                    if lcp[i][j] != lcp[i+1][j+1]+1 {\n                        return \"\"\n                    }\n                }\n            }\n        }\n    }\n\n    return string(word)\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def findTheString(self, lcp: List[List[int]]) -> str:\n        n = len(lcp)\n        word = [''] * n\n        current = ord('a')\n\n        # 依次从 'a' 到 'z' 开始构造字符串\n        for i in range(n):\n            if not word[i]:\n                if current > ord('z'):\n                    return \"\"\n                word[i] = chr(current)\n                for j in range(i + 1, n):\n                    if lcp[i][j]:\n                        word[j] = word[i]\n                current += 1\n\n        # 验证构造的字符串是否满足 LCP 矩阵要求\n        for i in range(n - 1, -1, -1):\n            for j in range(n - 1, -1, -1):\n                if word[i] != word[j]:\n                    if lcp[i][j]:\n                        return \"\"\n                else:\n                    if i == n - 1 or j == n - 1:\n                        if lcp[i][j] != 1:\n                            return \"\"\n                    else:\n                        if lcp[i][j] != lcp[i + 1][j + 1] + 1:\n                            return \"\"\n\n        return ''.join(word)\n```\n\n```C [sol1-C]\nchar* findTheString(int** lcp, int lcpSize, int* lcpColSize) {\n    int n = lcpSize;\n    char* word = (char*)malloc((n + 1) * sizeof(char));\n    memset(word, 0, sizeof(char) * (n + 1));\n    char current = 'a';\n\n    // 依次从 'a' 到 'z' 开始构造字符串\n    for (int i = 0; i < n; i++) {\n        if (word[i] == '\\0') {\n            if (current > 'z') {\n                word[0] = '\\0';\n                return word;\n            }\n            word[i] = current;\n            for (int j = i + 1; j < n; j++) {\n                if (lcp[i][j] > 0) {\n                    word[j] = word[i];\n                }\n            }\n            current++;\n        }\n    }\n\n    // 验证构造的字符串是否满足 LCP 矩阵要求\n    for (int i = n - 1; i >= 0; i--) {\n        for (int j = n - 1; j >= 0; j--) {\n            if (word[i] != word[j]) {\n                if (lcp[i][j] != 0) {\n                    word[0] = '\\0';\n                    return word;\n                }\n            } else {\n                if (i == n - 1 || j == n - 1) {\n                    if (lcp[i][j] != 1) {\n                        word[0] = '\\0';\n                        return word;\n                    }\n                } else {\n                    if (lcp[i][j] != lcp[i + 1][j + 1] + 1) {\n                        word[0] = '\\0';\n                        return word;\n                    }\n                }\n            }\n        }\n    }\n\n    return word;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar findTheString = function(lcp) {\n    const n = lcp.length;\n    const word = new Array(n).fill('');\n    let current = 'a'.charCodeAt(0);\n\n    // 依次从 'a' 到 'z' 开始构造字符串\n    for (let i = 0; i < n; i++) {\n        if (!word[i]) {\n            if (current > 'z'.charCodeAt(0)) {\n                return \"\";\n            }\n            word[i] = String.fromCharCode(current);\n            for (let j = i + 1; j < n; j++) {\n                if (lcp[i][j] > 0) {\n                    word[j] = word[i];\n                }\n            }\n            current++;\n        }\n    }\n\n    // 验证构造的字符串是否满足 LCP 矩阵要求\n    for (let i = n - 1; i >= 0; i--) {\n        for (let j = n - 1; j >= 0; j--) {\n            if (word[i] !== word[j]) {\n                if (lcp[i][j] !== 0) {\n                    return \"\";\n                }\n            } else {\n                if (i === n - 1 || j === n - 1) {\n                    if (lcp[i][j] !== 1) {\n                        return \"\";\n                    }\n                } else {\n                    if (lcp[i][j] !== lcp[i + 1][j + 1] + 1) {\n                        return \"\";\n                    }\n                }\n            }\n        }\n    }\n\n    return word.join('');\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction findTheString(lcp: number[][]): string {\n    const n = lcp.length;\n    const word: string[] = new Array(n).fill('');\n    let current = 'a'.charCodeAt(0);\n\n    // 依次从 'a' 到 'z' 开始构造字符串\n    for (let i = 0; i < n; i++) {\n        if (!word[i]) {\n            if (current > 'z'.charCodeAt(0)) {\n                return \"\";\n            }\n            word[i] = String.fromCharCode(current);\n            for (let j = i + 1; j < n; j++) {\n                if (lcp[i][j] > 0) {\n                    word[j] = word[i];\n                }\n            }\n            current++;\n        }\n    }\n\n    // 验证构造的字符串是否满足 LCP 矩阵要求\n    for (let i = n - 1; i >= 0; i--) {\n        for (let j = n - 1; j >= 0; j--) {\n            if (word[i] !== word[j]) {\n                if (lcp[i][j] !== 0) {\n                    return \"\";\n                }\n            } else {\n                if (i === n - 1 || j === n - 1) {\n                    if (lcp[i][j] !== 1) {\n                        return \"\";\n                    }\n                } else {\n                    if (lcp[i][j] !== lcp[i + 1][j + 1] + 1) {\n                        return \"\";\n                    }\n                }\n            }\n        }\n    }\n\n    return word.join('');\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn find_the_string(lcp: Vec<Vec<i32>>) -> String {\n        let n = lcp.len();\n        let mut word = vec!['\\0'; n];\n        let mut current = b'a';\n\n        // 依次从 'a' 到 'z' 开始构造字符串\n        for i in 0..n {\n            if word[i] == '\\0' {\n                if current > b'z' {\n                    return String::new();\n                }\n                word[i] = current as char;\n                for j in i + 1..n {\n                    if lcp[i][j] > 0 {\n                        word[j] = word[i];\n                    }\n                }\n                current += 1;\n            }\n        }\n\n        // 验证构造的字符串是否满足 LCP 矩阵要求\n        for i in (0..n).rev() {\n            for j in (0..n).rev() {\n                if word[i] != word[j] {\n                    if lcp[i][j] != 0 {\n                        return String::new();\n                    }\n                } else {\n                    if i == n - 1 || j == n - 1 {\n                        if lcp[i][j] != 1 {\n                            return String::new();\n                        }\n                    } else {\n                        if lcp[i][j] != lcp[i + 1][j + 1] + 1 {\n                            return String::new();\n                        }\n                    }\n                }\n            }\n        }\n\n        word.iter().collect()\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n^2)$，其中 $n$ 表示矩阵 $\\textit{lcp}$ 的行数与列数。构造字符串需要的时间为 $O(n^2)$，验证构造的字符串是否满足 $\\textit{lcp}$ 需要的时间为 $O(n^2)$，因此总的时间复杂度为 $O(n^2)$。\n\n- 空间复杂度：$O(1)$。除返回值外，不需要额外的空间。",
+            "slateValue": "",
+            "slug": "zhao-chu-dui-ying-lcp-ju-zhen-de-zi-fu-c-riwy",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "elTiv1",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [],
+            "tags": [
+                {
+                    "name": "Greedy",
+                    "nameTranslated": "贪心",
+                    "slug": "greedy",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2026-03-18T05:46:13.540096+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：贪心构造 思路与算法 根据题目要求找到字典序最小的字符串，我们尝试从前往后构造字符串，这样每次填入字典序尽可能小的字符，就能使得构造生成的字符串字典序最小，然后我们验证构造的字符串是否满足 [latex] 的要求。 根据 [latex] 的定义可知，[latex] 为两个子字符串 [latex] 与 [late",
+            "topic": {
+                "id": 3929439,
+                "subscribed": false,
+                "commentCount": 1,
+                "viewCount": 11,
+                "post": {
+                    "id": 7164258,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 6,
+            "isEditorsPick": false,
+            "hitCount": 2741,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "find-the-string-with-lcp",
+                "questionFrontendId": "2573"
+            },
+            "next": {
+                "slug": "tan-xin-gou-zao-yan-zheng-o1e-wai-kong-j-82ik",
+                "title": "从 s[0] 开始思考，带你破解这道题！（Python/Java/C++/C/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

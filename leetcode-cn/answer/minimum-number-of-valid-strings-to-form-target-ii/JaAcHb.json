@@ -1,0 +1,150 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "JaAcHb",
+            "title": "形成目标字符串需要的最少字符串数 II",
+            "content": "#### 方法一：KMP + 动态规划\n\n**思路与算法**\n\n首先我们对每一个 $\\textit{words}$ 中的单词和 $\\textit{target}$ 使用「Knuth–Morris–Pratt」 算法，可以求出对于结束在 $\\textit{target}[i]$ 的前缀，所能够匹配单词的最长前缀 $\\textit{back}[i]$。\n\n然后我们用「动态规划」解决本题目，用 $\\textit{dp}[i]$ 表示形成前 $n$ 个字母需要的最少字符串数。初始化 $\\textit{dp}[0]$ 为零，其他为大整数。因为题目的性质可以观察到，$\\textit{dp}$ 是单调递增数列，并推导递推公式 $\\textit{dp}[i + 1] = \\textit{dp}[i + 1 - \\textit{back}[i]] + 1$。\n\n最后返回 $\\textit{dp}[n]$ 为结果。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int minValidStrings(vector<string>& words, string target) {\n        auto prefix_function = [](const string& word, const string& target) -> vector<int> {\n            string s = word + '#' + target;\n            int n = s.size();\n            vector<int> pi(n, 0);\n            for (int i = 1; i < n; i++) {\n                int j = pi[i - 1];\n                while (j > 0 && s[i] != s[j]) {\n                    j = pi[j - 1];\n                }\n                if (s[i] == s[j]) {\n                    j++;\n                }\n                pi[i] = j;\n            }\n            return pi;\n        };\n\n        int n = target.size();\n        vector<int> back(n, 0);\n        for (const string& word : words) {\n            vector<int> pi = prefix_function(word, target);\n            int m = word.size();\n            for (int i = 0; i < n; i++) {\n                back[i] = max(back[i], pi[m + 1 + i]);\n            }\n        }\n\n        vector<int> dp(n + 1, 0);\n        for (int i = 1; i <= n; i++) {\n            dp[i] = 1e9;\n        }\n        for (int i = 0; i < n; i++) {\n            dp[i + 1] = dp[i + 1 - back[i]] + 1;\n            if (dp[i + 1] > n) {\n                return -1;\n            }\n        }\n        return dp[n];\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int minValidStrings(String[] words, String target) {\n        int n = target.length();\n        int[] back = new int[n];\n        for (String word : words) {\n            int[] pi = prefixFunction(word, target);\n            int m = word.length();\n            for (int i = 0; i < n; i++) {\n                back[i] = Math.max(back[i], pi[m + 1 + i]);\n            }\n        }\n        int[] dp = new int[n + 1];\n        Arrays.fill(dp, 1, n + 1, (int) 1e9);\n        for (int i = 0; i < n; i++) {\n            dp[i + 1] = dp[i + 1 - back[i]] + 1;\n            if (dp[i + 1] > n) {\n                return -1;\n            }\n        }\n        return dp[n];\n    }\n\n    private int[] prefixFunction(String word, String target) {\n        String s = word + \"#\" + target;\n        int n = s.length();\n        int[] pi = new int[n];\n        for (int i = 1; i < n; i++) {\n            int j = pi[i - 1];\n            while (j > 0 && s.charAt(i) != s.charAt(j)) {\n                j = pi[j - 1];\n            }\n            if (s.charAt(i) == s.charAt(j)) {\n                j++;\n            }\n            pi[i] = j;\n        }\n        return pi;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def minValidStrings(self, words: List[str], target: str) -> int:\n        def prefix_function(word, target):\n            s = word + '#' + target\n            n = len(s)\n            pi = [0] * n\n            for i in range(1, n):\n                j = pi[i - 1]\n                while j > 0 and s[i] != s[j]:\n                    j = pi[j - 1]\n                if s[i] == s[j]:\n                    j += 1\n                pi[i] = j\n            return pi\n        n = len(target)\n        back = [0] * n\n        for word in words:\n            pi = prefix_function(word, target)\n            m = len(word)\n            for i in range(n):\n                back[i] = max(back[i], pi[m + 1 + i])\n        dp = [0] + [10 ** 9] * n\n        for i in range(n):\n            dp[i + 1] = dp[i + 1 - back[i]] + 1\n            if dp[i + 1] > n:\n                return -1\n        return dp[n]\n```\n\n```JavaScript [sol1-JavaScript]\nvar minValidStrings = function(words, target) {\n    const prefixFunction = (word, target) => {\n        const s = word + '#' + target;\n        const n = s.length;\n        const pi = new Array(n).fill(0);\n        for (let i = 1; i < n; i++) {\n            let j = pi[i - 1];\n            while (j > 0 && s[i] !== s[j]) {\n                j = pi[j - 1];\n            }\n            if (s[i] === s[j]) {\n                j++;\n            }\n            pi[i] = j;\n        }\n        return pi;\n    };\n\n    const n = target.length;\n    const back = new Array(n).fill(0);\n    for (const word of words) {\n        const pi = prefixFunction(word, target);\n        const m = word.length;\n        for (let i = 0; i < n; i++) {\n            back[i] = Math.max(back[i], pi[m + 1 + i]);\n        }\n    }\n\n    const dp = new Array(n + 1).fill(0);\n    for (let i = 1; i <= n; i++) {\n        dp[i] = 1e9;\n    }\n    for (let i = 0; i < n; i++) {\n        dp[i + 1] = dp[i + 1 - back[i]] + 1;\n        if (dp[i + 1] > n) {\n            return -1;\n        }\n    }\n    return dp[n];\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction minValidStrings(words: string[], target: string): number {\n    const prefixFunction = (word, target) => {\n        const s = word + '#' + target;\n        const n = s.length;\n        const pi = new Array(n).fill(0);\n        for (let i = 1; i < n; i++) {\n            let j = pi[i - 1];\n            while (j > 0 && s[i] !== s[j]) {\n                j = pi[j - 1];\n            }\n            if (s[i] === s[j]) {\n                j++;\n            }\n            pi[i] = j;\n        }\n        return pi;\n    };\n\n    const n = target.length;\n    const back = new Array(n).fill(0);\n    for (const word of words) {\n        const pi = prefixFunction(word, target);\n        const m = word.length;\n        for (let i = 0; i < n; i++) {\n            back[i] = Math.max(back[i], pi[m + 1 + i]);\n        }\n    }\n\n    const dp = new Array(n + 1).fill(0);\n    for (let i = 1; i <= n; i++) {\n        dp[i] = 1e9;\n    }\n    for (let i = 0; i < n; i++) {\n        dp[i + 1] = dp[i + 1 - back[i]] + 1;\n        if (dp[i + 1] > n) {\n            return -1;\n        }\n    }\n    return dp[n];\n};\n```\n\n```Go [sol1-Go]\nfunc minValidStrings(words []string, target string) int {\n    prefixFunction := func(word, target string) []int {\n        s := word + \"#\" + target\n        n := len(s)\n        pi := make([]int, n)\n        for i := 1; i < n; i++ {\n            j := pi[i - 1]\n            for j > 0 && s[i] != s[j] {\n                j = pi[j - 1]\n            }\n            if s[i] == s[j] {\n                j++\n            }\n            pi[i] = j\n        }\n        return pi\n    }\n\n    n := len(target)\n    back := make([]int, n)\n    for _, word := range words {\n        pi := prefixFunction(word, target)\n        m := len(word)\n        for i := 0; i < n; i++ {\n            back[i] = int(math.Max(float64(back[i]), float64(pi[m + 1 + i])))\n        }\n    }\n\n    dp := make([]int, n + 1)\n    for i := 1; i <= n; i++ {\n        dp[i] = int(1e9)\n    }\n    for i := 0; i < n; i++ {\n        dp[i + 1] = dp[i + 1 - back[i]] + 1\n        if dp[i + 1] > n {\n            return -1\n        }\n    }\n    return dp[n]\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MinValidStrings(string[] words, string target) {\n        int n = target.Length;\n        int[] back = new int[n];\n        foreach (string word in words) {\n            int[] pi = PrefixFunction(word, target);\n            int m = word.Length;\n            for (int i = 0; i < n; i++) {\n                back[i] = Math.Max(back[i], pi[m + 1 + i]);\n            }\n        }\n        int[] dp = Enumerable.Repeat(1000000000, n + 1).ToArray();\n        dp[0] = 0;\n        for (int i = 0; i < n; i++) {\n            dp[i + 1] = dp[i + 1 - back[i]] + 1;\n            if (dp[i + 1] > n) {\n                return -1;\n            }\n        }\n        return dp[n];\n    }\n\n    private int[] PrefixFunction(string word, string target) {\n        string s = word + \"#\" + target;\n        int n = s.Length;\n        int[] pi = new int[n];\n        for (int i = 1; i < n; i++) {\n            int j = pi[i - 1];\n            while (j > 0 && s[i] != s[j]) {\n                j = pi[j - 1];\n            }\n            if (s[i] == s[j]) {\n                j++;\n            }\n            pi[i] = j;\n        }\n        return pi;\n    }\n}\n```\n\n```C [sol1-C]\nint* prefix_function(const char* word, const char* target) {\n    char* s = malloc(strlen(word) + strlen(target) + 2);\n    strcpy(s, word);\n    strcat(s, \"#\");\n    strcat(s, target);\n    int n = strlen(s);\n    int* pi = (int*)malloc(sizeof(int) * n);\n    for (int i = 0; i < n; i++) {\n        pi[i] = 0;\n    }\n    for (int i = 1; i < n; i++) {\n        int j = pi[i - 1];\n        while (j > 0 && s[i] != s[j]) {\n            j = pi[j - 1];\n        }\n        if (s[i] == s[j]) {\n            j++;\n        }\n        pi[i] = j;\n    }\n    free(s);\n    return pi;\n}\n\nint minValidStrings(char** words, int wordsSize, const char* target) {\n    int n = strlen(target);\n    int* back = (int*)malloc(sizeof(int) * n);\n    for (int i = 0; i < n; i++) {\n        back[i] = 0;\n    }\n    for (int k = 0; k < wordsSize; k++) {\n        int* pi = prefix_function(words[k], target);\n        int m = strlen(words[k]);\n        for (int i = 0; i < n; i++) {\n            if (pi[m + 1 + i] > back[i]) {\n                back[i] = pi[m + 1 + i];\n            }\n        }\n        free(pi);\n    }\n\n    int* dp = (int*)malloc(sizeof(int) * (n + 1));\n    dp[0] = 0;\n    for (int i = 1; i <= n; i++) {\n        dp[i] = 1000000000;\n    }\n    for (int i = 0; i < n; i++) {\n        dp[i + 1] = dp[i + 1 - back[i]] + 1;\n        if (dp[i + 1] > n) {\n            break\n        }\n    }\n    int res = dp[n];\n    free(back);\n    free(dp);\n    return res;\n}\n\n```\n\n```Rust [sol1-Rust]\npub fn prefix_function(word: &str, target: &str) -> Vec<usize> {\n    let s = word.to_owned() + \"#\" + target;\n    let n = s.len();\n    let mut pi = vec![0; n];\n    for i in 1..n {\n        let mut j = pi[i - 1];\n        while j > 0 && s.as_bytes()[i] != s.as_bytes()[j] {\n            j = pi[j - 1];\n        }\n        if s.as_bytes()[i] == s.as_bytes()[j] {\n            j += 1;\n        }\n        pi[i] = j;\n    }\n    pi\n}\n\nimpl Solution {\n    pub fn min_valid_strings(words: Vec<String>, target: String) -> i32 {\n        let n = target.len();\n        let mut back = vec![0; n];\n        for word in words {\n            let pi = prefix_function(&word, &target);\n            let m = word.len();\n            for i in 0..n {\n                back[i] = std::cmp::max(back[i], pi[m + 1 + i]);\n            }\n        }\n\n        let mut dp = vec![0; n + 1];\n        for i in 1..=n {\n            dp[i] = 1_000_000_000;\n        }\n        for i in 0..n {\n            dp[i + 1] = dp[i + 1 - back[i]] + 1;\n            if dp[i + 1] > n as i32 {\n                return -1;\n            }\n        }\n        dp[n] as i32\n    }\n}\n```\n\n\n**复杂度分析**\n\n- 时间复杂度：$O(k \\times (m + n))$，其中 $k$ 是数组的长度，$m$ 是单词的长度，$n$ 是 $\\textit{target}$ 长度。\n\n- 空间复杂度：$O(m + n)$，其中 $m$ 是单词的长度，$n$ 是 $\\textit{target}$ 长度。",
+            "slateValue": "",
+            "slug": "xing-cheng-mu-biao-zi-fu-chuan-xu-yao-de-pl2j",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "JaAcHb",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 6,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String Matching",
+                    "nameTranslated": "字符串匹配",
+                    "slug": "string-matching",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2024-12-09T02:11:44.077045+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：KMP + 动态规划 思路与算法 首先我们对每一个 [latex] 中的单词和 [latex] 使用「Knuth–Morris–Pratt」 算法，可以求出对于结束在 [latex] 的前缀，所能够匹配单词的最长前缀 [latex]。 然后我们用「动态规划」解决本题目，用 [latex] 表示形成前 [late",
+            "topic": {
+                "id": 3014796,
+                "subscribed": false,
+                "commentCount": 18,
+                "viewCount": 516,
+                "post": {
+                    "id": 5454746,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 13,
+            "isEditorsPick": false,
+            "hitCount": 6277,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "minimum-number-of-valid-strings-to-form-target-ii",
+                "questionFrontendId": "3292"
+            },
+            "next": {
+                "slug": "ac-zi-dong-ji-pythonjavacgo-by-endlessch-hcqk",
+                "title": "三种方法：Z 函数 / 字符串哈希 / AC 自动机（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

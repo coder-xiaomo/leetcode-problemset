@@ -1,0 +1,132 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "UXbba1",
+            "title": "并行课程 III",
+            "content": "#### 方法一：记忆化搜索\n\n**思路**\n\n要求出完成所有课程的最少月份数，可以求出每门课程的最少月份数，然后求出最大值。首先根据 $\\textit{relations}$，构建先修课邻接表 $\\textit{prev}$，$\\textit{prev}[i]$ 就表示课程 $i$ 的所有的先修课。定义函数 $\\textit{dp}$，输入参数为 $i$，返回完成课程 $i$ 所需的最少月份数。\n- 如果一门课程 $i$ 没有先修课要求，那么完成它的最少月份数就是 $\\textit{time}[i-1]$。\n- 如果一门课有先修课时，完成它的最少月份数就是在它的所有先修课的最少完成月份的最大值的基础上，再加上 $\\textit{time}[i-1]$，即 $\\textit{dp}[i] = \\textit{max}(dp[j])+\\textit{time}[i-1], j\\in \\textit{prev}[i]$。\n\n可以运用记忆化搜索的技巧，求出每门课的最少完成月份数。因为运用了记忆化搜索，每门课的最少完成月份数最多只会被计算一次。\n\n**代码**\n\n```Python [sol1-Python3]\nclass Solution:\n    def minimumTime(self, n: int, relations: List[List[int]], time: List[int]) -> int:\n        mx = 0\n        prev = [[] for _ in range(n + 1)]\n        for x, y in relations:\n            prev[y].append(x)\n        \n        @lru_cache(None)\n        def dp(i: int) -> int:\n            cur = 0\n            for p in prev[i]:\n                cur = max(cur, dp(p))\n            cur += time[i - 1]\n            return cur\n            \n        for i in range(1, n + 1):\n            mx = max(mx, dp(i))\n        return mx\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int minimumTime(int n, int[][] relations, int[] time) {\n        int mx = 0;\n        List<Integer>[] prev = new List[n + 1];\n        for (int i = 0; i <= n; i++) {\n            prev[i] = new ArrayList<Integer>();\n        }\n        for (int[] relation : relations) {\n            int x = relation[0], y = relation[1];\n            prev[y].add(x);\n        }\n        Map<Integer, Integer> memo = new HashMap<Integer, Integer>();\n        for (int i = 1; i <= n; i++) {\n            mx = Math.max(mx, dp(i, time, prev, memo));\n        }\n        return mx;\n    }\n\n    public int dp(int i, int[] time, List<Integer>[] prev, Map<Integer, Integer> memo) {\n        if (!memo.containsKey(i)) {\n            int cur = 0;\n            for (int p : prev[i]) {\n                cur = Math.max(cur, dp(p, time, prev, memo));\n            }\n            cur += time[i - 1];\n            memo.put(i, cur);\n        }\n        return memo.get(i);\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int MinimumTime(int n, int[][] relations, int[] time) {\n        int mx = 0;\n        IList<int>[] prev = new IList<int>[n + 1];\n        for (int i = 0; i <= n; i++) {\n            prev[i] = new List<int>();\n        }\n        foreach (int[] relation in relations) {\n            int x = relation[0], y = relation[1];\n            prev[y].Add(x);\n        }\n        IDictionary<int, int> memo = new Dictionary<int, int>();\n        for (int i = 1; i <= n; i++) {\n            mx = Math.Max(mx, DP(i, time, prev, memo));\n        }\n        return mx;\n    }\n\n    public int DP(int i, int[] time, IList<int>[] prev, IDictionary<int, int> memo) {\n        if (!memo.ContainsKey(i)) {\n            int cur = 0;\n            foreach (int p in prev[i]) {\n                cur = Math.Max(cur, DP(p, time, prev, memo));\n            }\n            cur += time[i - 1];\n            memo.Add(i, cur);\n        }\n        return memo[i];\n    }\n}\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    int minimumTime(int n, vector<vector<int>>& relations, vector<int>& time) {\n        int mx = 0;\n        vector<vector<int>> prev(n + 1);\n        for (auto &relation : relations) {\n            int x = relation[0], y = relation[1];\n            prev[y].emplace_back(x);\n        }\n        unordered_map<int, int> memo;\n        function<int(int)> dp = [&](int i) -> int {\n            if (!memo.count(i)) {\n                int cur = 0;\n                for (int p : prev[i]) {\n                    cur = max(cur, dp(p));\n                }\n                cur += time[i - 1];\n                memo[i] = cur;\n            }\n            return memo[i];\n        };\n\n        for (int i = 1; i <= n; i++) {\n            mx = max(mx, dp(i));\n        }\n        return mx;\n    }\n};\n```\n\n```Go [sol1-Go]\nfunc minimumTime(n int, relations [][]int, time []int) int {\n    res := 0\n    prev := make([][]int, n+1)\n    for i := 0; i <= n; i++ {\n        prev[i] = make([]int, 0)\n    }\n    for _, relation := range relations {\n        x := relation[0]\n        y := relation[1]\n        prev[y] = append(prev[y], x)\n    }\n    memo := make(map[int]int)\n    for i := 1; i <= n; i++ {\n        res = max(res, dp(i, time, prev, memo))\n    }\n    return res\n}\n\nfunc dp(i int, time []int, prev [][]int, memo map[int]int) int {\n    if _, ok := memo[i]; !ok {\n        cur := 0\n        for _, p := range prev[i] {\n            cur = max(cur, dp(p, time, prev, memo))\n        }\n        cur += time[i-1]\n        memo[i] = cur\n    }\n    return memo[i]\n}\n\nfunc max(a, b int) int {\n    if a > b {\n        return a\n    }\n    return b\n}\n\n```\n\n```JavaScript [sol1-JavaScript]\nvar minimumTime = function(n, relations, time) {\n    let res = 0;\n    let prev = Array(n + 1).fill(0);\n    for (let i = 0; i <= n; i++) {\n        prev[i] = [];\n    }\n    for (var relation of relations) {\n        let x = relation[0], y = relation[1];\n        prev[y].push(x);\n    }\n    let memo = {};\n    for (let i = 1; i <= n; i++) {\n        res = Math.max(res, dp(i, time, prev, memo));\n    }\n    return res;\n};\n\nfunction dp(i, time, prev, memo) {\n    if (!memo[i]) {\n        let cur = 0;\n        for (let p of prev[i]) {\n            cur = Math.max(cur, dp(p, time, prev, memo));\n        }\n        cur += time[i - 1];\n        memo[i] = cur;\n    }\n    return memo[i];\n}\n```\n\n```C [sol1-C]\ntypedef struct {\n    int key;\n    int val;\n    UT_hash_handle hh;\n} HashItem; \n\nHashItem *hashFindItem(HashItem **obj, int key) {\n    HashItem *pEntry = NULL;\n    HASH_FIND_INT(*obj, &key, pEntry);\n    return pEntry;\n}\n\nbool hashAddItem(HashItem **obj, int key, int val) {\n    if (hashFindItem(obj, key)) {\n        return false;\n    }\n    HashItem *pEntry = (HashItem *)malloc(sizeof(HashItem));\n    pEntry->key = key;\n    pEntry->val = val;\n    HASH_ADD_INT(*obj, key, pEntry);\n    return true;\n}\n\nbool hashSetItem(HashItem **obj, int key, int val) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        hashAddItem(obj, key, val);\n    } else {\n        pEntry->val = val;\n    }\n    return true;\n}\n\nint hashGetItem(HashItem **obj, int key, int defaultVal) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        return defaultVal;\n    }\n    return pEntry->val;\n}\n\nvoid hashFree(HashItem **obj) {\n    HashItem *curr = NULL, *tmp = NULL;\n    HASH_ITER(hh, *obj, curr, tmp) {\n        HASH_DEL(*obj, curr);  \n        free(curr);\n    }\n}\n\nstruct ListNode *creatListNode(int val) {\n    struct ListNode *obj = (struct ListNode *)malloc(sizeof(struct ListNode));\n    obj->val = val;\n    obj->next = NULL;\n    return obj;\n}\n\nint dp(int i, const int *time, struct ListNode **prev, HashItem **memo) {\n    if (!hashFindItem(memo, i)) {\n        int cur = 0;\n        for (struct ListNode *node = prev[i]; node != NULL; node = node->next) {\n            int p = node->val;\n            cur = fmax(cur, dp(p, time, prev, memo));\n        }\n        cur += time[i - 1];\n        hashAddItem(memo, i, cur);\n    }\n    return hashGetItem(memo, i, 0);\n}\n\nint minimumTime(int n, int** relations, int relationsSize, int* relationsColSize, int* time, int timeSize) {\n    int mx = 0;\n    struct ListNode *prev[n + 1];\n    for (int i = 0; i <= n; i++) {\n        prev[i] = NULL;\n    }\n    for (int i = 0; i < relationsSize; i++) {\n        int x = relations[i][0], y = relations[i][1];\n        struct ListNode *node = creatListNode(x);\n        node->next = prev[y];\n        prev[y] = node;\n    }\n    HashItem *memo = NULL;\n    for (int i = 1; i <= n; i++) {\n        mx = fmax(mx, dp(i, time, prev, &memo));\n    }\n    hashFree(&memo);\n    for (int i = 0; i <= n; i++) {\n        struct ListNode *node = prev[i];\n        while (node) {\n            struct ListNode *cur = node;\n            node = node->next;\n            free(cur);\n        }\n    }\n    return mx;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(m+n)$，其中 $m$ 是数组 $\\textit{relations}$ 长度。需要构建先修课邻接表，并且计算每个课程的最少月份数。因为每个课程只会被计算一次，因此相当于是每个 $\\textit{relation}$ 会被遍历一次。\n\n- 空间复杂度：$O(m+n)$，先修课邻接表的空间复杂度是 $O(m+n)$，记忆化搜索的空间复杂度是 $O(n)$。",
+            "slateValue": "",
+            "slug": "bing-xing-ke-cheng-iii-by-leetcode-solut-aw43",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "UXbba1",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 22,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Memoization",
+                    "nameTranslated": "记忆化",
+                    "slug": "memoization",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-07-25T02:23:19.757141+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：记忆化搜索 思路 要求出完成所有课程的最少月份数，可以求出每门课程的最少月份数，然后求出最大值。首先根据 $\\textit{relations}$，构建先修课邻接表 $\\textit{prev}$，$\\textit{prev}[i]$ 就表示课程 $i$ 的所有的先修课。定义函数 $\\textit{dp}$，输",
+            "topic": {
+                "id": 2357818,
+                "subscribed": false,
+                "commentCount": 34,
+                "viewCount": 758,
+                "post": {
+                    "id": 4432115,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 14,
+            "isEditorsPick": false,
+            "hitCount": 8147,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "parallel-courses-iii",
+                "questionFrontendId": "2050"
+            },
+            "next": {
+                "slug": "tuo-bu-pai-xu-dong-tai-gui-hua-by-endles-dph6",
+                "title": "拓扑排序+动态规划（Python/Java/C++/Go/JS）"
+            },
+            "prev": null
+        }
+    }
+}

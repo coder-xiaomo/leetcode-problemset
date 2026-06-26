@@ -1,0 +1,104 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "JyhA0y",
+            "title": "切分数组 质数筛 + DP",
+            "content": "## 题意概述：\n\n将数组切分成若干个子数组，使得每个子数组最左边和最右边数字的最大公约数大于 1，求解最少能切成多少个子数组。\n\n### 题解：\n\n素数筛 + DP\n\n一个比较直观的解法是（下标从 0 开始）：\n$$\nf[i] = \\min\\{f[j] + 1 | 0 \\leq j < i - 1\\ \\&\\&\\ gcd(nums[j+1], nums[i]) > 1\\}\\\\\nAnswer=f[n - 1]\n$$\n\n但这个解法是 $O(n^2)$ 的，我们在这个想法基础上进行优化。\n\n我们需要重新给出 $f[i]$ 的定义：$f[i]$ 代表这个数组**新增**一个质数 $i$ 后的最少分组数。例如对于数组 `[2,5,3]` ，我们有 $f[2] = 1, f[3] = 3, f[5] = 2$, 在插入一个新的数 6 后，对于当前数组 `[2,5,3,6]` ，我们有 $f[2] = 1, f[3] = 2, f[5] = 2$ 。\n\n于是我们在遍历整个数组时，只要对每次遍历到的数做质因数分解，假设当前分解得到的质数为 $p$ ，上一次遍历的最好结果为 $prev$ ，就可以做如下更新：\n\n$$f[p] = \\min(f[p], prev + 1)$$\n\n其含义为当前这个数要么跟之前的某个数组成一个子数组，要么单独成一组。这样遍历下去就能高效求得答案了。\n\n由于需要知道每个 $nums[i]$ 的所有质因子，我们需要一种方法将 $nums[i]$ 快速因子分解。我们用素数筛提前预处理 $1 \\sim 10^6$ 内任意数字 $k$ 的最小质因子 $min\\_prime\\_factor[k]$ 。获得 $nums[i]$ 所有质因子的方法为：\n\n- $x=nums[i]$\n- 获取 $min\\_prime\\_factor[x]$ 为 $x$ 当前的最小质因子\n\n- $x = x / min\\_prime\\_factor[x]$\n- 如果 $x=1$，退出，否则回到步骤 2\n\n```c++ []\nclass Solution {\npublic:\n    int min_prime[1000010], prime[100010];\n    int g[1000010];\n    int splitArray(vector<int>& nums) {\n        int n = nums.size(), m = 2;\n        for(int i = 0; i < n; i++)\n            m = max(m, nums[i]);\n        for(int i = 2; i <= m; i++) {\n            if(!min_prime[i]) {\n                prime[++prime[0]] = i;\n                min_prime[i] = i;\n            }\n            for(int j = 1; j <= prime[0]; j++) {\n                if(i > m / prime[j]) break;\n                min_prime[i * prime[j]] = prime[j];\n                if(i % prime[j] == 0) break;\n            }\n        }\n        for(int j = 1; j <= prime[0]; j++) g[prime[j]] = n;\n        for(int x = nums[0]; x > 1; x /= min_prime[x])\n            g[min_prime[x]] = 0;\n        int ans = 1;\n        for(int i = 0; i < n; i++) {\n            ans = i + 1;\n            for(int x = nums[i]; x > 1; x /= min_prime[x])\n                ans = min(g[min_prime[x]] + 1, ans);\n            if(i == n - 1) break;\n            for(int x = nums[i + 1]; x > 1; x /= min_prime[x])\n                g[min_prime[x]] = min(g[min_prime[x]], ans);\n        }\n        return ans;\n    }\n};\n```\n```python []\nmax_num = 1000000\nmin_factor = [1] * (max_num + 1)\np = 2\n\n# O(M loglog M)\nwhile (p <= max_num):\n    i = p\n    while i * p <= max_num:\n        if min_factor[i * p] == 1:\n            min_factor[i * p] = p\n        i += 1\n\n    p += 1\n    while p <= max_num:\n        if min_factor[p] == 1:\n            break\n\n        p += 1\n\nclass Solution:\n    def splitArray(self, nums) -> int:\n        f = {}\n        n = len(nums)\n        \n        x = nums[0]\n        INF = 100000000\n        while True:\n            if min_factor[x] == 1:\n                f[x] = 1\n                break\n            \n            f[min_factor[x]] = 1\n            x //= min_factor[x]\n        \n        min_prev = 1\n        for i in range(1, n):\n            x = nums[i]\n            \n            min_cur = INF\n            while True:\n                if min_factor[x] == 1:\n                    f[x] = min(f.get(x, INF), min_prev + 1)     \n                    min_cur = min(min_cur, f[x])       \n                    break\n                \n                f[min_factor[x]] = min(f.get(min_factor[x], INF), min_prev + 1)\n                min_cur = min(min_cur, f[min_factor[x]])\n                x //= min_factor[x]\n\n            min_prev = min_cur\n\n        return min_prev\n```\n\n#### 复杂度分析\n\n* 时间复杂度：$O(N\\log M + M)$。\n\n  其中 $M=\\max_{0 \\leq i < N - 1}(nums[i])$ 。\n\n  对于每个数，需要遍历他所有质因子，并在此过程中进行 DP 状态转移，所以需将每个数不断除以它的最大质因子，此处的时间复杂度为 $O(N\\log M)$。\n\n  预处理 $1\\sim 10^6$ 以内每个数最大质因子的时间复杂度为 $O(M)$ 。\n\n* 空间复杂度：$O(M)$。\n\n  预处理过程中求出所有质因子需要一个长度为 $O(M)$ 的数组，同时，状态转移时需要在这些质因子上做DP转移，若不做特殊优化，此处也需要一个长度为 $O(M)$ 的转移数组 $g$ 。",
+            "slateValue": "",
+            "slug": "qie-fen-shu-zu-zhi-shu-shai-dp-by-leetcode-solutio",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "JyhA0y",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 11,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 2,
+                    "reactionType": "CONFUSED"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Math",
+                    "nameTranslated": "数学",
+                    "slug": "math",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-04-29T05:46:44.302298+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "题意概述：\n将数组切分成若干个子数组，使得每个子数组最左边和最右边数字的最大公约数大于 1，求解最少能切成多少个子数组。\n 题解：\n素数筛 + DP\n一个比较直观的解法是（下标从 0 开始）：\nf[i] = \\min\\{f[j] + 1 | 0 \\leq j < i - 1\\ \\&\\&\\ gcd(nums[j+1],",
+            "topic": {
+                "id": 224891,
+                "subscribed": false,
+                "commentCount": 26,
+                "viewCount": 10010,
+                "post": {
+                    "id": 598016,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 39,
+            "isEditorsPick": false,
+            "hitCount": 19214,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "qie-fen-shu-zu",
+                "questionFrontendId": "LCP 14"
+            },
+            "next": {
+                "slug": "yi-chong-zi-ran-yu-yan-de-jie-xi-by-tian-113",
+                "title": "一种自然语言的解析"
+            },
+            "prev": null
+        }
+    }
+}

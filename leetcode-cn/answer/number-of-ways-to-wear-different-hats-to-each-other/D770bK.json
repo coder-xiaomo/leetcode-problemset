@@ -1,0 +1,100 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "D770bK",
+            "title": "每个人戴不同帽子的方案数",
+            "content": "#### 方法一：状态压缩动态规划\n\n我们用 $f[i][\\textit{mask}]$ 表示我们处理了前 $i$ 顶帽子，并且已经被分配帽子的人的状态为 $\\textit{mask}$ 时的方案数。\n\n对于帽子而言，我们从 $1$ 开始编号，即 $i$ 的范围为 $[1, 40]$。具体的原因在下文的状态转移方程中会有所体现，这是为了方便存储边界条件。\n\n对于人而言，$\\textit{mask}$ 是一个长度为 $n$ 的二进制数，它的每一位对应了一个人的状态。如果 $\\textit{mask}$ 的第 $k$ 位为 $0$，那么第 $k$ 个人还没有被分配帽子，如果为 $1$，那么第 $k$ 个人被分配了帽子。\n\n- 例如当 $\\textit{mask} = (10010)_2$ 时，从右向左看，第 $1$ 位和第 $4$ 位为 $1$，表示第 $1$ 和 $4$ 个人被分配了帽子，而第 $2$，$3$，$5$ 个人还没有被分配帽子。根据 $\\textit{mask}$ 本身的性质，我们需要将人从 $0$ 开始编号。\n\n在状态的设计中，我们并没有存储每个人具体选择了哪顶帽子。这是因为在统计方案数时，我们只需要知道哪些帽子已经被选择过，以及哪些人已经选择过帽子就行了。\n\n那么如何推导出状态转移方程呢？根据 $f[i][\\textit{mask}]$，我们有两种转移的方法：\n\n- 如果第 $i$ 顶帽子没有分配给任何人，那么会从 $f[i-1][\\textit{mask}]$ 转移而来，即表示前 $i-1$ 顶帽子对应的分配状态就是 $\\textit{mask}$，而第 $i$ 顶帽子不会对人的状态进行任何改变；\n\n- 如果第 $i$ 顶帽子分配给了第 $j$ 个人，那么我们首先需要确定：\n\n    - 第 $j$ 个人是喜欢第 $i$ 顶帽子的；\n\n    - $\\textit{mask}$ 的第 $j$ 位为 $1$，因为第 $j$ 个人被分配了第 $i$ 顶帽子。\n\n  在满足了这两点要求之后，$f[i][\\textit{mask}]$ 就可以从 $f[i-1][\\textit{mask}']$ 转移而来，其中 $\\textit{mask}'$ 是将 $\\textit{mask}$ 的第 $j$ 位变成 $0$ 得到的值。也就是说，前 $i-1$ 顶帽子对应的分配状态中，第 $j$ 个人没有被分配帽子，而其它人的分配状态不变。\n\n因此我们就可以写出状态转移方程：\n\n$$\nf[i][\\textit{mask}] = f[i - 1][\\textit{mask}] + \\sum_{{j \\in \\textit{mask} ~\\wedge~ i \\in \\textit{hats}[j]}} f[i - 1][\\textit{mask} ~\\backslash~ j]\n$$\n\n等式右侧的第一项不需要解释。第二项求和部分的条件 $j \\in \\textit{mask}$ 表示 $\\textit{mask}$ 的第 $j$ 位为 $1$，$i \\in \\textit{hats}[j]$ 表示第 $j$ 个人喜欢第 $i$ 顶帽子，$\\textit{mask} ~\\backslash~ j$ 表示将 $\\textit{mask}$ 的第 $j$ 位变成 $0$。这与上文的推导过程是一致的。\n\n动态规划的边界条件为 $f[0][0] = 1$，这也是最初始的状态。最终的答案为 $f[40][2^n-1]$，其中 $2^n-1$ 是包含 $n$ 个 $1$ 的二进制表示对应的十进制值。\n\n**小技巧**\n\n- 我们可以用 `mask & (1 << j)` 或 `(mask >> j) & 1` 判断 $\\textit{mask}$ 的第 $j$ 位是否为 $1$；\n\n- 我们可以用 `mask ^ (1 << j)` 或 `mask - (1 << j)` 将 $\\textit{mask}$ 的第 $j$ 位从 $1$ 变为 $0$。\n\n```C++ [sol1-C++]\nusing LL = long long;\n\nclass Solution {\nprivate:\n    static constexpr int mod = 1000000007;\n    \npublic:\n    int numberWays(vector<vector<int>>& hats) {\n        int n = hats.size();\n        // 找到帽子编号的最大值，这样我们只需要求出 $f[maxhatid][2^n - 1]$ 作为答案\n        int maxHatId = 0;\n        for (int i = 0; i < n; ++i) {\n            for (int h: hats[i]) {\n                maxHatId = max(maxHatId, h);\n            }\n        }\n        \n        // 对于每一顶帽子 h，hatToPerson[h] 中存储了喜欢这顶帽子的所有人，方便进行动态规划\n        vector<vector<int>> hatToPerson(maxHatId + 1);\n        for (int i = 0; i < n; ++i) {\n            for (int h: hats[i]) {\n                hatToPerson[h].push_back(i);\n            }\n        }\n        \n        vector<vector<int>> f(maxHatId + 1, vector<int>(1 << n));\n        // 边界条件\n        f[0][0] = 1;\n        for (int i = 1; i <= maxHatId; ++i) {\n            for (int mask = 0; mask < (1 << n); ++mask) {\n                f[i][mask] = f[i - 1][mask];\n                for (int j: hatToPerson[i]) {\n                    if (mask & (1 << j)) {\n                        f[i][mask] += f[i - 1][mask ^ (1 << j)];\n                        f[i][mask] %= mod;\n                    }\n                }\n            }\n        }\n        \n        return f[maxHatId][(1 << n) - 1];\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def numberWays(self, hats: List[List[int]]) -> int:\n        mod = 10**9 + 7\n        n = len(hats)\n        # 找到帽子编号的最大值，这样我们只需要求出 $f[maxhatid][2^n - 1]$ 作为答案\n        maxHatId = max(max(ids) for ids in hats)\n        \n        # 对于每一顶帽子 h，hatToPerson[h] 中存储了喜欢这顶帽子的所有人，方便进行动态规划\n        hatToPerson = collections.defaultdict(list)\n        for i in range(n):\n            for h in hats[i]:\n                hatToPerson[h].append(i)\n        \n        f = [[0] * (1 << n) for _ in range(maxHatId + 1)]\n        # 边界条件\n        f[0][0] = 1\n        for i in range(1, maxHatId + 1):\n            for mask in range(1 << n):\n                f[i][mask] = f[i - 1][mask]\n                for j in hatToPerson[i]:\n                    if mask & (1 << j):\n                        f[i][mask] += f[i - 1][mask ^ (1 << j)]\n                f[i][mask] %= mod\n        \n        return f[maxHatId][(1 << n) - 1]\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public int numberWays(List<List<Integer>> hats) {\n        final int MOD = 1000000007;\n        int n = hats.size();\n        // 找到帽子编号的最大值，这样我们只需要求出 f[maxhatid][2^n - 1] 作为答案\n        int maxHatId = 0;\n        for (int i = 0; i < n; ++i) {\n            List<Integer> list = hats.get(i);\n            for (int h: list) {\n                maxHatId = Math.max(maxHatId, h);\n            }\n        }\n        \n        // 对于每一顶帽子 h，hatToPerson[h] 中存储了喜欢这顶帽子的所有人，方便进行动态规划\n        List<List<Integer>> hatToPerson = new ArrayList<List<Integer>>();\n        for (int i = 0; i <= maxHatId; i++) {\n            hatToPerson.add(new ArrayList<Integer>());\n        }\n        for (int i = 0; i < n; ++i) {\n            List<Integer> list = hats.get(i);\n            for (int h: list) {\n                hatToPerson.get(h).add(i);\n            }\n        }\n        \n        int[][] f = new int[maxHatId + 1][1 << n];\n        // 边界条件\n        f[0][0] = 1;\n        for (int i = 1; i <= maxHatId; ++i) {\n            for (int mask = 0; mask < (1 << n); ++mask) {\n                f[i][mask] = f[i - 1][mask];\n                List<Integer> list = hatToPerson.get(i);\n                for (int j: list) {\n                    if ((mask & (1 << j)) != 0) {\n                        f[i][mask] += f[i - 1][mask ^ (1 << j)];\n                        f[i][mask] %= MOD;\n                    }\n                }\n            }\n        }\n        \n        return f[maxHatId][(1 << n) - 1];\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(2^n * h)$，其中 $h$ 表示 $\\textit{hats}$ 中的元素个数。\n\n    - 我们需要 $O(h)$ 的时间得到帽子编号的最大值；\n\n    - 我们需要 $O(h)$ 的时间构造数组 $\\textit{hatToPerson}$；\n\n    - 在动态规划过程中，枚举 $\\textit{mask}$ 对应的循环的时间复杂度为 $O(2^n)$，而枚举 $i$ 和 $j$ 对应循环的时间复杂度总计为 $O(h)$，因此动态规划的时间复杂度为 $O(2^n * h)$。\n\n- 空间复杂度：$O(2^n * m + h)$ 或 $O(2^n + h)$，其中 $m$ 表示帽子编号的最大值。\n\n    - 我们需要 $O(h)$ 的空间存储数组 $\\textit{hatToPerson}$；\n\n    - 我们需要 $O(2^n * m)$ 的空间存储动态规划的结果。注意到在 $f[i][\\textit{mask}]$ 只会从 $f[i - 1][..]$ 转移而来，因此我们也可以使用两个 $O(2^n)$ 的一维数组，交替地进行状态转移，空间复杂度降低至 $O(2^n)$。",
+            "slateValue": "",
+            "slug": "mei-ge-ren-dai-bu-tong-mao-zi-de-fang-an-d4kd",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "D770bK",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 28,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "CONFUSED"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2020-12-08T15:31:30.847706+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：状态压缩动态规划 我们用 $f[i][\\textit{mask}]$ 表示我们处理了前 $i$ 顶帽子，并且已经被分配帽子的人的状态为 $\\textit{mask}$ 时的方案数。 对于帽子而言，我们从 $1$ 开始编号，即 $i$ 的范围为 $[1, 40]$。具体的原因在下文的状态转移方程中会有所体现，这是",
+            "topic": {
+                "id": 514366,
+                "subscribed": false,
+                "commentCount": 22,
+                "viewCount": 2702,
+                "post": {
+                    "id": 1213151,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 26,
+            "isEditorsPick": false,
+            "hitCount": 7196,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "number-of-ways-to-wear-different-hats-to-each-other",
+                "questionFrontendId": "1434"
+            },
+            "next": {
+                "slug": "zhuang-tai-ya-suo-ji-lu-mei-ge-ren-shi-fou-dai-sha",
+                "title": "状态压缩记录每个人是否戴上了帽子"
+            },
+            "prev": null
+        }
+    }
+}

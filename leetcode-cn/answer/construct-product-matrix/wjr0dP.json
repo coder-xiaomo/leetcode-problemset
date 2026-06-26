@@ -1,0 +1,144 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "wjr0dP",
+            "title": "构造乘积矩阵",
+            "content": "#### 方法一：后缀乘积\n\n**思路与算法**\n\n题目对矩阵 $\\textit{grid}$ **乘积矩阵** $p$ 的定义如下：\n\n+ 每个元素 $p[i][j]$ ，它的值等于除了 $\\textit{grid}[i][j]$ 外所有元素的乘积。乘积对 $12345$ 取余数。\n\n如果给定的矩阵为一维数组，则本题即与「[238. 除了自身以外数组的乘积](https://leetcode.cn/problems/product-of-array-except-self/)」几乎一样。同样的解法，我们如果将二维矩阵展开为一个一维数组，然后分别计算出左边的乘积与右边的乘积，即可计算出除当前元素以外所有元素的乘积。\n\n同样的原理，我们可以分别计算出当前元素的前缀积与后缀积，即可求出 **乘积矩阵** 的每个元素。计算每个元素 $p[i][j]$ 的过程如下：\n\n+ 先算出当前元素之后的**后缀积**，即从 $\\textit{grid}[i][j]$ 的下一个元素开始，到最后一个元素 $\\textit{grid}[n-1][m-1]$ 的乘积，记作 $\\textit{suffix}[i][j]$。计算时，我们可以从二维矩阵的最后一个元素开始，即从 $\\textit{grid}[n-1][m-1]$ 开始倒序边遍历边计算。\n\n+ 接着算出当前元素之前的**前缀积**，即从第一个元素 $\\textit{grid}[0][0]$ 开始，到 $\\textit{grid}[i][j]$ 的上一个元素的乘积，记作 $\\textit{prefix}[i][j]$。计算时，我们可以从二维矩阵的第一个元素开始，即从 $\\textit{grid}[0][0]$ 开始顺序边边遍历边计算。\n\n此时根据题意可知:\n\n$$\np[i][j] = \\textit{prefix}[i][j] ⋅ \\textit{suffix}[i][j]\n$$\n\n具体实现时，为了节省空间，我们可以先在倒序计算后缀积时同时初始化 $p[i][j]=\\textit{suffix}[i][j]$，然后顺序计算前缀积时，我们不必开拓新的空间，直接将当前的前缀积保存到一个变量 $\\textit{prefix}$ 中，直接乘以 $p[i][j]$ 就得到了最终答案。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<vector<int>> constructProductMatrix(vector<vector<int>> &grid) {\n        const int MOD = 12345;\n        int n = grid.size(), m = grid[0].size();\n        vector<vector<int>> p(n, vector<int>(m));\n\n        long long suffix = 1;\n        for (int i = n - 1; i >= 0; i--) {\n            for (int j = m - 1; j >= 0; j--) {\n                p[i][j] = suffix;\n                suffix = suffix * grid[i][j] % MOD;\n            }\n        }\n\n        long long prefix = 1;\n        for (int i = 0; i < n; i++) {\n            for (int j = 0; j < m; j++) {\n                p[i][j] = p[i][j] * prefix % MOD;\n                prefix = prefix * grid[i][j] % MOD;\n            }\n        }\n\n        return p;\n    }\n};\n```\n\n```Java [sol1-Java]\ncclass Solution {\n    public int[][] constructProductMatrix(int[][] grid) {\n        final int MOD = 12345;\n        int n = grid.length, m = grid[0].length;\n        int[][] p = new int[n][m];\n        \n        long suffix = 1;\n        for (int i = n - 1; i >= 0; i--) {\n            for (int j = m - 1; j >= 0; j--) {\n                p[i][j] = (int)suffix;\n                suffix = suffix * grid[i][j] % MOD;\n            }\n        }\n        \n        long prefix = 1;\n        for (int i = 0; i < n; i++) {\n            for (int j = 0; j < m; j++) {\n                p[i][j] = (int)((long)p[i][j] * prefix % MOD);\n                prefix = prefix * grid[i][j] % MOD;\n            }\n        }\n        \n        return p;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public int[][] ConstructProductMatrix(int[][] grid) {\n        const int MOD = 12345;\n        int n = grid.Length, m = grid[0].Length;\n        int[][] p = new int[n][];\n        \n        for (int i = 0; i < n; i++) {\n            p[i] = new int[m];\n        }\n        long suffix = 1;\n        for (int i = n - 1; i >= 0; i--) {\n            for (int j = m - 1; j >= 0; j--) {\n                p[i][j] = (int)suffix;\n                suffix = suffix * grid[i][j] % MOD;\n            }\n        }\n        \n        long prefix = 1;\n        for (int i = 0; i < n; i++) {\n            for (int j = 0; j < m; j++) {\n                p[i][j] = (int)((long)p[i][j] * prefix % MOD);\n                prefix = prefix * grid[i][j] % MOD;\n            }\n        }\n        \n        return p;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def constructProductMatrix(self, grid: List[List[int]]) -> List[List[int]]:\n        MOD = 12345\n        n, m = len(grid), len(grid[0])\n        p = [[0] * m for _ in range(n)]\n        \n        suffix = 1\n        for i in range(n - 1, -1, -1):\n            for j in range(m - 1, -1, -1):\n                p[i][j] = suffix\n                suffix = (suffix * grid[i][j]) % MOD\n        \n        prefix = 1\n        for i in range(n):\n            for j in range(m):\n                p[i][j] = (p[i][j] * prefix) % MOD\n                prefix = (prefix * grid[i][j]) % MOD\n        \n        return p\n```\n\n```Go [sol1-Go]\nfunc constructProductMatrix(grid [][]int) [][]int {\n    const MOD = 12345\n    n, m := len(grid), len(grid[0])\n    p := make([][]int, n)\n    for i := range p {\n        p[i] = make([]int, m)\n    }\n    \n    suffix := int64(1)\n    for i := n - 1; i >= 0; i-- {\n        for j := m - 1; j >= 0; j-- {\n            p[i][j] = int(suffix)\n            suffix = (suffix * int64(grid[i][j])) % MOD\n        }\n    }\n    \n    prefix := int64(1)\n    for i := 0; i < n; i++ {\n        for j := 0; j < m; j++ {\n            p[i][j] = int((int64(p[i][j]) * prefix) % MOD)\n            prefix = (prefix * int64(grid[i][j])) % MOD\n        }\n    }\n    \n    return p\n}\n```\n\n```C [sol1-C]\nint** constructProductMatrix(int** grid, int gridSize, int* gridColSize, int* returnSize, int** returnColumnSizes) {\n    const int MOD = 12345;\n    int n = gridSize, m = gridColSize[0];\n    \n    int** p = (int**)malloc(n * sizeof(int*));\n    *returnColumnSizes = (int*)malloc(n * sizeof(int));\n    for (int i = 0; i < n; i++) {\n        p[i] = (int*)malloc(m * sizeof(int));\n        (*returnColumnSizes)[i] = m;\n    }\n    *returnSize = n;\n    \n    long long suffix = 1;\n    for (int i = n - 1; i >= 0; i--) {\n        for (int j = m - 1; j >= 0; j--) {\n            p[i][j] = suffix % MOD;\n            suffix = (suffix * grid[i][j]) % MOD;\n        }\n    }\n    \n    long long prefix = 1;\n    for (int i = 0; i < n; i++) {\n        for (int j = 0; j < m; j++) {\n            p[i][j] = (p[i][j] * prefix) % MOD;\n            prefix = (prefix * grid[i][j]) % MOD;\n        }\n    }\n    \n    return p;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar constructProductMatrix = function(grid) {\n    const MOD = 12345;\n    const n = grid.length, m = grid[0].length;\n    const p = Array.from({length: n}, () => new Array(m).fill(0));\n    \n    let suffix = 1;\n    for (let i = n - 1; i >= 0; i--) {\n        for (let j = m - 1; j >= 0; j--) {\n            p[i][j] = suffix;\n            suffix = (suffix * grid[i][j]) % MOD;\n        }\n    }\n    \n    let prefix = 1;\n    for (let i = 0; i < n; i++) {\n        for (let j = 0; j < m; j++) {\n            p[i][j] = (p[i][j] * prefix) % MOD;\n            prefix = (prefix * grid[i][j]) % MOD;\n        }\n    }\n    \n    return p;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nfunction constructProductMatrix(grid: number[][]): number[][] {\n    const MOD: number = 12345;\n    const n: number = grid.length, m: number = grid[0].length;\n    const p: number[][] = Array.from({length: n}, () => new Array(m).fill(0));\n    \n    let suffix: number = 1;\n    for (let i = n - 1; i >= 0; i--) {\n        for (let j = m - 1; j >= 0; j--) {\n            p[i][j] = suffix;\n            suffix = (suffix * grid[i][j]) % MOD;\n        }\n    }\n    \n    let prefix: number = 1;\n    for (let i = 0; i < n; i++) {\n        for (let j = 0; j < m; j++) {\n            p[i][j] = (p[i][j] * prefix) % MOD;\n            prefix = (prefix * grid[i][j]) % MOD;\n        }\n    }\n    \n    return p;\n}\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn construct_product_matrix(grid: Vec<Vec<i32>>) -> Vec<Vec<i32>> {\n        const MOD: i64 = 12345;\n        let n = grid.len();\n        let m = grid[0].len();\n        let mut p = vec![vec![0; m]; n];\n        \n        let mut suffix: i64 = 1;\n        for i in (0..n).rev() {\n            for j in (0..m).rev() {\n                p[i][j] = (suffix % MOD) as i32;\n                suffix = (suffix * grid[i][j] as i64) % MOD;\n            }\n        }\n        \n        let mut prefix: i64 = 1;\n        for i in 0..n {\n            for j in 0..m {\n                p[i][j] = ((p[i][j] as i64 * prefix) % MOD) as i32;\n                prefix = (prefix * grid[i][j] as i64) % MOD;\n            }\n        }\n        \n        p\n    }\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(nm)$，其中 $n,m$ 表示给定二维矩阵的行数与列数。需要遍历整个二维矩阵，因此总的时间复杂度为 $O(nm)$。\n\n- 空间复杂度：$O(1)$。除了返回值外，不需要额外的空间。",
+            "slateValue": "",
+            "slug": "gou-zao-cheng-ji-ju-zhen-by-leetcode-sol-01cx",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "wjr0dP",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 2,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Matrix",
+                    "nameTranslated": "矩阵",
+                    "slug": "matrix",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Prefix Sum",
+                    "nameTranslated": "前缀和",
+                    "slug": "prefix-sum",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2026-03-12T05:30:57.477366+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：后缀乘积 思路与算法 题目对矩阵 [latex] 乘积矩阵 [latex] 的定义如下： 每个元素 [latex] ，它的值等于除了 [latex] 外所有元素的乘积。乘积对 [latex] 取余数。 如果给定的矩阵为一维数组，则本题即与「238. 除了自身以外数组的乘积」几乎一样。同样的解法，我们如果将二维矩",
+            "topic": {
+                "id": 3922670,
+                "subscribed": false,
+                "commentCount": 10,
+                "viewCount": 24,
+                "post": {
+                    "id": 7153081,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 8,
+            "isEditorsPick": false,
+            "hitCount": 4684,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "construct-product-matrix",
+                "questionFrontendId": "2906"
+            },
+            "next": {
+                "slug": "zhou-sai-chang-kao-qian-hou-zhui-fen-jie-21hr",
+                "title": "前后缀分解（Python/Java/C++/C/Go/JS/Rust）"
+            },
+            "prev": null
+        }
+    }
+}

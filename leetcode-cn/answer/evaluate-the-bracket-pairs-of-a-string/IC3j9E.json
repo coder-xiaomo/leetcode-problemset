@@ -1,0 +1,136 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "IC3j9E",
+            "title": "替换字符串中的括号内容",
+            "content": "#### 方法一：哈希表\n\n为了方便查找，我们将 $\\textit{knowledge}$ 保存到哈希表 $\\textit{dict}$ 中。字符串 $s$ 中有四种类型的字符：\n\n+ 字符 $`(’$\n\n+ 字符 $`)’$\n\n+ 不在括号内的小写字母\n\n+ 在括号内的小写字母\n\n我们使用 $\\textit{key}$ 保存括号内的键，$\\textit{addKey}$ 表示当前小写字母是否为在括号内的小写字母。遍历字符串 $s$，假设当前字符为 $c$：\n\n+ 如果 $c$ 等于 $`(’$\n\n    说明之后的小写字母是在括号内的，令 $\\textit{addKey} = \\text{true}$。\n\n+ 如果 $c$ 等于 $`)’$\n\n    说明 $\\textit{key}$ 已经结束，如果 $\\textit{key}$ 在 $\\textit{dict}$ 中，我们将 $\\textit{dict}[\\textit{key}]$ 附加到结果字符串中，否则将字符 $`?’$ 附加到结果字符串中。清除字符串 $\\textit{key}$，令 $\\textit{addKey} = \\text{false}$。\n\n+ 如果 $c$ 是小写字母\n\n    根据 $\\textit{addKey}$ 决定字符 $c$ 应该添加到哪里。如果 $\\textit{addKey}$ 为真，那么将字符 $c$ 追加到 $\\textit{key}$ 中，否则将字符 $c$ 追加到结果字符串中。\n\n```Python [sol1-Python3]\nclass Solution:\n    def evaluate(self, s: str, knowledge: List[List[str]]) -> str:\n        d = dict(knowledge)\n        ans, start = [], -1\n        for i, c in enumerate(s):\n            if c == '(':\n                start = i\n            elif c == ')':\n                ans.append(d.get(s[start + 1: i], '?'))\n                start = -1\n            elif start < 0:\n                ans.append(c)\n        return \"\".join(ans)\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    string evaluate(string s, vector<vector<string>>& knowledge) {\n        unordered_map<string, string> dict;\n        for (auto &kd : knowledge) {\n            dict[kd[0]] = kd[1];\n        }\n        bool addKey = false;\n        string key, res;\n        for (char c : s) {\n            if (c == '(') {\n                addKey = true;\n            } else if (c == ')') {\n                if (dict.count(key) > 0) {\n                    res += dict[key];\n                } else {\n                    res.push_back('?');\n                }\n                addKey = false;\n                key.clear();\n            } else {\n                if (addKey) {\n                    key.push_back(c);\n                } else {\n                    res.push_back(c);\n                }\n            }\n        }\n        return res;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public String evaluate(String s, List<List<String>> knowledge) {\n        Map<String, String> dict = new HashMap<String, String>();\n        for (List<String> kd : knowledge) {\n            dict.put(kd.get(0), kd.get(1));\n        }\n        boolean addKey = false;\n        StringBuilder key = new StringBuilder();\n        StringBuilder res = new StringBuilder();\n        for (int i = 0; i < s.length(); i++) {\n            char c = s.charAt(i);\n            if (c == '(') {\n                addKey = true;\n            } else if (c == ')') {\n                if (dict.containsKey(key.toString())) {\n                    res.append(dict.get(key.toString()));\n                } else {\n                    res.append('?');\n                }\n                addKey = false;\n                key.setLength(0);\n            } else {\n                if (addKey) {\n                    key.append(c);\n                } else {\n                    res.append(c);\n                }\n            }\n        }\n        return res.toString();\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public string Evaluate(string s, IList<IList<string>> knowledge) {\n        IDictionary<string, string> dict = new Dictionary<string, string>();\n        foreach (IList<string> kd in knowledge) {\n            dict.Add(kd[0], kd[1]);\n        }\n        bool addKey = false;\n        StringBuilder key = new StringBuilder();\n        StringBuilder res = new StringBuilder();\n        foreach (char c in s) {\n            if (c == '(') {\n                addKey = true;\n            } else if (c == ')') {\n                if (dict.ContainsKey(key.ToString())) {\n                    res.Append(dict[key.ToString()]);\n                } else {\n                    res.Append('?');\n                }\n                addKey = false;\n                key.Length = 0;\n            } else {\n                if (addKey) {\n                    key.Append(c);\n                } else {\n                    res.Append(c);\n                }\n            }\n        }\n        return res.ToString();\n    }\n}\n```\n\n```C [sol1-C]\ntypedef struct {\n    char *key;\n    char *val;\n    UT_hash_handle hh;\n} HashItem; \n\nHashItem *hashFindItem(HashItem **obj, const char *key) {\n    HashItem *pEntry = NULL;\n    HASH_FIND_STR(*obj, key, pEntry);\n    return pEntry;\n}\n\nbool hashAddItem(HashItem **obj, char *key, char *val) {\n    if (hashFindItem(obj, key)) {\n        return false;\n    }\n    HashItem *pEntry = (HashItem *)malloc(sizeof(HashItem));\n    pEntry->key = key;\n    pEntry->val = val;\n    HASH_ADD_STR(*obj, key, pEntry);\n    return true;\n}\n\nvoid hashFree(HashItem **obj) {\n    HashItem *curr = NULL, *tmp = NULL;\n    HASH_ITER(hh, *obj, curr, tmp) {\n        HASH_DEL(*obj, curr);  \n        free(curr);             \n    }\n}\n\nchar * evaluate(char * s, char *** knowledge, int knowledgeSize, int* knowledgeColSize) {\n    HashItem *dict = NULL;\n    for (int i = 0; i < knowledgeSize; i++) {\n        hashAddItem(&dict, knowledge[i][0], knowledge[i][1]);\n    }\n    bool addKey = false;\n    int len = strlen(s);\n    char key[16], *res = (char *)malloc(sizeof(char) * (len + 1));\n    int keySize = 0, resSize = 0;\n    memset(key, 0, sizeof(key));\n    memset(res, 0, sizeof(char) * (len + 1));\n    for (int i = 0; s[i] != '\\0'; i++) {\n        char c = s[i];\n        if (c == '(') {\n            addKey = true;\n        } else if (c == ')') {\n            HashItem *pEntry = hashFindItem(&dict, key);\n            if (pEntry) {\n                resSize += sprintf(res + resSize, \"%s\", pEntry->val);\n            } else {\n                res[resSize++] = '?';\n            }\n            addKey = false;\n            keySize = 0;\n        } else {\n            if (addKey) {\n                key[keySize++] = c;\n                key[keySize] = '\\0';\n            } else {\n                res[resSize++] = c;\n            }\n        }\n    }\n    hashFree(&dict);\n    return res;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar evaluate = function(s, knowledge) {\n    const dict = new Map();\n    for (const kd of knowledge) {\n        dict.set(kd[0], kd[1]);\n    }\n    let addKey = false;\n    let key = '';\n    let res = '';\n    for (let i = 0; i < s.length; i++) {\n        const c = s[i];\n        if (c === '(') {\n            addKey = true;\n        } else if (c === ')') {\n            if (dict.has(key)) {\n                res += dict.get(key);\n            } else {\n                res += '?';\n            }\n            addKey = false;\n            key = '';\n        } else {\n            if (addKey) {\n                key += c;\n            } else {\n                res += c;\n            }\n        }\n    }\n    return res;\n};\n```\n\n```go [sol1-Golang]\nfunc evaluate(s string, knowledge [][]string) string {\n    dict := map[string]string{}\n    for _, kd := range knowledge {\n        dict[kd[0]] = kd[1]\n    }\n    ans := &strings.Builder{}\n    start := -1\n    for i, c := range s {\n        if c == '(' {\n            start = i\n        } else if c == ')' {\n            if t, ok := dict[s[start+1:i]]; ok {\n                ans.WriteString(t)\n            } else {\n                ans.WriteByte('?')\n            }\n            start = -1\n        } else if start < 0 {\n            ans.WriteRune(c)\n        }\n    }\n    return ans.String()\n}\n```\n\n**复杂度分析**\n\n+ 时间复杂度：$O(n + k)$，其中 $n$ 是字符串 $s$ 的长度，$k$ 是字符串数组 $\\textit{knowledge}$ 中所有字符串的长度之和。\n\n+ 空间复杂度：$O(n + k)$，其中 $n$ 是字符串 $s$ 的长度，$k$ 是字符串数组 $\\textit{knowledge}$ 中所有字符串的长度之和。保存哈希表 $\\textit{dict}$ 和 $\\textit{key}$ 分别需要 $O(k)$ 和 $O(n)$。",
+            "slateValue": "",
+            "slug": "ti-huan-zi-fu-chuan-zhong-de-gua-hao-nei-y8d3",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "IC3j9E",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 18,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "String",
+                    "nameTranslated": "字符串",
+                    "slug": "string",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-01-11T02:46:23.223997+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：哈希表 为了方便查找，我们将 $\\textit{knowledge}$ 保存到哈希表 $\\textit{dict}$ 中。字符串 $s$ 中有四种类型的字符： 字符 $`(’$ 字符 $`)’$ 不在括号内的小写字母 在括号内的小写字母 我们使用 $\\textit{key}$ 保存括号内的键，$\\textit{",
+            "topic": {
+                "id": 2055952,
+                "subscribed": false,
+                "commentCount": 92,
+                "viewCount": 846,
+                "post": {
+                    "id": 3942181,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 17,
+            "isEditorsPick": false,
+            "hitCount": 12094,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "evaluate-the-bracket-pairs-of-a-string",
+                "questionFrontendId": "1807"
+            },
+            "next": {
+                "slug": "by-lcbin-cnvd",
+                "title": "[Python3/Java/C++/Go] 一题一解：哈希表 + 模拟"
+            },
+            "prev": null
+        }
+    }
+}

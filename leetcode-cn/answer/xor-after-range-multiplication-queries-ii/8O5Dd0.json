@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "8O5Dd0",
+            "title": "区间乘法查询后的异或 II",
+            "content": "#### 方法一：根号分治 + 差分\n\n**思路与算法**\n\n最朴素的做法是对每个查询，直接模拟，逐个去乘。单次查询时间复杂度就是 $O(n)$，$q$ 次查询总计 $O(nq)$，规模约 $10^{10}$，必然超时。问题出在当 $k$ 很小时，一次查询会触及大量元素，代价很高。\n\n注意到步长 $k$ 对复杂度的影响是截然不同的，我们可以按 $k$ 和 $\\sqrt n$ 的大小关系，将查询分为两类，分别用最适合的方法处理：\n\n- $k \\ge \\sqrt n$ 时，每次查询最多触及 $\\cfrac{n}{k} \\le \\sqrt n$ 个元素，暴力可以接受。时间复杂度为 $O(q \\sqrt n)$。\n- $k \\lt \\sqrt n$ 时，单次查询可以触及很多元素，暴力就扛不住了。\n\n针对较小步长（$k \\lt \\sqrt n$），我们把查询按 $k$ 值分组，相同的 $k$ 可以一起处理。因为相同的 $k$影响到的下标构成的网格是一样的，比如 $k = 3$ 时的所有查询，影响的下标都形如 $l, l + 3, l + 6, \\dots$，它们都是按步长 $3$ 跳跃的。\n\n这样一来，我们固定了 $k$ 之后，对于每个查询 $[l, r, v]$，我们需要把 $l, l + k, l + 2k, \\dots$ 上的元素都乘上 $v$，这本质上是一个区间乘法，但不是直接应用在原数组的连续区间，而是在步长为 $k$ 的子序列上。\n\n我们构造一个差分数组 $\\textit{dif}$，所有值初始化为 $1$，处理查询 $[l, r, v]$ 时，找到最后一个需要处理的元素下标的下一个位置，设为 $R$（举个例子，对于查询 $[2, 7, 3]$ 来讲，最后一个处理的元素下标为 $5$，那么 $R$ 等于 $8$）。将 $\\textit{dif}[l] = \\textit{dif}[l] \\times v$，$\\textit{dif}[R] = \\textit{dif}[R] \\times v^{-1}$。其中 $v^{-1}$ 是 $v$ 在摸 $\\textit{M} = 10^9 + 7$ 意义下的逆元，可以使用费马小定理求解 $v ^ {\\textit{M} - 2}$ 得到。这样单次查询的处理时间复杂度是 $O(\\log \\textit{M})$。\n\n最后我们从前到后遍历 $\\textit{dif}$ 数组，令 $\\textit{dif}[i] = \\textit{dif}[i] \\times dif[i - k]$，即得到当前 $k$ 下每个位置对于所有查询的累乘量，然后将其更新到原数组中，时间复杂度为 $O(n)$。对于较小步长的查询处理，总体的时间复杂度为 $O(n \\sqrt n + q \\log \\textit{M})$。\n\n还有一个问题是 $R$ 如何计算？查询影响到的最后一个下标是 $l + \\lfloor \\cfrac{r - l}{k}\\rfloor \\times k$，因此 $R = l + \\lfloor (\\cfrac{r - l}{k}\\rfloor + 1) \\times k$。$R$ 最大值是 $n + k$，为了方便编码，我们申请 $\\textit{dif}$ 数组大小为 $n + T$。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\n    const int mod = 1e9 + 7;\n    using ll = long long;\n    int pow(ll x, ll y) {\n        ll res = 1;\n        for (; y; y >>= 1) {\n            if (y & 1) {\n                res = res * x % mod;\n            }\n            x = x * x % mod;\n        }\n        return res;\n    }\npublic:\n    int xorAfterQueries(vector<int>& nums, vector<vector<int>>& queries) {\n        int n = nums.size();\n        int T = sqrt(n);\n        vector<vector<vector<int>>> groups(T);\n        for (auto &q : queries) {\n            int l = q[0], r = q[1], k = q[2], v = q[3];\n            if (k < T) {\n                groups[k].push_back({l, r, v});\n            } else {\n                for (int i = l; i <= r; i += k) {\n                    nums[i] = 1ll * nums[i] * v % mod;\n                }\n            }\n        }\n\n        vector<ll> dif(n + T);\n        for (int k = 1; k < T; k++) {\n            if (groups[k].empty()) {\n                continue;\n            }\n            fill(dif.begin(), dif.end(), 1);\n            for (auto &q : groups[k]) {\n                int l = q[0], r = q[1], v = q[2];\n                dif[l] = dif[l] * v % mod;\n                int R = ((r - l) / k + 1) * k + l;\n                dif[R] = dif[R] * pow(v, mod - 2) % mod;\n            }\n\n            for (int i = k; i < n; i++) {\n                dif[i] = dif[i] * dif[i - k] % mod;\n            }\n            for (int i = 0; i < n; i++) {\n                nums[i] = 1ll * nums[i] * dif[i] % mod;\n            }\n        }\n        int res = 0;\n        for (int i = 0; i < n; i++){\n            res = res ^ nums[i];\n        }\n        return res;\n    }\n};\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def xorAfterQueries(self, nums: List[int], queries: List[List[int]]) -> int:\n        mod = 10**9 + 7\n        n = len(nums)\n        T = int(n ** 0.5)\n\n        groups = [[] for _ in range(T)]\n        for l, r, k, v in queries:\n            if k < T:\n                groups[k].append((l, r, v))\n            else:\n                for i in range(l, r + 1, k):\n                    nums[i] = nums[i] * v % mod\n\n        dif = [1] * (n + T)\n        for k in range(1, T):\n            if not groups[k]:\n                continue\n            dif[:] = [1] * len(dif)\n            for l, r, v in groups[k]:\n                dif[l] = dif[l] * v % mod\n                R = ((r - l) // k + 1) * k + l\n                dif[R] = dif[R] * pow(v, mod - 2, mod) % mod\n\n            for i in range(k, n):\n                dif[i] = dif[i] * dif[i - k] % mod\n            for i in range(n):\n                nums[i] = nums[i] * dif[i] % mod\n\n        res = 0\n        for x in nums:\n            res ^= x\n        return res\n```\n\n```Rust [sol1-Rust]\nimpl Solution {\n    pub fn xor_after_queries(nums: Vec<i32>, queries: Vec<Vec<i32>>) -> i32 {\n        const MOD: i64 = 1_000_000_007;\n        let mut nums: Vec<i64> = nums.into_iter().map(|x| x as i64).collect();\n        let n = nums.len();\n        let t = (n as f64).sqrt() as usize;\n\n        let mut groups: Vec<Vec<(usize, usize, i64)>> = vec![vec![]; t];\n        for q in queries {\n            let l = q[0] as usize;\n            let r = q[1] as usize;\n            let k = q[2] as usize;\n            let v = q[3] as i64;\n            if k < t {\n                groups[k].push((l, r, v));\n            } else {\n                let mut i = l;\n                while i <= r {\n                    nums[i] = nums[i] * v % MOD;\n                    i += k;\n                }\n            }\n        }\n\n        let mut dif = vec![1; n + t];\n        for k in 1..t {\n            if groups[k].is_empty() {\n                continue;\n            }\n            dif.fill(1);\n            for &(l, r, v) in &groups[k] {\n                dif[l] = dif[l] * v % MOD;\n                let r_idx = ((r - l) / k + 1) * k + l;\n                dif[r_idx] = dif[r_idx] * Self::pow_mod(v, MOD - 2, MOD) % MOD;\n            }\n\n            for i in k..n {\n                dif[i] = dif[i] * dif[i - k] % MOD;\n            }\n            for i in 0..n {\n                nums[i] = nums[i] * dif[i] % MOD;\n            }\n        }\n\n        nums.into_iter().fold(0, |acc, x| acc ^ x as i32)\n    }\n\n    fn pow_mod(mut x: i64, mut y: i64, m: i64) -> i64 {\n        let mut res = 1;\n        while y > 0 {\n            if y & 1 == 1 {\n                res = res * x % m;\n            }\n            x = x * x % m;\n            y >>= 1;\n        }\n        res\n    }\n}\n```\n\n```Java [sol1-Java]\nclass Solution {\n    private static final int MOD = 1_000_000_007;\n\n    private int pow(long x, long y) {\n        long res = 1;\n        while (y > 0) {\n            if ((y & 1) == 1) {\n                res = res * x % MOD;\n            }\n            x = x * x % MOD;\n            y >>= 1;\n        }\n        return (int) res;\n    }\n\n    public int xorAfterQueries(int[] nums, int[][] queries) {\n        int n = nums.length;\n        int T = (int) Math.sqrt(n);\n        List<List<int[]>> groups = new ArrayList<>(T);\n        for (int i = 0; i < T; i++) {\n            groups.add(new ArrayList<>());\n        }\n\n        for (int[] q : queries) {\n            int l = q[0], r = q[1], k = q[2], v = q[3];\n            if (k < T) {\n                groups.get(k).add(new int[]{l, r, v});\n            } else {\n                for (int i = l; i <= r; i += k) {\n                    nums[i] = (int) ((long) nums[i] * v % MOD);\n                }\n            }\n        }\n\n        long[] dif = new long[n + T];\n        for (int k = 1; k < T; k++) {\n            if (groups.get(k).isEmpty()) {\n                continue;\n            }\n            Arrays.fill(dif, 1);\n            for (int[] q : groups.get(k)) {\n                int l = q[0], r = q[1], v = q[2];\n                dif[l] = dif[l] * v % MOD;\n                int R = ((r - l) / k + 1) * k + l;\n                dif[R] = dif[R] * pow(v, MOD - 2) % MOD;\n            }\n\n            for (int i = k; i < n; i++) {\n                dif[i] = dif[i] * dif[i - k] % MOD;\n            }\n            for (int i = 0; i < n; i++) {\n                nums[i] = (int) ((long) nums[i] * dif[i] % MOD);\n            }\n        }\n\n        int res = 0;\n        for (int x : nums) {\n            res ^= x;\n        }\n        return res;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    private const int MOD = 1_000_000_007;\n\n    private int Pow(long x, long y) {\n        long res = 1;\n        while (y > 0) {\n            if ((y & 1) == 1) {\n                res = res * x % MOD;\n            }\n            x = x * x % MOD;\n            y >>= 1;\n        }\n        return (int) res;\n    }\n\n    public int XorAfterQueries(int[] nums, int[][] queries) {\n        int n = nums.Length;\n        int T = (int) Math.Sqrt(n);\n\n        List<List<int[]>> groups = new List<List<int[]>>(T);\n        for (int i = 0; i < T; i++) {\n            groups.Add(new List<int[]>());\n        }\n\n        foreach (var q in queries) {\n            int l = q[0], r = q[1], k = q[2], v = q[3];\n            if (k < T) {\n                groups[k].Add(new int[] { l, r, v });\n            } else {\n                for (int i = l; i <= r; i += k) {\n                    nums[i] = (int)((long)nums[i] * v % MOD);\n                }\n            }\n        }\n\n        long[] dif = new long[n + T];\n        for (int k = 1; k < T; k++) {\n            if (groups[k].Count == 0) {\n                continue;\n            }\n            Array.Fill(dif, 1L);\n            foreach (var q in groups[k]) {\n                int l = q[0], r = q[1], v = q[2];\n                dif[l] = dif[l] * v % MOD;\n                int R = ((r - l) / k + 1) * k + l;\n                dif[R] = dif[R] * Pow(v, MOD - 2) % MOD;\n            }\n\n            for (int i = k; i < n; i++) {\n                dif[i] = dif[i] * dif[i - k] % MOD;\n            }\n            for (int i = 0; i < n; i++) {\n                nums[i] = (int)((long)nums[i] * dif[i] % MOD);\n            }\n        }\n\n        int res = 0;\n        foreach (int x in nums) {\n            res ^= x;\n        }\n        return res;\n    }\n}\n```\n\n```Go [sol1-Go]\nconst mod = 1_000_000_007\n\nfunc pow(x, y int64) int {\n    res := int64(1)\n    for y > 0 {\n        if y&1 == 1 {\n            res = res * x % mod\n        }\n        x = x * x % mod\n        y >>= 1\n    }\n    return int(res)\n}\n\nfunc xorAfterQueries(nums []int, queries [][]int) int {\n    n := len(nums)\n    T := int(math.Sqrt(float64(n)))\n\n    groups := make([][][]int, T)\n    for i := 0; i < T; i++ {\n        groups[i] = make([][]int, 0)\n    }\n\n    for _, q := range queries {\n        l, r, k, v := q[0], q[1], q[2], q[3]\n        if k < T {\n            groups[k] = append(groups[k], []int{l, r, v})\n        } else {\n            for i := l; i <= r; i += k {\n                nums[i] = int((int64(nums[i]) * int64(v)) % mod)\n            }\n        }\n    }\n\n    dif := make([]int64, n+T)\n    for k := 1; k < T; k++ {\n        if len(groups[k]) == 0 {\n            continue\n        }\n        for i := range dif {\n            dif[i] = 1\n        }\n        for _, q := range groups[k] {\n            l, r, v := q[0], q[1], q[2]\n            dif[l] = dif[l] * int64(v) % mod\n            R := ((r-l)/k + 1)*k + l\n            dif[R] = dif[R] * int64(pow(int64(v), mod-2)) % mod\n        }\n\n        for i := k; i < n; i++ {\n            dif[i] = dif[i] * dif[i-k] % mod\n        }\n        for i := 0; i < n; i++ {\n            nums[i] = int((int64(nums[i]) * dif[i]) % mod)\n        }\n    }\n\n    res := 0\n    for _, x := range nums {\n        res ^= x\n    }\n    return res\n}\n```\n\n```C [sol1-C]\n#define MOD 1000000007\n\nint pow_mod(long long x, long long y) {\n    long long res = 1;\n    while (y > 0) {\n        if (y & 1) {\n            res = res * x % MOD;\n        }\n        x = x * x % MOD;\n        y >>= 1;\n    }\n    return (int) res;\n}\n\nint xorAfterQueries(int* nums, int numsSize, int** queries, int queriesSize, int* queriesColSize) {\n    int n = numsSize;\n    int T = (int) sqrt(n);\n    int*** groups = (int***) malloc(T * sizeof(int**));\n    int* groupCounts = (int*) calloc(T, sizeof(int));\n    int* groupCapacities = (int*) calloc(T, sizeof(int));\n\n    for (int i = 0; i < T; i++) {\n        groupCapacities[i] = 10;\n        groups[i] = (int**) malloc(groupCapacities[i] * sizeof(int*));\n    }\n\n    for (int idx = 0; idx < queriesSize; idx++) {\n        int l = queries[idx][0], r = queries[idx][1];\n        int k = queries[idx][2], v = queries[idx][3];\n\n        if (k < T) {\n            if (groupCounts[k] >= groupCapacities[k]) {\n                groupCapacities[k] *= 2;\n                groups[k] = (int**) realloc(groups[k], groupCapacities[k] * sizeof(int*));\n            }\n            int* q = (int*) malloc(3 * sizeof(int));\n            q[0] = l; q[1] = r; q[2] = v;\n            groups[k][groupCounts[k]++] = q;\n        } else {\n            for (int i = l; i <= r; i += k) {\n                nums[i] = (int)((long long)nums[i] * v % MOD);\n            }\n        }\n    }\n\n    long long* dif = (long long*) calloc(n + T, sizeof(long long));\n    for (int k = 1; k < T; k++) {\n        if (groupCounts[k] == 0) {\n            continue;\n        }\n        for (int i = 0; i < n + T; i++) {\n            dif[i] = 1;\n        }\n        for (int g = 0; g < groupCounts[k]; g++) {\n            int l = groups[k][g][0];\n            int r = groups[k][g][1];\n            int v = groups[k][g][2];\n\n            dif[l] = dif[l] * v % MOD;\n            int R = ((r - l) / k + 1) * k + l;\n            dif[R] = dif[R] * pow_mod(v, MOD - 2) % MOD;\n        }\n\n        for (int i = k; i < n; i++) {\n            dif[i] = dif[i] * dif[i - k] % MOD;\n        }\n        for (int i = 0; i < n; i++) {\n            nums[i] = (int)((long long)nums[i] * dif[i] % MOD);\n        }\n    }\n\n    int res = 0;\n    for (int i = 0; i < n; i++) {\n        res ^= nums[i];\n    }\n\n    for (int i = 0; i < T; i++) {\n        for (int j = 0; j < groupCounts[i]; j++) {\n            free(groups[i][j]);\n        }\n        free(groups[i]);\n    }\n    free(groups);\n    free(groupCounts);\n    free(groupCapacities);\n    free(dif);\n\n    return res;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nconst MOD = 1_000_000_007n;\n\nconst pow = (x, y) => {\n    let res = 1n;\n    for (; y > 0n; y >>= 1n) {\n        if (y & 1n) {\n            res = res * x % MOD;\n        }\n        x = x * x % MOD;\n    }\n    return res;\n}\n\nvar xorAfterQueries = function (nums, queries) {\n    const n = nums.length;\n    const T = Math.floor(Math.sqrt(n));\n    const groups = Array.from({ length: T }, () => []);\n\n    for (const [l, r, k, v] of queries) {\n        if (k < T) {\n            groups[k].push([l, r, BigInt(v)]);\n        } else {\n            for (let i = l; i <= r; i += k) {\n                nums[i] = Number(BigInt(nums[i]) * BigInt(v) % MOD);\n            }\n        }\n    }\n\n    const dif = new BigInt64Array(n + T);\n    for (let k = 1; k < T; k++) {\n        if (groups[k].length === 0) {\n            continue;\n        }\n        dif.fill(1n);\n        for (let [l, r, v] of groups[k]) {\n            dif[l] = dif[l] * BigInt(v) % MOD;\n            const R = Math.floor((r - l) / k + 1) * k + l;\n            dif[R] = dif[R] * pow(BigInt(v), MOD - 2n) % MOD;\n        }\n\n        for (let i = k; i < n; i++) {\n            dif[i] = dif[i] * dif[i - k] % MOD;\n        }\n        for (let i = 0; i < n; i++) {\n            nums[i] = Number(BigInt(nums[i]) * dif[i] % MOD);\n        }\n    }\n\n    let res = 0;\n    for (let i = 0; i < n; i++) {\n        res = res ^ nums[i];\n    }\n    return res;\n};\n```\n\n```TypeScript [sol1-TypeScript]\nconst MOD = 1_000_000_007n;\n\nconst pow = (x: bigint, y: bigint) => {\n    let res = 1n;\n    for (; y > 0n; y >>= 1n) {\n        if (y & 1n) {\n            res = res * x % MOD;\n        }\n        x = x * x % MOD;\n    }\n    return res;\n}\n\nfunction xorAfterQueries(nums: number[], queries: number[][]): number {\n    const n = nums.length;\n    const T = Math.floor(Math.sqrt(n));\n    const groups = Array.from<unknown, Array<[number, number, bigint]>>({ length: T }, () => []);\n\n    for (const [l, r, k, v] of queries) {\n        if (k < T) {\n            groups[k].push([l, r, BigInt(v)]);\n        } else {\n            for (let i = l; i <= r; i += k) {\n                nums[i] = Number(BigInt(nums[i]) * BigInt(v) % MOD);\n            }\n        }\n    }\n\n    const dif = new BigInt64Array(n + T);\n    for (let k = 1; k < T; k++) {\n        if (groups[k].length === 0) {\n            continue;\n        }\n        dif.fill(1n);\n        for (let [l, r, v] of groups[k]) {\n            dif[l] = dif[l] * BigInt(v) % MOD;\n            const R = Math.floor((r - l) / k + 1) * k + l;\n            dif[R] = dif[R] * pow(BigInt(v), MOD - 2n) % MOD;\n        }\n\n        for (let i = k; i < n; i++) {\n            dif[i] = dif[i] * dif[i - k] % MOD;\n        }\n        for (let i = 0; i < n; i++) {\n            nums[i] = Number(BigInt(nums[i]) * dif[i] % MOD);\n        }\n    }\n\n    let res = 0;\n    for (let i = 0; i < n; i++) {\n        res = res ^ nums[i];\n    }\n    return res;\n};\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O((n + q) \\sqrt n + q\\log \\textit{M})$。\n\n- 空间复杂度：$O(\\sqrt n + q)$。",
+            "slateValue": "",
+            "slug": "qu-jian-cheng-fa-cha-xun-hou-de-yi-huo-i-wifp",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "8O5Dd0",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 5,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Divide and Conquer",
+                    "nameTranslated": "分治",
+                    "slug": "divide-and-conquer",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Prefix Sum",
+                    "nameTranslated": "前缀和",
+                    "slug": "prefix-sum",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Rust",
+                    "nameTranslated": "",
+                    "slug": "rust",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "TypeScript",
+                    "nameTranslated": "",
+                    "slug": "typescript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2026-03-31T02:52:58.710606+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：根号分治 + 差分 思路与算法 最朴素的做法是对每个查询，直接模拟，逐个去乘。单次查询时间复杂度就是 [latex]，[latex] 次查询总计 [latex]，规模约 [latex]，必然超时。问题出在当 [latex] 很小时，一次查询会触及大量元素，代价很高。 注意到步长 [latex] 对复杂度的影响是",
+            "topic": {
+                "id": 3941260,
+                "subscribed": false,
+                "commentCount": 7,
+                "viewCount": 18,
+                "post": {
+                    "id": 7184391,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 24,
+            "isEditorsPick": false,
+            "hitCount": 4721,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "xor-after-range-multiplication-queries-ii",
+                "questionFrontendId": "3655"
+            },
+            "next": {
+                "slug": "gen-hao-suan-fa-pythonjavacgo-by-endless-moxx",
+                "title": "根号分解算法（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}

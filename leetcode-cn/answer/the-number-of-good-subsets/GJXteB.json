@@ -1,0 +1,146 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "GJXteB",
+            "title": "好子集的数目",
+            "content": "#### 方法一：状态压缩动态规划\n\n**思路与算法**\n\n注意到题目规定数组 $\\textit{nums}$ 中的元素不超过 $30$，因此我们可以将 $[1, 30]$ 中的整数分成如下三类：\n\n- $1$：对于任意一个好子集而言，我们添加任意数目的 $1$，得到的新子集仍然是好子集；\n\n- $2,3,5,6,7,10,11,13,14,15,17,19,21,22,23,26,29,30$：这些数均不包含平方因子，因此每个数在好子集中至多出现一次；\n\n- $4,8,9,12,16,18,20,24,25,27,28$：这些数包含平方因子，因此一定不能在好子集中出现。\n\n我们可以通过硬编码的方式把 $[1, 30]$ 中的整数按照上述分类，也可以先预处理出所有 $[1, 30]$ 中质数 $2,3,5,7,11,13,17,19,23,29$，再通过试除的方式动态分类。\n\n分类完成后，我们就可以考虑动态规划了。由于每个质因数只能出现一次，并且 $[1, 30]$ 中一共有 $10$ 个质数，因此我们可以用一个长度为 $10$ 的二进制数 $\\textit{mask}$ 表示这些质因数的使用情况，其中 $\\textit{mask}$ 的第 $i$ 位为 $1$ 当且仅当第 $i$ 个质数已经被使用过。\n\n这样一来，我们定义 $f[i][\\textit{mask}]$ 表示当我们只选择 $[2, i]$ 范围内的数，并且选择的数的质因数使用情况为 $\\textit{mask}$ 时的方案数。如果 $i$ 本身包含平方因子，那么我们无法选择 $i$，相当于在 $[2, i-1]$ 范围内选择，状态转移方程为：\n\n$$\nf[i][\\textit{mask}] = f[i-1][\\textit{mask}]\n$$\n\n如果 $i$ 本身不包含平方因子，记其包含的质因子的二进制表示为 $\\textit{subset}$（同样可以通过试除的方法得到），那么状态转移方程为：\n\n$$\nf[i][\\textit{mask}] = f[i - 1][\\textit{mask}] + f[i-1][\\textit{mask} \\backslash \\textit{subset}] \\times \\textit{freq}[i]\n$$\n\n其中：\n\n- $\\textit{freq}[i]$ 表示数组 $\\textit{nums}$ 中 $i$ 出现的次数；\n\n- $\\textit{mask} \\backslash \\textit{subset}$ 表示从二进制表示 $\\textit{mask}$ 中去除所有在 $\\textit{subset}$ 中出现的 $1$，可以使用按位异或运算实现。这里需要保证 $\\textit{subset}$ 是 $\\textit{mask}$ 的子集，可以使用按位与运算来判断。\n\n动态规划的边界条件为：\n\n$$\nf[1][0] = 2^{\\textit{freq}[1]}\n$$\n\n即每一个在数组 $\\textit{nums}$ 中出现的 $1$ 都可以选或不选。最终的答案即为所有 $f[30][..]$ 中除了 $f[30][0]$ 以外的项的总和。\n\n**细节**\n\n注意到 $f[i][\\textit{mask}]$ 只会从 $f[i-1][..]$ 转移而来，并且 $f[i-1][..]$ 中的下标总是小于 $\\textit{mask}$，因此我们可以使用类似 $0-1$ 背包的空间优化方法，在遍历 $\\textit{mask}$ 时从 $2^{10}-1$ 到 $1$ 逆序遍历，这样就只需要使用一个长度为 $2^{10}$ 的一维数组做状态转移了。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\nprivate:\n    static constexpr array<int, 10> primes = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29};\n    static constexpr int num_max = 30;\n    static constexpr int mod = 1000000007;\n\npublic:\n    int numberOfGoodSubsets(vector<int>& nums) {\n        vector<int> freq(num_max + 1);\n        for (int num: nums) {\n            ++freq[num];\n        }\n\n        vector<int> f(1 << primes.size());\n        f[0] = 1;\n        for (int _ = 0; _ < freq[1]; ++_) {\n            f[0] = f[0] * 2 % mod;\n        }\n        \n        for (int i = 2; i <= num_max; ++i) {\n            if (!freq[i]) {\n                continue;\n            }\n            \n            // 检查 i 的每个质因数是否均不超过 1 个\n            int subset = 0, x = i;\n            bool check = true;\n            for (int j = 0; j < primes.size(); ++j) {\n                int prime = primes[j];\n                if (x % (prime * prime) == 0) {\n                    check = false;\n                    break;\n                }\n                if (x % prime == 0) {\n                    subset |= (1 << j);\n                }\n            }\n            if (!check) {\n                continue;\n            }\n\n            // 动态规划\n            for (int mask = (1 << primes.size()) - 1; mask > 0; --mask) {\n                if ((mask & subset) == subset) {\n                    f[mask] = (f[mask] + static_cast<long long>(f[mask ^ subset]) * freq[i]) % mod;\n                }\n            }\n        }\n\n        int ans = 0;\n        for (int mask = 1, mask_max = (1 << primes.size()); mask < mask_max; ++mask) {\n            ans = (ans + f[mask]) % mod;\n        }\n        \n        return ans;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    static final int[] PRIMES = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29};\n    static final int NUM_MAX = 30;\n    static final int MOD = 1000000007;\n\n    public int numberOfGoodSubsets(int[] nums) {\n        int[] freq = new int[NUM_MAX + 1];\n        for (int num : nums) {\n            ++freq[num];\n        }\n\n        int[] f = new int[1 << PRIMES.length];\n        f[0] = 1;\n        for (int i = 0; i < freq[1]; ++i) {\n            f[0] = f[0] * 2 % MOD;\n        }\n        \n        for (int i = 2; i <= NUM_MAX; ++i) {\n            if (freq[i] == 0) {\n                continue;\n            }\n            \n            // 检查 i 的每个质因数是否均不超过 1 个\n            int subset = 0, x = i;\n            boolean check = true;\n            for (int j = 0; j < PRIMES.length; ++j) {\n                int prime = PRIMES[j];\n                if (x % (prime * prime) == 0) {\n                    check = false;\n                    break;\n                }\n                if (x % prime == 0) {\n                    subset |= (1 << j);\n                }\n            }\n            if (!check) {\n                continue;\n            }\n\n            // 动态规划\n            for (int mask = (1 << PRIMES.length) - 1; mask > 0; --mask) {\n                if ((mask & subset) == subset) {\n                    f[mask] = (int) ((f[mask] + ((long) f[mask ^ subset]) * freq[i]) % MOD);\n                }\n            }\n        }\n\n        int ans = 0;\n        for (int mask = 1, maskMax = (1 << PRIMES.length); mask < maskMax; ++mask) {\n            ans = (ans + f[mask]) % MOD;\n        }\n        \n        return ans;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    static int[] PRIMES = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29};\n    static int NUM_MAX = 30;\n    static int MOD = 1000000007;\n\n    public int NumberOfGoodSubsets(int[] nums) {\n        int[] freq = new int[NUM_MAX + 1];\n        foreach (int num in nums) {\n            ++freq[num];\n        }\n\n        int[] f = new int[1 << PRIMES.Length];\n        f[0] = 1;\n        for (int i = 0; i < freq[1]; ++i) {\n            f[0] = f[0] * 2 % MOD;\n        }\n        \n        for (int i = 2; i <= NUM_MAX; ++i) {\n            if (freq[i] == 0) {\n                continue;\n            }\n            \n            // 检查 i 的每个质因数是否均不超过 1 个\n            int subset = 0, x = i;\n            bool check = true;\n            for (int j = 0; j < PRIMES.Length; ++j) {\n                int prime = PRIMES[j];\n                if (x % (prime * prime) == 0) {\n                    check = false;\n                    break;\n                }\n                if (x % prime == 0) {\n                    subset |= (1 << j);\n                }\n            }\n            if (!check) {\n                continue;\n            }\n\n            // 动态规划\n            for (int mask = (1 << PRIMES.Length) - 1; mask > 0; --mask) {\n                if ((mask & subset) == subset) {\n                    f[mask] = (int) ((f[mask] + ((long) f[mask ^ subset]) * freq[i]) % MOD);\n                }\n            }\n        }\n\n        int ans = 0;\n        for (int mask = 1, maskMax = (1 << PRIMES.Length); mask < maskMax; ++mask) {\n            ans = (ans + f[mask]) % MOD;\n        }\n        \n        return ans;\n    }\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def numberOfGoodSubsets(self, nums: List[int]) -> int:\n        primes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29]\n        mod = 10**9 + 7\n\n        freq = Counter(nums)\n        f = [0] * (1 << len(primes))\n        f[0] = pow(2, freq[1], mod)\n\n        for i, occ in freq.items():\n            if i == 1:\n                continue\n            \n            # 检查 i 的每个质因数是否均不超过 1 个\n            subset, x = 0, i\n            check = True\n            for j, prime in enumerate(primes):\n                if x % (prime * prime) == 0:\n                    check = False\n                    break\n                if x % prime == 0:\n                    subset |= (1 << j)\n            \n            if not check:\n                continue\n\n            # 动态规划\n            for mask in range((1 << len(primes)) - 1, 0, -1):\n                if (mask & subset) == subset:\n                    f[mask] = (f[mask] + f[mask ^ subset] * occ) % mod\n\n        ans = sum(f[1:]) % mod\n        return ans\n```\n\n```C [sol1-C]\nconst int PRIMES[] = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29}; \nconst int NUM_MAX = 30;\nconst int MOD = 1000000007;\n\nint numberOfGoodSubsets(int* nums, int numsSize){\n    int primesSize = sizeof(PRIMES) / sizeof(int);\n    int * freq = (int *)malloc(sizeof(int) * (NUM_MAX + 1));\n    memset(freq, 0, sizeof(int) * (NUM_MAX + 1));\n    for (int i = 0; i < numsSize; i++) {\n        ++freq[nums[i]];\n    }\n    int * f = (int *)malloc(sizeof(int) * (1 << primesSize));\n    memset(f, 0, sizeof(int) * (1 << primesSize));\n    f[0] = 1;\n    for (int i = 0; i < freq[1]; ++i) {\n        f[0] = f[0] * 2 % MOD;\n    }\n    \n    for (int i = 2; i <= NUM_MAX; ++i) {\n        if (!freq[i]) {\n            continue;\n        }\n        \n        // 检查 i 的每个质因数是否均不超过 1 个\n        int subset = 0, x = i;\n        bool check = true;\n        for (int j = 0; j < primesSize; ++j) {\n            int prime = PRIMES[j];\n            if (x % (prime * prime) == 0) {\n                check = false;\n                break;\n            }\n            if (x % prime == 0) {\n                subset |= (1 << j);\n            }\n        }\n        if (!check) {\n            continue;\n        }\n\n        // 动态规划\n        for (int mask = (1 << primesSize) - 1; mask > 0; --mask) {\n            if ((mask & subset) == subset) {\n                f[mask] = (f[mask] + (long)(f[mask ^ subset]) * freq[i]) % MOD;\n            }\n        }\n    }\n\n    int ans = 0;\n    for (int mask = 1, mask_max = (1 << primesSize); mask < mask_max; ++mask) {\n        ans = (ans + f[mask]) % MOD;\n    }\n    free(freq);\n    free(f);\n    return ans;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nconst PRIMES = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29];\nconst NUM_MAX = 30;\nconst MOD = 1000000007;\nvar numberOfGoodSubsets = function(nums) {\n    const freq = new Array(NUM_MAX + 1).fill(0);\n    for (const num of nums) {\n        ++freq[num];\n    }\n\n    const f = new Array(1 << PRIMES.length).fill(0);\n    f[0] = 1;\n    for (let i = 0; i < freq[1]; ++i) {\n        f[0] = f[0] * 2 % MOD;\n    }\n    \n    for (let i = 2; i <= NUM_MAX; ++i) {\n        if (freq[i] === 0) {\n            continue;\n        }\n        \n        // 检查 i 的每个质因数是否均不超过 1 个\n        let subset = 0, x = i;\n        let check = true;\n        for (let j = 0; j < PRIMES.length; ++j) {\n            const prime = PRIMES[j];\n            if (x % (prime * prime) == 0) {\n                check = false;\n                break;\n            }\n            if (x % prime === 0) {\n                subset |= (1 << j);\n            }\n        }\n        if (!check) {\n            continue;\n        }\n\n        // 动态规划\n        for (let mask = (1 << PRIMES.length) - 1; mask > 0; --mask) {\n            if ((mask & subset) === subset) {\n                f[mask] = ((f[mask] + (f[mask ^ subset]) * freq[i]) % MOD);\n            }\n        }\n    }\n\n    let ans = 0;\n    for (let mask = 1, maskMax = (1 << PRIMES.length); mask < maskMax; ++mask) {\n        ans = (ans + f[mask]) % MOD;\n    }\n    \n    return ans;\n};\n```\n\n```go [sol1-Golang]\nvar primes = []int{2, 3, 5, 7, 11, 13, 17, 19, 23, 29}\n\nfunc numberOfGoodSubsets(nums []int) (ans int) {\n    const mod int = 1e9 + 7\n    freq := [31]int{}\n    for _, num := range nums {\n        freq[num]++\n    }\n\n    f := make([]int, 1<<len(primes))\n    f[0] = 1\n    for i := 0; i < freq[1]; i++ {\n        f[0] = f[0] * 2 % mod\n    }\nnext:\n    for i := 2; i < 31; i++ {\n        if freq[i] == 0 {\n            continue\n        }\n\n        // 检查 i 的每个质因数是否均不超过 1 个\n        subset := 0\n        for j, prime := range primes {\n            if i%(prime*prime) == 0 {\n                continue next\n            }\n            if i%prime == 0 {\n                subset |= 1 << j\n            }\n        }\n\n        // 动态规划\n        for mask := 1 << len(primes); mask > 0; mask-- {\n            if mask&subset == subset {\n                f[mask] = (f[mask] + f[mask^subset]*freq[i]) % mod\n            }\n        }\n    }\n\n    for _, v := range f[1:] {\n        ans = (ans + v) % mod\n    }\n    return\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n + C \\times 2^{\\pi(C)})$。其中 $n$ 是数组 $\\textit{nums}$ 的长度，$C$ 是 $\\textit{nums}$ 元素的最大值，在本题中 $C = 30$，$\\pi(x)$ 表示 $\\leq x$ 的质数的个数。\n\n    - 我们一共需要考虑 $O(C)$ 个数，每个数需要 $O(2^{\\pi(C)})$ 的时间计算动态规划；\n\n    - 除此之外，在初始时我们还需要遍历一遍所有的数，时间复杂度为 $O(n)$。\n\n- 空间复杂度：$O(2^{\\pi(C)})$，即为动态规划需要使用的空间。",
+            "slateValue": "",
+            "slug": "hao-zi-ji-de-shu-mu-by-leetcode-solution-ky65",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "GJXteB",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 53,
+                    "reactionType": "UPVOTE"
+                },
+                {
+                    "count": 10,
+                    "reactionType": "CONFUSED"
+                },
+                {
+                    "count": 1,
+                    "reactionType": "AWESOME"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Bit Manipulation",
+                    "nameTranslated": "位运算",
+                    "slug": "bit-manipulation",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Dynamic Programming",
+                    "nameTranslated": "动态规划",
+                    "slug": "dynamic-programming",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Bitmask",
+                    "nameTranslated": "位掩码",
+                    "slug": "bitmask",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2022-02-21T04:10:33.211881+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：状态压缩动态规划 思路与算法 注意到题目规定数组 $\\textit{nums}$ 中的元素不超过 $30$，因此我们可以将 $[1, 30]$ 中的整数分成如下三类： $1$：对于任意一个好子集而言，我们添加任意数目的 $1$，得到的新子集仍然是好子集； $2,3,5,6,7,10,11,13,14,15,17",
+            "topic": {
+                "id": 1280985,
+                "subscribed": false,
+                "commentCount": 94,
+                "viewCount": 18809,
+                "post": {
+                    "id": 2673252,
+                    "status": "Open",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 93,
+            "isEditorsPick": false,
+            "hitCount": 35169,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "the-number-of-good-subsets",
+                "questionFrontendId": "1994"
+            },
+            "next": {
+                "slug": "gong-shui-san-xie-zhuang-ya-dp-yun-yong-gz4w5",
+                "title": "【宫水三叶】状压 DP 运用题"
+            },
+            "prev": null
+        }
+    }
+}

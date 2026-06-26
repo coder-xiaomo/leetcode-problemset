@@ -1,0 +1,120 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "gAlMj5",
+            "title": "黑白翻转棋",
+            "content": "#### 方法一：广度优先搜索\n\n**思路与算法**\n\n题目给出一个大小为 $n \\times m$ 的黑白棋盘 $\\textit{chessboard}$，其中黑棋用 $\\text{`X'}$ 表示，白棋用 $\\text{`O'}$ 表示，空余位置用 $\\text{`.'}$ 表示。现在我们可以在棋盘中的一个空余位置下一个黑棋，现在我们称「翻转操作」为：若存在在放置黑棋的位置的行、列或者对角线有另一颗黑棋能完全包围（中间不存在空白位置）白棋，那么我们可以翻转这些白棋，使其变为黑棋，并且这些翻转后得到的新黑棋同样可以进行「翻转操作」。现在我们需要求在放置一次黑棋的情况下最多能翻转多少颗白棋。\n\n我们可以用「广度优先搜索」来解决这个问题，我们对每一个空余位置尝试黑棋放置，用一个队列来存储正在进行「翻转操作」的黑棋位置，若队列非空，我们从队列中取出队首元素，进行行、列和对角线 $8$ 个方向判断是否有可以翻转的白棋——判断沿着方向是否是连续的一段白棋并以另一颗黑棋结尾。若有可以翻转的白棋，则将这些白旗进行翻转，并加入队列中。直至队列为空表示一次放置黑棋结束。\n\n初始可以放置黑棋的全部位置中可以翻转的白棋个数最大值即为最后的答案。\n\n**代码**\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    const int dirs[8][2] = {\n        {1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}\n    };\n\n    bool judge(const vector<string>& chessboard, int x, int y, int dx, int dy) {\n        x += dx;\n        y += dy;\n        while (0 <= x && x < chessboard.size() && 0 <= y && y < chessboard[0].size()) {\n            if (chessboard[x][y] == 'X') {\n                return true;\n            } else if (chessboard[x][y] == '.') {\n                return false;\n            }\n            x += dx;\n            y += dy;\n        }\n        return false;\n    }\n\n    int bfs(vector<string> chessboard, int px, int py) {\n        int cnt = 0;\n        queue<pair<int, int>> q;\n        q.emplace(px, py);\n        chessboard[px][py] = 'X';\n        while (!q.empty()) {\n            pair<int, int> t = q.front();\n            q.pop();\n            for (int i = 0; i < 8; ++i) {\n                if (judge(chessboard, t.first, t.second, dirs[i][0], dirs[i][1])) {\n                    int x = t.first + dirs[i][0], y = t.second + dirs[i][1];\n                    while (chessboard[x][y] != 'X') {\n                        q.emplace(x, y);\n                        chessboard[x][y] = 'X';\n                        x += dirs[i][0];\n                        y += dirs[i][1];\n                        ++cnt;\n                    }\n                }\n            }\n        }\n        return cnt;\n    }\n\n    int flipChess(vector<string>& chessboard) {\n        int res = 0;\n        for (int i = 0; i < chessboard.size(); ++i) {\n            for (int j = 0; j < chessboard[0].size(); ++j) {\n                if (chessboard[i][j] == '.') {\n                    res = max(res, bfs(chessboard, i, j));\n                }\n            }\n        }\n        return res;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    static int[][] dirs = {\n        {1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}\n    };\n\n    public int flipChess(String[] chessboard) {\n        int res = 0;\n        for (int i = 0; i < chessboard.length; ++i) {\n            for (int j = 0; j < chessboard[0].length(); ++j) {\n                if (chessboard[i].charAt(j) == '.') {\n                    res = Math.max(res, bfs(chessboard, i, j));\n                }\n            }\n        }\n        return res;\n    }\n\n    public int bfs(String[] chessboard, int px, int py) {\n        char[][] board = new char[chessboard.length][chessboard[0].length()];\n        for (int i = 0; i < chessboard.length; ++i) {\n            for (int j = 0; j < chessboard[0].length(); ++j) {\n                board[i][j] = chessboard[i].charAt(j);\n            }\n        }\n        int cnt = 0;\n        Queue<int[]> queue = new ArrayDeque<int[]>();\n        queue.offer(new int[]{px, py});\n        board[px][py] = 'X';\n        while (!queue.isEmpty()) {\n            int[] t = queue.poll();\n            for (int i = 0; i < 8; ++i) {\n                if (judge(board, t[0], t[1], dirs[i][0], dirs[i][1])) {\n                    int x = t[0] + dirs[i][0], y = t[1] + dirs[i][1];\n                    while (board[x][y] != 'X') {\n                        queue.offer(new int[]{x, y});\n                        board[x][y] = 'X';\n                        x += dirs[i][0];\n                        y += dirs[i][1];\n                        ++cnt;\n                    }\n                }\n            }\n        }\n        return cnt;\n    }\n\n    public boolean judge(char[][] board, int x, int y, int dx, int dy) {\n        x += dx;\n        y += dy;\n        while (0 <= x && x < board.length && 0 <= y && y < board[0].length) {\n            if (board[x][y] == 'X') {\n                return true;\n            } else if (board[x][y] == '.') {\n                return false;\n            }\n            x += dx;\n            y += dy;\n        }\n        return false;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    static int[][] dirs = {\n        new int[]{1, 0}, new int[]{-1, 0}, new int[]{0, 1}, new int[]{0, -1}, new int[]{1, 1}, new int[]{1, -1}, new int[]{-1, 1}, new int[]{-1, -1}\n    };\n\n    public int FlipChess(string[] chessboard) {\n        int res = 0;\n        for (int i = 0; i < chessboard.Length; ++i) {\n            for (int j = 0; j < chessboard[0].Length; ++j) {\n                if (chessboard[i][j] == '.') {\n                    res = Math.Max(res, Bfs(chessboard, i, j));\n                }\n            }\n        }\n        return res;\n    }\n\n    public int Bfs(string[] chessboard, int px, int py) {\n        char[][] board = new char[chessboard.Length][];\n        for (int i = 0; i < chessboard.Length; ++i) {\n            board[i] = new char[chessboard[0].Length];\n            for (int j = 0; j < chessboard[0].Length; ++j) {\n                board[i][j] = chessboard[i][j];\n            }\n        }\n        int cnt = 0;\n        Queue<Tuple<int, int>> queue = new Queue<Tuple<int, int>>();\n        queue.Enqueue(new Tuple<int, int>(px, py));\n        board[px][py] = 'X';\n        while (queue.Count > 0) {\n            Tuple<int, int> t = queue.Dequeue();\n            for (int i = 0; i < 8; ++i) {\n                if (Judge(board, t.Item1, t.Item2, dirs[i][0], dirs[i][1])) {\n                    int x = t.Item1 + dirs[i][0], y = t.Item2 + dirs[i][1];\n                    while (board[x][y] != 'X') {\n                        queue.Enqueue(new Tuple<int, int>(x, y));\n                        board[x][y] = 'X';\n                        x += dirs[i][0];\n                        y += dirs[i][1];\n                        ++cnt;\n                    }\n                }\n            }\n        }\n        return cnt;\n    }\n\n    public bool Judge(char[][] board, int x, int y, int dx, int dy) {\n        x += dx;\n        y += dy;\n        while (0 <= x && x < board.Length && 0 <= y && y < board[0].Length) {\n            if (board[x][y] == 'X') {\n                return true;\n            } else if (board[x][y] == '.') {\n                return false;\n            }\n            x += dx;\n            y += dy;\n        }\n        return false;\n    }\n}\n```\n\n```C [sol1-C]\nconst int dirs[8][2] = {\n    {1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}\n};\n\nbool judge(const char **chessboard, int chessboardSize, int chessboardColSize, int x, int y, int dx, int dy) {\n    x += dx;\n    y += dy;\n    while (0 <= x && x < chessboardSize && 0 <= y && y < chessboardColSize) {\n        if (chessboard[x][y] == 'X') {\n            return true;\n        } else if (chessboard[x][y] == '.') {\n            return false;\n        }\n        x += dx;\n        y += dy;\n    }\n    return false;\n}\n\nint bfs(char **chessboard, int chessboardSize, int chessboardColSize, int px, int py) {\n    int cnt = 0;\n    int tot = chessboardSize * chessboardColSize;\n    int queue[tot][2];\n    int head = 0, tail = 0;\n    queue[tail][0] = px;\n    queue[tail][1] = py;\n    tail++;\n    chessboard[px][py] = 'X';\n    while (head != tail) {\n        int x = queue[head][0], y = queue[head][1];\n        head++;\n        printf(\"x = %d, y = %d\\n\", x, y);\n        for (int i = 0; i < 8; ++i) {\n            if (judge(chessboard, chessboardSize, chessboardColSize, x, y, dirs[i][0], dirs[i][1])) {\n                int nx = x + dirs[i][0], ny = y + dirs[i][1];\n                while (chessboard[nx][ny] != 'X') {\n                    queue[tail][0] = nx;\n                    queue[tail][1] = ny;\n                    tail++;\n                    chessboard[nx][ny] = 'X';\n                    nx += dirs[i][0];\n                    ny += dirs[i][1];\n                    ++cnt;\n                }\n            }\n        }\n    }\n    return cnt;\n}\n\n#define MAX(a, b) ((a) > (b) ? (a) : (b))\n\nint flipChess(char** chessboard, int chessboardSize){\n    int res = 0;\n    int chessboardColSize = strlen(chessboard[0]);\n    char* board[chessboardSize];\n    for (int k = 0; k < chessboardSize; k++) {\n        board[k] = (char *)calloc(chessboardColSize + 1, sizeof(char));\n    }\n    for (int i = 0; i < chessboardSize; ++i) {\n        for (int j = 0; j < chessboardColSize; ++j) {\n            if (chessboard[i][j] == '.') {\n                for (int k = 0; k < chessboardSize; k++) {\n                    strcpy(board[k], chessboard[k]);\n                }\n                int curr = bfs(board, chessboardSize, chessboardColSize, i, j);\n                res = MAX(res, curr);\n            }\n        }\n    }\n    for (int k = 0; k < chessboardSize; k++) {\n        free(board[k]);\n    }\n    return res;\n}\n```\n\n```Python [sol1-Python3]\nclass Solution:\n    def flipChess(self, chessboard: List[str]) -> int:\n        def judge(chessboard: List[List[str]], x: int, y: int, dx: int, dy: int) -> bool:\n            x += dx\n            y += dy\n            while 0 <= x < len(chessboard) and 0 <= y < len(chessboard[0]):\n                if chessboard[x][y] == \"X\":\n                    return True\n                elif chessboard[x][y] == \".\":\n                    return False\n                x += dx\n                y += dy\n            return False\n        \n        def bfs(chessboard: List[str], px: int, py: int) -> int:\n            chessboard = [list(row) for row in chessboard]\n            cnt = 0\n            q = deque([(px, py)])\n            chessboard[px][py] = \"X\"\n\n            while q:\n                tx, ty = q.popleft()\n                for dx in [-1, 0, 1]:\n                    for dy in [-1, 0, 1]:\n                        if dx == dy == 0:\n                            continue\n                        if judge(chessboard, tx, ty, dx, dy):\n                            x, y = tx + dx, ty + dy\n                            while chessboard[x][y] != \"X\":\n                                q.append((x, y))\n                                chessboard[x][y] = \"X\"\n                                x += dx\n                                y += dy\n                                cnt += 1\n            return cnt\n\n        res = 0\n        for i in range(len(chessboard)):\n            for j in range(len(chessboard[0])):\n                if chessboard[i][j] == \".\":\n                    res = max(res, bfs(chessboard, i, j))\n        return res\n```\n\n```JavaScript [sol1-JavaScript]\nconst dirs = [\n    [1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]\n];\n\nfunction flipChess(chessboard) {\n    let res = 0;\n    for (let i = 0; i < chessboard.length; ++i) {\n        for (let j = 0; j < chessboard[0].length; ++j) {\n            if (chessboard[i][j] === '.') {\n                res = Math.max(res, bfs(chessboard, i, j));\n            }\n        }\n    }\n    return res;\n}\n\nfunction bfs(chessboard, px, py) {\n    const board = [];\n    for (let i = 0; i < chessboard.length; ++i) {\n        board[i] = chessboard[i].split('');\n    }\n    let cnt = 0;\n    const queue = [];\n    queue.push([px, py]);\n    board[px][py] = 'X';\n    const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [-1, 1], [1, -1], [1, 1]];\n    while (queue.length > 0) {\n        const t = queue.shift();\n        for (let i = 0; i < 8; ++i) {\n            if (judge(board, t[0], t[1], dirs[i][0], dirs[i][1])) {\n                let x = t[0] + dirs[i][0], y = t[1] + dirs[i][1];\n                while (board[x][y] !== 'X') {\n                    queue.push([x, y]);\n                    board[x][y] = 'X';\n                    x += dirs[i][0];\n                    y += dirs[i][1];\n                    ++cnt;\n                }\n            }\n        }\n    }\n    return cnt;\n}\n\nfunction judge(board, x, y, dx, dy) {\n    x += dx;\n    y += dy;\n    while (0 <= x && x < board.length && 0 <= y && y < board[0].length) {\n        if (board[x][y] === 'X') {\n            return true;\n        } else if (board[x][y] === '.') {\n            return false;\n        }\n        x += dx;\n        y += dy;\n    }\n    return false;\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O(n^2 \\times m^2 \\times \\max\\{n, m\\})$，其中 $n$，$m$ 为给定棋盘的行列数。最多有 $n \\times m$ 个初始放置黑棋的位置，每一个位置往 $8$ 个方向进行判断是否能翻转白棋的时间复杂度为 $O(\\max\\{n, m\\})$，所以放置初始黑棋后进行「广度优先搜索」的时间复杂度为 $O(n \\times m \\times \\max\\{n, m\\})$。\n- 空间复杂度：$O(n^2 \\times m^2)$，其中 $n$，$m$ 为给定棋盘的行列数。主要为每次「广度优先搜索」对初始棋盘进行复制和队列的空间开销。",
+            "slateValue": "",
+            "slug": "hei-bai-fan-zhuan-qi-by-leetcode-solutio-1gl9",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "gAlMj5",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 22,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Breadth-First Search",
+                    "nameTranslated": "广度优先搜索",
+                    "slug": "breadth-first-search",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Matrix",
+                    "nameTranslated": "矩阵",
+                    "slug": "matrix",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-06-20T03:13:46.772924+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：广度优先搜索 思路与算法 题目给出一个大小为 $n \\times m$ 的黑白棋盘 $\\textit{chessboard}$，其中黑棋用 $\\text{X'}$ 表示，白棋用 $\\text{O'}$ 表示，空余位置用 $\\text{`.'}$ 表示。现在我们可以在棋盘中的一个空余位置下一个黑棋，现在我们称「翻",
+            "topic": {
+                "id": 2314858,
+                "subscribed": false,
+                "commentCount": 49,
+                "viewCount": 854,
+                "post": {
+                    "id": 4361993,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 29,
+            "isEditorsPick": false,
+            "hitCount": 10729,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "fHi6rV",
+                "questionFrontendId": "LCP 41"
+            },
+            "next": {
+                "slug": "python3javacgo-yi-ti-yi-jie-bfs-by-lcbin-e4vo",
+                "title": "[Python3/Java/C++/Go] 一题一解：BFS"
+            },
+            "prev": null
+        }
+    }
+}

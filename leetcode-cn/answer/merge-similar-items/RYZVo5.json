@@ -1,0 +1,138 @@
+{
+    "data": {
+        "solutionArticle": {
+            "ipRegion": "未知归属地",
+            "rewardEnabled": null,
+            "canEditReward": false,
+            "uuid": "RYZVo5",
+            "title": "合并相似的物品",
+            "content": "#### 方法一：哈希表\n\n**思路与算法**\n\n我们建立一个哈希表，其键值表示物品价值，其值为对应价值物品的重量之和。依次遍历 $\\textit{items}_1$ 和 $\\textit{items}_2$ 中的每一项物品，同时更新哈希表。最后，我们取出哈希表中的每一个键值对放入数组，对数组按照 $\\textit{value}$ 值排序即可。\n\n有些语言可以在维护键值对的同时，对键值对按照「键」进行排序，比如 $\\text{C++}$ 中的 $\\text{std::map}$，这样我们可以省略掉最后对数组的排序过程。\n\n**代码**\n\n```Python [sol1-Python3]\nclass Solution:\n    def mergeSimilarItems(self, items1: List[List[int]], items2: List[List[int]]) -> List[List[int]]:\n        map = Counter()\n        for a, b in items1:\n            map[a] += b\n        for a, b in items2:\n            map[a] += b\n        return sorted([a, b] for a, b in map.items())\n```\n\n```C++ [sol1-C++]\nclass Solution {\npublic:\n    vector<vector<int>> mergeSimilarItems(vector<vector<int>>& items1, vector<vector<int>>& items2) {\n        map<int, int> mp;\n        for (auto &v : items1) {\n            mp[v[0]] += v[1];\n        }\n        for (auto &v : items2) {\n            mp[v[0]] += v[1];\n        }\n\n        vector<vector<int>> res;\n        for (auto &[k, v] : mp) {\n            res.push_back({k, v});\n        }\n        return res;\n    }\n};\n```\n\n```Java [sol1-Java]\nclass Solution {\n    public List<List<Integer>> mergeSimilarItems(int[][] items1, int[][] items2) {\n        Map<Integer, Integer> map = new HashMap<Integer, Integer>();\n        for (int[] v : items1) {\n            map.put(v[0], map.getOrDefault(v[0], 0) + v[1]);\n        }\n        for (int[] v : items2) {\n            map.put(v[0], map.getOrDefault(v[0], 0) + v[1]);\n        }\n\n        List<List<Integer>> res = new ArrayList<List<Integer>>();\n        for (Map.Entry<Integer, Integer> entry : map.entrySet()) {\n            int k = entry.getKey(), v = entry.getValue();\n            List<Integer> pair = new ArrayList<Integer>();\n            pair.add(k);\n            pair.add(v);\n            res.add(pair);\n        }\n        Collections.sort(res, (a, b) -> a.get(0) - b.get(0));\n        return res;\n    }\n}\n```\n\n```C# [sol1-C#]\npublic class Solution {\n    public IList<IList<int>> MergeSimilarItems(int[][] items1, int[][] items2) {\n        IDictionary<int, int> dictionary = new Dictionary<int, int>();\n        foreach (int[] v in items1) {\n            dictionary.TryAdd(v[0], 0);\n            dictionary[v[0]] += v[1];\n        }\n        foreach (int[] v in items2) {\n            dictionary.TryAdd(v[0], 0);\n            dictionary[v[0]] += v[1];\n        }\n\n        IList<IList<int>> res = new List<IList<int>>();\n        foreach (KeyValuePair<int, int> kv in dictionary) {\n            int k = kv.Key, v = kv.Value;\n            res.Add(new List<int>{k, v});\n        }\n        ((List<IList<int>>) res).Sort((a, b) => a[0] - b[0]);\n        return res;\n    }\n}\n```\n\n```C [sol1-C]\ntypedef struct {\n    int key;\n    int val;\n    UT_hash_handle hh;\n} HashItem; \n\nHashItem *hashFindItem(HashItem **obj, int key) {\n    HashItem *pEntry = NULL;\n    HASH_FIND_INT(*obj, &key, pEntry);\n    return pEntry;\n}\n\nbool hashAddItem(HashItem **obj, int key, int val) {\n    if (hashFindItem(obj, key)) {\n        return false;\n    }\n    HashItem *pEntry = (HashItem *)malloc(sizeof(HashItem));\n    pEntry->key = key;\n    pEntry->val = val;\n    HASH_ADD_INT(*obj, key, pEntry);\n    return true;\n}\n\nbool hashSetItem(HashItem **obj, int key, int val) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        hashAddItem(obj, key, val);\n    } else {\n        pEntry->val = val;\n    }\n    return true;\n}\n\nint hashGetItem(HashItem **obj, int key, int defaultVal) {\n    HashItem *pEntry = hashFindItem(obj, key);\n    if (!pEntry) {\n        return defaultVal;\n    }\n    return pEntry->val;\n}\n\nvoid hashFree(HashItem **obj) {\n    HashItem *curr = NULL, *tmp = NULL;\n    HASH_ITER(hh, *obj, curr, tmp) {\n        HASH_DEL(*obj, curr);  \n        free(curr);             \n    }\n}\n\nstatic int cmp(const void *pa, const void *pb) {\n    int *a = *(int **)pa;\n    int *b = *(int **)pb;\n    return a[0] - b[0];\n}\n\nint** mergeSimilarItems(int** items1, int items1Size, int* items1ColSize, int** items2, int items2Size, int* items2ColSize, int* returnSize, int** returnColumnSizes) {\n    HashItem *mp = NULL;\n    for (int i = 0; i < items1Size; i++) {\n        hashSetItem(&mp, items1[i][0], items1[i][1] + hashGetItem(&mp, items1[i][0], 0));\n    }\n    for (int i = 0; i < items2Size; i++) {\n        hashSetItem(&mp, items2[i][0], items2[i][1] + hashGetItem(&mp, items2[i][0], 0));\n    }\n    int len = HASH_COUNT(mp);\n    int **res = (int **)malloc(sizeof(int *) * len);\n    for (int i = 0; i < len; i++) {\n        res[i] = (int *)malloc(sizeof(int) * 2);\n    }\n    \n    int pos = 0;\n    HashItem *pEntry = NULL;\n    for (pEntry = mp; pEntry != NULL; pEntry = pEntry->hh.next) {\n        res[pos][0] = pEntry->key;\n        res[pos][1] = pEntry->val;\n        pos++;\n    }\n    qsort(res, len, sizeof(int *), cmp);\n    *returnSize = len;\n    *returnColumnSizes = (int *)malloc(sizeof(int) * len);\n    for (int i = 0; i < len; i++) {\n        (*returnColumnSizes)[i] = 2;\n    }\n    return res;\n}\n```\n\n```JavaScript [sol1-JavaScript]\nvar mergeSimilarItems = function(items1, items2) {\n    const map = new Map();\n    for (const v of items1) {\n        map.set(v[0], (map.get(v[0]) || 0) + v[1]);\n    }\n    for (const v of items2) {\n        map.set(v[0], (map.get(v[0]) || 0) + v[1]);\n    }\n\n    const res = [];\n    for (const [k, v] of map.entries()) {\n        const pair = [];\n        pair.push(k);\n        pair.push(v);\n        res.push(pair);\n    }\n    res.sort((a, b) => a[0] - b[0]);\n    return res;\n};\n```\n\n```go [sol1-Golang]\nfunc mergeSimilarItems(item1, item2 [][]int) [][]int {\n    mp := map[int]int{}\n    for _, a := range item1 {\n        mp[a[0]] += a[1]\n    }\n    for _, a := range item2 {\n        mp[a[0]] += a[1]\n    }\n    var ans [][]int\n    for a, b := range mp {\n        ans = append(ans, []int{a, b})\n    }\n    sort.Slice(ans, func(i, j int) bool {\n        return ans[i][0] < ans[j][0]\n    })\n    return ans\n}\n```\n\n**复杂度分析**\n\n- 时间复杂度：$O((n + m)\\log (n + m))$，其中 $n$ 是 $\\textit{items}_1$ 的长度，$m$ 是 $\\textit{items}_2$ 的长度。更新哈希表的时间复杂度为 $O(n + m)$，最后排序的时间复杂度为 $(n + m)\\log (n + m)$，所以总的时间复杂度为 $(n + m)\\log (n + m)$。如果使用有序容器（例如 $\\text{C++}$ 中的 $\\text{std::map}$），其插入和查询的时间复杂度为 $O(\\log (n + m))$，故总体时间复杂度仍然是 $O((n + m)\\log (n + m))$。\n\n- 空间复杂度：$O(n + m)$。哈希表所使用的空间为 $O(n + m)$。如果使用有序容器（例如 $\\text{C++}$ 中的 $\\text{std::map}$），其内部实现为红黑树，空间复杂度为 $O(n + m)$。",
+            "slateValue": "",
+            "slug": "he-bing-xiang-si-de-wu-pin-by-leetcode-s-ywx0",
+            "sunk": false,
+            "chargeType": "FREE",
+            "status": "PUBLISHED",
+            "identifier": "RYZVo5",
+            "canEdit": false,
+            "canSee": true,
+            "reactionType": null,
+            "reactionsV2": [
+                {
+                    "count": 25,
+                    "reactionType": "UPVOTE"
+                }
+            ],
+            "tags": [
+                {
+                    "name": "Array",
+                    "nameTranslated": "数组",
+                    "slug": "array",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Hash Table",
+                    "nameTranslated": "哈希表",
+                    "slug": "hash-table",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Ordered Set",
+                    "nameTranslated": "有序集合",
+                    "slug": "ordered-set",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "Sorting",
+                    "nameTranslated": "排序",
+                    "slug": "sorting",
+                    "tagType": "TOPIC"
+                },
+                {
+                    "name": "C",
+                    "nameTranslated": "",
+                    "slug": "c",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C++",
+                    "nameTranslated": "",
+                    "slug": "cpp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "C#",
+                    "nameTranslated": "",
+                    "slug": "csharp",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Go",
+                    "nameTranslated": "",
+                    "slug": "golang",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Java",
+                    "nameTranslated": "",
+                    "slug": "java",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "JavaScript",
+                    "nameTranslated": "",
+                    "slug": "javascript",
+                    "tagType": "LANGUAGE"
+                },
+                {
+                    "name": "Python",
+                    "nameTranslated": "",
+                    "slug": "python",
+                    "tagType": "LANGUAGE"
+                }
+            ],
+            "createdAt": "2023-02-27T10:18:24.240009+00:00",
+            "thumbnail": "",
+            "author": {
+                "username": "LeetCode-Solution",
+                "certificationLevel": "OFFICIAL",
+                "isDiscussAdmin": true,
+                "isDiscussStaff": true,
+                "profile": {
+                    "userAvatar": "https://assets.leetcode.cn/aliyun-lc-upload/users/leetcode-solution/avatar_1582018938.png",
+                    "userSlug": "leetcode-solution",
+                    "realName": "力扣官方题解",
+                    "reputation": 245
+                }
+            },
+            "summary": "方法一：哈希表 思路与算法 我们建立一个哈希表，其键值表示物品价值，其值为对应价值物品的重量之和。依次遍历 $\\textit{items}_1$ 和 $\\textit{items}_2$ 中的每一项物品，同时更新哈希表。最后，我们取出哈希表中的每一个键值对放入数组，对数组按照 $\\textit{value}$ 值排序即",
+            "topic": {
+                "id": 2136734,
+                "subscribed": false,
+                "commentCount": 74,
+                "viewCount": 1124,
+                "post": {
+                    "id": 4072625,
+                    "status": "Prepub",
+                    "voteStatus": 0,
+                    "isOwnPost": false
+                }
+            },
+            "byLeetcode": true,
+            "isMyFavorite": false,
+            "isMostPopular": false,
+            "favoriteCount": 22,
+            "isEditorsPick": false,
+            "hitCount": 14843,
+            "videosInfo": [],
+            "question": {
+                "titleSlug": "merge-similar-items",
+                "questionFrontendId": "2363"
+            },
+            "next": {
+                "slug": "mo-ni-by-endlesscheng-tz4z",
+                "title": "语法题（Python/Java/C++/Go）"
+            },
+            "prev": null
+        }
+    }
+}
