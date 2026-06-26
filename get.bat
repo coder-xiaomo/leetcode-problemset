@@ -12,10 +12,12 @@ git add .
 git commit -m "update"
 git gc
 
-git remote add origin https://gitee.com/coder-xiaomo/leetcode-problemset
+@REM git remote add origin https://gitee.com/coder-xiaomo/leetcode-problemset
+git remote add origin git@gitee.com:coder-xiaomo/leetcode-problemset.git
 git push origin
 
-git remote add github https://github.com/coder-xiaomo/leetcode-problemset
+@REM git remote add github https://github.com/coder-xiaomo/leetcode-problemset
+git remote add github git@github.com:coder-xiaomo/leetcode-problemset.git
 git push github
 
 pause
